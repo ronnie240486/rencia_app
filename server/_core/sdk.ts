@@ -38,20 +38,33 @@ class OAuthService {
     }
   }
 
-  private decodeState(state: string): string {
-    const redirectUri = atob(state);
-    return redirectUri;
+  private decodeState(state: string): { redirectUri: string; returnPath: string } {
+    try {
+      const decoded = atob(state);
+      const parsed = JSON.parse(decoded);
+      if (parsed && typeof parsed.redirectUri === "string") {
+        return {
+          redirectUri: parsed.redirectUri,
+          returnPath: typeof parsed.returnPath === "string" ? parsed.returnPath : "/dashboard",
+        };
+      }
+      // Fallback: old format was just the redirectUri string
+      return { redirectUri: decoded, returnPath: "/dashboard" };
+    } catch {
+      return { redirectUri: atob(state), returnPath: "/dashboard" };
+    }
   }
 
   async getTokenByCode(
     code: string,
     state: string
   ): Promise<ExchangeTokenResponse> {
+    const { redirectUri } = this.decodeState(state);
     const payload: ExchangeTokenRequest = {
       clientId: ENV.appId,
       grantType: "authorization_code",
       code,
-      redirectUri: this.decodeState(state),
+      redirectUri,
     };
 
     const { data } = await this.client.post<ExchangeTokenResponse>(
@@ -111,6 +124,22 @@ class SDKServer {
     if (set.has("REGISTERED_PLATFORM_GITHUB")) return "github";
     const first = Array.from(set)[0];
     return first ? first.toLowerCase() : null;
+  }
+
+  /**
+   * Extract the returnPath from the OAuth state parameter
+   */
+  parseReturnPath(state: string): string {
+    try {
+      const decoded = atob(state);
+      const parsed = JSON.parse(decoded);
+      if (parsed && typeof parsed.returnPath === "string" && parsed.returnPath.startsWith("/")) {
+        return parsed.returnPath;
+      }
+    } catch {
+      // ignore
+    }
+    return "/dashboard";
   }
 
   /**

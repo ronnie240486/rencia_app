@@ -27,3 +27,6 @@
 - [x] Estados de loading e erro em todas as páginas
 - [x] Testes Vitest para procedures principais
 - [x] Checkpoint final salvo
+
+## Bugs
+- [x] Após login OAuth, usuário é redirecionado para a tela de boas-vindas em vez do dashboard
