@@ -78,7 +78,7 @@ export default function Profile() {
               </div>
               <p className="text-sm font-semibold text-foreground">Erro ao carregar perfil</p>
             </div>
-            <p className="text-xs text-muted-foreground">{error.message}</p>
+            <p className="text-xs text-muted-foreground"><span>{error.message}</span></p>
           </div>
         </div>
       </AdminLayout>
@@ -135,8 +135,8 @@ export default function Profile() {
 
         {/* Info Card */}
         <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
-          <h3 className="text-sm font-semibold text-foreground mb-1">Informações Pessoais</h3>
-          <p className="text-xs text-muted-foreground mb-4">Dados da sua conta no sistema</p>
+          <h3 className="text-sm font-semibold text-foreground mb-1"><span>{"Informações Pessoais"}</span></h3>
+          <p className="text-xs text-muted-foreground mb-4"><span>{"Dados da sua conta no sistema"}</span></p>
 
           {isLoading ? (
             <div className="space-y-4">
@@ -175,14 +175,14 @@ export default function Profile() {
 
         {/* Session Card */}
         <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
-          <h3 className="text-sm font-semibold text-foreground mb-1">Sessão</h3>
-          <p className="text-xs text-muted-foreground mb-4">Gerencie sua sessão atual</p>
+          <h3 className="text-sm font-semibold text-foreground mb-1"><span>{"Sessão"}</span></h3>
+          <p className="text-xs text-muted-foreground mb-4"><span>{"Gerencie sua sessão atual"}</span></p>
           <button
             onClick={() => logout()}
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 border border-destructive/30 text-destructive hover:bg-destructive/5"
           >
             <LogOut size={15} />
-            <span>Encerrar Sessão</span>
+            <span>{"Encerrar Sessão"}</span>
           </button>
         </div>
       </div>

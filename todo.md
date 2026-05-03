@@ -64,4 +64,4 @@
 - [x] Integrar APK com backend publicado (substituir URL do servidor)
 
 ## Bugs (03/05 - fase 2)
-- [ ] Erro removeChild em todas as páginas ao clicar em botões (extensões de browser conflitam com React)
+- [x] Erro removeChild em todas as páginas ao clicar em botões (extensões de browser conflitam com React)

@@ -35,7 +35,7 @@ export default function Login() {
           <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "oklch(0.72 0.15 255 / 0.2)" }}>
             <Shield size={18} style={{ color: "oklch(0.72 0.15 255)" }} />
           </div>
-          <span className="text-white font-semibold tracking-tight">Rencia Admin</span>
+          <span className="text-white font-semibold tracking-tight"><span>{"Rencia Admin"}</span></span>
         </div>
 
         <div>
@@ -61,8 +61,8 @@ export default function Login() {
                   {item.icon}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">{item.title}</p>
-                  <p className="text-xs" style={{ color: "oklch(0.55 0.03 255)" }}>{item.desc}</p>
+                  <p className="text-sm font-medium text-white"><span>{item.title}</span></p>
+                  <p className="text-xs" style={{ color: "oklch(0.55 0.03 255)" }}><span>{item.desc}</span></p>
                 </div>
               </div>
             ))}
@@ -70,7 +70,7 @@ export default function Login() {
         </div>
 
         <p className="text-xs" style={{ color: "oklch(0.42 0.03 255)" }}>
-          © {new Date().getFullYear()} Rencia App. Todos os direitos reservados.
+          <span>{"\u00a9 "}</span><span>{new Date().getFullYear()}</span><span>{" Rencia App. Todos os direitos reservados."}</span>
         </p>
       </div>
 
@@ -87,10 +87,10 @@ export default function Login() {
 
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-foreground tracking-tight mb-2">
-              Bem-vindo de volta
+              <span>{"Bem-vindo de volta"}</span>
             </h2>
             <p className="text-sm text-muted-foreground">
-              Faça login para acessar o painel administrativo.
+              <span>{"Faça login para acessar o painel administrativo."}</span>
             </p>
           </div>
 
@@ -105,7 +105,7 @@ export default function Login() {
               }}
             >
               <Shield size={16} />
-              Entrar com Manus OAuth
+              <span>{"Entrar com Manus OAuth"}</span>
               <ChevronRight size={15} className="ml-auto" />
             </a>
           </div>
