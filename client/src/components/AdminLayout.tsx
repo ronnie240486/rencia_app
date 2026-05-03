@@ -86,9 +86,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             <Shield size={16} className="text-sidebar-primary" />
           </div>
           <div>
-            <span className="text-sidebar-foreground font-semibold text-sm tracking-tight">Rencia</span>
+            <span className="text-sidebar-foreground font-semibold text-sm tracking-tight">Ouro Revenda</span>
             <p className="text-xs text-sidebar-muted-foreground" style={{ color: "var(--color-sidebar-muted, oklch(0.55 0.02 255))" }}>
-              Admin Panel
+              Painel Admin
             </p>
           </div>
         </div>
