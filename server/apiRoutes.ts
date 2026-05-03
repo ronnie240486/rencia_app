@@ -135,7 +135,19 @@ export function registerApiRoutes(app: Express) {
         // Usar decodeFromApk para remover a key antes de decodificar
         const parsed = decodeFromApk(String(body.data));
         if (parsed) {
-          macAddress = (parsed.app_device_id as string) ?? null;
+          // O APK envia o android_id codificado em Base64 como app_device_id
+          // Precisamos decodificar esse Base64 para obter o ID real do dispositivo
+          const rawDeviceId = (parsed.app_device_id as string) ?? null;
+          if (rawDeviceId) {
+            try {
+              // O APK envia android_id codificado em Base64
+              // O android_id pode ter bytes não-ASCII, então usamos o hex como ID único
+              const hexId = Buffer.from(rawDeviceId.replace(/\s/g, ""), "base64").toString("hex");
+              macAddress = hexId.length > 0 ? hexId.toUpperCase() : rawDeviceId;
+            } catch {
+              macAddress = rawDeviceId;
+            }
+          }
         } else {
           // Fallback: tentar Base64 simples (compatibilidade)
           try {
