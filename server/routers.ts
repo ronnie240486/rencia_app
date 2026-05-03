@@ -44,6 +44,14 @@ export const appRouter = router({
         return listDevices(ctx.user.id, input);
       }),
 
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const device = await getDeviceById(input.id, ctx.user.id);
+        if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
+        return device;
+      }),
+
     recentList: protectedProcedure
       .input(z.object({
         search: z.string().optional().default(""),
@@ -124,14 +132,6 @@ export const appRouter = router({
       await deleteExpiredDevices(ctx.user.id);
       return { success: true };
     }),
-
-    getById: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .query(async ({ ctx, input }) => {
-        const device = await getDeviceById(input.id, ctx.user.id);
-        if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
-        return device;
-      }),
   }),
 
   // ─── Apps ──────────────────────────────────────────────────────────────────

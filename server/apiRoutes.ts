@@ -3,41 +3,221 @@
  * Todos os endpoints retornam JSON e não requerem autenticação OAuth.
  *
  * Endpoints disponíveis:
+ *   POST /api/guim.php
+ *        → Endpoint principal do APK (compatível com IBOController)
+ *        → Recebe: { "data": "<BASE64 de { app_device_id, app_type, version, is_paid }>" }
+ *        → Retorna: AppInfoModel com urls, expire_date, mac_registered, etc.
+ *
  *   GET  /api/device/check?mac=XX:XX:XX:XX:XX:XX
  *        → Verifica se um device está cadastrado e retorna seus dados
  *
- *   GET  /api/device/info?mac=XX:XX:XX:XX:XX:XX
- *        → Retorna informações completas do device (app, url, status, expiração)
+ *   GET  /api/health
+ *        → Health check
  */
 
 import type { Express, Request, Response } from "express";
 import { getDb } from "./db";
 import { devices } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export function registerApiRoutes(app: Express) {
+
+  /**
+   * POST /api/guim.php
+   *
+   * Endpoint principal compatível com o APK BoxV3.
+   * O APK envia um JSON com campo "data" contendo Base64 de:
+   *   { app_device_id: "<MAC>", app_type: "<tipo>", version: "<versão>", is_paid: false }
+   *
+   * Retorna AppInfoModel compatível com o APK:
+   * {
+   *   mac_registered: true/false,
+   *   mac_address: "XX:XX:XX:XX:XX:XX",
+   *   expire_date: "2025-12-31",
+   *   urls: [{ url: "...", username: "", password: "", type: "m3u_plus" }],
+   *   is_trial: 0,
+   *   lock: 0,
+   *   plan_id: "...",
+   *   device_key: "...",
+   *   languages: [],
+   *   apk_link: "",
+   *   app_version: ""
+   * }
+   */
+  app.post("/api/guim.php", async (req: Request, res: Response) => {
+    try {
+      const body = req.body;
+
+      // O APK envia { data: "<BASE64>" }
+      let macAddress: string | null = null;
+
+      if (body && body.data) {
+        try {
+          // Decodificar Base64
+          const decoded = Buffer.from(body.data, "base64").toString("utf-8");
+          const parsed = JSON.parse(decoded);
+          macAddress = parsed.app_device_id ?? null;
+        } catch {
+          // Se não conseguir decodificar, tentar pegar direto
+          macAddress = body.app_device_id ?? body.mac ?? null;
+        }
+      } else if (body && body.app_device_id) {
+        macAddress = body.app_device_id;
+      }
+
+      if (!macAddress) {
+        res.status(400).json({
+          mac_registered: false,
+          error: "MAC address não fornecido.",
+        });
+        return;
+      }
+
+      // Normalizar MAC: remover espaços, converter para maiúsculas
+      macAddress = macAddress.trim().toUpperCase();
+
+      const db = await getDb();
+      if (!db) {
+        res.status(503).json({ mac_registered: false, error: "Banco de dados indisponível." });
+        return;
+      }
+
+      const result = await db
+        .select()
+        .from(devices)
+        .where(eq(devices.mac, macAddress))
+        .limit(1);
+
+      // Device não encontrado
+      if (result.length === 0) {
+        res.json({
+          mac_registered: false,
+          mac_address: macAddress,
+          expire_date: null,
+          urls: [],
+          is_trial: 1,
+          lock: 1,
+          plan_id: "",
+          device_key: "",
+          languages: [],
+          apk_link: "",
+          app_version: "",
+        });
+        return;
+      }
+
+      const device = result[0];
+      const now = new Date();
+      const expired = device.dataExpiracao != null && new Date(device.dataExpiracao) < now;
+
+      // Atualizar status automaticamente se expirado
+      if (expired && device.status !== "Expirado") {
+        await db
+          .update(devices)
+          .set({ status: "Expirado" })
+          .where(eq(devices.id, device.id));
+        device.status = "Expirado";
+      }
+
+      const isAllowed = device.status === "Liberado";
+
+      // Montar lista de URLs para o APK
+      const urls: Array<{ url: string; username: string; password: string; type: string }> = [];
+      if (device.urlM3u8 && isAllowed) {
+        urls.push({
+          url: device.urlM3u8,
+          username: "",
+          password: "",
+          type: "m3u_plus",
+        });
+      }
+
+      // Formatar data de expiração
+      const expireDate = device.dataExpiracao
+        ? new Date(device.dataExpiracao).toISOString().split("T")[0]
+        : null;
+
+      res.json({
+        mac_registered: isAllowed,
+        mac_address: device.mac,
+        expire_date: expireDate,
+        urls,
+        is_trial: 0,
+        lock: isAllowed ? 0 : 1,
+        plan_id: device.tipo ?? "Usuario",
+        device_key: String(device.id),
+        languages: [],
+        apk_link: "",
+        app_version: "",
+        // Campos extras para compatibilidade
+        status: device.status,
+        nome_server: device.nomeServer,
+        app: device.app ?? "",
+        url_epg: device.urlEpg ?? "",
+      });
+
+    } catch (error) {
+      console.error("[API] /api/guim.php error:", error);
+      res.status(500).json({ mac_registered: false, error: "Erro interno do servidor." });
+    }
+  });
+
+  /**
+   * GET /api/guim.php
+   * Suporte a GET para compatibilidade com alguns clientes
+   */
+  app.get("/api/guim.php", async (req: Request, res: Response) => {
+    const mac = typeof req.query.mac === "string" ? req.query.mac.trim().toUpperCase() : null;
+
+    if (!mac) {
+      res.status(400).json({ mac_registered: false, error: "Parâmetro 'mac' é obrigatório." });
+      return;
+    }
+
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.status(503).json({ mac_registered: false, error: "Banco de dados indisponível." });
+        return;
+      }
+
+      const result = await db.select().from(devices).where(eq(devices.mac, mac)).limit(1);
+
+      if (result.length === 0) {
+        res.json({ mac_registered: false, mac_address: mac, urls: [], is_trial: 1, lock: 1 });
+        return;
+      }
+
+      const device = result[0];
+      const isAllowed = device.status === "Liberado";
+      const urls = device.urlM3u8 && isAllowed
+        ? [{ url: device.urlM3u8, username: "", password: "", type: "m3u_plus" }]
+        : [];
+
+      res.json({
+        mac_registered: isAllowed,
+        mac_address: device.mac,
+        expire_date: device.dataExpiracao
+          ? new Date(device.dataExpiracao).toISOString().split("T")[0]
+          : null,
+        urls,
+        is_trial: 0,
+        lock: isAllowed ? 0 : 1,
+        plan_id: device.tipo ?? "Usuario",
+        device_key: String(device.id),
+        status: device.status,
+        nome_server: device.nomeServer,
+        app: device.app ?? "",
+      });
+    } catch (error) {
+      console.error("[API] GET /api/guim.php error:", error);
+      res.status(500).json({ mac_registered: false, error: "Erro interno do servidor." });
+    }
+  });
+
   /**
    * GET /api/device/check?mac=XX:XX:XX:XX:XX:XX
-   *
-   * Retorna se o device está liberado, bloqueado ou não cadastrado.
-   * Usado pelo APK para verificar autorização de acesso.
-   *
-   * Resposta de sucesso (device encontrado):
-   * {
-   *   "found": true,
-   *   "status": "Liberado" | "Bloqueado" | "Expirado",
-   *   "allowed": true | false,
-   *   "mac": "XX:XX:XX:XX:XX:XX",
-   *   "nomeServer": "...",
-   *   "tipo": "Usuario" | "Revenda" | "UltraMaster" | "Master",
-   *   "app": "...",
-   *   "urlM3u8": "...",
-   *   "urlEpg": "...",
-   *   "dataExpiracao": "2025-12-31T00:00:00.000Z" | null
-   * }
-   *
-   * Resposta quando não encontrado:
-   * { "found": false, "allowed": false, "message": "Device não cadastrado." }
+   * Endpoint simplificado para verificação de device.
    */
   app.get("/api/device/check", async (req: Request, res: Response) => {
     const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : null;
@@ -54,32 +234,19 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
-      const result = await db
-        .select()
-        .from(devices)
-        .where(eq(devices.mac, mac))
-        .limit(1);
+      const result = await db.select().from(devices).where(eq(devices.mac, mac)).limit(1);
 
       if (result.length === 0) {
-        res.json({
-          found: false,
-          allowed: false,
-          message: "Device não cadastrado.",
-        });
+        res.json({ found: false, allowed: false, message: "Device não cadastrado." });
         return;
       }
 
       const device = result[0];
       const now = new Date();
-      const expired =
-        device.dataExpiracao != null && new Date(device.dataExpiracao) < now;
+      const expired = device.dataExpiracao != null && new Date(device.dataExpiracao) < now;
 
-      // Se expirado, atualiza o status automaticamente
       if (expired && device.status !== "Expirado") {
-        await db
-          .update(devices)
-          .set({ status: "Expirado" })
-          .where(eq(devices.id, device.id));
+        await db.update(devices).set({ status: "Expirado" }).where(eq(devices.id, device.id));
         device.status = "Expirado";
       }
 
@@ -94,12 +261,8 @@ export function registerApiRoutes(app: Express) {
         urlM3u8: device.urlM3u8 ?? null,
         urlEpg: device.urlEpg ?? null,
         modoSelecao: device.modoSelecao,
-        dataExpiracao: device.dataExpiracao
-          ? new Date(device.dataExpiracao).toISOString()
-          : null,
-        dataCadastro: device.dataCadastro
-          ? new Date(device.dataCadastro).toISOString()
-          : null,
+        dataExpiracao: device.dataExpiracao ? new Date(device.dataExpiracao).toISOString() : null,
+        dataCadastro: device.dataCadastro ? new Date(device.dataCadastro).toISOString() : null,
       });
     } catch (error) {
       console.error("[API] /api/device/check error:", error);
@@ -109,7 +272,6 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * GET /api/health
-   * Endpoint de health check — confirma que o servidor está rodando.
    */
   app.get("/api/health", (_req: Request, res: Response) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });

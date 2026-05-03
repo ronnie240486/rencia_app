@@ -57,3 +57,8 @@
 - [x] Formulário de edição de device
 - [x] Corrigir bug de autenticação (trust proxy / cookie - sameSite=lax em dev proxy)
 - [x] Header com ID do usuário, Validade e Limite de Devices
+
+## Novas Funcionalidades (03/05)
+- [ ] Renomear IBO Revenda para Ouro Revenda no schema, backend e frontend
+- [ ] Criar página de edição de device (/users/:id/edit)
+- [ ] Integrar APK com backend publicado (substituir URL do servidor)
