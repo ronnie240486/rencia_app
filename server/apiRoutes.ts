@@ -240,7 +240,7 @@ export function registerApiRoutes(app: Express) {
           device_key: "",
           languages: [],
           apk_link: "",
-          app_version: "",
+          app_version: "5.0",
         };
         res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
         return;
@@ -262,7 +262,7 @@ export function registerApiRoutes(app: Express) {
           device_key: "",
           languages: [],
           apk_link: "",
-          app_version: "",
+          app_version: "5.0",
         };
         res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
         return;
@@ -298,7 +298,7 @@ export function registerApiRoutes(app: Express) {
           device_key: "",
           languages: [],
           apk_link: "",
-          app_version: "",
+          app_version: "5.0",
         };
         res.json({ data: encodeForApk(JSON.stringify(notFoundPayload)) });
         return;
@@ -360,7 +360,7 @@ export function registerApiRoutes(app: Express) {
         device_key: String(device.id),
         languages: [],
         apk_link: "",
-        app_version: "",
+        app_version: "5.0",
         // Configurações personalizáveis via painel
         trial_ended: cfg.trial_title || "Acesso Bloqueado",
         via_website: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
@@ -389,7 +389,7 @@ export function registerApiRoutes(app: Express) {
         device_key: "",
         languages: [],
         apk_link: "",
-        app_version: "",
+        app_version: "5.0",
       };
       res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
     }
