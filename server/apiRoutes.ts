@@ -18,8 +18,34 @@
 
 import type { Express, Request, Response } from "express";
 import { getDb } from "./db";
-import { devices } from "../drizzle/schema";
+import { devices, appSettings } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
+
+// Cache de configurações para evitar query no banco a cada request
+let settingsCache: Record<string, string> = {};
+let settingsCacheTime = 0;
+const SETTINGS_CACHE_TTL = 60_000; // 60 segundos
+
+async function getSettings(): Promise<Record<string, string>> {
+  const now = Date.now();
+  if (now - settingsCacheTime < SETTINGS_CACHE_TTL && Object.keys(settingsCache).length > 0) {
+    return settingsCache;
+  }
+  try {
+    const db = await getDb();
+    if (!db) return settingsCache;
+    const rows = await db.select().from(appSettings);
+    const result: Record<string, string> = {};
+    for (const row of rows) {
+      result[row.key] = row.value ?? "";
+    }
+    settingsCache = result;
+    settingsCacheTime = now;
+    return result;
+  } catch {
+    return settingsCache;
+  }
+}
 
 const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
@@ -137,18 +163,27 @@ export function registerApiRoutes(app: Express) {
         if (parsed) {
           const rawDeviceId = (parsed.app_device_id as string) ?? null;
           if (rawDeviceId) {
-            // Verificar se já é um MAC no formato XX:XX:XX:XX:XX:XX (APK v8+)
+            // Verificar se já é um MAC no formato XX:XX:XX:XX:XX:XX (sem Base64)
             const isMacFormat = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(rawDeviceId.trim());
             if (isMacFormat) {
-              // MAC real do dispositivo - usar diretamente
-              macAddress = rawDeviceId.trim().toUpperCase();
+              // MAC real do dispositivo sem codificação - usar diretamente
+              macAddress = rawDeviceId.trim().toLowerCase();
             } else {
-              // Versão antiga: android_id em Base64 - converter para hex
+              // Pode ser Base64 do MAC ou android_id em Base64
               try {
-                const hexId = Buffer.from(rawDeviceId.replace(/\s/g, ""), "base64").toString("hex");
-                macAddress = hexId.length > 0 ? hexId.toUpperCase() : rawDeviceId;
+                const decoded = Buffer.from(rawDeviceId.replace(/\s/g, ""), "base64").toString("utf-8").trim();
+                // Verificar se o Base64 decodificado é um MAC
+                const isMacDecoded = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(decoded);
+                if (isMacDecoded) {
+                  // Era Base64 do MAC real (APK v8+)
+                  macAddress = decoded.toLowerCase();
+                } else {
+                  // android_id em Base64 - converter para hex
+                  const hexId = Buffer.from(rawDeviceId.replace(/\s/g, ""), "base64").toString("hex");
+                  macAddress = hexId.length > 0 ? hexId.toLowerCase() : rawDeviceId.toLowerCase();
+                }
               } catch {
-                macAddress = rawDeviceId;
+                macAddress = rawDeviceId.toLowerCase();
               }
             }
           }
@@ -208,11 +243,22 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
+      // Busca case-insensitive: normalizar MAC para minúsculas
+      const macNormalized = macAddress.toLowerCase();
       const result = await db
         .select()
         .from(devices)
-        .where(eq(devices.mac, macAddress))
+        .where(eq(devices.mac, macNormalized))
         .limit(1);
+      // Se não encontrar em minúsculas, tentar maiúsculas (compatibilidade)
+      if (result.length === 0) {
+        const resultUpper = await db
+          .select()
+          .from(devices)
+          .where(eq(devices.mac, macAddress.toUpperCase()))
+          .limit(1);
+        if (resultUpper.length > 0) result.push(...resultUpper);
+      }
 
       // Device não encontrado
       if (result.length === 0) {
@@ -249,21 +295,35 @@ export function registerApiRoutes(app: Express) {
       const isAllowed = device.status === "Liberado";
 
       // Montar lista de URLs para o APK
-      const urls: Array<{ url: string; username: string; password: string; type: string }> = [];
+      // IMPORTANTE: o campo 'id' deve ser != '0' para o APK liberar a lista
+      const urls: Array<{ id: string; url: string; name: string; type: string; is_protected: string }> = [];
       if (device.urlM3u8 && isAllowed) {
         urls.push({
+          id: String(device.id),  // id != '0' para o APK liberar
           url: device.urlM3u8,
-          username: "",
-          password: "",
+          name: device.nomeServer || "Lista",
           type: "m3u_plus",
+          is_protected: "0",
         });
       }
 
       // Formatar data de expiração
-      const expireDate = device.dataExpiracao
-        ? new Date(device.dataExpiracao).toISOString().split("T")[0]
-        : null;
+      // Se device está liberado mas sem data, usar 1 ano no futuro como padrão
+      // O APK bloqueia se expire_date for null ou data passada
+      let expireDate: string;
+      if (device.dataExpiracao) {
+        expireDate = new Date(device.dataExpiracao).toISOString().split("T")[0];
+      } else if (isAllowed) {
+        // Sem data de expiração mas liberado: usar 1 ano no futuro
+        const oneYearFromNow = new Date();
+        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+        expireDate = oneYearFromNow.toISOString().split("T")[0];
+      } else {
+        // Bloqueado sem data: usar data passada para garantir bloqueio
+        expireDate = "2000-01-01";
+      }
 
+      const cfg = await getSettings();
       const responsePayload = {
         mac_registered: isAllowed,
         mac_address: device.mac,
@@ -276,6 +336,17 @@ export function registerApiRoutes(app: Express) {
         languages: [],
         apk_link: "",
         app_version: "",
+        // Configurações personalizáveis via painel
+        trial_ended: cfg.trial_title || "Acesso Bloqueado",
+        via_website: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
+        str_trial_description: cfg.trial_support_text || "Suporte com seu revendedor",
+        str_link: cfg.contact_website || "",
+        str_whatsapp: cfg.contact_whatsapp || "",
+        live_label: cfg.app_channels_label || "Canais",
+        movie_label: cfg.app_movies_label || "Filmes",
+        series_label: cfg.app_series_label || "Séries",
+        banner_url: cfg.trial_banner_url || "",
+        logo_url: cfg.trial_logo_url || "",
       };
 
       res.json({ data: encodeForApk(JSON.stringify(responsePayload)) });

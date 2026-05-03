@@ -1,0 +1,286 @@
+import { useState, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { Loader2, Save, Smartphone, Image, MessageSquare } from "lucide-react";
+
+const SETTING_KEYS = {
+  // Tela Trial (bloqueio)
+  trial_title: "Título da tela de bloqueio",
+  trial_subtitle: "Subtítulo / frase de impacto",
+  trial_support_text: "Texto de suporte (ex: contato WhatsApp)",
+  trial_banner_url: "URL da imagem do banner lateral (320x180px)",
+  trial_logo_url: "URL do logo superior esquerdo (home_logo)",
+  // Textos do app
+  app_channels_label: "Texto da aba Canais",
+  app_movies_label: "Texto da aba Filmes",
+  app_series_label: "Texto da aba Séries",
+  // Info de contato
+  contact_website: "URL do site (exibida na tela de bloqueio)",
+  contact_whatsapp: "WhatsApp do suporte",
+};
+
+const DEFAULT_VALUES: Record<string, string> = {
+  trial_title: "Acesso Bloqueado",
+  trial_subtitle: "🚀 Assine agora e tenha acesso ilimitado a canais, filmes e séries!",
+  trial_support_text: "Suporte com seu revendedor",
+  trial_banner_url: "",
+  trial_logo_url: "",
+  app_channels_label: "Canais",
+  app_movies_label: "Filmes",
+  app_series_label: "Séries",
+  contact_website: "",
+  contact_whatsapp: "",
+};
+
+export default function Settings() {
+  const { data: settings, isLoading, refetch } = trpc.settings.getAll.useQuery();
+  const updateMany = trpc.settings.updateMany.useMutation({
+    onSuccess: () => {
+      toast.success("Configurações salvas! As alterações serão aplicadas no próximo acesso do APK.");
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const [form, setForm] = useState<Record<string, string>>(DEFAULT_VALUES);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    if (settings) {
+      setForm(prev => {
+        const merged = { ...DEFAULT_VALUES, ...prev };
+        for (const [k, v] of Object.entries(settings)) {
+          if (v !== undefined && v !== null) merged[k] = v;
+        }
+        return merged;
+      });
+    }
+  }, [settings]);
+
+  const handleChange = (key: string, value: string) => {
+    setForm(prev => ({ ...prev, [key]: value }));
+    setDirty(true);
+  };
+
+  const handleSave = () => {
+    updateMany.mutate(form);
+    setDirty(false);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-muted-foreground" size={32} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto py-8 px-4 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Configurações do App</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Personalize os textos e imagens exibidos no APK para seus clientes.
+          </p>
+        </div>
+        <Button onClick={handleSave} disabled={!dirty || updateMany.isPending} className="gap-2">
+          {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          Salvar Tudo
+        </Button>
+      </div>
+
+      <Tabs defaultValue="trial">
+        <TabsList className="grid grid-cols-3 w-full">
+          <TabsTrigger value="trial" className="gap-2">
+            <Smartphone size={14} /> Tela de Bloqueio
+          </TabsTrigger>
+          <TabsTrigger value="labels" className="gap-2">
+            <MessageSquare size={14} /> Textos do App
+          </TabsTrigger>
+          <TabsTrigger value="images" className="gap-2">
+            <Image size={14} /> Imagens
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tela de Bloqueio (Trial) */}
+        <TabsContent value="trial" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Tela de Bloqueio</CardTitle>
+              <CardDescription>
+                Textos exibidos quando o device não está liberado no painel.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Título da tela de bloqueio</Label>
+                <Input
+                  value={form.trial_title}
+                  onChange={e => handleChange("trial_title", e.target.value)}
+                  placeholder="Ex: Acesso Bloqueado"
+                />
+                <p className="text-xs text-muted-foreground">Substitui "Trial is ended" no APK.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Frase de impacto / subtítulo</Label>
+                <Textarea
+                  value={form.trial_subtitle}
+                  onChange={e => handleChange("trial_subtitle", e.target.value)}
+                  placeholder="Ex: Assine agora e tenha acesso ilimitado!"
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">Substitui "To continue the app, please pay €7.9 via website or Google Pay."</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Texto de suporte</Label>
+                <Input
+                  value={form.trial_support_text}
+                  onChange={e => handleChange("trial_support_text", e.target.value)}
+                  placeholder="Ex: Suporte: (11) 99999-9999"
+                />
+                <p className="text-xs text-muted-foreground">Texto em amarelo abaixo do MAC address.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>URL do site (exibida na tela)</Label>
+                <Input
+                  value={form.contact_website}
+                  onChange={e => handleChange("contact_website", e.target.value)}
+                  placeholder="Ex: https://ourorevenda.manus.space"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>WhatsApp do suporte</Label>
+                <Input
+                  value={form.contact_whatsapp}
+                  onChange={e => handleChange("contact_whatsapp", e.target.value)}
+                  placeholder="Ex: 5511999999999"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Textos do App */}
+        <TabsContent value="labels" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Textos das Abas</CardTitle>
+              <CardDescription>
+                Nomes das seções exibidas no menu principal do APK.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Aba Canais</Label>
+                  <Input
+                    value={form.app_channels_label}
+                    onChange={e => handleChange("app_channels_label", e.target.value)}
+                    placeholder="Canais"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Aba Filmes</Label>
+                  <Input
+                    value={form.app_movies_label}
+                    onChange={e => handleChange("app_movies_label", e.target.value)}
+                    placeholder="Filmes"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Aba Séries</Label>
+                  <Input
+                    value={form.app_series_label}
+                    onChange={e => handleChange("app_series_label", e.target.value)}
+                    placeholder="Séries"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Imagens */}
+        <TabsContent value="images" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Imagens do App</CardTitle>
+              <CardDescription>
+                URLs das imagens exibidas no APK. Use URLs públicas (https://).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Banner lateral (320×180px)</Label>
+                <Input
+                  value={form.trial_banner_url}
+                  onChange={e => handleChange("trial_banner_url", e.target.value)}
+                  placeholder="https://exemplo.com/banner.png"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Imagem exibida no canto inferior direito da tela de bloqueio. Tamanho recomendado: 320×180px.
+                </p>
+                {form.trial_banner_url && (
+                  <img
+                    src={form.trial_banner_url}
+                    alt="Preview banner"
+                    className="mt-2 rounded border max-h-24 object-contain"
+                    onError={e => (e.currentTarget.style.display = "none")}
+                  />
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Logo superior esquerdo (home_logo)</Label>
+                <Input
+                  value={form.trial_logo_url}
+                  onChange={e => handleChange("trial_logo_url", e.target.value)}
+                  placeholder="https://exemplo.com/logo.png"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Logo exibido no canto superior esquerdo do APK. Tamanho recomendado: 320×180px.
+                </p>
+                {form.trial_logo_url && (
+                  <img
+                    src={form.trial_logo_url}
+                    alt="Preview logo"
+                    className="mt-2 rounded border max-h-16 object-contain"
+                    onError={e => (e.currentTarget.style.display = "none")}
+                  />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+            <CardContent className="pt-4">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <strong>Nota:</strong> As imagens configuradas aqui são retornadas ao APK via servidor. Para substituir as imagens <em>embutidas</em> no APK (que aparecem antes da conexão), é necessário recompilar o APK com as novas imagens.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {dirty && (
+        <div className="fixed bottom-6 right-6">
+          <Button onClick={handleSave} disabled={updateMany.isPending} size="lg" className="gap-2 shadow-lg">
+            {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            Salvar Alterações
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -52,3 +52,13 @@ export const apps = mysqlTable("apps", {
 
 export type App = typeof apps.$inferSelect;
 export type InsertApp = typeof apps.$inferInsert;
+
+// Configurações globais do app (tela Trial, textos, imagens)
+export const appSettings = mysqlTable("app_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  key: varchar("key", { length: 128 }).notNull().unique(),
+  value: text("value"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type AppSetting = typeof appSettings.$inferSelect;
+export type InsertAppSetting = typeof appSettings.$inferInsert;

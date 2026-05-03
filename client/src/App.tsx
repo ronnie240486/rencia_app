@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import Users from "./pages/Users";
 import UserCreate from "./pages/UserCreate";
 import UserEdit from "./pages/UserEdit";
+import Settings from "./pages/Settings";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
       <Route path={"/users/create"} component={UserCreate} />
       <Route path={"/users/:id/edit"} component={UserEdit} />
       <Route path={"/profile"} component={Profile} />
+      <Route path={"/settings"} component={Settings} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

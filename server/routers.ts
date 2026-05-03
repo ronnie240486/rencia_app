@@ -11,7 +11,7 @@ import {
   getDb,
 } from "./db";
 import { eq } from "drizzle-orm";
-import { users } from "../drizzle/schema";
+import { users, appSettings } from "../drizzle/schema";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin") {
@@ -147,6 +147,47 @@ export const appRouter = router({
     info: protectedProcedure.query(async ({ ctx }) => {
       return getUserPlanInfo(ctx.user.id);
     }),
+  }),
+
+  // ─── Configurações do App (tela Trial, textos, imagens) ──────────────────────
+  settings: router({
+    getAll: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return {};
+      const rows = await db.select().from(appSettings);
+      const result: Record<string, string> = {};
+      for (const row of rows) {
+        result[row.key] = row.value ?? "";
+      }
+      return result;
+    }),
+
+    update: protectedProcedure
+      .input(z.object({
+        key: z.string().min(1),
+        value: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.insert(appSettings)
+          .values({ key: input.key, value: input.value })
+          .onDuplicateKeyUpdate({ set: { value: input.value } });
+        return { success: true };
+      }),
+
+    updateMany: protectedProcedure
+      .input(z.record(z.string(), z.string()))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        for (const [key, value] of Object.entries(input)) {
+          await db.insert(appSettings)
+            .values({ key, value })
+            .onDuplicateKeyUpdate({ set: { value } });
+        }
+        return { success: true };
+      }),
   }),
 
   // ─── Admin: gerenciamento de usuários do sistema ───────────────────────────
