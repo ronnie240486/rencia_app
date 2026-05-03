@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AlertTriangle, CalendarDays, Crown, Layers, Search, Shield,
-  Star, Trophy, Users,
+  Star, Users,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -39,20 +39,12 @@ function StatCard({ title, value, icon: Icon, color }: {
   );
 }
 
-function TrophyBadge({ position }: { position: number }) {
-  if (position === 1) return <div className="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>;
-  if (position === 2) return <div className="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>;
-  if (position === 3) return <div className="w-8 h-8 rounded-full bg-amber-600 flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>;
-  return <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground"><span>{position}</span></div>;
-}
-
 export default function Dashboard() {
   const { user } = useAuth();
   const [recentSearch, setRecentSearch] = useState("");
 
   const { data: stats, isLoading: statsLoading, error: statsError } = trpc.devices.stats.useQuery();
   const { data: planInfo } = trpc.plan.info.useQuery();
-  const { data: appsData, isLoading: appsLoading } = trpc.apps.list.useQuery();
   const { data: recentDevices, isLoading: recentLoading } = trpc.devices.recentList.useQuery({ search: recentSearch, limit: 5 });
 
   const formatDate = (d: Date | string | null | undefined) => {
@@ -62,9 +54,6 @@ export default function Dashboard() {
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
-
-  const liberadoApps = appsData ?? [];
-  const topApps = [...liberadoApps].sort((a, b) => b.totalClientes - a.totalClientes).slice(0, 5);
 
   return (
     <AdminLayout title="Dashboard">
@@ -90,10 +79,10 @@ export default function Dashboard() {
                 <span>{formatDate(planInfo.planValidade)}</span>
               </Badge>
             )}
-            <Badge variant="outline" className="text-xs gap-1 border-red-300 text-red-700 bg-red-50">
+            <Badge variant="outline" className="text-xs gap-1 border-green-300 text-green-700 bg-green-50">
               <Shield className="w-3 h-3" />
-              <span>{"LIMITE DE DEVICES: "}</span>
-              <span>{planInfo?.limiteDevices ?? 999}</span>
+              <span>{"DEVICES: "}</span>
+              <span>{planInfo?.limiteDevices === 999999 ? "Ilimitado" : (planInfo?.limiteDevices ?? 999)}</span>
             </Badge>
           </div>
         </div>
@@ -154,60 +143,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Apps liberados */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-semibold"><span>{"Apps liberados no meu plano"}</span></CardTitle>
-            <Badge variant="secondary" className="text-xs">
-              <span>{liberadoApps.length}</span>
-              <span>{" apps"}</span>
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            {appsLoading ? (
-              <div className="flex gap-3 flex-wrap">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 w-32 rounded-lg" />)}</div>
-            ) : (
-              <div className="flex gap-3 flex-wrap">
-                {liberadoApps.map(app => (
-                  <div key={app.id} className="flex flex-col items-center gap-1 p-3 rounded-lg border bg-muted/30 hover:bg-muted/60 transition-colors min-w-[100px]">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">{app.nome.slice(0, 2)}</span>
-                    </div>
-                    <span className="text-xs font-medium text-center leading-tight">{app.nome}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Troféu Top Apps */}
-        <Card className="border-0 shadow-sm overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-5 text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <Trophy className="w-5 h-5 text-yellow-300" />
-              <h2 className="text-white font-bold text-lg"><span>{"Troféu Top Apps"}</span></h2>
-            </div>
-            <p className="text-purple-200 text-xs"><span>{"Mais usados pelos seus clientes"}</span></p>
-          </div>
-          <CardContent className="p-4">
-            {appsLoading ? (
-              <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
-            ) : (
-              <div className="space-y-2">
-                {topApps.map((app, idx) => (
-                  <div key={app.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                    <TrophyBadge position={idx + 1} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate"><span>{app.nome}</span></p>
-                    </div>
-                    <span className="text-sm font-bold text-muted-foreground">{app.totalClientes.toLocaleString("pt-BR")}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Últimos Usuários Cadastrados */}
         <Card className="border-0 shadow-sm">

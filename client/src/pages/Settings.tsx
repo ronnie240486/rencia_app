@@ -55,36 +55,43 @@ const DEFAULT_VALUES: Record<string, string> = {
 export default function Settings() {
   const { data: settings, isLoading, refetch } = trpc.settings.getAll.useQuery();
   const [uploadingField, setUploadingField] = useState<string | null>(null);
-  const getUploadUrl = trpc.settings.getUploadUrl.useMutation();
 
+  /**
+   * Upload de imagem: envia o arquivo diretamente ao servidor via multipart/form-data.
+   * O servidor salva no storage S3 e atualiza o banco. O APK buscará a nova imagem
+   * automaticamente ao reiniciar via /api/v4/logo.php ou /api/v4/icon/:name.
+   */
   const handleFileUpload = async (field: string, file: File) => {
     try {
       setUploadingField(field);
-      // 1. Obter URL pre-assinada do servidor
-      const { uploadUrl, publicUrl } = await getUploadUrl.mutateAsync({
-        field,
-        filename: file.name,
-        contentType: file.type || "image/png",
+      const formData = new FormData();
+      formData.append("image", file);
+      formData.append("field", field);
+
+      const resp = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+        credentials: "include", // envia cookie de sessão
       });
-      // 2. Upload direto ao S3 (sem passar pelo servidor)
-      const uploadResp = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type || "image/png" },
-        body: file,
-      });
-      if (!uploadResp.ok) throw new Error(`Upload falhou: ${uploadResp.status}`);
-      // 3. Atualizar o campo com a URL pública
-      handleChange(field, publicUrl);
-      toast.success("Imagem enviada com sucesso! Clique em Salvar para aplicar.");
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: resp.statusText }));
+        throw new Error(err.error || `Erro ${resp.status}`);
+      }
+
+      const { url } = await resp.json() as { url: string };
+      // Atualizar o campo com a URL retornada pelo servidor
+      handleChange(field, url);
+      // Salvar automaticamente no banco
+      await updateMany.mutateAsync({ ...form, [field]: url });
+      toast.success("✅ Imagem enviada e salva! O APK buscará a nova imagem ao reiniciar.");
+      refetch();
     } catch (e: any) {
       toast.error("Erro ao enviar imagem: " + (e.message ?? "erro desconhecido"));
     } finally {
       setUploadingField(null);
     }
   };
-
-  // uploadImage stub para compatibilidade (não usado mais)
-  const uploadImage = { isPending: false, mutate: (_: any) => {} };
   const updateMany = trpc.settings.updateMany.useMutation({
     onSuccess: () => {
       toast.success("Configurações salvas! As alterações serão aplicadas no próximo acesso do APK.");

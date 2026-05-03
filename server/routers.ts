@@ -12,6 +12,7 @@ import {
 } from "./db";
 import { eq } from "drizzle-orm";
 import { users, appSettings } from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin") {
@@ -145,6 +146,15 @@ export const appRouter = router({
   // ─── Plan info ─────────────────────────────────────────────────────────────
   plan: router({
     info: protectedProcedure.query(async ({ ctx }) => {
+      // Owner/criador: sem limites
+      const isOwner = ctx.user.openId === ENV.ownerOpenId;
+      if (isOwner) {
+        return {
+          plano: "Criador / Desenvolvedor ★",
+          planValidade: null,
+          limiteDevices: 999999, // ilimitado para o criador
+        };
+      }
       return getUserPlanInfo(ctx.user.id);
     }),
   }),

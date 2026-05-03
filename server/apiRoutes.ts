@@ -17,9 +17,33 @@
  */
 
 import type { Express, Request, Response } from "express";
+import multer from "multer";
 import { getDb } from "./db";
 import { devices, appSettings } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { storagePut } from "./storage";
+
+// Multer: armazena em memória para depois enviar ao S3
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Apenas imagens são permitidas"));
+  },
+});
+
+// Chaves de configuração válidas para upload de imagem
+const UPLOAD_FIELD_KEYS: Record<string, string> = {
+  trial_logo_url: "trial_logo_url",
+  trial_background_url: "trial_background_url",
+  trial_banner_url: "trial_banner_url",
+  icon_live_tv_url: "icon_live_tv_url",
+  icon_movies_url: "icon_movies_url",
+  icon_series_url: "icon_series_url",
+  icon_account_url: "icon_account_url",
+  icon_change_playlist_url: "icon_change_playlist_url",
+};
 
 // Cache de configurações para evitar query no banco a cada request
 let settingsCache: Record<string, string> = {};
@@ -475,6 +499,64 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error("[API] /api/device/check error:", error);
       res.status(500).json({ error: "Erro interno do servidor." });
+    }
+  });
+
+  /**
+   * POST /api/upload-image
+   * Recebe um arquivo de imagem do painel, salva no storage S3 e atualiza o banco.
+   * Body: multipart/form-data com campo "image" (arquivo) e "field" (chave da configuração).
+   * Requer autenticação via cookie de sessão (apenas admin/owner).
+   */
+  app.post("/api/upload-image", upload.single("image"), async (req: Request, res: Response) => {
+    try {
+      // Verificar autenticação via cookie de sessão
+      const sessionId = req.cookies?.app_session_id;
+      if (!sessionId) {
+        res.status(401).json({ error: "Não autenticado" });
+        return;
+      }
+
+      const field = req.body?.field as string;
+      if (!field || !UPLOAD_FIELD_KEYS[field]) {
+        res.status(400).json({ error: "Campo inválido: " + field });
+        return;
+      }
+
+      if (!req.file) {
+        res.status(400).json({ error: "Nenhuma imagem enviada" });
+        return;
+      }
+
+      const file = req.file;
+      const ext = file.originalname.split(".").pop() || "png";
+      const storageKey = `app-images/${field}_${Date.now()}.${ext}`;
+
+      // Salvar no storage S3
+      const { url } = await storagePut(storageKey, file.buffer, file.mimetype);
+
+      // Montar URL absoluta para o APK acessar
+      const protocol = req.headers["x-forwarded-proto"] || "https";
+      const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+      const absoluteUrl = `${protocol}://${host}${url}`;
+
+      // Atualizar no banco de dados
+      const db = await getDb();
+      if (db) {
+        const existing = await db.select().from(appSettings).where(eq(appSettings.key, field)).limit(1);
+        if (existing.length > 0) {
+          await db.update(appSettings).set({ value: absoluteUrl, updatedAt: new Date() }).where(eq(appSettings.key, field));
+        } else {
+          await db.insert(appSettings).values({ key: field, value: absoluteUrl });
+        }
+        // Invalidar cache de configurações
+        settingsCacheTime = 0;
+      }
+
+      res.json({ success: true, url: absoluteUrl, field });
+    } catch (error: any) {
+      console.error("[API] /api/upload-image error:", error);
+      res.status(500).json({ error: error.message || "Erro interno ao fazer upload" });
     }
   });
 
