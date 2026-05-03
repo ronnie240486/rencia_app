@@ -120,7 +120,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                 <span className={cn(isActive ? "text-sidebar-primary" : "")} style={{ color: isActive ? "var(--sidebar-primary)" : undefined }}>
                   {item.icon}
                 </span>
-                {item.label}
+                <span>{item.label}</span>
                 {isActive && <ChevronRight size={14} className="ml-auto opacity-60" />}
               </div>
             </Link>
@@ -133,15 +133,15 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         <div className="flex items-center gap-3 px-3 py-3 rounded-lg" style={{ background: "oklch(0.18 0.04 255)" }}>
           <div className="w-8 h-8 rounded-full bg-sidebar-primary/30 flex items-center justify-center flex-shrink-0">
             <span className="text-xs font-semibold" style={{ color: "var(--sidebar-primary)" }}>
-              {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
+              <span>{user?.name?.charAt(0)?.toUpperCase() ?? "U"}</span>
             </span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium truncate" style={{ color: "oklch(0.88 0.01 240)" }}>
-              {user?.name ?? "Usuário"}
+              <span>{user?.name ?? "Usuário"}</span>
             </p>
             <p className="text-xs truncate" style={{ color: "oklch(0.55 0.02 255)" }}>
-              {user?.role === "admin" ? "Administrador" : "Usuário"}
+              <span>{user?.role === "admin" ? "Administrador" : "Usuário"}</span>
             </p>
           </div>
           <button
@@ -202,13 +202,13 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           </button>
           <div className="flex-1">
             {title && (
-              <h1 className="text-lg font-semibold text-foreground tracking-tight">{title}</h1>
+              <h1 className="text-lg font-semibold text-foreground tracking-tight"><span>{title}</span></h1>
             )}
           </div>
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              {user?.name ?? "Usuário"}
+              <span>{user?.name ?? "Usuário"}</span>
             </div>
           </div>
         </header>

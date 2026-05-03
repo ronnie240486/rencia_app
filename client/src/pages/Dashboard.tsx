@@ -23,8 +23,12 @@ function StatCard({ title, value, icon: Icon, color }: {
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{title}</p>
-            <p className="text-2xl font-bold text-foreground">{value}</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+              <span>{title}</span>
+            </p>
+            <p className="text-2xl font-bold text-foreground">
+              <span>{value}</span>
+            </p>
           </div>
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
             <Icon className="w-5 h-5 text-white" />
@@ -39,7 +43,7 @@ function TrophyBadge({ position }: { position: number }) {
   if (position === 1) return <div className="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>;
   if (position === 2) return <div className="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>;
   if (position === 3) return <div className="w-8 h-8 rounded-full bg-amber-600 flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>;
-  return <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">{position}</div>;
+  return <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground"><span>{position}</span></div>;
 }
 
 export default function Dashboard() {
@@ -68,19 +72,28 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
-            {user && <p className="text-sm text-muted-foreground">ID: {user.id} · Bem-vindo, {user.name?.split(" ")[0]}</p>}
+            <h1 className="text-xl font-bold text-foreground"><span>Dashboard</span></h1>
+            {user && (
+              <p className="text-sm text-muted-foreground">
+                <span>{"ID: "}</span>
+                <span>{user.id}</span>
+                <span>{" · Bem-vindo, "}</span>
+                <span>{user.name?.split(" ")[0]}</span>
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {planInfo?.planValidade && (
               <Badge variant="outline" className="text-xs gap-1 border-amber-300 text-amber-700 bg-amber-50">
                 <CalendarDays className="w-3 h-3" />
-                Validade: {formatDate(planInfo.planValidade)}
+                <span>{"Validade: "}</span>
+                <span>{formatDate(planInfo.planValidade)}</span>
               </Badge>
             )}
             <Badge variant="outline" className="text-xs gap-1 border-red-300 text-red-700 bg-red-50">
               <Shield className="w-3 h-3" />
-              LIMITE DE DEVICES: {planInfo?.limiteDevices ?? 999}
+              <span>{"LIMITE DE DEVICES: "}</span>
+              <span>{planInfo?.limiteDevices ?? 999}</span>
             </Badge>
           </div>
         </div>
@@ -88,7 +101,8 @@ export default function Dashboard() {
         {/* Stats Cards */}
         {statsError && (
           <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
-            <AlertTriangle className="w-4 h-4" /> Erro ao carregar estatísticas.
+            <AlertTriangle className="w-4 h-4" />
+            <span>{"Erro ao carregar estatísticas."}</span>
           </div>
         )}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -108,32 +122,32 @@ export default function Dashboard() {
         {/* Plan Info Table */}
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">Informações do meu plano</CardTitle>
+            <CardTitle className="text-sm font-semibold"><span>{"Informações do meu plano"}</span></CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="text-xs font-semibold">Nome</TableHead>
-                  <TableHead className="text-xs font-semibold">Informação</TableHead>
+                  <TableHead className="text-xs font-semibold"><span>{"Nome"}</span></TableHead>
+                  <TableHead className="text-xs font-semibold"><span>{"Informação"}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 <TableRow>
-                  <TableCell className="text-sm font-medium">Meu Plano</TableCell>
-                  <TableCell className="text-sm text-blue-600 font-medium">{planInfo?.plano ?? "Revenda"}</TableCell>
+                  <TableCell className="text-sm font-medium"><span>{"Meu Plano"}</span></TableCell>
+                  <TableCell className="text-sm text-blue-600 font-medium"><span>{planInfo?.plano ?? "Revenda"}</span></TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell className="text-sm font-medium">Data do vencimento</TableCell>
-                  <TableCell className="text-sm text-blue-600">{formatDate(planInfo?.planValidade)}</TableCell>
+                  <TableCell className="text-sm font-medium"><span>{"Data do vencimento"}</span></TableCell>
+                  <TableCell className="text-sm text-blue-600"><span>{formatDate(planInfo?.planValidade)}</span></TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell className="text-sm font-medium">Limite de Cadastro Device</TableCell>
-                  <TableCell className="text-sm text-blue-600">{planInfo?.limiteDevices ?? 999}</TableCell>
+                  <TableCell className="text-sm font-medium"><span>{"Limite de Cadastro Device"}</span></TableCell>
+                  <TableCell className="text-sm text-blue-600"><span>{planInfo?.limiteDevices ?? 999}</span></TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell className="text-sm font-medium">Limite Restante de Cadastro Device</TableCell>
-                  <TableCell className="text-sm text-blue-600">{(planInfo?.limiteDevices ?? 999) - (stats?.total ?? 0)}</TableCell>
+                  <TableCell className="text-sm font-medium"><span>{"Limite Restante de Cadastro Device"}</span></TableCell>
+                  <TableCell className="text-sm text-blue-600"><span>{(planInfo?.limiteDevices ?? 999) - (stats?.total ?? 0)}</span></TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -143,8 +157,11 @@ export default function Dashboard() {
         {/* Apps liberados */}
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-semibold">Apps liberados no meu plano</CardTitle>
-            <Badge variant="secondary" className="text-xs">{liberadoApps.length} apps</Badge>
+            <CardTitle className="text-sm font-semibold"><span>{"Apps liberados no meu plano"}</span></CardTitle>
+            <Badge variant="secondary" className="text-xs">
+              <span>{liberadoApps.length}</span>
+              <span>{" apps"}</span>
+            </Badge>
           </CardHeader>
           <CardContent>
             {appsLoading ? (
@@ -169,9 +186,9 @@ export default function Dashboard() {
           <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-5 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
               <Trophy className="w-5 h-5 text-yellow-300" />
-              <h2 className="text-white font-bold text-lg">Troféu Top Apps</h2>
+              <h2 className="text-white font-bold text-lg"><span>{"Troféu Top Apps"}</span></h2>
             </div>
-            <p className="text-purple-200 text-xs">Mais usados pelos seus clientes</p>
+            <p className="text-purple-200 text-xs"><span>{"Mais usados pelos seus clientes"}</span></p>
           </div>
           <CardContent className="p-4">
             {appsLoading ? (
@@ -182,7 +199,7 @@ export default function Dashboard() {
                   <div key={app.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                     <TrophyBadge position={idx + 1} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{app.nome}</p>
+                      <p className="text-sm font-medium truncate"><span>{app.nome}</span></p>
                     </div>
                     <span className="text-sm font-bold text-muted-foreground">{app.totalClientes.toLocaleString("pt-BR")}</span>
                   </div>
@@ -195,7 +212,7 @@ export default function Dashboard() {
         {/* Últimos Usuários Cadastrados */}
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">Últimos Usuários Cadastrados</CardTitle>
+            <CardTitle className="text-sm font-semibold"><span>{"Últimos Usuários Cadastrados"}</span></CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex gap-2">
@@ -206,7 +223,8 @@ export default function Dashboard() {
                 className="h-8 text-sm"
               />
               <Button size="sm" variant="default" className="h-8 px-3 text-xs">
-                <Search className="w-3 h-3 mr-1" /> Buscar
+                <Search className="w-3 h-3 mr-1" />
+                <span>{"Buscar"}</span>
               </Button>
             </div>
             {recentLoading ? (
@@ -215,37 +233,37 @@ export default function Dashboard() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="text-xs">MAC</TableHead>
-                    <TableHead className="text-xs">NOME DO SERVER</TableHead>
-                    <TableHead className="text-xs">TIPO</TableHead>
-                    <TableHead className="text-xs">STATUS</TableHead>
-                    <TableHead className="text-xs">DATA DE CADASTRO</TableHead>
+                    <TableHead className="text-xs"><span>{"MAC"}</span></TableHead>
+                    <TableHead className="text-xs"><span>{"NOME DO SERVER"}</span></TableHead>
+                    <TableHead className="text-xs"><span>{"TIPO"}</span></TableHead>
+                    <TableHead className="text-xs"><span>{"STATUS"}</span></TableHead>
+                    <TableHead className="text-xs"><span>{"DATA DE CADASTRO"}</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(recentDevices ?? []).length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
-                        Nenhum usuário cadastrado ainda.
+                        <span>{"Nenhum usuário cadastrado ainda."}</span>
                       </TableCell>
                     </TableRow>
                   ) : (
                     (recentDevices ?? []).map(d => (
                       <TableRow key={d.id}>
-                        <TableCell className="text-xs font-mono">{d.mac}</TableCell>
-                        <TableCell className="text-xs">{d.nomeServer}</TableCell>
+                        <TableCell className="text-xs font-mono"><span>{d.mac}</span></TableCell>
+                        <TableCell className="text-xs"><span>{d.nomeServer}</span></TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className="text-xs">{d.tipo}</Badge>
+                          <Badge variant="secondary" className="text-xs"><span>{d.tipo}</span></Badge>
                         </TableCell>
                         <TableCell>
                           <Badge
                             className={`text-xs ${d.status === "Liberado" ? "bg-green-100 text-green-700 border-green-200" : d.status === "Expirado" ? "bg-red-100 text-red-700 border-red-200" : "bg-yellow-100 text-yellow-700 border-yellow-200"}`}
                             variant="outline"
                           >
-                            {d.status}
+                            <span>{d.status}</span>
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-xs">{formatDate(d.dataCadastro)}</TableCell>
+                        <TableCell className="text-xs"><span>{formatDate(d.dataCadastro)}</span></TableCell>
                       </TableRow>
                     ))
                   )}

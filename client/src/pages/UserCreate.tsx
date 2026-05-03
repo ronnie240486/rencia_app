@@ -61,11 +61,11 @@ export default function UserCreate() {
         <div className="flex items-center gap-3">
           <Link href="/users">
             <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
-              <ArrowLeft className="w-3 h-3" /> Voltar
+              <ArrowLeft className="w-3 h-3" /><span>{"Voltar"}</span>
             </Button>
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Usuários &gt; Criação</h1>
+            <h1 className="text-xl font-bold text-foreground"><span>{"Usuários > Criação"}</span></h1>
           </div>
         </div>
 
@@ -127,7 +127,7 @@ export default function UserCreate() {
               </SelectTrigger>
               <SelectContent>
                 {apps.map(a => (
-                  <SelectItem key={a.id} value={a.nome}>{a.nome}</SelectItem>
+                  <SelectItem key={a.id} value={a.nome}><span>{a.nome}</span></SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -189,7 +189,7 @@ export default function UserCreate() {
           <div className="flex justify-end pt-2">
             <Button type="submit" disabled={createMutation.isPending} className="gap-2">
               <Save className="w-4 h-4" />
-              {createMutation.isPending ? "Enviando..." : "Enviar"}
+              <span>{createMutation.isPending ? "Enviando..." : "Enviar"}</span>
             </Button>
           </div>
         </form>

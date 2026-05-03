@@ -59,6 +59,9 @@
 - [x] Header com ID do usuário, Validade e Limite de Devices
 
 ## Novas Funcionalidades (03/05)
-- [ ] Renomear IBO Revenda para Ouro Revenda no schema, backend e frontend
-- [ ] Criar página de edição de device (/users/:id/edit)
-- [ ] Integrar APK com backend publicado (substituir URL do servidor)
+- [x] Renomear IBO Revenda para Ouro Revenda no schema, backend e frontend
+- [x] Criar página de edição de device (/users/:id/edit)
+- [x] Integrar APK com backend publicado (substituir URL do servidor)
+
+## Bugs (03/05 - fase 2)
+- [ ] Erro removeChild em todas as páginas ao clicar em botões (extensões de browser conflitam com React)

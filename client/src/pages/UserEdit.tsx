@@ -97,7 +97,7 @@ export default function UserEdit() {
         <div className="max-w-2xl mx-auto">
           <div className="bg-card rounded-xl border border-destructive/20 p-6 shadow-sm flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-destructive" />
-            <p className="text-sm text-destructive">{error.message}</p>
+            <p className="text-sm text-destructive"><span>{error.message}</span></p>
           </div>
         </div>
       </AdminLayout>
@@ -111,12 +111,12 @@ export default function UserEdit() {
         <div className="flex items-center gap-3">
           <Link href="/users">
             <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
-              <ArrowLeft className="w-3 h-3" /> Voltar
+              <ArrowLeft className="w-3 h-3" /><span>{"Voltar"}</span>
             </Button>
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Usuários &gt; Edição</h1>
-            {device && <p className="text-xs text-muted-foreground">MAC: {device.mac}</p>}
+            <h1 className="text-xl font-bold text-foreground"><span>{"Usuários > Edição"}</span></h1>
+            {device && <p className="text-xs text-muted-foreground"><span>{"MAC: "}</span><span>{device.mac}</span></p>}
           </div>
         </div>
 
@@ -186,7 +186,7 @@ export default function UserEdit() {
                 </SelectTrigger>
                 <SelectContent>
                   {apps.map(a => (
-                    <SelectItem key={a.id} value={a.nome}>{a.nome}</SelectItem>
+                    <SelectItem key={a.id} value={a.nome}><span>{a.nome}</span></SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -258,7 +258,7 @@ export default function UserEdit() {
             {/* Submit */}
             <div className="flex justify-end gap-2 pt-2">
               <Link href="/users">
-                <Button type="button" variant="outline">Cancelar</Button>
+                <Button type="button" variant="outline"><span>{"Cancelar"}</span></Button>
               </Link>
               <Button type="submit" disabled={updateMutation.isPending} className="gap-2">
                 <Save className="w-4 h-4" />
