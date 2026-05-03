@@ -65,3 +65,13 @@
 
 ## Bugs (03/05 - fase 2)
 - [x] Erro removeChild em todas as páginas ao clicar em botões (extensões de browser conflitam com React)
+
+## Bugs APK (03/05 - fase 3)
+- [x] Nome "IBO Revenda" ainda aparece dentro do APK (smali não foi alterado)
+- [x] APK com mesmo package name impede instalação paralela ao app original
+
+## Correção APK Network Error (03/05 - fase 4)
+- [x] Descoberta causa raiz: servidor retornava JSON direto, APK espera {"data": "<string codificada>"}
+- [x] Implementar função encodeForApk() com algoritmo Security.getDecodedString do APK
+- [x] Corrigir endpoint /api/guim.php para retornar resposta no formato correto
+- [x] Adicionar testes Vitest para encodeForApk/getDecodedString

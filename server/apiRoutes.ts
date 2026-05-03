@@ -4,9 +4,10 @@
  *
  * Endpoints disponíveis:
  *   POST /api/guim.php
- *        → Endpoint principal do APK (compatível com IBOController)
+ *        → Endpoint principal do APK (compatível com IBOController/BoxV3)
  *        → Recebe: { "data": "<BASE64 de { app_device_id, app_type, version, is_paid }>" }
- *        → Retorna: AppInfoModel com urls, expire_date, mac_registered, etc.
+ *        → Retorna: { "data": "<string codificada com algoritmo Security.getDecodedString>" }
+ *          onde a string decodificada é o AppInfoModel JSON
  *
  *   GET  /api/device/check?mac=XX:XX:XX:XX:XX:XX
  *        → Verifica se um device está cadastrado e retorna seus dados
@@ -20,6 +21,40 @@ import { getDb } from "./db";
 import { devices } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
+/**
+ * Codifica uma string JSON no formato esperado pelo APK BoxV3.
+ *
+ * O APK usa Security.getDecodedString() para decodificar a resposta:
+ *   1. Pega os 2 últimos chars da string
+ *   2. Converte cada char para sua posição no alfabeto ALPHABET
+ *   3. Remove os últimos 2 chars
+ *   4. Reconstrói: substring(0, pos1) + substring(pos1+pos2)
+ *   5. Decodifica Base64
+ *
+ * Para codificar (operação inversa):
+ *   1. Codifica JSON em Base64
+ *   2. Insere pos2 chars de lixo na posição pos1
+ *   3. Adiciona ALPHABET[pos1] + ALPHABET[pos2] no final
+ */
+function encodeForApk(jsonStr: string): string {
+  const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+
+  // Codifica em Base64
+  const b64 = Buffer.from(jsonStr, "utf-8").toString("base64");
+
+  // Posições fixas: pos1=5 ('f'), pos2=3 ('d')
+  // Garante que pos1 < b64.length para não quebrar
+  const pos1 = Math.min(5, b64.length - 1);
+  const pos2 = 3;
+
+  // Insere pos2 chars de lixo na posição pos1
+  const junk = "X".repeat(pos2);
+  const obfuscated = b64.slice(0, pos1) + junk + b64.slice(pos1);
+
+  // Adiciona os 2 chars de posição no final
+  return obfuscated + ALPHABET[pos1] + ALPHABET[pos2];
+}
+
 export function registerApiRoutes(app: Express) {
 
   /**
@@ -29,7 +64,7 @@ export function registerApiRoutes(app: Express) {
    * O APK envia um JSON com campo "data" contendo Base64 de:
    *   { app_device_id: "<MAC>", app_type: "<tipo>", version: "<versão>", is_paid: false }
    *
-   * Retorna AppInfoModel compatível com o APK:
+   * Retorna { "data": "<string codificada>" } onde a string decodificada é:
    * {
    *   mac_registered: true/false,
    *   mac_address: "XX:XX:XX:XX:XX:XX",
@@ -53,8 +88,9 @@ export function registerApiRoutes(app: Express) {
 
       if (body && body.data) {
         try {
-          // Decodificar Base64
-          const decoded = Buffer.from(body.data, "base64").toString("utf-8");
+          // Decodificar Base64 (o Android usa Base64.DEFAULT=0 que pode ter newlines)
+          const cleaned = String(body.data).replace(/\s/g, "");
+          const decoded = Buffer.from(cleaned, "base64").toString("utf-8").trim();
           const parsed = JSON.parse(decoded);
           macAddress = parsed.app_device_id ?? null;
         } catch {
@@ -66,10 +102,21 @@ export function registerApiRoutes(app: Express) {
       }
 
       if (!macAddress) {
-        res.status(400).json({
+        // Retornar resposta codificada mesmo para erro
+        const errorPayload = {
           mac_registered: false,
-          error: "MAC address não fornecido.",
-        });
+          mac_address: "",
+          expire_date: null,
+          urls: [],
+          is_trial: 1,
+          lock: 1,
+          plan_id: "",
+          device_key: "",
+          languages: [],
+          apk_link: "",
+          app_version: "",
+        };
+        res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
         return;
       }
 
@@ -78,19 +125,7 @@ export function registerApiRoutes(app: Express) {
 
       const db = await getDb();
       if (!db) {
-        res.status(503).json({ mac_registered: false, error: "Banco de dados indisponível." });
-        return;
-      }
-
-      const result = await db
-        .select()
-        .from(devices)
-        .where(eq(devices.mac, macAddress))
-        .limit(1);
-
-      // Device não encontrado
-      if (result.length === 0) {
-        res.json({
+        const errorPayload = {
           mac_registered: false,
           mac_address: macAddress,
           expire_date: null,
@@ -102,7 +137,33 @@ export function registerApiRoutes(app: Express) {
           languages: [],
           apk_link: "",
           app_version: "",
-        });
+        };
+        res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
+        return;
+      }
+
+      const result = await db
+        .select()
+        .from(devices)
+        .where(eq(devices.mac, macAddress))
+        .limit(1);
+
+      // Device não encontrado
+      if (result.length === 0) {
+        const notFoundPayload = {
+          mac_registered: false,
+          mac_address: macAddress,
+          expire_date: null,
+          urls: [],
+          is_trial: 1,
+          lock: 1,
+          plan_id: "",
+          device_key: "",
+          languages: [],
+          apk_link: "",
+          app_version: "",
+        };
+        res.json({ data: encodeForApk(JSON.stringify(notFoundPayload)) });
         return;
       }
 
@@ -137,7 +198,7 @@ export function registerApiRoutes(app: Express) {
         ? new Date(device.dataExpiracao).toISOString().split("T")[0]
         : null;
 
-      res.json({
+      const responsePayload = {
         mac_registered: isAllowed,
         mac_address: device.mac,
         expire_date: expireDate,
@@ -149,16 +210,26 @@ export function registerApiRoutes(app: Express) {
         languages: [],
         apk_link: "",
         app_version: "",
-        // Campos extras para compatibilidade
-        status: device.status,
-        nome_server: device.nomeServer,
-        app: device.app ?? "",
-        url_epg: device.urlEpg ?? "",
-      });
+      };
+
+      res.json({ data: encodeForApk(JSON.stringify(responsePayload)) });
 
     } catch (error) {
       console.error("[API] /api/guim.php error:", error);
-      res.status(500).json({ mac_registered: false, error: "Erro interno do servidor." });
+      const errorPayload = {
+        mac_registered: false,
+        mac_address: "",
+        expire_date: null,
+        urls: [],
+        is_trial: 1,
+        lock: 1,
+        plan_id: "",
+        device_key: "",
+        languages: [],
+        apk_link: "",
+        app_version: "",
+      };
+      res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
     }
   });
 
