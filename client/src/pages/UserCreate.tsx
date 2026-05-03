@@ -16,11 +16,11 @@ export default function UserCreate() {
   const { data: appsData } = trpc.apps.list.useQuery();
 
   const [form, setForm] = useState({
-    modoSelecao: "XTeamCode" as "XTeamCode" | "M3U8",
+    modoSelecao: "M3U8" as "XTeamCode" | "M3U8",
     mac: "",
     nomeServer: "",
     urlM3u8: "",
-    app: "",
+    app: "__none__",
     urlEpg: "",
     valor: "",
     dataExpiracao: "",
@@ -39,12 +39,15 @@ export default function UserCreate() {
     e.preventDefault();
     if (!form.mac.trim()) { toast.error("MAC do dispositivo é obrigatório."); return; }
     if (!form.nomeServer.trim()) { toast.error("Nome do server é obrigatório."); return; }
+    if (form.modoSelecao === "M3U8" && !form.urlM3u8.trim()) {
+      toast.error("URL M3U8 é obrigatória no modo M3U8."); return;
+    }
     createMutation.mutate({
       mac: form.mac.trim(),
       nomeServer: form.nomeServer.trim(),
       modoSelecao: form.modoSelecao,
       tipo: form.tipo,
-      app: form.app || undefined,
+      app: form.app !== "__none__" ? form.app : undefined,
       urlM3u8: form.urlM3u8 || undefined,
       urlEpg: form.urlEpg || undefined,
       valor: form.valor || undefined,
@@ -61,33 +64,22 @@ export default function UserCreate() {
         <div className="flex items-center gap-3">
           <Link href="/users">
             <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
-              <ArrowLeft className="w-3 h-3" /><span>{"Voltar"}</span>
+              <ArrowLeft className="w-3 h-3" /><span>Voltar</span>
             </Button>
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-foreground"><span>{"Usuários > Criação"}</span></h1>
+            <h1 className="text-xl font-bold text-foreground">Usuários &gt; Criação</h1>
           </div>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-card rounded-xl border shadow-sm p-6 space-y-5">
-          {/* Modo de Seleção */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MODO DE SELEÇÃO:</Label>
-            <Select value={form.modoSelecao} onValueChange={v => setForm(f => ({ ...f, modoSelecao: v as "XTeamCode" | "M3U8" }))}>
-              <SelectTrigger className="h-10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="XTeamCode">XTeam Code</SelectItem>
-                <SelectItem value="M3U8">M3U8</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           {/* MAC */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MAC DO DISPOSITIVO:</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              MAC DO DISPOSITIVO: <span className="text-red-500">*</span>
+            </Label>
             <Input
               placeholder="00:00:00:00:00:00"
               value={form.mac}
@@ -98,7 +90,9 @@ export default function UserCreate() {
 
           {/* Nome do Server */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">NOME DO SERVER:</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              NOME DO SERVER: <span className="text-red-500">*</span>
+            </Label>
             <Input
               placeholder="Nome do servidor"
               value={form.nomeServer}
@@ -107,11 +101,27 @@ export default function UserCreate() {
             />
           </div>
 
-          {/* Lista M3U8 */}
+          {/* Modo de Seleção */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">LISTA M3U8:</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MODO DE SELEÇÃO:</Label>
+            <Select value={form.modoSelecao} onValueChange={v => setForm(f => ({ ...f, modoSelecao: v as "XTeamCode" | "M3U8" }))}>
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="M3U8">M3U8</SelectItem>
+                <SelectItem value="XTeamCode">XTeam Code</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Lista M3U8 - mostrar sempre mas destacar quando M3U8 */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              LISTA M3U8:{form.modoSelecao === "M3U8" && <span className="text-red-500"> *</span>}
+            </Label>
             <Input
-              placeholder="URL da lista M3U8"
+              placeholder="http://servidor.com:porta/get.php?username=...&password=...&type=m3u_plus"
               value={form.urlM3u8}
               onChange={e => setForm(f => ({ ...f, urlM3u8: e.target.value }))}
               className="h-10"
@@ -122,12 +132,13 @@ export default function UserCreate() {
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP QUE O CLIENTE USARÁ:</Label>
             <Select value={form.app} onValueChange={v => setForm(f => ({ ...f, app: v }))}>
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder="Selecione um app" />
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="Selecione um app (opcional)" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="__none__">Nenhum</SelectItem>
                 {apps.map(a => (
-                  <SelectItem key={a.id} value={a.nome}><span>{a.nome}</span></SelectItem>
+                  <SelectItem key={a.id} value={a.nome}>{a.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -137,7 +148,7 @@ export default function UserCreate() {
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">TIPO DE CONTA:</Label>
             <Select value={form.tipo} onValueChange={v => setForm(f => ({ ...f, tipo: v as "Usuario" | "Revenda" | "UltraMaster" | "Master" }))}>
-              <SelectTrigger className="h-10">
+              <SelectTrigger className="h-10 w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -151,7 +162,7 @@ export default function UserCreate() {
 
           {/* URL EPG */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">URL EPG:</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">URL EPG (opcional):</Label>
             <Input
               placeholder="URL do EPG"
               value={form.urlEpg}
@@ -162,7 +173,7 @@ export default function UserCreate() {
 
           {/* Valor */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">VALOR DA ASSINATURA:</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">VALOR DA ASSINATURA (R$):</Label>
             <Input
               type="number"
               placeholder="0.00"
@@ -176,7 +187,7 @@ export default function UserCreate() {
 
           {/* Data de Expiração */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">DATA DA EXPIRAÇÃO:</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">DATA DE EXPIRAÇÃO:</Label>
             <Input
               type="date"
               value={form.dataExpiracao}
@@ -186,10 +197,13 @@ export default function UserCreate() {
           </div>
 
           {/* Submit */}
-          <div className="flex justify-end pt-2">
+          <div className="flex justify-end gap-2 pt-2">
+            <Link href="/users">
+              <Button type="button" variant="outline">Cancelar</Button>
+            </Link>
             <Button type="submit" disabled={createMutation.isPending} className="gap-2">
               <Save className="w-4 h-4" />
-              <span>{createMutation.isPending ? "Enviando..." : "Enviar"}</span>
+              {createMutation.isPending ? "Enviando..." : "Cadastrar Usuário"}
             </Button>
           </div>
         </form>

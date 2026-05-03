@@ -24,11 +24,11 @@ export default function UserEdit() {
   );
 
   const [form, setForm] = useState({
-    modoSelecao: "XTeamCode" as "XTeamCode" | "M3U8",
+    modoSelecao: "M3U8" as "XTeamCode" | "M3U8",
     mac: "",
     nomeServer: "",
     urlM3u8: "",
-    app: "",
+    app: "__none__",
     urlEpg: "",
     valor: "",
     dataExpiracao: "",
@@ -41,18 +41,18 @@ export default function UserEdit() {
   useEffect(() => {
     if (device && !initialized) {
       setForm({
-        modoSelecao: device.modoSelecao as "XTeamCode" | "M3U8",
+        modoSelecao: (device.modoSelecao as "XTeamCode" | "M3U8") ?? "M3U8",
         mac: device.mac ?? "",
         nomeServer: device.nomeServer ?? "",
         urlM3u8: device.urlM3u8 ?? "",
-        app: device.app ?? "",
+        app: device.app && device.app.trim() !== "" ? device.app : "__none__",
         urlEpg: device.urlEpg ?? "",
         valor: device.valor ? String(device.valor) : "",
         dataExpiracao: device.dataExpiracao
           ? new Date(device.dataExpiracao).toISOString().split("T")[0]
           : "",
-        tipo: device.tipo as "Usuario" | "Revenda" | "UltraMaster" | "Master",
-        status: device.status as "Liberado" | "Bloqueado" | "Expirado",
+        tipo: (device.tipo as "Usuario" | "Revenda" | "UltraMaster" | "Master") ?? "Usuario",
+        status: (device.status as "Liberado" | "Bloqueado" | "Expirado") ?? "Liberado",
       });
       setInitialized(true);
     }
@@ -74,6 +74,9 @@ export default function UserEdit() {
     e.preventDefault();
     if (!form.mac.trim()) { toast.error("MAC do dispositivo é obrigatório."); return; }
     if (!form.nomeServer.trim()) { toast.error("Nome do server é obrigatório."); return; }
+    if (form.modoSelecao === "M3U8" && !form.urlM3u8.trim()) {
+      toast.error("URL M3U8 é obrigatória no modo M3U8."); return;
+    }
     updateMutation.mutate({
       id: deviceId,
       mac: form.mac.trim(),
@@ -81,7 +84,7 @@ export default function UserEdit() {
       modoSelecao: form.modoSelecao,
       tipo: form.tipo,
       status: form.status,
-      app: form.app || undefined,
+      app: form.app !== "__none__" ? form.app : undefined,
       urlM3u8: form.urlM3u8 || undefined,
       urlEpg: form.urlEpg || undefined,
       valor: form.valor || undefined,
@@ -97,7 +100,7 @@ export default function UserEdit() {
         <div className="max-w-2xl mx-auto">
           <div className="bg-card rounded-xl border border-destructive/20 p-6 shadow-sm flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-destructive" />
-            <p className="text-sm text-destructive"><span>{error.message}</span></p>
+            <p className="text-sm text-destructive">{error.message}</p>
           </div>
         </div>
       </AdminLayout>
@@ -111,12 +114,12 @@ export default function UserEdit() {
         <div className="flex items-center gap-3">
           <Link href="/users">
             <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
-              <ArrowLeft className="w-3 h-3" /><span>{"Voltar"}</span>
+              <ArrowLeft className="w-3 h-3" /><span>Voltar</span>
             </Button>
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-foreground"><span>{"Usuários > Edição"}</span></h1>
-            {device && <p className="text-xs text-muted-foreground"><span>{"MAC: "}</span><span>{device.mac}</span></p>}
+            <h1 className="text-xl font-bold text-foreground">Usuários &gt; Edição</h1>
+            {device && <p className="text-xs text-muted-foreground">MAC: {device.mac}</p>}
           </div>
         </div>
 
@@ -132,21 +135,12 @@ export default function UserEdit() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="bg-card rounded-xl border shadow-sm p-6 space-y-5">
-            {/* Modo de Seleção */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MODO DE SELEÇÃO:</Label>
-              <Select value={form.modoSelecao} onValueChange={v => setForm(f => ({ ...f, modoSelecao: v as "XTeamCode" | "M3U8" }))}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="XTeamCode">XTeam Code</SelectItem>
-                  <SelectItem value="M3U8">M3U8</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
             {/* MAC */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MAC DO DISPOSITIVO:</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                MAC DO DISPOSITIVO: <span className="text-red-500">*</span>
+              </Label>
               <Input
                 placeholder="00:00:00:00:00:00"
                 value={form.mac}
@@ -157,7 +151,9 @@ export default function UserEdit() {
 
             {/* Nome do Server */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">NOME DO SERVER:</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                NOME DO SERVER: <span className="text-red-500">*</span>
+              </Label>
               <Input
                 placeholder="Nome do servidor"
                 value={form.nomeServer}
@@ -166,11 +162,27 @@ export default function UserEdit() {
               />
             </div>
 
+            {/* Modo de Seleção */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MODO DE SELEÇÃO:</Label>
+              <Select value={form.modoSelecao} onValueChange={v => setForm(f => ({ ...f, modoSelecao: v as "XTeamCode" | "M3U8" }))}>
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="M3U8">M3U8</SelectItem>
+                  <SelectItem value="XTeamCode">XTeam Code</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Lista M3U8 */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">LISTA M3U8:</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                LISTA M3U8:{form.modoSelecao === "M3U8" && <span className="text-red-500"> *</span>}
+              </Label>
               <Input
-                placeholder="URL da lista M3U8"
+                placeholder="http://servidor.com:porta/get.php?username=...&password=...&type=m3u_plus"
                 value={form.urlM3u8}
                 onChange={e => setForm(f => ({ ...f, urlM3u8: e.target.value }))}
                 className="h-10"
@@ -181,12 +193,13 @@ export default function UserEdit() {
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP QUE O CLIENTE USARÁ:</Label>
               <Select value={form.app} onValueChange={v => setForm(f => ({ ...f, app: v }))}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Selecione um app" />
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue placeholder="Selecione um app (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
                   {apps.map(a => (
-                    <SelectItem key={a.id} value={a.nome}><span>{a.nome}</span></SelectItem>
+                    <SelectItem key={a.id} value={a.nome}>{a.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -196,7 +209,9 @@ export default function UserEdit() {
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">TIPO DE CONTA:</Label>
               <Select value={form.tipo} onValueChange={v => setForm(f => ({ ...f, tipo: v as "Usuario" | "Revenda" | "UltraMaster" | "Master" }))}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Usuario">Usuário</SelectItem>
                   <SelectItem value="Revenda">Revenda</SelectItem>
@@ -210,7 +225,9 @@ export default function UserEdit() {
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">STATUS:</Label>
               <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v as "Liberado" | "Bloqueado" | "Expirado" }))}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Liberado">Liberado</SelectItem>
                   <SelectItem value="Bloqueado">Bloqueado</SelectItem>
@@ -221,7 +238,7 @@ export default function UserEdit() {
 
             {/* URL EPG */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">URL EPG:</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">URL EPG (opcional):</Label>
               <Input
                 placeholder="URL do EPG"
                 value={form.urlEpg}
@@ -232,7 +249,7 @@ export default function UserEdit() {
 
             {/* Valor */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">VALOR DA ASSINATURA:</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">VALOR DA ASSINATURA (R$):</Label>
               <Input
                 type="number"
                 placeholder="0.00"
@@ -246,7 +263,7 @@ export default function UserEdit() {
 
             {/* Data de Expiração */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">DATA DA EXPIRAÇÃO:</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">DATA DE EXPIRAÇÃO:</Label>
               <Input
                 type="date"
                 value={form.dataExpiracao}
@@ -258,11 +275,11 @@ export default function UserEdit() {
             {/* Submit */}
             <div className="flex justify-end gap-2 pt-2">
               <Link href="/users">
-                <Button type="button" variant="outline"><span>{"Cancelar"}</span></Button>
+                <Button type="button" variant="outline">Cancelar</Button>
               </Link>
               <Button type="submit" disabled={updateMutation.isPending} className="gap-2">
                 <Save className="w-4 h-4" />
-                <span>{updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}</span>
+                {updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}
               </Button>
             </div>
           </form>

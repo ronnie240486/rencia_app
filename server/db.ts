@@ -157,9 +157,9 @@ export async function deleteDevice(id: number, ownerId: number) {
 export async function deleteManyDevices(ids: number[], ownerId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  for (const id of ids) {
-    await db.delete(devices).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId)));
-  }
+  if (ids.length === 0) return;
+  const { inArray } = await import("drizzle-orm");
+  await db.delete(devices).where(and(inArray(devices.id, ids), eq(devices.ownerId, ownerId)));
 }
 
 export async function deleteExpiredDevices(ownerId: number) {
