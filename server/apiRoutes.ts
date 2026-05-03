@@ -486,6 +486,33 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
+   * GET /api/v4/logo.php
+   * Endpoint usado pela classe Logo.java do APK para carregar o logo dinâmico.
+   * Retorna a imagem do logo configurada no painel, ou o logo padrão OURO REVENDA.
+   * Suporta: redirect para URL externa ou proxy da imagem.
+   */
+  app.get("/api/v4/logo.php", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+      const logoUrl = cfg.trial_logo_url || cfg.trial_background_url || "";
+
+      if (logoUrl && logoUrl.startsWith("http")) {
+        // Redirecionar para a URL configurada no painel
+        res.redirect(302, logoUrl);
+        return;
+      }
+
+      // Fallback: retornar logo padrão OURO REVENDA via redirect para CDN
+      const defaultLogoUrl = "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
+      res.redirect(302, defaultLogoUrl);
+    } catch (error) {
+      console.error("[API] /api/v4/logo.php error:", error);
+      // Em caso de erro, redirecionar para o logo padrão
+      res.redirect(302, "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png");
+    }
+  });
+
+  /**
    * GET /api/app-config
    * Retorna configurações públicas do app para o APK buscar ao iniciar.
    * O APK pode usar este endpoint para obter a URL da imagem de fundo dinâmica.
