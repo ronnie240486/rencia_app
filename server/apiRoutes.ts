@@ -18,6 +18,7 @@
 
 import type { Express, Request, Response } from "express";
 import multer from "multer";
+import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
 import { devices, appSettings } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -510,9 +511,15 @@ export function registerApiRoutes(app: Express) {
    */
   app.post("/api/upload-image", upload.single("image"), async (req: Request, res: Response) => {
     try {
-      // Verificar autenticação via cookie de sessão
-      const sessionId = req.cookies?.app_session_id;
-      if (!sessionId) {
+      // Verificar autenticação via sdk (JWT cookie)
+      let user: any = null;
+      try {
+        user = await sdk.authenticateRequest(req);
+      } catch {
+        res.status(401).json({ error: "Não autenticado" });
+        return;
+      }
+      if (!user) {
         res.status(401).json({ error: "Não autenticado" });
         return;
       }

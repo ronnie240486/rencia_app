@@ -226,7 +226,7 @@ export const appRouter = router({
         contentType: z.string().min(1),
       }))
       .mutation(async ({ input }) => {
-        const { ENV } = await import("./_core/env");
+        // ENV já importado no topo do arquivo
         const forgeUrl = (ENV.forgeApiUrl ?? "").replace(/\/+$/, "");
         const forgeKey = ENV.forgeApiKey ?? "";
         if (!forgeUrl || !forgeKey) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Storage não configurado" });
