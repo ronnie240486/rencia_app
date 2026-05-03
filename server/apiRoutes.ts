@@ -21,6 +21,52 @@ import { getDb } from "./db";
 import { devices } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
+const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+
+/**
+ * Decodifica o payload enviado pelo APK BoxV3 (Security.getStringData).
+ *
+ * O APK codifica assim:
+ *   1. JSON → Base64
+ *   2. Insere uma encrypt_key de tamanho p1 na posição p2 da string Base64
+ *   3. Appende ALPHABET[p2] + ALPHABET[p1] no final
+ *
+ * Para decodificar:
+ *   1. Pega penúltimo char → p2 = ALPHABET.indexOf(char) = posição da key
+ *   2. Pega último char → p1 = ALPHABET.indexOf(char) = tamanho da key
+ *   3. Remove os 2 últimos chars
+ *   4. Remove p1 chars a partir da posição p2
+ *   5. Decodifica Base64
+ */
+function decodeFromApk(encoded: string): Record<string, unknown> | null {
+  try {
+    const s = encoded.replace(/\s/g, "");
+    if (s.length < 3) return null;
+
+    // Pegar penúltimo char = posição da key (p2)
+    const p2Char = s[s.length - 2];
+    const p2 = ALPHABET.indexOf(p2Char);
+
+    // Pegar último char = tamanho da key (p1)
+    const p1Char = s[s.length - 1];
+    const p1 = ALPHABET.indexOf(p1Char);
+
+    if (p2 < 0 || p1 < 0) return null;
+
+    // Remover os 2 últimos chars
+    let clean = s.slice(0, -2);
+
+    // Remover p1 chars a partir da posição p2
+    clean = clean.slice(0, p2) + clean.slice(p2 + p1);
+
+    // Decodificar Base64
+    const decoded = Buffer.from(clean, "base64").toString("utf-8").trim();
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Codifica uma string JSON no formato esperado pelo APK BoxV3.
  *
@@ -37,8 +83,6 @@ import { eq } from "drizzle-orm";
  *   3. Adiciona ALPHABET[pos1] + ALPHABET[pos2] no final
  */
 function encodeForApk(jsonStr: string): string {
-  const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-
   // Codifica em Base64
   const b64 = Buffer.from(jsonStr, "utf-8").toString("base64");
 
@@ -87,15 +131,21 @@ export function registerApiRoutes(app: Express) {
       let macAddress: string | null = null;
 
       if (body && body.data) {
-        try {
-          // Decodificar Base64 (o Android usa Base64.DEFAULT=0 que pode ter newlines)
-          const cleaned = String(body.data).replace(/\s/g, "");
-          const decoded = Buffer.from(cleaned, "base64").toString("utf-8").trim();
-          const parsed = JSON.parse(decoded);
-          macAddress = parsed.app_device_id ?? null;
-        } catch {
-          // Se não conseguir decodificar, tentar pegar direto
-          macAddress = body.app_device_id ?? body.mac ?? null;
+        // O APK usa Security.getStringData que insere uma encrypt_key no Base64
+        // Usar decodeFromApk para remover a key antes de decodificar
+        const parsed = decodeFromApk(String(body.data));
+        if (parsed) {
+          macAddress = (parsed.app_device_id as string) ?? null;
+        } else {
+          // Fallback: tentar Base64 simples (compatibilidade)
+          try {
+            const cleaned = String(body.data).replace(/\s/g, "");
+            const decoded = Buffer.from(cleaned, "base64").toString("utf-8").trim();
+            const fallback = JSON.parse(decoded);
+            macAddress = fallback.app_device_id ?? null;
+          } catch {
+            macAddress = body.app_device_id ?? body.mac ?? null;
+          }
         }
       } else if (body && body.app_device_id) {
         macAddress = body.app_device_id;
