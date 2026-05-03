@@ -24,6 +24,12 @@ const SETTING_KEYS = {
   // Info de contato
   contact_website: "URL do site (exibida na tela de bloqueio)",
   contact_whatsapp: "WhatsApp do suporte",
+  // Ícones dos botões
+  icon_live_tv_url: "URL do ícone TV ao Vivo",
+  icon_movies_url: "URL do ícone Filmes",
+  icon_series_url: "URL do ícone Séries",
+  icon_account_url: "URL do ícone Account",
+  icon_change_playlist_url: "URL do ícone Trocar Playlist",
 };
 
 const DEFAULT_VALUES: Record<string, string> = {
@@ -38,6 +44,11 @@ const DEFAULT_VALUES: Record<string, string> = {
   app_series_label: "Séries",
   contact_website: "",
   contact_whatsapp: "",
+  icon_live_tv_url: "",
+  icon_movies_url: "",
+  icon_series_url: "",
+  icon_account_url: "",
+  icon_change_playlist_url: "",
 };
 
 export default function Settings() {
@@ -316,6 +327,60 @@ export default function Settings() {
                     onError={e => (e.currentTarget.style.display = "none")}
                   />
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Image size={16} /> Ícones dos Botões
+              </CardTitle>
+              <CardDescription>
+                Substitua os ícones dos botões principais do APK. O APK buscará as novas imagens automaticamente ao reiniciar.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-6">
+                {([
+                  { key: "icon_live_tv_url", label: "TV ao Vivo", hint: "tv_icon.png — 144×144px" },
+                  { key: "icon_movies_url", label: "Filmes", hint: "movie_icon.png — 70×70px" },
+                  { key: "icon_series_url", label: "Séries", hint: "icon_series.png — 70×70px" },
+                  { key: "icon_account_url", label: "Account", hint: "Ícone da conta — 70×70px" },
+                  { key: "icon_change_playlist_url", label: "Trocar Playlist", hint: "Ícone de troca — 70×70px" },
+                ] as { key: string; label: string; hint: string }[]).map(({ key, label, hint }) => (
+                  <div key={key} className="space-y-2">
+                    <Label className="font-medium">{label}</Label>
+                    <div className="flex gap-2 items-center">
+                      {form[key] ? (
+                        <img src={form[key]} alt={label} className="w-14 h-14 rounded border object-contain bg-black/10" onError={e => (e.currentTarget.style.display = "none")} />
+                      ) : (
+                        <div className="w-14 h-14 rounded border border-dashed flex items-center justify-center bg-muted text-muted-foreground text-xs text-center">sem ícone</div>
+                      )}
+                      <div className="flex-1 space-y-1">
+                        <Input
+                          value={form[key]}
+                          onChange={e => handleChange(key, e.target.value)}
+                          placeholder="https://exemplo.com/icone.png"
+                          className="text-xs"
+                        />
+                        <p className="text-xs text-muted-foreground">{hint}</p>
+                      </div>
+                      <label className="cursor-pointer shrink-0">
+                        <input type="file" accept="image/*" className="hidden" onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = () => uploadImage.mutate({ field: key, dataUrl: reader.result as string, filename: file.name });
+                          reader.readAsDataURL(file);
+                        }} />
+                        <Button type="button" variant="outline" size="icon" disabled={uploadImage.isPending} title="Upload ícone">
+                          {uploadImage.isPending ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                        </Button>
+                      </label>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

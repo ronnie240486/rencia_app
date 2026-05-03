@@ -533,11 +533,58 @@ export function registerApiRoutes(app: Express) {
         app_channels_label: cfg.app_channels_label || "Canais",
         app_movies_label: cfg.app_movies_label || "Filmes",
         app_series_label: cfg.app_series_label || "S\u00e9ries",
+        // Ícones dos botões
+        icon_live_tv_url: cfg.icon_live_tv_url || "",
+        icon_movies_url: cfg.icon_movies_url || "",
+        icon_series_url: cfg.icon_series_url || "",
+        icon_account_url: cfg.icon_account_url || "",
+        icon_change_playlist_url: cfg.icon_change_playlist_url || "",
         updated_at: new Date().toISOString(),
       });
     } catch (error) {
       console.error("[API] /api/app-config error:", error);
       res.status(500).json({ error: "Erro interno do servidor." });
+    }
+  });
+
+  /**
+   * GET /api/v4/icon/:name
+   * Retorna redirect para o ícone dinâmico configurado no painel.
+   * :name pode ser: live_tv, movies, series, account, change_playlist
+   */
+  const ICON_DEFAULTS: Record<string, string> = {
+    live_tv: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_tv_icon-AAug6wmiVszWoLBpe6xQhX.png",
+    movies: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_series_icon-7CwEZ4S5JmMoikDNVJThqn.png",
+    series: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_series_icon-7CwEZ4S5JmMoikDNVJThqn.png",
+    account: "",
+    change_playlist: "",
+  };
+  const ICON_SETTING_KEYS: Record<string, string> = {
+    live_tv: "icon_live_tv_url",
+    movies: "icon_movies_url",
+    series: "icon_series_url",
+    account: "icon_account_url",
+    change_playlist: "icon_change_playlist_url",
+  };
+
+  app.get("/api/v4/icon/:name", async (req: Request, res: Response) => {
+    const name = req.params.name as string;
+    const settingKey = ICON_SETTING_KEYS[name];
+    if (!settingKey) {
+      res.status(404).json({ error: "Icon not found" });
+      return;
+    }
+    try {
+      const cfg = await getSettings();
+      const iconUrl = cfg[settingKey] || ICON_DEFAULTS[name] || "";
+      if (iconUrl && iconUrl.startsWith("http")) {
+        res.redirect(302, iconUrl);
+        return;
+      }
+      res.status(404).json({ error: "No icon configured" });
+    } catch (error) {
+      console.error("[API] /api/v4/icon error:", error);
+      res.status(500).json({ error: "Erro interno" });
     }
   });
 }
