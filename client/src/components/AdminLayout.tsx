@@ -81,18 +81,13 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-6 py-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary/20 flex items-center justify-center">
-            <Shield size={16} className="text-sidebar-primary" />
-          </div>
-          <div>
-            <span className="text-sidebar-foreground font-semibold text-sm tracking-tight">Ouro Revenda</span>
-            <p className="text-xs text-sidebar-muted-foreground" style={{ color: "var(--color-sidebar-muted, oklch(0.55 0.02 255))" }}>
-              Painel Admin
-            </p>
-          </div>
-        </div>
+      <div className="px-4 py-4 border-b border-sidebar-border">
+        <img
+          src="/manus-storage/ouro_revenda_panel_logo_top_e5b5216a.png"
+          alt="Ouro Revenda"
+          className="w-full h-auto object-contain"
+          style={{ maxHeight: "64px" }}
+        />
       </div>
 
       {/* Navigation */}

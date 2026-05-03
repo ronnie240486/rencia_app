@@ -484,4 +484,33 @@ export function registerApiRoutes(app: Express) {
   app.get("/api/health", (_req: Request, res: Response) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
+
+  /**
+   * GET /api/app-config
+   * Retorna configurações públicas do app para o APK buscar ao iniciar.
+   * O APK pode usar este endpoint para obter a URL da imagem de fundo dinâmica.
+   * Resposta: { background_url, logo_url, banner_url, support_text, contact_whatsapp }
+   */
+  app.get("/api/app-config", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+      res.json({
+        background_url: cfg.trial_background_url || "",
+        logo_url: cfg.trial_logo_url || "",
+        banner_url: cfg.trial_banner_url || "",
+        support_text: cfg.trial_support_text || "Suporte com seu revendedor",
+        contact_whatsapp: cfg.contact_whatsapp || "",
+        contact_website: cfg.contact_website || "",
+        trial_title: cfg.trial_title || "Acesso Bloqueado",
+        trial_subtitle: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
+        app_channels_label: cfg.app_channels_label || "Canais",
+        app_movies_label: cfg.app_movies_label || "Filmes",
+        app_series_label: cfg.app_series_label || "S\u00e9ries",
+        updated_at: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("[API] /api/app-config error:", error);
+      res.status(500).json({ error: "Erro interno do servidor." });
+    }
+  });
 }

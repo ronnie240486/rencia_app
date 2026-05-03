@@ -35,7 +35,7 @@ export default function Login() {
           <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "oklch(0.72 0.15 255 / 0.2)" }}>
             <Shield size={18} style={{ color: "oklch(0.72 0.15 255)" }} />
           </div>
-          <span className="text-white font-semibold tracking-tight"><span>{"Rencia Admin"}</span></span>
+          <span className="text-white font-semibold tracking-tight"><span>{"Ouro Revenda"}</span></span>
         </div>
 
         <div>
@@ -70,7 +70,7 @@ export default function Login() {
         </div>
 
         <p className="text-xs" style={{ color: "oklch(0.42 0.03 255)" }}>
-          <span>{"\u00a9 "}</span><span>{new Date().getFullYear()}</span><span>{" Rencia App. Todos os direitos reservados."}</span>
+          <span>{"\u00a9 "}</span><span>{new Date().getFullYear()}</span><span>{" Ouro Revenda. Todos os direitos reservados."}</span>
         </p>
       </div>
 
@@ -82,7 +82,7 @@ export default function Login() {
             <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
               <Shield size={16} className="text-primary" />
             </div>
-            <span className="font-semibold text-foreground">Rencia Admin</span>
+            <span className="font-semibold text-foreground">Ouro Revenda</span>
           </div>
 
           <div className="mb-8">

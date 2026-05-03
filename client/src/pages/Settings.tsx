@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Smartphone, Image, MessageSquare } from "lucide-react";
+import { Loader2, Save, Smartphone, Image, MessageSquare, Upload, CheckCircle2 } from "lucide-react";
 
 const SETTING_KEYS = {
   // Tela Trial (bloqueio)
@@ -16,6 +16,7 @@ const SETTING_KEYS = {
   trial_support_text: "Texto de suporte (ex: contato WhatsApp)",
   trial_banner_url: "URL da imagem do banner lateral (320x180px)",
   trial_logo_url: "URL do logo superior esquerdo (home_logo)",
+  trial_background_url: "URL da imagem de fundo (background1 - 960x540px)",
   // Textos do app
   app_channels_label: "Texto da aba Canais",
   app_movies_label: "Texto da aba Filmes",
@@ -31,6 +32,7 @@ const DEFAULT_VALUES: Record<string, string> = {
   trial_support_text: "Suporte com seu revendedor",
   trial_banner_url: "",
   trial_logo_url: "",
+  trial_background_url: "",
   app_channels_label: "Canais",
   app_movies_label: "Filmes",
   app_series_label: "Séries",
@@ -40,6 +42,13 @@ const DEFAULT_VALUES: Record<string, string> = {
 
 export default function Settings() {
   const { data: settings, isLoading, refetch } = trpc.settings.getAll.useQuery();
+  const uploadImage = trpc.settings.uploadImage.useMutation({
+    onSuccess: (data, variables) => {
+      handleChange(variables.field, data.url);
+      toast.success("Imagem enviada! Clique em Salvar para aplicar.");
+    },
+    onError: (e) => toast.error("Erro ao enviar imagem: " + e.message),
+  });
   const updateMany = trpc.settings.updateMany.useMutation({
     onSuccess: () => {
       toast.success("Configurações salvas! As alterações serão aplicadas no próximo acesso do APK.");
@@ -243,11 +252,25 @@ export default function Settings() {
 
               <div className="space-y-2">
                 <Label>Logo superior esquerdo (home_logo)</Label>
-                <Input
-                  value={form.trial_logo_url}
-                  onChange={e => handleChange("trial_logo_url", e.target.value)}
-                  placeholder="https://exemplo.com/logo.png"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    value={form.trial_logo_url}
+                    onChange={e => handleChange("trial_logo_url", e.target.value)}
+                    placeholder="https://exemplo.com/logo.png"
+                  />
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" className="hidden" onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = () => uploadImage.mutate({ field: "trial_logo_url", dataUrl: reader.result as string, filename: file.name });
+                      reader.readAsDataURL(file);
+                    }} />
+                    <Button type="button" variant="outline" size="icon" disabled={uploadImage.isPending} title="Upload imagem">
+                      {uploadImage.isPending ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    </Button>
+                  </label>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Logo exibido no canto superior esquerdo do APK. Tamanho recomendado: 320×180px.
                 </p>
@@ -256,6 +279,40 @@ export default function Settings() {
                     src={form.trial_logo_url}
                     alt="Preview logo"
                     className="mt-2 rounded border max-h-16 object-contain"
+                    onError={e => (e.currentTarget.style.display = "none")}
+                  />
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Imagem de fundo principal (background1 - 960×540px)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={form.trial_background_url}
+                    onChange={e => handleChange("trial_background_url", e.target.value)}
+                    placeholder="https://exemplo.com/background.png"
+                  />
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" className="hidden" onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = () => uploadImage.mutate({ field: "trial_background_url", dataUrl: reader.result as string, filename: file.name });
+                      reader.readAsDataURL(file);
+                    }} />
+                    <Button type="button" variant="outline" size="icon" disabled={uploadImage.isPending} title="Upload imagem">
+                      {uploadImage.isPending ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    </Button>
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  <strong>Imagem dinâmica:</strong> Ao salvar, o APK buscará esta imagem automaticamente ao reiniciar. Substitui o fundo da tela principal. Tamanho recomendado: 960×540px.
+                </p>
+                {form.trial_background_url && (
+                  <img
+                    src={form.trial_background_url}
+                    alt="Preview fundo"
+                    className="mt-2 rounded border max-h-32 object-contain"
                     onError={e => (e.currentTarget.style.display = "none")}
                   />
                 )}

@@ -188,6 +188,25 @@ export const appRouter = router({
         }
         return { success: true };
       }),
+
+    uploadImage: protectedProcedure
+      .input(z.object({
+        field: z.string().min(1),
+        dataUrl: z.string().min(1),
+        filename: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        const { storagePut } = await import("./storage");
+        // Extrair mime type e dados do dataUrl
+        const match = input.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (!match) throw new TRPCError({ code: "BAD_REQUEST", message: "dataUrl inválido" });
+        const [, mimeType, base64Data] = match;
+        const buffer = Buffer.from(base64Data, "base64");
+        const ext = input.filename.split(".").pop() ?? "png";
+        const key = `app-images/${input.field}-${Date.now()}.${ext}`;
+        const { url } = await storagePut(key, buffer, mimeType);
+        return { url };
+      }),
   }),
 
   // ─── Admin: gerenciamento de usuários do sistema ───────────────────────────
