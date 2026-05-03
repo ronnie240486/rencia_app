@@ -207,6 +207,29 @@ export const appRouter = router({
         const { url } = await storagePut(key, buffer, mimeType);
         return { url };
       }),
+
+    // Retorna URL pre-assinada para upload direto do frontend ao S3
+    getUploadUrl: protectedProcedure
+      .input(z.object({
+        field: z.string().min(1),
+        filename: z.string().min(1),
+        contentType: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        const { ENV } = await import("./_core/env");
+        const forgeUrl = (ENV.forgeApiUrl ?? "").replace(/\/+$/, "");
+        const forgeKey = ENV.forgeApiKey ?? "";
+        if (!forgeUrl || !forgeKey) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Storage não configurado" });
+        const ext = input.filename.split(".").pop() ?? "png";
+        const hash = Math.random().toString(36).slice(2, 10);
+        const key = `app-images/${input.field}-${Date.now()}-${hash}.${ext}`;
+        const presignUrl = `${forgeUrl}/v1/storage/presign/put?path=${encodeURIComponent(key)}`;
+        const resp = await fetch(presignUrl, { headers: { Authorization: `Bearer ${forgeKey}` } });
+        if (!resp.ok) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao gerar URL de upload" });
+        const { url: s3Url } = await resp.json() as { url: string };
+        const publicUrl = `/manus-storage/${key}`;
+        return { uploadUrl: s3Url, publicUrl, key };
+      }),
   }),
 
   // ─── Admin: gerenciamento de usuários do sistema ───────────────────────────

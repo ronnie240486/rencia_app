@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2, Save, Smartphone, Image, MessageSquare, Upload, CheckCircle2 } from "lucide-react";
 
+
 const SETTING_KEYS = {
   // Tela Trial (bloqueio)
   trial_title: "Título da tela de bloqueio",
@@ -53,13 +54,37 @@ const DEFAULT_VALUES: Record<string, string> = {
 
 export default function Settings() {
   const { data: settings, isLoading, refetch } = trpc.settings.getAll.useQuery();
-  const uploadImage = trpc.settings.uploadImage.useMutation({
-    onSuccess: (data, variables) => {
-      handleChange(variables.field, data.url);
-      toast.success("Imagem enviada! Clique em Salvar para aplicar.");
-    },
-    onError: (e) => toast.error("Erro ao enviar imagem: " + e.message),
-  });
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const getUploadUrl = trpc.settings.getUploadUrl.useMutation();
+
+  const handleFileUpload = async (field: string, file: File) => {
+    try {
+      setUploadingField(field);
+      // 1. Obter URL pre-assinada do servidor
+      const { uploadUrl, publicUrl } = await getUploadUrl.mutateAsync({
+        field,
+        filename: file.name,
+        contentType: file.type || "image/png",
+      });
+      // 2. Upload direto ao S3 (sem passar pelo servidor)
+      const uploadResp = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "image/png" },
+        body: file,
+      });
+      if (!uploadResp.ok) throw new Error(`Upload falhou: ${uploadResp.status}`);
+      // 3. Atualizar o campo com a URL pública
+      handleChange(field, publicUrl);
+      toast.success("Imagem enviada com sucesso! Clique em Salvar para aplicar.");
+    } catch (e: any) {
+      toast.error("Erro ao enviar imagem: " + (e.message ?? "erro desconhecido"));
+    } finally {
+      setUploadingField(null);
+    }
+  };
+
+  // uploadImage stub para compatibilidade (não usado mais)
+  const uploadImage = { isPending: false, mutate: (_: any) => {} };
   const updateMany = trpc.settings.updateMany.useMutation({
     onSuccess: () => {
       toast.success("Configurações salvas! As alterações serão aplicadas no próximo acesso do APK.");
@@ -272,13 +297,10 @@ export default function Settings() {
                   <label className="cursor-pointer">
                     <input type="file" accept="image/*" className="hidden" onChange={e => {
                       const file = e.target.files?.[0];
-                      if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = () => uploadImage.mutate({ field: "trial_logo_url", dataUrl: reader.result as string, filename: file.name });
-                      reader.readAsDataURL(file);
+                      if (file) handleFileUpload("trial_logo_url", file);
                     }} />
-                    <Button type="button" variant="outline" size="icon" disabled={uploadImage.isPending} title="Upload imagem">
-                      {uploadImage.isPending ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    <Button type="button" variant="outline" size="icon" disabled={uploadingField === "trial_logo_url"} title="Upload imagem">
+                      {uploadingField === "trial_logo_url" ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                     </Button>
                   </label>
                 </div>
@@ -306,13 +328,10 @@ export default function Settings() {
                   <label className="cursor-pointer">
                     <input type="file" accept="image/*" className="hidden" onChange={e => {
                       const file = e.target.files?.[0];
-                      if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = () => uploadImage.mutate({ field: "trial_background_url", dataUrl: reader.result as string, filename: file.name });
-                      reader.readAsDataURL(file);
+                      if (file) handleFileUpload("trial_background_url", file);
                     }} />
-                    <Button type="button" variant="outline" size="icon" disabled={uploadImage.isPending} title="Upload imagem">
-                      {uploadImage.isPending ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    <Button type="button" variant="outline" size="icon" disabled={uploadingField === "trial_background_url"} title="Upload imagem">
+                      {uploadingField === "trial_background_url" ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                     </Button>
                   </label>
                 </div>
@@ -369,13 +388,10 @@ export default function Settings() {
                       <label className="cursor-pointer shrink-0">
                         <input type="file" accept="image/*" className="hidden" onChange={e => {
                           const file = e.target.files?.[0];
-                          if (!file) return;
-                          const reader = new FileReader();
-                          reader.onload = () => uploadImage.mutate({ field: key, dataUrl: reader.result as string, filename: file.name });
-                          reader.readAsDataURL(file);
+                          if (file) handleFileUpload(key, file);
                         }} />
-                        <Button type="button" variant="outline" size="icon" disabled={uploadImage.isPending} title="Upload ícone">
-                          {uploadImage.isPending ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                        <Button type="button" variant="outline" size="icon" disabled={uploadingField === key} title="Upload ícone">
+                          {uploadingField === key ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                         </Button>
                       </label>
                     </div>
