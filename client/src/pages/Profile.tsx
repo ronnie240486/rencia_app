@@ -20,8 +20,9 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">{label}</p>
+        {/* Wrap text in a span to prevent browser extensions from breaking React's DOM reconciliation */}
         <p className="text-sm font-medium text-foreground truncate">
-          {value ?? <span className="text-muted-foreground italic">Não informado</span>}
+          <span>{value != null && value !== "" ? value : "Não informado"}</span>
         </p>
       </div>
     </div>
@@ -34,25 +35,37 @@ export default function Profile() {
 
   const displayUser = profile ?? user;
 
-  const formatDate = (date: Date | string | null | undefined) => {
-    if (!date) return null;
-    return new Date(date).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
+  const formatDate = (date: Date | string | null | undefined): string => {
+    if (!date) return "Não informado";
+    try {
+      return new Date(date).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+    } catch {
+      return "Não informado";
+    }
   };
 
-  const formatDateTime = (date: Date | string | null | undefined) => {
-    if (!date) return null;
-    return new Date(date).toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const formatDateTime = (date: Date | string | null | undefined): string => {
+    if (!date) return "Não informado";
+    try {
+      return new Date(date).toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Não informado";
+    }
   };
+
+  const roleName = displayUser?.role === "admin" ? "Administrador" : "Usuário";
+  const initials = displayUser?.name?.charAt(0)?.toUpperCase() ?? "U";
+  const displayName = displayUser?.name ?? "Usuário";
 
   if (error) {
     return (
@@ -77,14 +90,12 @@ export default function Profile() {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Profile Header Card */}
         <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-          {/* Banner */}
           <div
             className="h-28 w-full"
             style={{
               background: "linear-gradient(135deg, oklch(0.28 0.07 255) 0%, oklch(0.45 0.15 270) 100%)",
             }}
           />
-          {/* Avatar & Name */}
           <div className="px-6 pb-6">
             <div className="flex items-end gap-4 -mt-10 mb-4">
               <div
@@ -94,14 +105,14 @@ export default function Profile() {
                   color: "oklch(0.98 0.003 240)",
                 }}
               >
-                {displayUser?.name?.charAt(0)?.toUpperCase() ?? "U"}
+                <span>{initials}</span>
               </div>
               <div className="pb-1">
                 <h2 className="text-xl font-bold text-foreground tracking-tight">
                   {isLoading ? (
                     <span className="inline-block w-40 h-6 bg-muted rounded animate-pulse" />
                   ) : (
-                    displayUser?.name ?? "Usuário"
+                    <span>{displayName}</span>
                   )}
                 </h2>
                 <div className="flex items-center gap-2 mt-1">
@@ -109,22 +120,12 @@ export default function Profile() {
                     className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
                     style={
                       displayUser?.role === "admin"
-                        ? {
-                            background: "oklch(0.55 0.17 145 / 0.15)",
-                            color: "oklch(0.45 0.17 145)",
-                          }
-                        : {
-                            background: "oklch(0.52 0.18 255 / 0.12)",
-                            color: "oklch(0.42 0.15 255)",
-                          }
+                        ? { background: "oklch(0.55 0.17 145 / 0.15)", color: "oklch(0.45 0.17 145)" }
+                        : { background: "oklch(0.52 0.18 255 / 0.12)", color: "oklch(0.42 0.15 255)" }
                     }
                   >
-                    {displayUser?.role === "admin" ? (
-                      <Shield size={11} />
-                    ) : (
-                      <User size={11} />
-                    )}
-                    {displayUser?.role === "admin" ? "Administrador" : "Usuário"}
+                    {displayUser?.role === "admin" ? <Shield size={11} /> : <User size={11} />}
+                    <span>{roleName}</span>
                   </span>
                 </div>
               </div>
@@ -181,7 +182,7 @@ export default function Profile() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 border border-destructive/30 text-destructive hover:bg-destructive/5"
           >
             <LogOut size={15} />
-            Encerrar Sessão
+            <span>Encerrar Sessão</span>
           </button>
         </div>
       </div>
