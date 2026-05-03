@@ -30,7 +30,7 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 
 export default function Profile() {
   const { user, logout } = useAuth();
-  const { data: profile, isLoading, error } = trpc.users.profile.useQuery();
+  const { data: profile, isLoading, error } = trpc.adminUsers.profile.useQuery();
 
   const displayUser = profile ?? user;
 

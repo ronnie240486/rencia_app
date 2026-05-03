@@ -1,6 +1,6 @@
-import { and, count, eq, like, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, like, lt, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, apps, devices, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -21,7 +21,6 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) throw new Error("User openId is required for upsert");
   const db = await getDb();
   if (!db) { console.warn("[Database] Cannot upsert user: database not available"); return; }
-
   try {
     const values: InsertUser = { openId: user.openId };
     const updateSet: Record<string, unknown> = {};
@@ -54,74 +53,184 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function getAllUsers(opts?: {
+// ─── Devices ────────────────────────────────────────────────────────────────
+
+export async function listDevices(ownerId: number, opts: {
   search?: string;
-  role?: "admin" | "user" | "all";
-  limit?: number;
-  offset?: number;
+  page?: number;
+  pageSize?: number;
 }) {
   const db = await getDb();
-  if (!db) return { users: [], total: 0 };
+  if (!db) return { data: [], total: 0 };
+  const { search = "", page = 1, pageSize = 50 } = opts;
+  const offset = (page - 1) * pageSize;
 
-  const { search, role, limit = 50, offset = 0 } = opts ?? {};
-
-  const conditions = [];
-
-  if (search && search.trim()) {
-    const term = `%${search.trim()}%`;
+  const conditions = [eq(devices.ownerId, ownerId)];
+  if (search) {
     conditions.push(
       or(
-        like(users.name, term),
-        like(users.email, term),
-      )
+        like(devices.mac, `%${search}%`),
+        like(devices.nomeServer, `%${search}%`)
+      )!
     );
   }
 
-  if (role && role !== "all") {
-    conditions.push(eq(users.role, role));
-  }
-
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-  const [rows, totalRows] = await Promise.all([
-    db.select().from(users).where(whereClause).limit(limit).offset(offset),
-    db.select({ count: count() }).from(users).where(whereClause),
+  const whereClause = and(...conditions);
+  const [data, totalRows] = await Promise.all([
+    db.select().from(devices).where(whereClause).orderBy(desc(devices.dataCadastro)).limit(pageSize).offset(offset),
+    db.select({ count: count() }).from(devices).where(whereClause),
   ]);
 
-  return {
-    users: rows,
-    total: totalRows[0]?.count ?? 0,
-  };
+  return { data, total: totalRows[0]?.count ?? 0 };
 }
 
-export async function getUserStats() {
+export async function getRecentDevices(ownerId: number, limit = 5) {
   const db = await getDb();
-  if (!db) return { total: 0, admins: 0, regularUsers: 0 };
-
-  const [totalRow, adminRow] = await Promise.all([
-    db.select({ count: count() }).from(users),
-    db.select({ count: count() }).from(users).where(eq(users.role, "admin")),
-  ]);
-
-  const total = totalRow[0]?.count ?? 0;
-  const admins = adminRow[0]?.count ?? 0;
-
-  return {
-    total,
-    admins,
-    regularUsers: total - admins,
-  };
+  if (!db) return [];
+  return db.select().from(devices).where(eq(devices.ownerId, ownerId)).orderBy(desc(devices.dataCadastro)).limit(limit);
 }
 
-export async function updateUserRole(userId: number, role: "admin" | "user") {
+export async function createDevice(data: {
+  ownerId: number;
+  mac: string;
+  nomeServer: string;
+  tipo?: "Usuario" | "Revenda" | "UltraMaster" | "Master";
+  modoSelecao?: "XTeamCode" | "M3U8";
+  app?: string;
+  urlM3u8?: string;
+  urlEpg?: string;
+  valor?: string;
+  dataExpiracao?: string;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, userId));
+  await db.insert(devices).values({
+    ownerId: data.ownerId,
+    mac: data.mac,
+    nomeServer: data.nomeServer,
+    tipo: data.tipo ?? "Usuario",
+    modoSelecao: data.modoSelecao ?? "XTeamCode",
+    app: data.app ?? null,
+    urlM3u8: data.urlM3u8 ?? null,
+    urlEpg: data.urlEpg ?? null,
+    valor: data.valor ?? null,
+    dataExpiracao: data.dataExpiracao ? new Date(data.dataExpiracao) : null,
+    status: "Liberado",
+  });
 }
 
-export async function getUserById(userId: number) {
+export async function updateDevice(id: number, ownerId: number, data: Partial<{
+  mac: string;
+  nomeServer: string;
+  tipo: "Usuario" | "Revenda" | "UltraMaster" | "Master";
+  modoSelecao: "XTeamCode" | "M3U8";
+  app: string;
+  urlM3u8: string;
+  urlEpg: string;
+  valor: string;
+  dataExpiracao: string;
+  status: "Liberado" | "Bloqueado" | "Expirado";
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = {};
+  if (data.mac !== undefined) updateData.mac = data.mac;
+  if (data.nomeServer !== undefined) updateData.nomeServer = data.nomeServer;
+  if (data.tipo !== undefined) updateData.tipo = data.tipo;
+  if (data.modoSelecao !== undefined) updateData.modoSelecao = data.modoSelecao;
+  if (data.app !== undefined) updateData.app = data.app;
+  if (data.urlM3u8 !== undefined) updateData.urlM3u8 = data.urlM3u8;
+  if (data.urlEpg !== undefined) updateData.urlEpg = data.urlEpg;
+  if (data.valor !== undefined) updateData.valor = data.valor;
+  if (data.dataExpiracao !== undefined) updateData.dataExpiracao = data.dataExpiracao ? new Date(data.dataExpiracao) : null;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (Object.keys(updateData).length === 0) return;
+  await db.update(devices).set(updateData).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId)));
+}
+
+export async function deleteDevice(id: number, ownerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(devices).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId)));
+}
+
+export async function deleteManyDevices(ids: number[], ownerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  for (const id of ids) {
+    await db.delete(devices).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId)));
+  }
+}
+
+export async function deleteExpiredDevices(ownerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  await db.delete(devices).where(and(eq(devices.ownerId, ownerId), lt(devices.dataExpiracao, today)));
+}
+
+export async function getDeviceStats(ownerId: number) {
+  const db = await getDb();
+  if (!db) return { total: 0, revendas: 0, ultraMasters: 0, masters: 0, receitaMensal: 0 };
+
+  const [total, revendas, ultraMasters, masters, receita] = await Promise.all([
+    db.select({ count: count() }).from(devices).where(eq(devices.ownerId, ownerId)),
+    db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "Revenda"))),
+    db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "UltraMaster"))),
+    db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "Master"))),
+    db.select({ total: sql<string>`COALESCE(SUM(valor), 0)` }).from(devices).where(and(eq(devices.ownerId, ownerId), gte(devices.dataCadastro, sql`DATE_FORMAT(NOW(), '%Y-%m-01')`))),
+  ]);
+
+  return {
+    total: total[0]?.count ?? 0,
+    revendas: revendas[0]?.count ?? 0,
+    ultraMasters: ultraMasters[0]?.count ?? 0,
+    masters: masters[0]?.count ?? 0,
+    receitaMensal: parseFloat(receita[0]?.total ?? "0"),
+  };
+}
+
+export async function getDeviceById(id: number, ownerId: number) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  const result = await db.select().from(devices).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId))).limit(1);
+  return result[0];
+}
+
+// ─── Apps ────────────────────────────────────────────────────────────────────
+
+export async function listApps() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(apps).where(eq(apps.ativo, true)).orderBy(desc(apps.totalClientes));
+}
+
+export async function seedApps() {
+  const db = await getDb();
+  if (!db) return;
+  const existing = await db.select({ count: count() }).from(apps);
+  if ((existing[0]?.count ?? 0) > 0) return;
+  await db.insert(apps).values([
+    { nome: "IBO REVENDA", totalClientes: 219789 },
+    { nome: "VU REVENDA", totalClientes: 4868 },
+    { nome: "TV ROKU -GPC PRO", totalClientes: 2841 },
+    { nome: "ZONE X", totalClientes: 2774 },
+    { nome: "UNI REVENDA", totalClientes: 2654 },
+    { nome: "FACILITA", totalClientes: 2239 },
+    { nome: "GPC PRO ANDROID", totalClientes: 521 },
+  ]);
+}
+
+// ─── User plan info ───────────────────────────────────────────────────────────
+
+export async function getUserPlanInfo(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select({
+    plano: users.plano,
+    planValidade: users.planValidade,
+    limiteDevices: users.limiteDevices,
+  }).from(users).where(eq(users.id, userId)).limit(1);
+  return result[0] ?? null;
 }

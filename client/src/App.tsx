@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Users from "./pages/Users";
+import UserCreate from "./pages/UserCreate";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path={"/login"} component={Login} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/users"} component={Users} />
+      <Route path={"/users/create"} component={UserCreate} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

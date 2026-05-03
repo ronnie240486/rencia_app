@@ -42,10 +42,13 @@ export function registerOAuthRoutes(app: Express) {
       });
 
       const cookieOptions = getSessionCookieOptions(req);
+      console.log("[OAuth] Cookie options:", JSON.stringify(cookieOptions));
+      console.log("[OAuth] Protocol:", req.protocol, "| x-forwarded-proto:", req.headers["x-forwarded-proto"]);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
       // Redirect to the returnPath encoded in state, defaulting to /dashboard
       const returnPath = sdk.parseReturnPath(state);
+      console.log("[OAuth] Redirecting to:", returnPath);
       res.redirect(302, returnPath);
     } catch (error) {
       console.error("[OAuth] Callback failed", error);

@@ -30,3 +30,30 @@
 
 ## Bugs
 - [x] Após login OAuth, usuário é redirecionado para a tela de boas-vindas em vez do dashboard
+- [x] Cookie de sessão não enviado após login OAuth (corrigido: sameSite=lax em dev proxy)
+
+## Funcionalidades do gerenciaapp.top (nova fase)
+- [x] Schema: tabela devices (mac, nome_server, tipo, app, url_m3u8, url_epg, valor, status, data_cadastro, data_expiracao, owner_id)
+- [x] Schema: tabela apps (nome, icone_url, total_clientes)
+- [x] Procedure: listar devices com busca, filtro e paginação
+- [x] Procedure: criar device (cadastro)
+- [x] Procedure: editar device
+- [x] Procedure: deletar device (individual)
+- [x] Procedure: deletar devices expirados
+- [x] Procedure: ações em massa (deletar selecionados)
+- [x] Procedure: stats do dashboard (total devices, revendas, ultra masters, masters, receita mensal)
+- [x] Procedure: ranking de apps (top apps por clientes)
+- [x] Dashboard: cards de estatísticas (Total Usuários, Revendas, Ultra Masters, Masters, Receita Mensal)
+- [x] Dashboard: seção Apps liberados no plano
+- [x] Dashboard: Troféu Top Apps com ranking visual (Ouro/Prata/Bronze)
+- [x] Dashboard: tabela Informações do meu plano
+- [x] Dashboard: Últimos Usuários Cadastrados (mini tabela com busca)
+- [x] Página de lista de usuários com tabela completa (MAC, Nome, Tipo, Valor, Status, Datas, Ações)
+- [x] Busca e filtro na lista de usuários
+- [x] Seleção em massa com checkboxes
+- [x] Botão Deletar Usuários Expirados
+- [x] Paginação na lista de usuários
+- [x] Formulário de cadastro de device (Modo, MAC, Nome, M3U8, App, URL EPG, Valor, Data Expiração)
+- [x] Formulário de edição de device
+- [x] Corrigir bug de autenticação (trust proxy / cookie - sameSite=lax em dev proxy)
+- [x] Header com ID do usuário, Validade e Limite de Devices
