@@ -541,17 +541,8 @@ export function registerApiRoutes(app: Express) {
       const { url } = await storagePut(storageKey, file.buffer, file.mimetype);
 
       // Montar URL absoluta para o APK acessar
-      // Usar o domínio público de produção (renciaapp-ldyffp73.manus.space)
-      // O APK precisa de uma URL pública para buscar as imagens
-      const forwardedProto = req.headers["x-forwarded-proto"];
-      const forwardedHost = req.headers["x-forwarded-host"] || req.headers["x-forwarded-for"];
-      const protocol = Array.isArray(forwardedProto) ? forwardedProto[0] : (forwardedProto || "https");
-      const host = Array.isArray(forwardedHost) ? forwardedHost[0] : (forwardedHost || req.headers.host || "");
-      // Se host for localhost, usar o domínio de produção configurado
-      const publicHost = (host.includes("localhost") || host.includes("127.0.0.1"))
-        ? "renciaapp-ldyffp73.manus.space"
-        : host;
-      const absoluteUrl = `https://${publicHost}${url}`;
+      // Sempre usar o domínio público fixo de produção
+      const absoluteUrl = `https://renciaapp-ldyffp73.manus.space${url}`;
 
       // Atualizar no banco de dados
       const db = await getDb();
