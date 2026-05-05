@@ -618,8 +618,10 @@ export function registerApiRoutes(app: Express) {
       const cfg = await getSettings();
       const bgUrl = cfg.trial_background_url || "";
 
-      if (!bgUrl || !bgUrl.startsWith("http")) {
-        // Sem fundo configurado: retornar 204 para o APK usar o fundo padrão
+      // Validar URL: rejeitar URLs com vírgula ou caracteres inválidos
+      const isValidUrl = bgUrl && bgUrl.startsWith("http") && !bgUrl.includes(",") && !bgUrl.includes(" ");
+      if (!isValidUrl) {
+        // Sem fundo configurado ou URL inválida: retornar 204
         res.status(204).end();
         return;
       }
