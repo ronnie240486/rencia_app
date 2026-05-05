@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,37 @@ const DEFAULT_VALUES: Record<string, string> = {
   icon_account_url: "",
   icon_change_playlist_url: "",
 };
+
+// Componente reutilizável para botão de upload que funciona corretamente
+function UploadButton({ field, uploadingField, onUpload }: { field: string; uploadingField: string | null; onUpload: (field: string, file: File) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={e => {
+          const file = e.target.files?.[0];
+          if (file) onUpload(field, file);
+          // Reset para permitir re-upload do mesmo arquivo
+          e.target.value = "";
+        }}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        disabled={uploadingField === field}
+        title="Upload imagem"
+        onClick={() => inputRef.current?.click()}
+      >
+        {uploadingField === field ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+      </Button>
+    </>
+  );
+}
 
 export default function Settings() {
   const { data: settings, isLoading, refetch } = trpc.settings.getAll.useQuery();
@@ -275,11 +306,14 @@ export default function Settings() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Banner lateral (320×180px)</Label>
-                <Input
-                  value={form.trial_banner_url}
-                  onChange={e => handleChange("trial_banner_url", e.target.value)}
-                  placeholder="https://exemplo.com/banner.png"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    value={form.trial_banner_url}
+                    onChange={e => handleChange("trial_banner_url", e.target.value)}
+                    placeholder="https://exemplo.com/banner.png"
+                  />
+                  <UploadButton field="trial_banner_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Imagem exibida no canto inferior direito da tela de bloqueio. Tamanho recomendado: 320×180px.
                 </p>
@@ -301,15 +335,7 @@ export default function Settings() {
                     onChange={e => handleChange("trial_logo_url", e.target.value)}
                     placeholder="https://exemplo.com/logo.png"
                   />
-                  <label className="cursor-pointer">
-                    <input type="file" accept="image/*" className="hidden" onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileUpload("trial_logo_url", file);
-                    }} />
-                    <Button type="button" variant="outline" size="icon" disabled={uploadingField === "trial_logo_url"} title="Upload imagem">
-                      {uploadingField === "trial_logo_url" ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                    </Button>
-                  </label>
+                  <UploadButton field="trial_logo_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Logo exibido no canto superior esquerdo do APK. Tamanho recomendado: 320×180px.
@@ -332,15 +358,7 @@ export default function Settings() {
                     onChange={e => handleChange("trial_background_url", e.target.value)}
                     placeholder="https://exemplo.com/background.png"
                   />
-                  <label className="cursor-pointer">
-                    <input type="file" accept="image/*" className="hidden" onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileUpload("trial_background_url", file);
-                    }} />
-                    <Button type="button" variant="outline" size="icon" disabled={uploadingField === "trial_background_url"} title="Upload imagem">
-                      {uploadingField === "trial_background_url" ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                    </Button>
-                  </label>
+                  <UploadButton field="trial_background_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
                 </div>
                 <p className="text-xs text-muted-foreground">
                   <strong>Imagem dinâmica:</strong> Ao salvar, o APK buscará esta imagem automaticamente ao reiniciar. Substitui o fundo da tela principal. Tamanho recomendado: 960×540px.
@@ -392,15 +410,7 @@ export default function Settings() {
                         />
                         <p className="text-xs text-muted-foreground">{hint}</p>
                       </div>
-                      <label className="cursor-pointer shrink-0">
-                        <input type="file" accept="image/*" className="hidden" onChange={e => {
-                          const file = e.target.files?.[0];
-                          if (file) handleFileUpload(key, file);
-                        }} />
-                        <Button type="button" variant="outline" size="icon" disabled={uploadingField === key} title="Upload ícone">
-                          {uploadingField === key ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                        </Button>
-                      </label>
+                      <UploadButton field={key} uploadingField={uploadingField} onUpload={handleFileUpload} />
                     </div>
                   </div>
                 ))}
