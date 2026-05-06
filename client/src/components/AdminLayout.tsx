@@ -9,6 +9,7 @@ import {
   Menu,
   Settings,
   Shield,
+  Store,
   User,
   Users,
   X,
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={18} /> },
   { label: "Usuários", href: "/users", icon: <Users size={18} /> },
   { label: "Cadastrar Usuário", href: "/users/create", icon: <BarChart3 size={18} /> },
+  { label: "Revendas", href: "/revendas", icon: <Store size={18} /> },
   { label: "Configurações do App", href: "/settings", icon: <Settings size={18} /> },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];

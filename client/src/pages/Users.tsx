@@ -6,16 +6,17 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  ChevronLeft, ChevronRight, ChevronDown, Pencil, Plus, Search, Trash2,
+  ChevronLeft, ChevronRight, ChevronDown, List, Pencil, Plus, Search, Trash2, Globe,
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
@@ -58,6 +59,11 @@ export default function Users() {
   const [deleteManyOpen, setDeleteManyOpen] = useState(false);
   const [deleteExpiredOpen, setDeleteExpiredOpen] = useState(false);
 
+  // DNS em massa
+  const [dnsDialogOpen, setDnsDialogOpen] = useState(false);
+  const [dnsDialogScope, setDnsDialogScope] = useState<"selected" | "all">("selected");
+  const [newDnsUrl, setNewDnsUrl] = useState("");
+
   const utils = trpc.useUtils();
 
   const { data, isLoading } = trpc.devices.list.useQuery({ search, page, pageSize: PAGE_SIZE });
@@ -96,6 +102,17 @@ export default function Users() {
     onError: (e) => toast.error(e.message),
   });
 
+  const bulkDnsMutation = trpc.devices.bulkUpdateDns.useMutation({
+    onSuccess: () => {
+      const scope = dnsDialogScope === "all" ? "todos os usuários" : `${selected.size} usuário(s)`;
+      toast.success(`✅ DNS atualizado para ${scope}!`);
+      utils.devices.list.invalidate();
+      setDnsDialogOpen(false);
+      setNewDnsUrl("");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const formatDate = (d: Date | string | null | undefined) => {
     if (!d) return "—";
     try { return format(new Date(d), "dd/MM/yyyy", { locale: ptBR }); } catch { return "—"; }
@@ -121,20 +138,32 @@ export default function Users() {
 
   const toggleAll = () => {
     if (allOnPageSelected) {
-      // Deselect all on this page
       setSelected(prev => {
         const next = new Set(prev);
         devices.forEach(d => next.delete(d.id));
         return next;
       });
     } else {
-      // Select all on this page
       setSelected(prev => {
         const next = new Set(prev);
         devices.forEach(d => next.add(d.id));
         return next;
       });
     }
+  };
+
+  const openDnsDialog = (scope: "selected" | "all") => {
+    setDnsDialogScope(scope);
+    setNewDnsUrl("");
+    setDnsDialogOpen(true);
+  };
+
+  const handleDnsSubmit = () => {
+    if (!newDnsUrl.trim()) { toast.error("Informe a nova URL M3U8."); return; }
+    bulkDnsMutation.mutate({
+      newUrl: newDnsUrl.trim(),
+      ids: dnsDialogScope === "selected" ? Array.from(selected) : undefined,
+    });
   };
 
   return (
@@ -144,6 +173,15 @@ export default function Users() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-xl font-bold text-foreground">Lista de Usuários</h1>
           <div className="flex gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1 border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100"
+              onClick={() => openDnsDialog("all")}
+            >
+              <Globe className="w-3 h-3" />
+              Trocar DNS de Todos
+            </Button>
             <Link href="/users/create">
               <Button size="sm" className="h-8 text-xs gap-1">
                 <Plus className="w-3 h-3" />
@@ -184,6 +222,14 @@ export default function Users() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
+                <DropdownMenuItem
+                  className="cursor-pointer text-blue-700"
+                  onClick={() => openDnsDialog("selected")}
+                >
+                  <Globe className="w-3 h-3 mr-2" />
+                  Trocar DNS dos selecionados
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-red-600 cursor-pointer"
                   onClick={() => setDeleteManyOpen(true)}
@@ -273,6 +319,11 @@ export default function Users() {
                               <Pencil className="w-3 h-3" />
                             </Button>
                           </Link>
+                          <Link href={`/users/${d.id}/lists`}>
+                            <Button size="sm" className="h-7 w-7 p-0 bg-emerald-500 hover:bg-emerald-600" title="Gerenciar Listas">
+                              <List className="w-3 h-3" />
+                            </Button>
+                          </Link>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -308,6 +359,60 @@ export default function Users() {
           </Button>
         </div>
       </div>
+
+      {/* DNS em Massa Dialog */}
+      <Dialog open={dnsDialogOpen} onOpenChange={open => { if (!open) setDnsDialogOpen(false); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5 text-blue-600" />
+              {dnsDialogScope === "all" ? "Trocar DNS de Todos os Usuários" : `Trocar DNS de ${selected.size} Usuário(s)`}
+            </DialogTitle>
+            <DialogDescription>
+              {dnsDialogScope === "all"
+                ? "A nova URL M3U8 será aplicada a TODOS os seus usuários cadastrados. Esta ação não pode ser desfeita."
+                : `A nova URL M3U8 será aplicada aos ${selected.size} usuário(s) selecionados.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Nova URL M3U8: <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                placeholder="http://servidor.com:porta/get.php?username=...&password=...&type=m3u_plus"
+                value={newDnsUrl}
+                onChange={e => setNewDnsUrl(e.target.value)}
+                className="h-10 font-mono text-xs"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                Cole a URL completa do servidor M3U8 (incluindo usuário e senha).
+              </p>
+            </div>
+            {dnsDialogScope === "all" && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-3">
+                <p className="text-xs text-amber-800 dark:text-amber-200 font-medium">
+                  ⚠️ Atenção: Esta ação irá sobrescrever a URL M3U8 de <strong>todos</strong> os seus usuários.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDnsDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleDnsSubmit}
+              disabled={bulkDnsMutation.isPending || !newDnsUrl.trim()}
+              className="gap-2 bg-blue-600 hover:bg-blue-700"
+            >
+              <Globe className="w-4 h-4" />
+              {bulkDnsMutation.isPending ? "Aplicando..." : "Aplicar DNS"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Single Confirm */}
       <Dialog open={deleteId !== null} onOpenChange={open => { if (!open) setDeleteId(null); }}>

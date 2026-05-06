@@ -7,11 +7,12 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   createDevice, deleteDevice, deleteManyDevices, deleteExpiredDevices,
   getDeviceById, getDeviceStats, getRecentDevices, getUserPlanInfo,
-  listApps, listDevices, seedApps, updateDevice, upsertUser,
-  getDb,
+  listApps, listDevices, seedApps, updateDevice, upsertUser, getDb,
+  getDeviceUrls, addDeviceUrl, updateDeviceUrl, deleteDeviceUrl,
+  listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
 } from "./db";
-import { eq } from "drizzle-orm";
-import { users, appSettings } from "../drizzle/schema";
+import { eq, and, inArray } from "drizzle-orm";
+import { users, appSettings, devices, deviceUrls } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -80,7 +81,6 @@ export const appRouter = router({
         dataExpiracao: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Check device limit
         const planInfo = await getUserPlanInfo(ctx.user.id);
         const stats = await getDeviceStats(ctx.user.id);
         const limite = planInfo?.limiteDevices ?? 999;
@@ -133,6 +133,148 @@ export const appRouter = router({
       await deleteExpiredDevices(ctx.user.id);
       return { success: true };
     }),
+
+    bulkUpdateDns: protectedProcedure
+      .input(z.object({
+        newUrl: z.string().min(1),
+        ids: z.array(z.number()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        if (input.ids && input.ids.length > 0) {
+          await db.update(devices)
+            .set({ urlM3u8: input.newUrl })
+            .where(and(eq(devices.ownerId, ctx.user.id), inArray(devices.id, input.ids)));
+        } else {
+          await db.update(devices)
+            .set({ urlM3u8: input.newUrl })
+            .where(eq(devices.ownerId, ctx.user.id));
+        }
+        return { success: true };
+      }),
+  }),
+
+  // ─── Device URLs (múltiplas listas por device) ────────────────────────────
+  deviceUrls: router({
+    list: protectedProcedure
+      .input(z.object({ deviceId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        // Verificar que o device pertence ao usuário
+        const device = await getDeviceById(input.deviceId, ctx.user.id);
+        if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
+        return getDeviceUrls(input.deviceId);
+      }),
+
+    add: protectedProcedure
+      .input(z.object({
+        deviceId: z.number(),
+        nome: z.string().min(1).default("Lista"),
+        modoSelecao: z.enum(["XTeamCode", "M3U8"]).default("XTeamCode"),
+        urlM3u8: z.string().optional(),
+        xtServer: z.string().optional(),
+        xtUsername: z.string().optional(),
+        xtPassword: z.string().optional(),
+        ordem: z.number().optional().default(0),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const device = await getDeviceById(input.deviceId, ctx.user.id);
+        if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
+        await addDeviceUrl(input);
+        return { success: true };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        deviceId: z.number(),
+        nome: z.string().optional(),
+        modoSelecao: z.enum(["XTeamCode", "M3U8"]).optional(),
+        urlM3u8: z.string().optional(),
+        xtServer: z.string().optional(),
+        xtUsername: z.string().optional(),
+        xtPassword: z.string().optional(),
+        ordem: z.number().optional(),
+        ativo: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const device = await getDeviceById(input.deviceId, ctx.user.id);
+        if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
+        const { id, deviceId: _, ...data } = input;
+        await updateDeviceUrl(id, data);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number(), deviceId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const device = await getDeviceById(input.deviceId, ctx.user.id);
+        if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
+        await deleteDeviceUrl(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Revendas ─────────────────────────────────────────────────────────────
+  revendas: router({
+    list: protectedProcedure
+      .input(z.object({
+        search: z.string().optional().default(""),
+        page: z.number().min(1).optional().default(1),
+        pageSize: z.number().min(1).max(100).optional().default(50),
+      }))
+      .query(async ({ ctx, input }) => {
+        return listRevendas(ctx.user.id, input);
+      }),
+
+    stats: protectedProcedure.query(async ({ ctx }) => {
+      return getRevendaStats(ctx.user.id);
+    }),
+
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        email: z.string().email().optional(),
+        plano: z.string().default("Revenda"),
+        planValidade: z.string().optional(),
+        limiteDevices: z.number().min(1).default(50),
+        limiteRevendas: z.number().min(0).default(0),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Verificar limite de revendas do usuário atual
+        const planInfo = await getUserPlanInfo(ctx.user.id);
+        const stats = await getRevendaStats(ctx.user.id);
+        const limiteRevendas = planInfo?.limiteRevendas ?? 0;
+        if (limiteRevendas > 0 && stats.totalRevendas >= limiteRevendas) {
+          throw new TRPCError({ code: "FORBIDDEN", message: `Limite de ${limiteRevendas} revendas atingido.` });
+        }
+        await createRevenda({ resellerId: ctx.user.id, ...input });
+        return { success: true };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        email: z.string().optional(),
+        plano: z.string().optional(),
+        planValidade: z.string().optional(),
+        limiteDevices: z.number().optional(),
+        limiteRevendas: z.number().optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...data } = input;
+        await updateRevenda(id, ctx.user.id, data);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteRevenda(input.id, ctx.user.id);
+        return { success: true };
+      }),
   }),
 
   // ─── Apps ──────────────────────────────────────────────────────────────────
@@ -146,20 +288,20 @@ export const appRouter = router({
   // ─── Plan info ─────────────────────────────────────────────────────────────
   plan: router({
     info: protectedProcedure.query(async ({ ctx }) => {
-      // Owner/criador: sem limites
       const isOwner = ctx.user.openId === ENV.ownerOpenId;
       if (isOwner) {
         return {
           plano: "Criador / Desenvolvedor ★",
           planValidade: null,
-          limiteDevices: 999999, // ilimitado para o criador
+          limiteDevices: 999999,
+          limiteRevendas: 999999,
         };
       }
       return getUserPlanInfo(ctx.user.id);
     }),
   }),
 
-  // ─── Configurações do App (tela Trial, textos, imagens) ──────────────────────
+  // ─── Configurações do App ─────────────────────────────────────────────────
   settings: router({
     getAll: protectedProcedure.query(async () => {
       const db = await getDb();
@@ -207,7 +349,6 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const { storagePut } = await import("./storage");
-        // Extrair mime type e dados do dataUrl
         const match = input.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
         if (!match) throw new TRPCError({ code: "BAD_REQUEST", message: "dataUrl inválido" });
         const [, mimeType, base64Data] = match;
@@ -218,7 +359,6 @@ export const appRouter = router({
         return { url };
       }),
 
-    // Retorna URL pre-assinada para upload direto do frontend ao S3
     getUploadUrl: protectedProcedure
       .input(z.object({
         field: z.string().min(1),
@@ -226,7 +366,6 @@ export const appRouter = router({
         contentType: z.string().min(1),
       }))
       .mutation(async ({ input }) => {
-        // ENV já importado no topo do arquivo
         const forgeUrl = (ENV.forgeApiUrl ?? "").replace(/\/+$/, "");
         const forgeKey = ENV.forgeApiKey ?? "";
         if (!forgeUrl || !forgeKey) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Storage não configurado" });

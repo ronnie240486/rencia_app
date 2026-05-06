@@ -75,3 +75,24 @@
 - [x] Implementar função encodeForApk() com algoritmo Security.getDecodedString do APK
 - [x] Corrigir endpoint /api/guim.php para retornar resposta no formato correto
 - [x] Adicionar testes Vitest para encodeForApk/getDecodedString
+
+## Novas funcionalidades (06/05/2026)
+- [x] DNS em massa: botão "Trocar DNS de todos" na tela de usuários com dialog
+- [x] XteamCode: campos separados (Usuário, Senha, URL servidor) quando modoSelecao=XTeamCode
+- [x] Corrigir guim.php: adicionar campo `words` com dados do painel (tela de bloqueio dinâmica)
+- [x] Corrigir erro TS: função buildWords não encontrada em apiRoutes.ts
+- [ ] APK v26: recompilar com Open Website→Conectar, Ibo Player removido, ic_setting dourado, logo lateral
+
+## Novas funcionalidades (06/05/2026 - v2)
+- [ ] Schema: tabela device_urls (id, device_id, nome, url_m3u8, xt_server, xt_username, xt_password, modo, ordem, ativo)
+- [ ] Schema: coluna reseller_id na tabela users (quem criou esse revendedor)
+- [ ] Schema: coluna plano_limite_devices e plano_limite_revendas na tabela users
+- [ ] Procedure: CRUD de device_urls (adicionar/editar/remover listas de um device)
+- [ ] Procedure: guim.php retornar múltiplas URLs
+- [ ] Procedure: listar revendas do Ultra Master (users onde reseller_id = meu id)
+- [ ] Procedure: criar/editar/deletar revendas
+- [ ] Procedure: stats de revendas (total devices dos meus revendedores)
+- [ ] Frontend: MAC com formatação automática (inserir : a cada 2 dígitos)
+- [ ] Frontend: múltiplas listas no formulário de criação/edição de device
+- [ ] Frontend: página de gerenciamento de revendas (/revendas)
+- [ ] Frontend: rota /revendas no App.tsx e sidebar

@@ -15,6 +15,10 @@ export const users = mysqlTable("users", {
   plano: varchar("plano", { length: 64 }).default("Revenda"),
   planValidade: date("planValidade"),
   limiteDevices: int("limiteDevices").default(999),
+  // Hierarquia de revendas: quem criou este usuário/revendedor
+  resellerId: int("resellerId"),
+  // Limite de revendas que este usuário pode criar
+  limiteRevendas: int("limiteRevendas").default(0),
 });
 
 export type User = typeof users.$inferSelect;
@@ -40,6 +44,25 @@ export const devices = mysqlTable("devices", {
 
 export type Device = typeof devices.$inferSelect;
 export type InsertDevice = typeof devices.$inferInsert;
+
+// Múltiplas listas (URLs) por dispositivo
+export const deviceUrls = mysqlTable("device_urls", {
+  id: int("id").autoincrement().primaryKey(),
+  deviceId: int("deviceId").notNull(),
+  nome: varchar("nome", { length: 128 }).notNull().default("Lista 1"),
+  modoSelecao: mysqlEnum("modoSelecao", ["XTeamCode", "M3U8"]).default("XTeamCode").notNull(),
+  urlM3u8: text("urlM3u8"),
+  // Campos XteamCode separados
+  xtServer: text("xtServer"),
+  xtUsername: varchar("xtUsername", { length: 255 }),
+  xtPassword: varchar("xtPassword", { length: 255 }),
+  ordem: int("ordem").default(0).notNull(),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type DeviceUrl = typeof deviceUrls.$inferSelect;
+export type InsertDeviceUrl = typeof deviceUrls.$inferInsert;
 
 export const apps = mysqlTable("apps", {
   id: int("id").autoincrement().primaryKey(),

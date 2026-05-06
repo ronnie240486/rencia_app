@@ -11,6 +11,8 @@ import Users from "./pages/Users";
 import UserCreate from "./pages/UserCreate";
 import UserEdit from "./pages/UserEdit";
 import Settings from "./pages/Settings";
+import Revendas from "./pages/Revendas";
+import DeviceLists from "./pages/DeviceLists";
 
 function Router() {
   return (
@@ -23,6 +25,8 @@ function Router() {
       <Route path={"/users/:id/edit"} component={UserEdit} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/settings"} component={Settings} />
+      <Route path={"/revendas"} component={Revendas} />
+      <Route path={"/users/:id/lists"} component={DeviceLists} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

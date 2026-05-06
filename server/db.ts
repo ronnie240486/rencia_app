@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gte, like, lt, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, apps, devices, users } from "../drizzle/schema";
+import { InsertUser, apps, devices, deviceUrls, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -151,6 +151,8 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
 export async function deleteDevice(id: number, ownerId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  // Deletar listas associadas primeiro
+  await db.delete(deviceUrls).where(eq(deviceUrls.deviceId, id));
   await db.delete(devices).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId)));
 }
 
@@ -159,6 +161,8 @@ export async function deleteManyDevices(ids: number[], ownerId: number) {
   if (!db) throw new Error("Database not available");
   if (ids.length === 0) return;
   const { inArray } = await import("drizzle-orm");
+  // Deletar listas associadas primeiro
+  await db.delete(deviceUrls).where(inArray(deviceUrls.deviceId, ids));
   await db.delete(devices).where(and(inArray(devices.id, ids), eq(devices.ownerId, ownerId)));
 }
 
@@ -167,6 +171,14 @@ export async function deleteExpiredDevices(ownerId: number) {
   if (!db) throw new Error("Database not available");
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  // Buscar IDs dos expirados primeiro
+  const expired = await db.select({ id: devices.id }).from(devices)
+    .where(and(eq(devices.ownerId, ownerId), lt(devices.dataExpiracao, today)));
+  if (expired.length > 0) {
+    const { inArray } = await import("drizzle-orm");
+    const ids = expired.map(e => e.id);
+    await db.delete(deviceUrls).where(inArray(deviceUrls.deviceId, ids));
+  }
   await db.delete(devices).where(and(eq(devices.ownerId, ownerId), lt(devices.dataExpiracao, today)));
 }
 
@@ -196,6 +208,174 @@ export async function getDeviceById(id: number, ownerId: number) {
   if (!db) return undefined;
   const result = await db.select().from(devices).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId))).limit(1);
   return result[0];
+}
+
+// ─── Device URLs (múltiplas listas) ─────────────────────────────────────────
+
+export async function getDeviceUrls(deviceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(deviceUrls)
+    .where(eq(deviceUrls.deviceId, deviceId))
+    .orderBy(deviceUrls.ordem);
+}
+
+export async function addDeviceUrl(data: {
+  deviceId: number;
+  nome: string;
+  modoSelecao: "XTeamCode" | "M3U8";
+  urlM3u8?: string;
+  xtServer?: string;
+  xtUsername?: string;
+  xtPassword?: string;
+  ordem?: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(deviceUrls).values({
+    deviceId: data.deviceId,
+    nome: data.nome,
+    modoSelecao: data.modoSelecao,
+    urlM3u8: data.urlM3u8 ?? null,
+    xtServer: data.xtServer ?? null,
+    xtUsername: data.xtUsername ?? null,
+    xtPassword: data.xtPassword ?? null,
+    ordem: data.ordem ?? 0,
+    ativo: true,
+  });
+}
+
+export async function updateDeviceUrl(id: number, data: Partial<{
+  nome: string;
+  modoSelecao: "XTeamCode" | "M3U8";
+  urlM3u8: string;
+  xtServer: string;
+  xtUsername: string;
+  xtPassword: string;
+  ordem: number;
+  ativo: boolean;
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = {};
+  if (data.nome !== undefined) updateData.nome = data.nome;
+  if (data.modoSelecao !== undefined) updateData.modoSelecao = data.modoSelecao;
+  if (data.urlM3u8 !== undefined) updateData.urlM3u8 = data.urlM3u8;
+  if (data.xtServer !== undefined) updateData.xtServer = data.xtServer;
+  if (data.xtUsername !== undefined) updateData.xtUsername = data.xtUsername;
+  if (data.xtPassword !== undefined) updateData.xtPassword = data.xtPassword;
+  if (data.ordem !== undefined) updateData.ordem = data.ordem;
+  if (data.ativo !== undefined) updateData.ativo = data.ativo;
+  if (Object.keys(updateData).length === 0) return;
+  await db.update(deviceUrls).set(updateData).where(eq(deviceUrls.id, id));
+}
+
+export async function deleteDeviceUrl(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(deviceUrls).where(eq(deviceUrls.id, id));
+}
+
+// ─── Revendas ────────────────────────────────────────────────────────────────
+
+export async function listRevendas(resellerId: number, opts: {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const db = await getDb();
+  if (!db) return { data: [], total: 0 };
+  const { search = "", page = 1, pageSize = 50 } = opts;
+  const offset = (page - 1) * pageSize;
+
+  const conditions = [eq(users.resellerId, resellerId)];
+  if (search) {
+    conditions.push(or(like(users.name, `%${search}%`), like(users.email, `%${search}%`))!);
+  }
+  const whereClause = and(...conditions);
+  const [data, totalRows] = await Promise.all([
+    db.select().from(users).where(whereClause).orderBy(desc(users.createdAt)).limit(pageSize).offset(offset),
+    db.select({ count: count() }).from(users).where(whereClause),
+  ]);
+  return { data, total: totalRows[0]?.count ?? 0 };
+}
+
+export async function createRevenda(data: {
+  resellerId: number;
+  name: string;
+  email?: string;
+  plano: string;
+  planValidade?: string;
+  limiteDevices: number;
+  limiteRevendas: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Criar usuário de revenda com openId único gerado
+  const openId = `revenda_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  await db.insert(users).values({
+    openId,
+    name: data.name,
+    email: data.email ?? null,
+    loginMethod: "manual",
+    role: "user",
+    plano: data.plano,
+    planValidade: data.planValidade ? new Date(data.planValidade) : null,
+    limiteDevices: data.limiteDevices,
+    limiteRevendas: data.limiteRevendas,
+    resellerId: data.resellerId,
+    lastSignedIn: new Date(),
+  });
+}
+
+export async function updateRevenda(id: number, resellerId: number, data: Partial<{
+  name: string;
+  email: string;
+  plano: string;
+  planValidade: string;
+  limiteDevices: number;
+  limiteRevendas: number;
+  isActive: boolean;
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.email !== undefined) updateData.email = data.email;
+  if (data.plano !== undefined) updateData.plano = data.plano;
+  if (data.planValidade !== undefined) updateData.planValidade = data.planValidade ? new Date(data.planValidade) : null;
+  if (data.limiteDevices !== undefined) updateData.limiteDevices = data.limiteDevices;
+  if (data.limiteRevendas !== undefined) updateData.limiteRevendas = data.limiteRevendas;
+  if (data.isActive !== undefined) updateData.isActive = data.isActive;
+  if (Object.keys(updateData).length === 0) return;
+  await db.update(users).set(updateData).where(and(eq(users.id, id), eq(users.resellerId, resellerId)));
+}
+
+export async function deleteRevenda(id: number, resellerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(users).where(and(eq(users.id, id), eq(users.resellerId, resellerId)));
+}
+
+export async function getRevendaStats(resellerId: number) {
+  const db = await getDb();
+  if (!db) return { totalRevendas: 0, totalDevices: 0 };
+  const [revendasRows] = await Promise.all([
+    db.select({ count: count() }).from(users).where(eq(users.resellerId, resellerId)),
+  ]);
+  // Total de devices dos meus revendedores
+  const revendasList = await db.select({ id: users.id }).from(users).where(eq(users.resellerId, resellerId));
+  let totalDevices = 0;
+  if (revendasList.length > 0) {
+    const { inArray } = await import("drizzle-orm");
+    const ids = revendasList.map(r => r.id);
+    const devRows = await db.select({ count: count() }).from(devices).where(inArray(devices.ownerId, ids));
+    totalDevices = devRows[0]?.count ?? 0;
+  }
+  return {
+    totalRevendas: revendasRows[0]?.count ?? 0,
+    totalDevices,
+  };
 }
 
 // ─── Apps ────────────────────────────────────────────────────────────────────
@@ -231,6 +411,7 @@ export async function getUserPlanInfo(userId: number) {
     plano: users.plano,
     planValidade: users.planValidade,
     limiteDevices: users.limiteDevices,
+    limiteRevendas: users.limiteRevendas,
   }).from(users).where(eq(users.id, userId)).limit(1);
   return result[0] ?? null;
 }

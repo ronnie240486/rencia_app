@@ -150,6 +150,24 @@ function encodeForApk(jsonStr: string): string {
   return obfuscated + ALPHABET[pos1] + ALPHABET[pos2];
 }
 
+/**
+ * Monta o objeto `words` com os textos da tela de bloqueio vindos do painel.
+ * O APK BoxV3 usa WordModels para exibir esses textos na tela de trial/bloqueio.
+ */
+function buildWords(cfg: Record<string, string>) {
+  return {
+    trial_ended: cfg.trial_title || "Acesso Bloqueado",
+    to_continue: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
+    trial_description: cfg.trial_support_text || "Suporte com seu revendedor",
+    str_link: cfg.contact_website || "",
+    str_whatsapp: cfg.contact_whatsapp || "",
+    open_website: "Conectar",
+    mac_activated: "Seu MAC está Ativado.",
+    add_manage: "Para adicionar/gerenciar playlists, use os valores no site.",
+    mac_address_label: "Mac Address",
+  };
+}
+
 export function registerApiRoutes(app: Express) {
 
   /**
@@ -228,7 +246,8 @@ export function registerApiRoutes(app: Express) {
       }
 
       if (!macAddress) {
-        // Retornar resposta codificada mesmo para erro
+        const cfgErr = await getSettings();
+        const wordsErr = buildWords(cfgErr);
         const errorPayload = {
           mac_registered: false,
           mac_address: "",
@@ -241,6 +260,7 @@ export function registerApiRoutes(app: Express) {
           languages: [],
           apk_link: "",
           app_version: "5.0",
+          words: wordsErr,
         };
         res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
         return;
@@ -251,6 +271,8 @@ export function registerApiRoutes(app: Express) {
 
       const db = await getDb();
       if (!db) {
+        const cfgDb = await getSettings();
+        const wordsDb = buildWords(cfgDb);
         const errorPayload = {
           mac_registered: false,
           mac_address: macAddress,
@@ -263,6 +285,7 @@ export function registerApiRoutes(app: Express) {
           languages: [],
           apk_link: "",
           app_version: "5.0",
+          words: wordsDb,
         };
         res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
         return;
@@ -287,6 +310,8 @@ export function registerApiRoutes(app: Express) {
 
       // Device não encontrado
       if (result.length === 0) {
+        const cfgNf = await getSettings();
+        const wordsNf = buildWords(cfgNf);
         const notFoundPayload = {
           mac_registered: false,
           mac_address: macAddress,
@@ -299,6 +324,7 @@ export function registerApiRoutes(app: Express) {
           languages: [],
           apk_link: "",
           app_version: "5.0",
+          words: wordsNf,
         };
         res.json({ data: encodeForApk(JSON.stringify(notFoundPayload)) });
         return;
@@ -349,6 +375,7 @@ export function registerApiRoutes(app: Express) {
       }
 
       const cfg = await getSettings();
+      const words = buildWords(cfg);
       const responsePayload = {
         mac_registered: isAllowed,
         mac_address: device.mac,
@@ -362,22 +389,25 @@ export function registerApiRoutes(app: Express) {
         apk_link: "",
         app_version: "5.0",
         // Configurações personalizáveis via painel
-        trial_ended: cfg.trial_title || "Acesso Bloqueado",
-        via_website: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
-        str_trial_description: cfg.trial_support_text || "Suporte com seu revendedor",
-        str_link: cfg.contact_website || "",
-        str_whatsapp: cfg.contact_whatsapp || "",
+        trial_ended: words.trial_ended,
+        via_website: words.to_continue,
+        str_trial_description: words.trial_description,
+        str_link: words.str_link,
+        str_whatsapp: words.str_whatsapp,
         live_label: cfg.app_channels_label || "Canais",
         movie_label: cfg.app_movies_label || "Filmes",
         series_label: cfg.app_series_label || "Séries",
         banner_url: cfg.trial_banner_url || "",
         logo_url: cfg.trial_logo_url || "",
+        words,
       };
 
       res.json({ data: encodeForApk(JSON.stringify(responsePayload)) });
 
     } catch (error) {
       console.error("[API] /api/guim.php error:", error);
+      const cfgCatch = await getSettings().catch(() => ({} as Record<string, string>));
+      const wordsCatch = buildWords(cfgCatch);
       const errorPayload = {
         mac_registered: false,
         mac_address: "",
@@ -390,6 +420,7 @@ export function registerApiRoutes(app: Express) {
         languages: [],
         apk_link: "",
         app_version: "5.0",
+        words: wordsCatch,
       };
       res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
     }
