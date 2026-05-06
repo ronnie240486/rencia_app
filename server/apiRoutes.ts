@@ -580,21 +580,27 @@ export function registerApiRoutes(app: Express) {
   app.get("/api/v4/logo.php", async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
-      const logoUrl = cfg.trial_logo_url || cfg.trial_background_url || "";
+      const logoUrl = cfg.trial_logo_url || "";
 
-      if (logoUrl && logoUrl.startsWith("http")) {
-        // Redirecionar para a URL configurada no painel
-        res.redirect(302, logoUrl);
+      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
+      const targetUrl = (logoUrl && logoUrl.startsWith("http") && !logoUrl.includes(","))
+        ? logoUrl
+        : "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
+
+      const imgRes = await fetch(targetUrl, { redirect: "follow" });
+      if (!imgRes.ok) {
+        res.status(204).end();
         return;
       }
-
-      // Fallback: retornar logo padrão OURO REVENDA via redirect para CDN
-      const defaultLogoUrl = "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
-      res.redirect(302, defaultLogoUrl);
+      const contentType = imgRes.headers.get("content-type") || "image/png";
+      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", imgBuffer.length);
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.status(200).end(imgBuffer);
     } catch (error) {
       console.error("[API] /api/v4/logo.php error:", error);
-      // Em caso de erro, redirecionar para o logo padrão
-      res.redirect(302, "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png");
+      res.status(204).end();
     }
   });
 
@@ -701,11 +707,22 @@ export function registerApiRoutes(app: Express) {
     try {
       const cfg = await getSettings();
       const iconUrl = cfg[settingKey] || ICON_DEFAULTS[name] || "";
-      if (iconUrl && iconUrl.startsWith("http")) {
-        res.redirect(302, iconUrl);
+      if (!iconUrl || !iconUrl.startsWith("http") || iconUrl.includes(",")) {
+        res.status(404).json({ error: "No icon configured" });
         return;
       }
-      res.status(404).json({ error: "No icon configured" });
+      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
+      const imgRes = await fetch(iconUrl, { redirect: "follow" });
+      if (!imgRes.ok) {
+        res.status(204).end();
+        return;
+      }
+      const contentType = imgRes.headers.get("content-type") || "image/png";
+      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", imgBuffer.length);
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.status(200).end(imgBuffer);
     } catch (error) {
       console.error("[API] /api/v4/icon error:", error);
       res.status(500).json({ error: "Erro interno" });
