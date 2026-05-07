@@ -163,23 +163,46 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        const { like } = await import("drizzle-orm");
-        // Buscar devices que têm a URL antiga
-        const affected = await db.select({ id: devices.id })
+        const { like, sql } = await import("drizzle-orm");
+
+        // Extrair o host (protocolo + dominio + porta) da URL antiga e nova
+        // Ex: "http://p47c.dvrcam.info/" -> "http://p47c.dvrcam.info"
+        let oldHost: string;
+        let newHost: string;
+        try {
+          const oldParsed = new URL(input.oldUrl.endsWith('/') ? input.oldUrl : input.oldUrl + '/');
+          const newParsed = new URL(input.newUrl.endsWith('/') ? input.newUrl : input.newUrl + '/');
+          oldHost = `${oldParsed.protocol}//${oldParsed.host}`;
+          newHost = `${newParsed.protocol}//${newParsed.host}`;
+        } catch {
+          // Fallback: usar a URL inteira se não for URL válida
+          oldHost = input.oldUrl;
+          newHost = input.newUrl;
+        }
+
+        // Buscar devices que têm a DNS antiga no começo da URL
+        const affected = await db.select({ id: devices.id, urlM3u8: devices.urlM3u8 })
           .from(devices)
           .where(and(
             eq(devices.ownerId, ctx.user.id),
-            like(devices.urlM3u8, `%${input.oldUrl}%`)
+            like(devices.urlM3u8, `${oldHost}%`)
           ));
         if (affected.length === 0) return { success: true, count: 0 };
-        const ids = affected.map(d => d.id);
-        await db.update(devices)
-          .set({ urlM3u8: input.newUrl })
-          .where(and(eq(devices.ownerId, ctx.user.id), inArray(devices.id, ids)));
-        return { success: true, count: ids.length };
+
+        // Substituir apenas o host em cada URL, mantendo o caminho (/get.php?...) intacto
+        let updated = 0;
+        for (const d of affected) {
+          if (!d.urlM3u8) continue;
+          const newUrl = d.urlM3u8.replace(oldHost, newHost);
+          await db.update(devices)
+            .set({ urlM3u8: newUrl })
+            .where(and(eq(devices.ownerId, ctx.user.id), eq(devices.id, d.id)));
+          updated++;
+        }
+        return { success: true, count: updated };
       }),
 
-    // Listar URLs únicas cadastradas (para dropdown da página DNS)
+    // Listar hosts únicos cadastrados (para dropdown da página DNS em massa)
     listUniqueUrls: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
@@ -187,8 +210,16 @@ export const appRouter = router({
         .from(devices)
         .where(eq(devices.ownerId, ctx.user.id));
       const allUrls = rows.map(r => r.urlM3u8).filter((u): u is string => !!u);
-      const unique = Array.from(new Set(allUrls));
-      return unique;
+      // Extrair apenas o host (protocolo + domínio + porta) de cada URL
+      const hosts = allUrls.map(url => {
+        try {
+          const parsed = new URL(url.endsWith('/') ? url : url + '/');
+          return `${parsed.protocol}//${parsed.host}`;
+        } catch {
+          return url;
+        }
+      });
+      return Array.from(new Set(hosts));
     }),
   }),
 

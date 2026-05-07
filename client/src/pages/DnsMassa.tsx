@@ -103,15 +103,15 @@ export default function DnsMassa() {
 
               {/* Nova DNS */}
               <div className="space-y-2">
-                <Label>Nova DNS</Label>
+                <Label>Nova DNS (somente o servidor)</Label>
                 <Input
-                  placeholder="http://novoservidor.com/get.php?username=..."
+                  placeholder="Ex: http://novoservidor.com"
                   value={newUrl}
                   onChange={(e) => setNewUrl(e.target.value)}
                   className="font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Todos os usuários que tinham a DNS anterior receberão esta nova URL.
+                  Informe somente o endereço do servidor (ex: <code>http://novoservidor.com</code>). O caminho da lista (<code>/get.php?username=...</code>) será mantido automaticamente.
                 </p>
               </div>
 
