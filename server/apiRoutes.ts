@@ -20,7 +20,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { storagePut } from "./storage";
 
@@ -354,8 +354,26 @@ export function registerApiRoutes(app: Express) {
           url: device.urlM3u8,
           name: device.nomeServer || "Lista",
           type: "m3u_plus",
-          is_protected: "0",
+          is_protected: "1",  // Protegido: APK mostra "Protegido" no lugar da URL
         });
+      }
+
+      // Buscar listas extras cadastradas no painel (device_urls)
+      if (isAllowed) {
+        try {
+          const extraUrls = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, device.id));
+          for (const eu of extraUrls) {
+            if (eu.urlM3u8) {
+              urls.push({
+                id: String(eu.id),
+                url: eu.urlM3u8,
+                name: eu.nome || `Lista ${urls.length + 1}`,
+                type: eu.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
+                is_protected: "1",  // Protegido: APK mostra "Protegido" no lugar da URL
+              });
+            }
+          }
+        } catch { /* ignora erro de listas extras */ }
       }
 
       // Formatar data de expiração
@@ -477,6 +495,16 @@ export function registerApiRoutes(app: Express) {
       console.error("[API] GET /api/guim.php error:", error);
       res.status(500).json({ mac_registered: false, error: "Erro interno do servidor." });
     }
+  });
+
+  // Alias /api/v4/guim.php → /api/guim.php (compatibilidade com APK que usa /api/v4/)
+  app.post("/api/v4/guim.php", (req: Request, res: Response, next) => {
+    req.url = "/api/guim.php";
+    app._router.handle(req, res, next);
+  });
+  app.get("/api/v4/guim.php", (req: Request, res: Response, next) => {
+    req.url = "/api/guim.php";
+    app._router.handle(req, res, next);
   });
 
   /**

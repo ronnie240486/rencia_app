@@ -6,17 +6,40 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 
-/**
- * Monta a URL M3U8 a partir dos campos XteamCode (usuário, senha, servidor).
- */
 function buildXteamUrl(server: string, username: string, password: string): string {
   const base = server.replace(/\/$/, "");
   return `${base}/get.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&type=m3u_plus&output=ts`;
+}
+
+type ListaItem = {
+  id: string;
+  nome: string;
+  modo: "XTeamCode" | "M3U8";
+  urlM3u8: string;
+  xtServer: string;
+  xtUsername: string;
+  xtPassword: string;
+  urlEpg: string;
+  isPrimary: boolean;
+};
+
+function newLista(isPrimary = false): ListaItem {
+  return {
+    id: Math.random().toString(36).slice(2),
+    nome: isPrimary ? "Lista Principal" : "",
+    modo: "XTeamCode",
+    urlM3u8: "",
+    xtServer: "",
+    xtUsername: "",
+    xtPassword: "",
+    urlEpg: "",
+    isPrimary,
+  };
 }
 
 export default function UserCreate() {
@@ -24,36 +47,53 @@ export default function UserCreate() {
   const { data: appsData } = trpc.apps.list.useQuery();
 
   const [form, setForm] = useState({
-    modoSelecao: "XTeamCode" as "XTeamCode" | "M3U8",
     mac: "",
     nomeServer: "",
-    // M3U8
-    urlM3u8: "",
-    // XteamCode
-    xtServer: "",
-    xtUsername: "",
-    xtPassword: "",
-    // Comum
     app: "__none__",
-    urlEpg: "",
     valor: "",
     dataExpiracao: "",
     tipo: "Usuario" as "Usuario" | "Revenda" | "UltraMaster" | "Master",
   });
 
+  const [listas, setListas] = useState<ListaItem[]>([newLista(true)]);
+
   const createMutation = trpc.devices.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async (data) => {
+      // Adicionar listas extras (além da principal)
+      const extras = listas.slice(1);
+      for (const lista of extras) {
+        let url = lista.urlM3u8;
+        if (lista.modo === "XTeamCode" && lista.xtServer && lista.xtUsername && lista.xtPassword) {
+          url = buildXteamUrl(lista.xtServer.trim(), lista.xtUsername.trim(), lista.xtPassword.trim());
+        }
+        if (url) {
+          await addUrlMutation.mutateAsync({
+            deviceId: data.id,
+            nome: lista.nome || `Lista ${listas.indexOf(lista) + 1}`,
+            urlM3u8: url,
+          });
+        }
+      }
       toast.success("Usuário cadastrado com sucesso!");
       navigate("/users");
     },
     onError: (e) => toast.error(e.message),
   });
 
-  // Formata MAC automaticamente: insere ":" a cada 2 dígitos hex
+  const addUrlMutation = trpc.deviceUrls.add.useMutation();
+
   const handleMacChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 12);
     const formatted = raw.match(/.{1,2}/g)?.join(":") ?? raw;
     setForm(f => ({ ...f, mac: formatted }));
+  };
+
+  const updateLista = (id: string, patch: Partial<ListaItem>) => {
+    setListas(ls => ls.map(l => l.id === id ? { ...l, ...patch } : l));
+  };
+
+  const removeLista = (id: string) => {
+    setListas(ls => ls.filter(l => l.id !== id));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -61,24 +101,27 @@ export default function UserCreate() {
     if (!form.mac.trim()) { toast.error("MAC do dispositivo é obrigatório."); return; }
     if (!form.nomeServer.trim()) { toast.error("Nome do server é obrigatório."); return; }
 
-    let urlM3u8 = form.urlM3u8;
-    if (form.modoSelecao === "XTeamCode") {
-      if (!form.xtServer.trim()) { toast.error("URL do servidor XteamCode é obrigatória."); return; }
-      if (!form.xtUsername.trim()) { toast.error("Usuário XteamCode é obrigatório."); return; }
-      if (!form.xtPassword.trim()) { toast.error("Senha XteamCode é obrigatória."); return; }
-      urlM3u8 = buildXteamUrl(form.xtServer.trim(), form.xtUsername.trim(), form.xtPassword.trim());
+    const principal = listas[0];
+    if (!principal) { toast.error("Adicione pelo menos uma lista."); return; }
+
+    let urlM3u8 = principal.urlM3u8;
+    if (principal.modo === "XTeamCode") {
+      if (!principal.xtServer.trim()) { toast.error("URL do servidor XteamCode é obrigatória."); return; }
+      if (!principal.xtUsername.trim()) { toast.error("Usuário XteamCode é obrigatório."); return; }
+      if (!principal.xtPassword.trim()) { toast.error("Senha XteamCode é obrigatória."); return; }
+      urlM3u8 = buildXteamUrl(principal.xtServer.trim(), principal.xtUsername.trim(), principal.xtPassword.trim());
     } else {
-      if (!urlM3u8.trim()) { toast.error("URL M3U8 é obrigatória no modo M3U8."); return; }
+      if (!urlM3u8.trim()) { toast.error("URL M3U8 da lista principal é obrigatória."); return; }
     }
 
     createMutation.mutate({
       mac: form.mac.trim(),
       nomeServer: form.nomeServer.trim(),
-      modoSelecao: form.modoSelecao,
+      modoSelecao: principal.modo,
       tipo: form.tipo,
       app: form.app !== "__none__" ? form.app : undefined,
       urlM3u8: urlM3u8 || undefined,
-      urlEpg: form.urlEpg || undefined,
+      urlEpg: principal.urlEpg || undefined,
       valor: form.valor || undefined,
       dataExpiracao: form.dataExpiracao || undefined,
     });
@@ -89,194 +132,235 @@ export default function UserCreate() {
   return (
     <AdminLayout title="Cadastro de Usuário">
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-3">
           <Link href="/users">
             <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
               <ArrowLeft className="w-3 h-3" /><span>Voltar</span>
             </Button>
           </Link>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Usuários &gt; Criação</h1>
-          </div>
+          <h1 className="text-xl font-bold text-foreground">Usuários &gt; Criação</h1>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-card rounded-xl border shadow-sm p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Dados do dispositivo */}
+          <div className="bg-card rounded-xl border shadow-sm p-6 space-y-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Dados do Dispositivo</p>
 
-          {/* MAC */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              MAC DO DISPOSITIVO: <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              placeholder="00:00:00:00:00:00"
-              value={form.mac}
-              onChange={handleMacChange}
-              maxLength={17}
-              className="h-10 font-mono"
-            />
-          </div>
-
-          {/* Nome do Server */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              NOME DO SERVER: <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              placeholder="Nome do servidor"
-              value={form.nomeServer}
-              onChange={e => setForm(f => ({ ...f, nomeServer: e.target.value }))}
-              className="h-10"
-            />
-          </div>
-
-          {/* Modo de Seleção */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MODO DE SELEÇÃO:</Label>
-            <Select value={form.modoSelecao} onValueChange={v => setForm(f => ({ ...f, modoSelecao: v as "XTeamCode" | "M3U8" }))}>
-              <SelectTrigger className="h-10 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="XTeamCode">XTeam Code</SelectItem>
-                <SelectItem value="M3U8">M3U8 (URL direta)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Campos XteamCode */}
-          {form.modoSelecao === "XTeamCode" && (
-            <div className="rounded-lg border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800 p-4 space-y-4">
-              <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">
-                Dados do XTeam Code
-              </p>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  URL DO SERVIDOR: <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  placeholder="http://servidor.com:porta"
-                  value={form.xtServer}
-                  onChange={e => setForm(f => ({ ...f, xtServer: e.target.value }))}
-                  className="h-10 font-mono text-sm"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    USUÁRIO: <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    placeholder="username"
-                    value={form.xtUsername}
-                    onChange={e => setForm(f => ({ ...f, xtUsername: e.target.value }))}
-                    className="h-10"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    SENHA: <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    placeholder="password"
-                    value={form.xtPassword}
-                    onChange={e => setForm(f => ({ ...f, xtPassword: e.target.value }))}
-                    className="h-10"
-                  />
-                </div>
-              </div>
-              {form.xtServer && form.xtUsername && form.xtPassword && (
-                <div className="rounded bg-muted p-2">
-                  <p className="text-xs text-muted-foreground font-mono break-all">
-                    {buildXteamUrl(form.xtServer, form.xtUsername, form.xtPassword)}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Lista M3U8 - só mostrar no modo M3U8 */}
-          {form.modoSelecao === "M3U8" && (
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                LISTA M3U8: <span className="text-red-500">*</span>
+                MAC DO DISPOSITIVO: <span className="text-red-500">*</span>
               </Label>
               <Input
-                placeholder="http://servidor.com:porta/get.php?username=...&password=...&type=m3u_plus"
-                value={form.urlM3u8}
-                onChange={e => setForm(f => ({ ...f, urlM3u8: e.target.value }))}
-                className="h-10 font-mono text-sm"
+                placeholder="00:00:00:00:00:00"
+                value={form.mac}
+                onChange={handleMacChange}
+                maxLength={17}
+                className="h-10 font-mono"
               />
             </div>
-          )}
 
-          {/* App */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP QUE O CLIENTE USARÁ:</Label>
-            <Select value={form.app} onValueChange={v => setForm(f => ({ ...f, app: v }))}>
-              <SelectTrigger className="h-10 w-full">
-                <SelectValue placeholder="Selecione um app (opcional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Nenhum</SelectItem>
-                {apps.map(a => (
-                  <SelectItem key={a.id} value={a.nome}>{a.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                NOME DO SERVER: <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                placeholder="Nome do servidor"
+                value={form.nomeServer}
+                onChange={e => setForm(f => ({ ...f, nomeServer: e.target.value }))}
+                className="h-10"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">TIPO DE CONTA:</Label>
+                <Select value={form.tipo} onValueChange={v => setForm(f => ({ ...f, tipo: v as "Usuario" | "Revenda" | "UltraMaster" | "Master" }))}>
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Usuario">Usuário</SelectItem>
+                    <SelectItem value="Revenda">Revenda</SelectItem>
+                    <SelectItem value="UltraMaster">Ultra Master</SelectItem>
+                    <SelectItem value="Master">Master</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP DO CLIENTE:</Label>
+                <Select value={form.app} onValueChange={v => setForm(f => ({ ...f, app: v }))}>
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="Nenhum" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
+                    {apps.map(a => (
+                      <SelectItem key={a.id} value={a.nome}>{a.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">VALOR (R$):</Label>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={form.valor}
+                  onChange={e => setForm(f => ({ ...f, valor: e.target.value }))}
+                  className="h-10"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">DATA DE EXPIRAÇÃO:</Label>
+                <Input
+                  type="date"
+                  value={form.dataExpiracao}
+                  onChange={e => setForm(f => ({ ...f, dataExpiracao: e.target.value }))}
+                  className="h-10"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Tipo */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">TIPO DE CONTA:</Label>
-            <Select value={form.tipo} onValueChange={v => setForm(f => ({ ...f, tipo: v as "Usuario" | "Revenda" | "UltraMaster" | "Master" }))}>
-              <SelectTrigger className="h-10 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Usuario">Usuário</SelectItem>
-                <SelectItem value="Revenda">Revenda</SelectItem>
-                <SelectItem value="UltraMaster">Ultra Master</SelectItem>
-                <SelectItem value="Master">Master</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Listas */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold text-foreground">Listas de Conteúdo</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1 text-xs"
+                onClick={() => setListas(ls => [...ls, newLista(false)])}
+              >
+                <Plus className="w-3 h-3" /> Adicionar Lista
+              </Button>
+            </div>
 
-          {/* URL EPG */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">URL EPG (opcional):</Label>
-            <Input
-              placeholder="URL do EPG"
-              value={form.urlEpg}
-              onChange={e => setForm(f => ({ ...f, urlEpg: e.target.value }))}
-              className="h-10"
-            />
-          </div>
+            {listas.map((lista, idx) => (
+              <div key={lista.id} className="bg-card rounded-xl border shadow-sm p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${idx === 0 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" : "bg-muted text-muted-foreground"}`}>
+                      {idx === 0 ? "PRINCIPAL" : `LISTA ${idx + 1}`}
+                    </span>
+                  </div>
+                  {idx > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                      onClick={() => removeLista(lista.id)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                </div>
 
-          {/* Valor */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">VALOR DA ASSINATURA (R$):</Label>
-            <Input
-              type="number"
-              placeholder="0.00"
-              value={form.valor}
-              onChange={e => setForm(f => ({ ...f, valor: e.target.value }))}
-              className="h-10"
-              step="0.01"
-              min="0"
-            />
-          </div>
+                {idx > 0 && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">NOME DA LISTA:</Label>
+                    <Input
+                      placeholder={`Lista ${idx + 1}`}
+                      value={lista.nome}
+                      onChange={e => updateLista(lista.id, { nome: e.target.value })}
+                      className="h-9"
+                    />
+                  </div>
+                )}
 
-          {/* Data de Expiração */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">DATA DE EXPIRAÇÃO:</Label>
-            <Input
-              type="date"
-              value={form.dataExpiracao}
-              onChange={e => setForm(f => ({ ...f, dataExpiracao: e.target.value }))}
-              className="h-10"
-            />
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MODO:</Label>
+                  <Select value={lista.modo} onValueChange={v => updateLista(lista.id, { modo: v as "XTeamCode" | "M3U8" })}>
+                    <SelectTrigger className="h-9 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="XTeamCode">XTeam Code</SelectItem>
+                      <SelectItem value="M3U8">M3U8 (URL direta)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {lista.modo === "XTeamCode" && (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        URL DO SERVIDOR: <span className="text-red-500">{idx === 0 ? "*" : ""}</span>
+                      </Label>
+                      <Input
+                        placeholder="http://servidor.com:porta"
+                        value={lista.xtServer}
+                        onChange={e => updateLista(lista.id, { xtServer: e.target.value })}
+                        className="h-9 font-mono text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          USUÁRIO: <span className="text-red-500">{idx === 0 ? "*" : ""}</span>
+                        </Label>
+                        <Input
+                          placeholder="username"
+                          value={lista.xtUsername}
+                          onChange={e => updateLista(lista.id, { xtUsername: e.target.value })}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          SENHA: <span className="text-red-500">{idx === 0 ? "*" : ""}</span>
+                        </Label>
+                        <Input
+                          placeholder="password"
+                          value={lista.xtPassword}
+                          onChange={e => updateLista(lista.id, { xtPassword: e.target.value })}
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+                    {lista.xtServer && lista.xtUsername && lista.xtPassword && (
+                      <div className="rounded bg-muted p-2">
+                        <p className="text-xs text-muted-foreground font-mono break-all">
+                          {buildXteamUrl(lista.xtServer, lista.xtUsername, lista.xtPassword)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {lista.modo === "M3U8" && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      URL M3U8: <span className="text-red-500">{idx === 0 ? "*" : ""}</span>
+                    </Label>
+                    <Input
+                      placeholder="http://servidor.com:porta/get.php?username=...&password=..."
+                      value={lista.urlM3u8}
+                      onChange={e => updateLista(lista.id, { urlM3u8: e.target.value })}
+                      className="h-9 font-mono text-sm"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">URL EPG (opcional):</Label>
+                  <Input
+                    placeholder="URL do EPG"
+                    value={lista.urlEpg}
+                    onChange={e => updateLista(lista.id, { urlEpg: e.target.value })}
+                    className="h-9"
+                  />
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Submit */}

@@ -2,6 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { cn } from "@/lib/utils";
 import {
+  ArrowRightLeft,
   BarChart3,
   ChevronRight,
   LayoutDashboard,
@@ -29,6 +30,7 @@ const navItems: NavItem[] = [
   { label: "Usuários", href: "/users", icon: <Users size={18} /> },
   { label: "Cadastrar Usuário", href: "/users/create", icon: <BarChart3 size={18} /> },
   { label: "Revendas", href: "/revendas", icon: <Store size={18} /> },
+  { label: "Trocar DNS em Massa", href: "/dns-massa", icon: <ArrowRightLeft size={18} /> },
   { label: "Configurações do App", href: "/settings", icon: <Settings size={18} /> },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];

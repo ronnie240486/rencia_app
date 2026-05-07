@@ -87,8 +87,8 @@ export const appRouter = router({
         if (stats.total >= limite) {
           throw new TRPCError({ code: "FORBIDDEN", message: `Limite de ${limite} devices atingido.` });
         }
-        await createDevice({ ownerId: ctx.user.id, ...input });
-        return { success: true };
+        const result = await createDevice({ ownerId: ctx.user.id, ...input });
+        return { success: true, id: result.id };
       }),
 
     update: protectedProcedure
@@ -153,6 +153,43 @@ export const appRouter = router({
         }
         return { success: true };
       }),
+
+    // Trocar DNS em massa: substitui oldUrl por newUrl (só afeta quem tinha aquela DNS)
+    bulkSwapDns: protectedProcedure
+      .input(z.object({
+        oldUrl: z.string().min(1),
+        newUrl: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { like } = await import("drizzle-orm");
+        // Buscar devices que têm a URL antiga
+        const affected = await db.select({ id: devices.id })
+          .from(devices)
+          .where(and(
+            eq(devices.ownerId, ctx.user.id),
+            like(devices.urlM3u8, `%${input.oldUrl}%`)
+          ));
+        if (affected.length === 0) return { success: true, count: 0 };
+        const ids = affected.map(d => d.id);
+        await db.update(devices)
+          .set({ urlM3u8: input.newUrl })
+          .where(and(eq(devices.ownerId, ctx.user.id), inArray(devices.id, ids)));
+        return { success: true, count: ids.length };
+      }),
+
+    // Listar URLs únicas cadastradas (para dropdown da página DNS)
+    listUniqueUrls: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db.select({ urlM3u8: devices.urlM3u8 })
+        .from(devices)
+        .where(eq(devices.ownerId, ctx.user.id));
+      const allUrls = rows.map(r => r.urlM3u8).filter((u): u is string => !!u);
+      const unique = Array.from(new Set(allUrls));
+      return unique;
+    }),
   }),
 
   // ─── Device URLs (múltiplas listas por device) ────────────────────────────

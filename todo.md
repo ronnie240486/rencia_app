@@ -96,3 +96,10 @@
 - [ ] Frontend: múltiplas listas no formulário de criação/edição de device
 - [ ] Frontend: página de gerenciamento de revendas (/revendas)
 - [ ] Frontend: rota /revendas no App.tsx e sidebar
+
+## Novas funcionalidades (07/05/2026)
+- [ ] Página pública /m3u8 sem login para trocar DNS (igual gerenciaapp.top)
+- [ ] Trocar DNS em massa: seleciona DNS existente → substitui por nova (só afeta quem tinha aquela DNS)
+- [ ] Múltiplas listas já no formulário de cadastro de usuário (campo adicionar lista)
+- [ ] APK: corrigir ícones de botões (reload, exit, configurações dourado)
+- [ ] APK: recompilar v26 com todas as correções

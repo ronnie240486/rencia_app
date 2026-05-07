@@ -104,7 +104,7 @@ export async function createDevice(data: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(devices).values({
+  const result = await db.insert(devices).values({
     ownerId: data.ownerId,
     mac: data.mac,
     nomeServer: data.nomeServer,
@@ -117,6 +117,9 @@ export async function createDevice(data: {
     dataExpiracao: data.dataExpiracao ? new Date(data.dataExpiracao) : null,
     status: "Liberado",
   });
+  // Retornar o id do device recém-criado
+  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
+  return { id: Number(insertId) };
 }
 
 export async function updateDevice(id: number, ownerId: number, data: Partial<{
