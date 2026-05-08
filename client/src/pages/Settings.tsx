@@ -19,6 +19,8 @@ const DEFAULT_VALUES: Record<string, string> = {
   trial_background_url: "",
   contact_website: "",
   contact_whatsapp: "",
+  impact_phrase: "",
+  contact_info: "",
   icon_live_tv_url: "",
   icon_movies_url: "",
   icon_series_url: "",
@@ -214,6 +216,36 @@ export default function Settings() {
                     onChange={e => handleChange("contact_whatsapp", e.target.value)}
                     placeholder="Ex: 5511999999999"
                   />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Tela Principal (Home)</CardTitle>
+                <CardDescription>
+                  Textos exibidos na tela principal do APK para todos os dispositivos.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Frase de impacto (tela home)</Label>
+                  <Textarea
+                    value={form.impact_phrase}
+                    onChange={e => handleChange("impact_phrase", e.target.value)}
+                    placeholder="Ex: 🚀 O melhor IPTV do Brasil!"
+                    rows={2}
+                  />
+                  <p className="text-xs text-muted-foreground">Exibida em branco na parte inferior da tela home. Deixe vazio para ocultar.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Contato (tela home)</Label>
+                  <Input
+                    value={form.contact_info}
+                    onChange={e => handleChange("contact_info", e.target.value)}
+                    placeholder="Ex: WhatsApp: (11) 99999-9999"
+                  />
+                  <p className="text-xs text-muted-foreground">Exibido em dourado abaixo da frase de impacto. Deixe vazio para ocultar.</p>
                 </div>
               </CardContent>
             </Card>

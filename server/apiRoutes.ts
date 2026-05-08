@@ -165,6 +165,8 @@ function buildWords(cfg: Record<string, string>) {
     mac_activated: "Seu MAC está Ativado.",
     add_manage: "Para adicionar/gerenciar playlists, use os valores no site.",
     mac_address_label: "Mac Address",
+    impact_phrase: cfg.impact_phrase || "",
+    contact: cfg.contact_info || "",
   };
 }
 
@@ -728,6 +730,8 @@ export function registerApiRoutes(app: Express) {
         icon_series_url: cfg.icon_series_url || "",
         icon_account_url: cfg.icon_account_url || "",
         icon_change_playlist_url: cfg.icon_change_playlist_url || "",
+        impact_phrase: cfg.impact_phrase || "",
+        contact_info: cfg.contact_info || "",
         updated_at: new Date().toISOString(),
       });
     } catch (error) {
