@@ -418,3 +418,43 @@ export async function getUserPlanInfo(userId: number) {
   }).from(users).where(eq(users.id, userId)).limit(1);
   return result[0] ?? null;
 }
+
+// ─── Dispositivos Conectados (lastSeen) ───────────────────────────────────────
+
+/**
+ * Retorna dispositivos que se conectaram nos últimos N minutos (padrão: 30 min).
+ * Usado no Dashboard para mostrar quem está online no OuroPro.
+ */
+export async function getConnectedDevices(ownerId: number, minutesAgo = 30) {
+  const db = await getDb();
+  if (!db) return [];
+  const cutoff = new Date(Date.now() - minutesAgo * 60 * 1000);
+  const { gte } = await import("drizzle-orm");
+  return db.select({
+    id: devices.id,
+    mac: devices.mac,
+    nomeServer: devices.nomeServer,
+    tipo: devices.tipo,
+    status: devices.status,
+    lastSeen: devices.lastSeen,
+    dataExpiracao: devices.dataExpiracao,
+  }).from(devices)
+    .where(and(eq(devices.ownerId, ownerId), gte(devices.lastSeen, cutoff)))
+    .orderBy(desc(devices.lastSeen))
+    .limit(50);
+}
+
+// ─── Profile Update ───────────────────────────────────────────────────────────
+
+export async function updateUserProfile(userId: number, data: {
+  telefone?: string;
+  avatarUrl?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updateData: Record<string, unknown> = {};
+  if (data.telefone !== undefined) updateData.telefone = data.telefone;
+  if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
+  if (Object.keys(updateData).length === 0) return;
+  await db.update(users).set(updateData).where(eq(users.id, userId));
+}

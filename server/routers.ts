@@ -10,6 +10,7 @@ import {
   listApps, listDevices, seedApps, updateDevice, upsertUser, getDb,
   getDeviceUrls, addDeviceUrl, updateDeviceUrl, deleteDeviceUrl,
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
+  getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
 import { users, appSettings, devices, deviceUrls } from "../drizzle/schema";
@@ -501,6 +502,27 @@ export const appRouter = router({
       }),
 
     profile: protectedProcedure.query(({ ctx }) => ctx.user),
+
+    updateProfile: protectedProcedure
+      .input(z.object({
+        telefone: z.string().optional(),
+        avatarUrl: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await updateUserProfile(ctx.user.id, input);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Dispositivos Conectados ───────────────────────────────────────────────
+  connected: router({
+    list: protectedProcedure
+      .input(z.object({
+        minutesAgo: z.number().min(1).max(1440).optional().default(30),
+      }))
+      .query(async ({ ctx, input }) => {
+        return getConnectedDevices(ctx.user.id, input.minutesAgo);
+      }),
   }),
 });
 

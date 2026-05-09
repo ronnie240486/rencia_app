@@ -103,3 +103,11 @@
 - [ ] Múltiplas listas já no formulário de cadastro de usuário (campo adicionar lista)
 - [ ] APK: corrigir ícones de botões (reload, exit, configurações dourado)
 - [ ] APK: recompilar v26 com todas as correções
+
+## Novas funcionalidades (08/05/2026)
+- [ ] Ícone de settings no painel: corrigir endpoint /api/v4/icon/:name para proxy HTTP 200 correto
+- [ ] Página de Perfil: foto de perfil no topo + campos editáveis (login, senha, email, telefone)
+- [ ] Dashboard: seção "Dispositivos Conectados" mostrando quem está online no OuroPro
+- [ ] Botões dourados (golden) em todo o painel
+- [ ] "Cadastrar DNS" button na página DNS em Massa
+- [ ] APK v26: recompilar com txt_impact/txt_contact visíveis na home screen

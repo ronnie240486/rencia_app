@@ -8,7 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Settings,
+  SlidersHorizontal,
   Shield,
   Store,
   User,
@@ -31,7 +31,7 @@ const navItems: NavItem[] = [
   { label: "Cadastrar Usuário", href: "/users/create", icon: <BarChart3 size={18} /> },
   { label: "Revendas", href: "/revendas", icon: <Store size={18} /> },
   { label: "Trocar DNS em Massa", href: "/dns-massa", icon: <ArrowRightLeft size={18} /> },
-  { label: "Configurações do App", href: "/settings", icon: <Settings size={18} /> },
+  { label: "Configurações do App", href: "/settings", icon: <SlidersHorizontal size={18} /> },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];
 
@@ -87,16 +87,17 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       {/* Logo */}
       <div className="px-4 py-4 border-b border-sidebar-border">
         <img
-          src="/manus-storage/ouro_revenda_panel_logo_top_e5b5216a.png"
-          alt="Ouro Revenda"
+          src="https://renciaapp-ldyffp73.manus.space/api/v4/logo.php"
+          alt="OuroPro"
           className="w-full h-auto object-contain"
           style={{ maxHeight: "64px" }}
+          onError={(e) => { (e.target as HTMLImageElement).src = '/manus-storage/ouro_revenda_panel_logo_top_e5b5216a.png'; }}
         />
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-3" style={{ color: "oklch(0.45 0.03 255)" }}>
+        <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-3" style={{ color: "oklch(0.60 0.08 55)" }}>
           Menu
         </p>
         {visibleNavItems.map((item) => {
@@ -114,7 +115,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                 style={{
                   color: isActive
                     ? "var(--color-sidebar-accent-foreground)"
-                    : "oklch(0.62 0.03 255)",
+                    : "oklch(0.72 0.05 55)",
                 }}
               >
                 <span className={cn(isActive ? "text-sidebar-primary" : "")} style={{ color: isActive ? "var(--sidebar-primary)" : undefined }}>

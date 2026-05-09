@@ -11,6 +11,8 @@ export const users = mysqlTable("users", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
   isActive: boolean("isActive").default(true).notNull(),
+  telefone: varchar("telefone", { length: 32 }),
+  avatarUrl: text("avatarUrl"),
   // Plan info
   plano: varchar("plano", { length: 64 }).default("Revenda"),
   planValidade: date("planValidade"),
@@ -40,6 +42,7 @@ export const devices = mysqlTable("devices", {
   dataExpiracao: date("dataExpiracao"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  lastSeen: timestamp("lastSeen"),
 });
 
 export type Device = typeof devices.$inferSelect;

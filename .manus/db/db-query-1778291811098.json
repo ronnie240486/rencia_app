@@ -1,0 +1,9 @@
+{
+  "query": "\nALTER TABLE devices ADD COLUMN IF NOT EXISTS lastSeen TIMESTAMP NULL;\nALTER TABLE users ADD COLUMN IF NOT EXISTS telefone VARCHAR(32) NULL;\nALTER TABLE users ADD COLUMN IF NOT EXISTS avatarUrl TEXT NULL;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute \nALTER TABLE devices ADD COLUMN IF NOT EXISTS lastSeen TIMESTAMP NULL;\nALTER TABLE users ADD COLUMN IF NOT EXISTS telefone VARCHAR(32) NULL;\nALTER TABLE users ADD COLUMN IF NOT EXISTS avatarUrl TEXT NULL;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1269
+}

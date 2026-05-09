@@ -1,189 +1,154 @@
 import AdminLayout from "@/components/AdminLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import {
-  AlertTriangle,
-  AtSign,
-  Calendar,
-  Clock,
-  Key,
-  LogOut,
-  Shield,
-  User,
-} from "lucide-react";
-
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string | null }) {
-  return (
-    <div className="flex items-start gap-4 py-4 border-b border-border last:border-0">
-      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
-        <span className="text-muted-foreground">{icon}</span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">{label}</p>
-        {/* Wrap text in a span to prevent browser extensions from breaking React's DOM reconciliation */}
-        <p className="text-sm font-medium text-foreground truncate">
-          <span>{value != null && value !== "" ? value : "Não informado"}</span>
-        </p>
-      </div>
-    </div>
-  );
-}
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { AlertTriangle, Camera, LogOut, Phone, Save, Shield, User } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
 
 export default function Profile() {
   const { user, logout } = useAuth();
-  const { data: profile, isLoading, error } = trpc.adminUsers.profile.useQuery();
+  const { data: profile, isLoading, refetch } = trpc.adminUsers.profile.useQuery();
+  const utils = trpc.useUtils();
 
+  const updateProfile = trpc.adminUsers.updateProfile.useMutation({
+    onSuccess: () => {
+      toast.success("Perfil atualizado com sucesso!");
+      refetch();
+      utils.adminUsers.profile.invalidate();
+    },
+    onError: (e) => toast.error("Erro ao salvar: " + e.message),
+  });
+
+  const uploadImage = trpc.settings.uploadImage.useMutation({
+    onSuccess: (data) => {
+      const url = `https://renciaapp-ldyffp73.manus.space${data.url}`;
+      setAvatarUrl(url);
+      updateProfile.mutate({ avatarUrl: url });
+    },
+    onError: () => toast.error("Erro ao fazer upload da foto"),
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const displayUser = profile ?? user;
 
-  const formatDate = (date: Date | string | null | undefined): string => {
-    if (!date) return "Não informado";
-    try {
-      return new Date(date).toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      });
-    } catch {
-      return "Não informado";
+  const [telefone, setTelefone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+
+  useEffect(() => {
+    if (profile) {
+      setTelefone((profile as any).telefone ?? "");
+      setAvatarUrl((profile as any).avatarUrl ?? "");
     }
+  }, [profile]);
+
+  const handleSave = () => {
+    updateProfile.mutate({ telefone });
   };
 
-  const formatDateTime = (date: Date | string | null | undefined): string => {
-    if (!date) return "Não informado";
-    try {
-      return new Date(date).toLocaleString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return "Não informado";
-    }
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      uploadImage.mutate({ field: "avatar", dataUrl, filename: file.name });
+    };
+    reader.readAsDataURL(file);
   };
 
-  const roleName = displayUser?.role === "admin" ? "Administrador" : "Usuário";
   const initials = displayUser?.name?.charAt(0)?.toUpperCase() ?? "U";
-  const displayName = displayUser?.name ?? "Usuário";
-
-  if (error) {
-    return (
-      <AdminLayout title="Meu Perfil">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-card rounded-2xl border border-destructive/20 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center">
-                <AlertTriangle size={18} className="text-destructive" />
-              </div>
-              <p className="text-sm font-semibold text-foreground">Erro ao carregar perfil</p>
-            </div>
-            <p className="text-xs text-muted-foreground"><span>{error.message}</span></p>
-          </div>
-        </div>
-      </AdminLayout>
-    );
-  }
+  const roleName = displayUser?.role === "admin" ? "Administrador" : "Usuário";
 
   return (
     <AdminLayout title="Meu Perfil">
-      <div className="max-w-2xl mx-auto space-y-6">
-        {/* Profile Header Card */}
+      <div className="max-w-xl mx-auto space-y-5">
+
+        {/* ── Header com foto ── */}
         <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-          <div
-            className="h-28 w-full"
-            style={{
-              background: "linear-gradient(135deg, oklch(0.28 0.07 255) 0%, oklch(0.45 0.15 270) 100%)",
-            }}
-          />
+          <div className="h-28 w-full" style={{ background: "linear-gradient(135deg, oklch(0.55 0.18 45) 0%, oklch(0.72 0.18 55) 100%)" }} />
           <div className="px-6 pb-6">
-            <div className="flex items-end gap-4 -mt-10 mb-4">
-              <div
-                className="w-20 h-20 rounded-2xl border-4 border-card flex items-center justify-center text-2xl font-bold shadow-md"
-                style={{
-                  background: "linear-gradient(135deg, oklch(0.35 0.1 255) 0%, oklch(0.52 0.18 270) 100%)",
-                  color: "oklch(0.98 0.003 240)",
-                }}
-              >
-                <span>{initials}</span>
+            <div className="flex items-end gap-4 -mt-12 mb-4">
+              {/* Avatar com botão de upload */}
+              <div className="relative group">
+                <div
+                  className="w-20 h-20 rounded-2xl border-4 border-card flex items-center justify-center text-2xl font-bold shadow-md overflow-hidden cursor-pointer"
+                  style={{ background: avatarUrl ? "transparent" : "linear-gradient(135deg, oklch(0.55 0.18 45), oklch(0.72 0.18 55))" }}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span style={{ color: "white" }}>{initials}</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow border-2 border-card"
+                  title="Trocar foto"
+                >
+                  <Camera className="w-3 h-3" />
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
               </div>
               <div className="pb-1">
-                <h2 className="text-xl font-bold text-foreground tracking-tight">
-                  {isLoading ? (
-                    <span className="inline-block w-40 h-6 bg-muted rounded animate-pulse" />
-                  ) : (
-                    <span>{displayName}</span>
-                  )}
-                </h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <span
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
-                    style={
-                      displayUser?.role === "admin"
-                        ? { background: "oklch(0.55 0.17 145 / 0.15)", color: "oklch(0.45 0.17 145)" }
-                        : { background: "oklch(0.52 0.18 255 / 0.12)", color: "oklch(0.42 0.15 255)" }
-                    }
-                  >
-                    {displayUser?.role === "admin" ? <Shield size={11} /> : <User size={11} />}
-                    <span>{roleName}</span>
-                  </span>
-                </div>
+                <h2 className="text-xl font-bold text-foreground">{displayUser?.name ?? "Usuário"}</h2>
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary mt-1">
+                  <Shield size={10} />
+                  <span>{roleName}</span>
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Info Card */}
-        <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
-          <h3 className="text-sm font-semibold text-foreground mb-1"><span>{"Informações Pessoais"}</span></h3>
-          <p className="text-xs text-muted-foreground mb-4"><span>{"Dados da sua conta no sistema"}</span></p>
+        {/* ── Campos editáveis ── */}
+        <div className="bg-card rounded-2xl border border-border p-6 shadow-sm space-y-4">
+          <h3 className="text-sm font-semibold text-foreground">Editar Perfil</h3>
 
-          {isLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center gap-4 py-4 border-b border-border last:border-0">
-                  <div className="w-9 h-9 rounded-lg bg-muted animate-pulse" />
-                  <div className="flex-1 space-y-1.5">
-                    <div className="h-3 w-20 bg-muted rounded animate-pulse" />
-                    <div className="h-4 w-48 bg-muted rounded animate-pulse" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div>
-              <InfoRow icon={<User size={16} />} label="Nome Completo" value={displayUser?.name} />
-              <InfoRow icon={<AtSign size={16} />} label="E-mail" value={displayUser?.email} />
-              <InfoRow
-                icon={<Key size={16} />}
-                label="Método de Login"
-                value={displayUser?.loginMethod ?? "OAuth"}
-              />
-              <InfoRow
-                icon={<Calendar size={16} />}
-                label="Membro desde"
-                value={formatDate(displayUser?.createdAt)}
-              />
-              <InfoRow
-                icon={<Clock size={16} />}
-                label="Último acesso"
-                value={formatDateTime(displayUser?.lastSignedIn)}
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Nome</Label>
+            <Input value={displayUser?.name ?? ""} disabled className="h-9 text-sm bg-muted/40" />
+            <p className="text-xs text-muted-foreground">Nome gerenciado pelo OAuth</p>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">E-mail</Label>
+            <Input value={displayUser?.email ?? ""} disabled className="h-9 text-sm bg-muted/40" />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Telefone / WhatsApp</Label>
+            <div className="flex gap-2">
+              <Phone className="w-4 h-4 mt-2.5 text-muted-foreground flex-shrink-0" />
+              <Input
+                value={telefone}
+                onChange={e => setTelefone(e.target.value)}
+                placeholder="(11) 99999-9999"
+                className="h-9 text-sm"
               />
             </div>
-          )}
+          </div>
+
+          <Button
+            onClick={handleSave}
+            disabled={updateProfile.isPending}
+            className="w-full h-9 text-sm font-semibold"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {updateProfile.isPending ? "Salvando..." : "Salvar Alterações"}
+          </Button>
         </div>
 
-        {/* Session Card */}
+        {/* ── Sessão ── */}
         <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
-          <h3 className="text-sm font-semibold text-foreground mb-1"><span>{"Sessão"}</span></h3>
-          <p className="text-xs text-muted-foreground mb-4"><span>{"Gerencie sua sessão atual"}</span></p>
-          <button
-            onClick={() => logout()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 border border-destructive/30 text-destructive hover:bg-destructive/5"
-          >
-            <LogOut size={15} />
-            <span>{"Encerrar Sessão"}</span>
-          </button>
+          <h3 className="text-sm font-semibold mb-3">Sessão</h3>
+          <Button variant="destructive" size="sm" onClick={() => logout()} className="gap-2">
+            <LogOut size={14} />
+            Encerrar Sessão
+          </Button>
         </div>
       </div>
     </AdminLayout>

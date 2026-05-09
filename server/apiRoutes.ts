@@ -340,9 +340,15 @@ export function registerApiRoutes(app: Express) {
       if (expired && device.status !== "Expirado") {
         await db
           .update(devices)
-          .set({ status: "Expirado" })
+          .set({ status: "Expirado", lastSeen: now })
           .where(eq(devices.id, device.id));
         device.status = "Expirado";
+      } else {
+        // Registrar lastSeen para rastrear dispositivos conectados
+        await db
+          .update(devices)
+          .set({ lastSeen: now })
+          .where(eq(devices.id, device.id));
       }
 
       const isAllowed = device.status === "Liberado";

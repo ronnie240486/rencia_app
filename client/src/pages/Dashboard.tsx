@@ -7,11 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AlertTriangle, CalendarDays, Crown, Layers, Search, Shield,
-  Star, Users,
+  Star, Users, Wifi, WifiOff, RefreshCw, Activity,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -42,14 +42,23 @@ function StatCard({ title, value, icon: Icon, color }: {
 export default function Dashboard() {
   const { user } = useAuth();
   const [recentSearch, setRecentSearch] = useState("");
+  const [connectedFilter, setConnectedFilter] = useState(30);
 
   const { data: stats, isLoading: statsLoading, error: statsError } = trpc.devices.stats.useQuery();
   const { data: planInfo } = trpc.plan.info.useQuery();
   const { data: recentDevices, isLoading: recentLoading } = trpc.devices.recentList.useQuery({ search: recentSearch, limit: 5 });
+  const { data: connectedDevices, isLoading: connectedLoading, refetch: refetchConnected } = trpc.connected.list.useQuery({ minutesAgo: connectedFilter });
 
   const formatDate = (d: Date | string | null | undefined) => {
     if (!d) return "—";
     try { return format(new Date(d), "dd/MM/yyyy", { locale: ptBR }); } catch { return "—"; }
+  };
+
+  const formatLastSeen = (d: Date | string | null | undefined) => {
+    if (!d) return "—";
+    try {
+      return formatDistanceToNow(new Date(d), { addSuffix: true, locale: ptBR });
+    } catch { return "—"; }
   };
 
   const formatCurrency = (v: number) =>
@@ -108,6 +117,112 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* ─── Dispositivos Conectados (OuroPro Online) ─── */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <CardTitle className="text-sm font-semibold">
+                  <span>{"Dispositivos Conectados no OuroPro"}</span>
+                </CardTitle>
+                {!connectedLoading && (
+                  <Badge className="text-xs bg-green-100 text-green-700 border-green-200" variant="outline">
+                    <Activity className="w-3 h-3 mr-1" />
+                    <span>{connectedDevices?.length ?? 0}</span>
+                    <span>{" online"}</span>
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{"Últimos:"}</span>
+                {[15, 30, 60, 120].map(m => (
+                  <Button
+                    key={m}
+                    size="sm"
+                    variant={connectedFilter === m ? "default" : "outline"}
+                    className="h-6 px-2 text-xs"
+                    onClick={() => setConnectedFilter(m)}
+                  >
+                    <span>{m < 60 ? `${m}min` : `${m / 60}h`}</span>
+                  </Button>
+                ))}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0"
+                  onClick={() => refetchConnected()}
+                  title="Atualizar"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {connectedLoading ? (
+              <div className="p-4 space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
+              </div>
+            ) : (connectedDevices ?? []).length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
+                <WifiOff className="w-8 h-8 opacity-30" />
+                <p className="text-sm">
+                  <span>{"Nenhum dispositivo conectado nos últimos "}</span>
+                  <span>{connectedFilter < 60 ? `${connectedFilter} minutos` : `${connectedFilter / 60} hora(s)`}</span>
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="text-xs"><span>{"STATUS"}</span></TableHead>
+                    <TableHead className="text-xs"><span>{"MAC"}</span></TableHead>
+                    <TableHead className="text-xs"><span>{"NOME DO SERVER"}</span></TableHead>
+                    <TableHead className="text-xs"><span>{"TIPO"}</span></TableHead>
+                    <TableHead className="text-xs"><span>{"ÚLTIMA CONEXÃO"}</span></TableHead>
+                    <TableHead className="text-xs"><span>{"EXPIRA EM"}</span></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(connectedDevices ?? []).map(d => {
+                    const isRecent = d.lastSeen && (Date.now() - new Date(d.lastSeen).getTime()) < 5 * 60 * 1000;
+                    return (
+                      <TableRow key={d.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {isRecent ? (
+                              <Wifi className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <Wifi className="w-3 h-3 text-amber-400" />
+                            )}
+                            <span className={`text-xs font-medium ${isRecent ? "text-green-600" : "text-amber-600"}`}>
+                              {isRecent ? "Online" : "Recente"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs font-mono"><span>{d.mac}</span></TableCell>
+                        <TableCell className="text-xs"><span>{d.nomeServer}</span></TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-xs"><span>{d.tipo}</span></Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          <span>{formatLastSeen(d.lastSeen)}</span>
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          <span className={d.dataExpiracao && new Date(d.dataExpiracao) < new Date() ? "text-red-500" : "text-foreground"}>
+                            {formatDate(d.dataExpiracao)}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Plan Info Table */}
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
@@ -124,26 +239,24 @@ export default function Dashboard() {
               <TableBody>
                 <TableRow>
                   <TableCell className="text-sm font-medium"><span>{"Meu Plano"}</span></TableCell>
-                  <TableCell className="text-sm text-blue-600 font-medium"><span>{planInfo?.plano ?? "Revenda"}</span></TableCell>
+                  <TableCell className="text-sm text-primary font-medium"><span>{planInfo?.plano ?? "Revenda"}</span></TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="text-sm font-medium"><span>{"Data do vencimento"}</span></TableCell>
-                  <TableCell className="text-sm text-blue-600"><span>{formatDate(planInfo?.planValidade)}</span></TableCell>
+                  <TableCell className="text-sm text-primary"><span>{formatDate(planInfo?.planValidade)}</span></TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="text-sm font-medium"><span>{"Limite de Cadastro Device"}</span></TableCell>
-                  <TableCell className="text-sm text-blue-600"><span>{planInfo?.limiteDevices ?? 999}</span></TableCell>
+                  <TableCell className="text-sm text-primary"><span>{planInfo?.limiteDevices ?? 999}</span></TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="text-sm font-medium"><span>{"Limite Restante de Cadastro Device"}</span></TableCell>
-                  <TableCell className="text-sm text-blue-600"><span>{(planInfo?.limiteDevices ?? 999) - (stats?.total ?? 0)}</span></TableCell>
+                  <TableCell className="text-sm text-primary"><span>{(planInfo?.limiteDevices ?? 999) - (stats?.total ?? 0)}</span></TableCell>
                 </TableRow>
               </TableBody>
             </Table>
           </CardContent>
         </Card>
-
-
 
         {/* Últimos Usuários Cadastrados */}
         <Card className="border-0 shadow-sm">
