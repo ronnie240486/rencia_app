@@ -453,12 +453,14 @@ export async function getConnectedDevices(ownerId: number, minutesAgo = 30) {
 export async function updateUserProfile(userId: number, data: {
   telefone?: string;
   avatarUrl?: string;
+  bannerUrl?: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const updateData: Record<string, unknown> = {};
   if (data.telefone !== undefined) updateData.telefone = data.telefone;
   if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
+  if (data.bannerUrl !== undefined) updateData.bannerUrl = data.bannerUrl;
   if (Object.keys(updateData).length === 0) return;
   await db.update(users).set(updateData).where(eq(users.id, userId));
 }

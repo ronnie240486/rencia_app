@@ -13,6 +13,7 @@ export const users = mysqlTable("users", {
   isActive: boolean("isActive").default(true).notNull(),
   telefone: varchar("telefone", { length: 32 }),
   avatarUrl: text("avatarUrl"),
+  bannerUrl: text("bannerUrl"),
   // Plan info
   plano: varchar("plano", { length: 64 }).default("Revenda"),
   planValidade: date("planValidade"),

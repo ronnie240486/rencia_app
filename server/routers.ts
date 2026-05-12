@@ -509,6 +509,7 @@ export const appRouter = router({
       .input(z.object({
         telefone: z.string().optional(),
         avatarUrl: z.string().optional(),
+        bannerUrl: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         await updateUserProfile(ctx.user.id, input);

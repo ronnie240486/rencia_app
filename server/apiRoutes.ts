@@ -40,6 +40,7 @@ const UPLOAD_FIELD_KEYS: Record<string, string> = {
   trial_background_url: "trial_background_url",
   trial_banner_url: "trial_banner_url",
   sidebar_logo_url: "sidebar_logo_url",
+  profile_banner_url: "profile_banner_url",
   icon_live_tv_url: "icon_live_tv_url",
   icon_movies_url: "icon_movies_url",
   icon_series_url: "icon_series_url",
@@ -766,6 +767,35 @@ export function registerApiRoutes(app: Express) {
     account: "icon_account_url",
     change_playlist: "icon_change_playlist_url",
   };
+
+  /**
+   * GET /api/v4/update.php
+   * Retorna informações da última versão do APK para atualização automática.
+   * O APK consome este endpoint ao clicar em "Atualizar Aplicativo".
+   */
+  app.get("/api/v4/update.php", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+      const apkUrl = cfg.apk_download_url ?? "";
+      const version = cfg.apk_version ?? "1.0.0";
+
+      if (!apkUrl) {
+        res.status(404).json({ error: "Nenhum APK configurado" });
+        return;
+      }
+
+      res.setHeader("Cache-Control", "no-cache");
+      res.json({
+        version,
+        url: apkUrl,
+        force_update: false,
+        release_notes: `Versão ${version} disponível. Clique para atualizar.`,
+      });
+    } catch (error) {
+      console.error("[API] /api/v4/update.php error:", error);
+      res.status(500).json({ error: "Erro interno" });
+    }
+  });
 
   /**
    * POST /api/chatbot/test

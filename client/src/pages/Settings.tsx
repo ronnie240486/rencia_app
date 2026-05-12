@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Image, Upload, Palette, MessageCircle } from "lucide-react";
+import { Loader2, Save, Image, Upload, Palette, MessageCircle, Smartphone } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 
 const DEFAULT_VALUES: Record<string, string> = {
@@ -26,6 +26,9 @@ const DEFAULT_VALUES: Record<string, string> = {
   // Chatbot
   chatbot_dias_aviso: "3",
   chatbot_mensagem_vencimento: "Olá {nome}! Sua assinatura vence em {dias} dia(s) ({data}). Renove agora para não perder o acesso! 😊",
+  // APK
+  apk_download_url: "",
+  apk_version: "",
 };
 
 const COLOR_PRESETS = [
@@ -209,15 +212,18 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="banner">
-          <TabsList className="grid grid-cols-3 w-full">
-            <TabsTrigger value="banner" className="gap-2">
-              <Image size={14} /> Banner / Logo
+          <TabsList className="grid grid-cols-4 w-full">
+            <TabsTrigger value="banner" className="gap-1 text-xs">
+              <Image size={13} /> Banner
             </TabsTrigger>
-            <TabsTrigger value="tema" className="gap-2">
-              <Palette size={14} /> Tema
+            <TabsTrigger value="tema" className="gap-1 text-xs">
+              <Palette size={13} /> Tema
             </TabsTrigger>
-            <TabsTrigger value="chatbot" className="gap-2">
-              <MessageCircle size={14} /> Chatbot
+            <TabsTrigger value="chatbot" className="gap-1 text-xs">
+              <MessageCircle size={13} /> Chatbot
+            </TabsTrigger>
+            <TabsTrigger value="apk" className="gap-1 text-xs">
+              <Smartphone size={13} /> APK
             </TabsTrigger>
           </TabsList>
 
@@ -502,6 +508,74 @@ export default function Settings() {
                 <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-3 text-xs text-amber-800 dark:text-amber-200">
                   <strong>Como funciona:</strong> O sistema verifica automaticamente todos os dias os clientes com vencimento próximo e envia mensagem via WhatsApp para o número cadastrado no campo "Telefone" do cliente. Certifique-se de que os clientes tenham telefone cadastrado.
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ─── Aba APK ──────────────────────────────────────────────────── */}
+          <TabsContent value="apk" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Smartphone size={16} /> Atualização Automática do APK
+                </CardTitle>
+                <CardDescription>
+                  Configure o link de download do APK. Quando o cliente clicar em “Atualizar Aplicativo” no app, ele baixará automaticamente a versão cadastrada aqui.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+
+                <div className="space-y-2">
+                  <Label className="font-semibold">Link de download do APK</Label>
+                  <Input
+                    value={form.apk_download_url}
+                    onChange={e => handleChange("apk_download_url", e.target.value)}
+                    placeholder="https://exemplo.com/meuapp.apk"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    URL direta para o arquivo <code>.apk</code>. Pode ser um link do Google Drive, Dropbox, servidor próprio, etc.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-semibold">Versão atual do APK</Label>
+                  <Input
+                    value={form.apk_version}
+                    onChange={e => handleChange("apk_version", e.target.value)}
+                    placeholder="Ex: 1.0.0"
+                    className="w-40"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Exibida no app para o usuário saber qual versão está disponível.
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 p-3 text-xs text-blue-800 dark:text-blue-200 space-y-1.5">
+                  <p className="font-semibold">Como funciona:</p>
+                  <p>1. Cole o link do APK acima e clique em <strong>Salvar Tudo</strong>.</p>
+                  <p>2. O endpoint <code>/api/v4/update.php</code> passa a retornar esse link.</p>
+                  <p>3. Quando o cliente clicar em <strong>Atualizar Aplicativo</strong> no app, ele consulta esse endpoint e baixa a nova versão automaticamente.</p>
+                </div>
+
+                {form.apk_download_url && (
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Prévia do endpoint</p>
+                    <div className="rounded bg-muted p-2">
+                      <p className="text-xs font-mono break-all">
+                        GET /api/v4/update.php → {JSON.stringify({ version: form.apk_version || "1.0.0", url: form.apk_download_url, force_update: false })}
+                      </p>
+                    </div>
+                    <a
+                      href={form.apk_download_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                    >
+                      <Smartphone size={12} /> Testar link do APK
+                    </a>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

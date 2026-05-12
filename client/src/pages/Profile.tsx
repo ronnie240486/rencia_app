@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { AlertTriangle, Camera, LogOut, Phone, Save, Shield, User } from "lucide-react";
+import { AlertTriangle, Camera, Loader2, LogOut, Phone, Save, Shield, User } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 
 export default function Profile() {
@@ -32,17 +32,47 @@ export default function Profile() {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const displayUser = profile ?? user;
 
   const [telefone, setTelefone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [bannerUrl, setBannerUrl] = useState("");
 
   useEffect(() => {
     if (profile) {
       setTelefone((profile as any).telefone ?? "");
       setAvatarUrl((profile as any).avatarUrl ?? "");
+      setBannerUrl((profile as any).bannerUrl ?? "");
     }
   }, [profile]);
+
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingBanner(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      formData.append("field", "profile_banner_url");
+      const resp = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!resp.ok) throw new Error("Erro no upload");
+      const { url } = await resp.json() as { url: string };
+      setBannerUrl(url);
+      updateProfile.mutate({ bannerUrl: url });
+      toast.success("✅ Banner atualizado com sucesso!");
+    } catch (err: any) {
+      toast.error("Erro ao enviar banner: " + err.message);
+    } finally {
+      setUploadingBanner(false);
+      e.target.value = "";
+    }
+  };
 
   const handleSave = () => {
     updateProfile.mutate({ telefone });
@@ -68,7 +98,32 @@ export default function Profile() {
 
         {/* ── Header com foto ── */}
         <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-          <div className="h-28 w-full" style={{ background: "linear-gradient(135deg, oklch(0.55 0.18 45) 0%, oklch(0.72 0.18 55) 100%)" }} />
+          <div
+            className="h-28 w-full relative group cursor-pointer overflow-hidden"
+            style={bannerUrl ? {} : { background: "linear-gradient(135deg, oklch(0.55 0.18 45) 0%, oklch(0.72 0.18 55) 100%)" }}
+            onClick={() => bannerInputRef.current?.click()}
+          >
+            {bannerUrl && (
+              <img src={bannerUrl} alt="banner" className="w-full h-full object-cover" />
+            )}
+            {/* Overlay de hover */}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              {uploadingBanner
+                ? <Loader2 size={20} className="text-white animate-spin" />
+                : <>
+                    <Camera size={18} className="text-white" />
+                    <span className="text-white text-sm font-medium">Mudar Banner</span>
+                  </>
+              }
+            </div>
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleBannerChange}
+            />
+          </div>
           <div className="px-6 pb-6">
             <div className="flex items-end gap-4 -mt-12 mb-4">
               {/* Avatar com botão de upload */}

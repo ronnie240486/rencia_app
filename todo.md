@@ -125,3 +125,8 @@
 - [x] Chatbot: campo para configurar quantos dias antes do vencimento enviar o aviso
 - [x] Chatbot: campo para configurar a mensagem de aviso de vencimento
 - [x] Chatbot: job periódico que verifica vencimentos e dispara mensagens (manual via botão, links WhatsApp gerados)
+
+## Novas funcionalidades (12/05/2026 - v2)
+- [x] Perfil: botão de upload para mudar o banner superior da página de perfil
+- [x] Configurações: campo para cadastrar link do APK (URL de download do .apk)
+- [x] Configurações: endpoint /api/v4/update.php que retorna o link do APK atual (consumido pelo app ao clicar em "Atualizar Aplicativo")
