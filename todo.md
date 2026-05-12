@@ -136,3 +136,8 @@
 - [x] Painel: trocar todas as ocorrências de "IboPlayer Pro" por "OuroPro"
 - [x] Dashboard: mostrar canal/série/filme que o dispositivo está assistindo na tabela de online
 - [x] Configurações: paleta de cores para trocar a cor do painel (sidebar background + primary)
+
+## Correções (12/05/2026 - v4)
+- [ ] API /api/guim.php: incluir telefone de contato, frase de impacto e frase legal no response (campos str_whatsapp, impact_phrase, legal_notice)
+- [ ] Configurações: garantir campos "Telefone de contato", "Frase de impacto" e "Frase legal (tela de bloqueio)" visíveis e salvando corretamente
+- [ ] Frase legal padrão: "OuroPro is a media player application. The app does not provide or include any media or content."

@@ -30,6 +30,8 @@ const DEFAULT_VALUES: Record<string, string> = {
   // APK
   apk_download_url: "",
   apk_version: "",
+  // Frase legal
+  legal_notice: "OuroPro is a media player application. The app does not provide or include any media or content.",
 };
 
 const SIDEBAR_PRESETS = [
@@ -343,38 +345,56 @@ export default function Settings() {
                 {/* Contato */}
                 <div className="border-t pt-4 space-y-4">
                   <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contato / Home do APK</p>
+
                   <div className="space-y-2">
-                    <Label>Frase de impacto (tela home)</Label>
+                    <Label>Frase de impacto (tela home do app)</Label>
                     <Textarea
                       value={form.impact_phrase}
                       onChange={e => handleChange("impact_phrase", e.target.value)}
-                      placeholder="Ex: 🚀 O melhor IPTV do Brasil!"
+                      placeholder="Ex: 🚀 O melhor streaming do Brasil!"
                       rows={2}
                     />
+                    <p className="text-xs text-muted-foreground">Exibida na tela inicial do app (campo <code>impact_phrase</code>).</p>
                   </div>
+
                   <div className="space-y-2">
-                    <Label>Contato (tela home)</Label>
+                    <Label>Telefone / Contato (tela home)</Label>
                     <Input
                       value={form.contact_info}
                       onChange={e => handleChange("contact_info", e.target.value)}
-                      placeholder="Ex: WhatsApp: (11) 99999-9999"
+                      placeholder="Ex: (11) 99999-9999 ou @seuperfil"
                     />
+                    <p className="text-xs text-muted-foreground">Exibido na tela de contato do app (campo <code>contact</code>).</p>
                   </div>
+
                   <div className="space-y-2">
-                    <Label>WhatsApp do suporte</Label>
+                    <Label>WhatsApp do suporte (número com DDI)</Label>
                     <Input
                       value={form.contact_whatsapp}
                       onChange={e => handleChange("contact_whatsapp", e.target.value)}
                       placeholder="Ex: 5511999999999"
                     />
+                    <p className="text-xs text-muted-foreground">Usado no botão de WhatsApp do app (campo <code>str_whatsapp</code>).</p>
                   </div>
+
                   <div className="space-y-2">
                     <Label>URL do site</Label>
                     <Input
                       value={form.contact_website}
                       onChange={e => handleChange("contact_website", e.target.value)}
-                      placeholder="Ex: https://ourorevenda.com"
+                      placeholder="Ex: https://ouropro.com.br"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Frase legal (tela de bloqueio / sobre o app)</Label>
+                    <Textarea
+                      value={form.legal_notice || ""}
+                      onChange={e => handleChange("legal_notice", e.target.value)}
+                      placeholder="OuroPro is a media player application. The app does not provide or include any media or content."
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground">Exibida na tela de bloqueio e na página &quot;Sobre&quot; do app (campo <code>legal_notice</code>). Deixe vazio para usar o texto padrão.</p>
                   </div>
                 </div>
               </CardContent>

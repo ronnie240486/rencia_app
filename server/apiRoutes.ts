@@ -169,6 +169,8 @@ function buildWords(cfg: Record<string, string>) {
     mac_address_label: "Mac Address",
     impact_phrase: cfg.impact_phrase || "",
     contact: cfg.contact_info || "",
+    legal_notice: cfg.legal_notice || "OuroPro is a media player application. The app does not provide or include any media or content.",
+    app_name: cfg.app_name || "OuroPro",
   };
 }
 
@@ -202,6 +204,15 @@ export function registerApiRoutes(app: Express) {
 
       // O APK envia { data: "<BASE64>" }
       let macAddress: string | null = null;
+
+      // LOG para diagnóstico do body enviado pelo APK
+      console.log("[APK-BODY] Raw body keys:", body ? Object.keys(body) : "null");
+      if (body && body.data) {
+        try {
+          const rawDecoded = decodeFromApk(String(body.data));
+          console.log("[APK-BODY] Decoded payload:", JSON.stringify(rawDecoded));
+        } catch { /* ignora */ }
+      }
 
       if (body && body.data) {
         // O APK usa Security.getStringData que insere uma encrypt_key no Base64
@@ -443,6 +454,13 @@ export function registerApiRoutes(app: Express) {
         series_label: cfg.app_series_label || "Séries",
         banner_url: cfg.trial_banner_url || "",
         logo_url: cfg.trial_logo_url || "",
+        // Contato e frases exibidas no app
+        contact: words.contact,
+        contact_whatsapp: words.str_whatsapp,
+        contact_website: words.str_link,
+        impact_phrase: words.impact_phrase,
+        legal_notice: words.legal_notice,
+        app_name: words.app_name,
         words,
       };
 
