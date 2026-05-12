@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE users ADD COLUMN bannerColor TEXT NULL AFTER avatarUrl; ALTER TABLE users ADD COLUMN bannerImage TEXT NULL AFTER bannerColor;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute ALTER TABLE users ADD COLUMN bannerColor TEXT NULL AFTER avatarUrl; ALTER TABLE users ADD COLUMN bannerImage TEXT NULL AFTER bannerColor;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 972
+}

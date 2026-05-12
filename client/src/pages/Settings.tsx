@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Smartphone, Image, Upload } from "lucide-react";
+import { Loader2, Save, Smartphone, Image, Upload, RefreshCw, MessageCircle, Send, EyeOff } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 
 const DEFAULT_VALUES: Record<string, string> = {
@@ -16,6 +16,7 @@ const DEFAULT_VALUES: Record<string, string> = {
   trial_support_text: "Suporte com seu revendedor",
   trial_banner_url: "",
   trial_logo_url: "",
+  trial_logo_hidden: "false",
   trial_background_url: "",
   contact_website: "",
   contact_whatsapp: "",
@@ -26,9 +27,13 @@ const DEFAULT_VALUES: Record<string, string> = {
   icon_series_url: "",
   icon_account_url: "",
   icon_change_playlist_url: "",
+  icon_reload_url: "",
+  icon_exit_url: "",
+  icon_settings_url: "",
+  app_version: "",
+  app_download_url: "",
 };
 
-// Componente reutilizável para botão de upload que funciona corretamente
 function UploadButton({ field, uploadingField, onUpload }: { field: string; uploadingField: string | null; onUpload: (field: string, file: File) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
@@ -81,7 +86,6 @@ export default function Settings() {
       }
 
       const { url } = await resp.json() as { url: string };
-      // url já vem no formato https://renciaapp-ldyffp73.manus.space/manus-storage/...
       handleChange(field, url);
       await updateMany.mutateAsync({ ...form, [field]: url });
       toast.success("✅ Imagem enviada e salva! O APK buscará a nova imagem ao reiniciar.");
@@ -150,12 +154,18 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="trial">
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="trial" className="gap-2">
-              <Smartphone size={14} /> Tela de Bloqueio
+          <TabsList className="grid grid-cols-4 w-full">
+            <TabsTrigger value="trial" className="gap-1 text-xs">
+              <Smartphone size={13} /> Bloqueio
             </TabsTrigger>
-            <TabsTrigger value="images" className="gap-2">
-              <Image size={14} /> Imagens
+            <TabsTrigger value="images" className="gap-1 text-xs">
+              <Image size={13} /> Imagens
+            </TabsTrigger>
+            <TabsTrigger value="update" className="gap-1 text-xs">
+              <RefreshCw size={13} /> Atualização
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="gap-1 text-xs">
+              <MessageCircle size={13} /> Chatbot
             </TabsTrigger>
           </TabsList>
 
@@ -205,7 +215,7 @@ export default function Settings() {
                   <Input
                     value={form.contact_website}
                     onChange={e => handleChange("contact_website", e.target.value)}
-                    placeholder="Ex: https://ourorevenda.manus.space"
+                    placeholder="Ex: https://renciaapp-ldyffp73.manus.space"
                   />
                 </div>
 
@@ -282,16 +292,33 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Logo do APK (home_logo)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Logo do APK (home_logo)</Label>
+                    <button
+                      type="button"
+                      onClick={() => handleChange("trial_logo_hidden", form.trial_logo_hidden === "true" ? "false" : "true")}
+                      className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border transition-colors ${form.trial_logo_hidden === "true" ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-muted border-border text-muted-foreground"}`}
+                      title="Ocultar logo no APK"
+                    >
+                      <EyeOff size={12} />
+                      {form.trial_logo_hidden === "true" ? "Logo oculto" : "Ocultar logo"}
+                    </button>
+                  </div>
+                  {form.trial_logo_hidden === "true" && (
+                    <div className="rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-2 text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                      <EyeOff size={12} /> O logo está oculto no APK. Clique em "Ocultar logo" novamente para reativar.
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Input
                       value={form.trial_logo_url}
                       onChange={e => handleChange("trial_logo_url", e.target.value)}
                       placeholder="https://exemplo.com/logo.png"
+                      disabled={form.trial_logo_hidden === "true"}
                     />
                     <UploadButton field="trial_logo_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
                   </div>
-                  {form.trial_logo_url && (
+                  {form.trial_logo_url && form.trial_logo_hidden !== "true" && (
                     <img
                       src={form.trial_logo_url}
                       alt="Preview logo"
@@ -333,6 +360,7 @@ export default function Settings() {
                 </CardTitle>
                 <CardDescription>
                   Substitua os ícones dos botões principais do APK. Use o botão <Upload size={12} className="inline" /> para enviar.
+                  Os ícones são servidos sem fundo escuro — use imagens PNG com fundo transparente.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -343,12 +371,15 @@ export default function Settings() {
                     { key: "icon_series_url", label: "Séries", hint: "icon_series — 70×70px" },
                     { key: "icon_account_url", label: "Account", hint: "Ícone da conta — 70×70px" },
                     { key: "icon_change_playlist_url", label: "Trocar Playlist", hint: "Ícone de troca — 70×70px" },
+                    { key: "icon_reload_url", label: "Reload", hint: "Ícone de reload — 70×70px" },
+                    { key: "icon_exit_url", label: "Exit / Sair", hint: "Ícone de saída — 70×70px" },
+                    { key: "icon_settings_url", label: "Configurações", hint: "Ícone de config — 70×70px" },
                   ] as { key: string; label: string; hint: string }[]).map(({ key, label, hint }) => (
                     <div key={key} className="space-y-2">
                       <Label className="font-medium">{label}</Label>
                       <div className="flex gap-2 items-center">
                         {form[key] ? (
-                          <img src={form[key]} alt={label} className="w-14 h-14 rounded border object-contain bg-black/10" onError={e => (e.currentTarget.style.display = "none")} />
+                          <img src={form[key]} alt={label} className="w-14 h-14 rounded border object-contain" onError={e => (e.currentTarget.style.display = "none")} />
                         ) : (
                           <div className="w-14 h-14 rounded border border-dashed flex items-center justify-center bg-muted text-muted-foreground text-xs text-center">sem ícone</div>
                         )}
@@ -368,14 +399,16 @@ export default function Settings() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
 
-            <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
-              <CardContent className="pt-4">
-                <p className="text-sm text-amber-800 dark:text-amber-200">
-                  <strong>Nota:</strong> As imagens são servidas via <code>https://renciaapp-ldyffp73.manus.space/manus-storage/...</code>. Se você hospedar o servidor em outro domínio, basta atualizar a URL base no arquivo <code>server/apiRoutes.ts</code>.
-                </p>
-              </CardContent>
-            </Card>
+          {/* Atualização do App */}
+          <TabsContent value="update" className="space-y-4 mt-4">
+            <AppUpdateTab form={form} handleChange={handleChange} handleSave={handleSave} updateMany={updateMany} dirty={dirty} />
+          </TabsContent>
+
+          {/* Chatbot WhatsApp */}
+          <TabsContent value="chat" className="space-y-4 mt-4">
+            <ChatbotTab />
           </TabsContent>
         </Tabs>
 
@@ -389,5 +422,189 @@ export default function Settings() {
         )}
       </div>
     </AdminLayout>
+  );
+}
+
+// ─── Aba: Atualização do App ─────────────────────────────────────────────────
+function AppUpdateTab({ form, handleChange, handleSave, updateMany, dirty }: {
+  form: Record<string, string>;
+  handleChange: (k: string, v: string) => void;
+  handleSave: () => void;
+  updateMany: { isPending: boolean };
+  dirty: boolean;
+}) {
+  const bumpVersion = () => {
+    const cur = form.app_version || "1.0.0";
+    const parts = cur.split(".").map(Number);
+    parts[2] = (parts[2] ?? 0) + 1;
+    handleChange("app_version", parts.join("."));
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <RefreshCw size={16} /> Atualização do Aplicativo
+        </CardTitle>
+        <CardDescription>
+          Configure a versão atual e o link de download. O APK verifica esta versão ao conectar e exibe notificação de atualização se houver versão nova.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label>Versão atual do APK</Label>
+          <div className="flex gap-2">
+            <Input
+              value={form.app_version}
+              onChange={e => handleChange("app_version", e.target.value)}
+              placeholder="Ex: 5.0.0"
+              className="font-mono"
+            />
+            <Button type="button" variant="outline" onClick={bumpVersion} title="Incrementar versão patch (+0.0.1)">
+              +1
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Quando o APK conectar e detectar versão diferente, exibirá notificação de atualização disponível.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Link de download do novo APK</Label>
+          <Input
+            value={form.app_download_url}
+            onChange={e => handleChange("app_download_url", e.target.value)}
+            placeholder="https://exemplo.com/ouroproplayer.apk"
+          />
+          <p className="text-xs text-muted-foreground">
+            URL do APK mais recente. O APK abrirá este link quando o usuário clicar em "Atualizar".
+          </p>
+        </div>
+
+        <Button
+          onClick={handleSave}
+          disabled={!dirty || updateMany.isPending}
+          className="w-full gap-2"
+        >
+          {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          Salvar e Publicar Atualização
+        </Button>
+
+        <div className="rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-200">
+          <strong>Como funciona:</strong> O endpoint <code>/api/v4/version.php</code> retorna a versão configurada aqui. O APK compara com sua versão interna e, se diferente, exibe um alerta para o usuário baixar a atualização pelo link acima.
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Aba: Chatbot WhatsApp ───────────────────────────────────────────────────
+function ChatbotTab() {
+  const { data: clients, isLoading } = trpc.chatbot.clients.useQuery();
+  const [selectedMac, setSelectedMac] = useState("");
+  const [message, setMessage] = useState("");
+
+  const selectedClient = clients?.find(c => c.mac === selectedMac);
+
+  const sendWhatsApp = () => {
+    if (!message.trim()) { toast.error("Digite uma mensagem."); return; }
+    if (!selectedClient) { toast.error("Selecione um cliente."); return; }
+
+    const phone = selectedClient.ownerTelefone || "";
+    if (!phone) {
+      toast.error("Este cliente não tem telefone cadastrado. Cadastre o telefone no perfil do cliente.");
+      return;
+    }
+    const cleanPhone = phone.replace(/\D/g, "");
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+    toast.success("WhatsApp aberto! Envie a mensagem pelo app.");
+  };
+
+  const quickMessages = [
+    "Olá! Seu acesso ao OuroPro está ativo. Qualquer dúvida estou à disposição! 😊",
+    "Atenção: seu plano vence em breve. Renove agora para não perder o acesso!",
+    "Seu acesso foi renovado com sucesso! Aproveite o OuroPro! 🎉",
+    "Olá! Identificamos um problema no seu acesso. Entre em contato para resolvermos.",
+  ];
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <MessageCircle size={16} /> Enviar Mensagem WhatsApp
+          </CardTitle>
+          <CardDescription>
+            Selecione um cliente e envie uma mensagem diretamente pelo WhatsApp. O cliente precisa ter telefone cadastrado no perfil.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Selecionar cliente</Label>
+            {isLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground text-sm"><Loader2 size={14} className="animate-spin" /> Carregando clientes...</div>
+            ) : (
+              <select
+                className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                value={selectedMac}
+                onChange={e => setSelectedMac(e.target.value)}
+              >
+                <option value="">-- Selecione um cliente --</option>
+                {clients?.map(c => (
+                  <option key={c.deviceId} value={c.mac}>
+                    {c.nomeServer} ({c.mac}) {c.ownerTelefone ? "📱" : "⚠️ sem tel"}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {selectedClient && (
+            <div className="rounded-md bg-muted p-3 text-sm space-y-1">
+              <p><strong>Cliente:</strong> {selectedClient.nomeServer}</p>
+              <p><strong>MAC:</strong> {selectedClient.mac}</p>
+              <p><strong>Telefone:</strong> {selectedClient.ownerTelefone || <span className="text-destructive">Não cadastrado — vá em Usuários e edite o perfil</span>}</p>
+              <p><strong>Status:</strong> {selectedClient.status}</p>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Mensagem</Label>
+            <Textarea
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              placeholder="Digite sua mensagem..."
+              rows={4}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Mensagens rápidas</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {quickMessages.map((msg, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setMessage(msg)}
+                  className="text-left text-xs px-3 py-2 rounded-md border border-dashed hover:bg-muted transition-colors"
+                >
+                  {msg}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Button
+            onClick={sendWhatsApp}
+            disabled={!selectedMac || !message.trim()}
+            className="w-full gap-2"
+          >
+            <Send size={16} />
+            Enviar via WhatsApp
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

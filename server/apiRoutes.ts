@@ -24,6 +24,23 @@ import { devices, appSettings } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { storagePut } from "./storage";
 
+/**
+ * Detecta o tipo MIME real de uma imagem pelos magic bytes.
+ * Necessário porque o S3/CloudFront às vezes retorna content-type: text/html.
+ */
+function detectImageType(buf: Buffer): string {
+  if (buf.length < 4) return "image/jpeg";
+  // JPEG: FF D8 FF
+  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return "image/jpeg";
+  // PNG: 89 50 4E 47
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return "image/png";
+  // GIF: 47 49 46
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return "image/gif";
+  // WebP: 52 49 46 46 ... 57 45 42 50
+  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46) return "image/webp";
+  return "image/jpeg"; // fallback
+}
+
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -592,7 +609,20 @@ export function registerApiRoutes(app: Express) {
   app.get("/api/v4/logo.php", async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
+<<<<<<< Updated upstream
       const logoUrl = cfg.trial_logo_url || cfg.trial_background_url || "";
+=======
+      // Se logo estiver oculto, retornar 204 (sem conteúdo) para o APK não exibir nada
+      if (cfg.trial_logo_hidden === "true") {
+        res.status(204).end();
+        return;
+      }
+      const logoUrl = cfg.trial_logo_url || "";
+      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
+      const targetUrl = (logoUrl && logoUrl.startsWith("http") && !logoUrl.includes(","))
+        ? logoUrl
+        : "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";;
+>>>>>>> Stashed changes
 
       if (logoUrl && logoUrl.startsWith("http")) {
         // Redirecionar para a URL configurada no painel
@@ -632,11 +662,12 @@ export function registerApiRoutes(app: Express) {
         res.status(204).end();
         return;
       }
-      const contentType = imgRes.headers.get("content-type") || "image/jpeg";
       const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-      res.setHeader("Content-Type", contentType);
+      // Detectar tipo real pelo magic bytes (ignora content-type do S3 que pode ser text/html)
+      const detectedType = detectImageType(imgBuffer);
+      res.setHeader("Content-Type", detectedType);
       res.setHeader("Content-Length", imgBuffer.length);
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Cache-Control", "public, max-age=60");
       res.status(200).end(imgBuffer);
     } catch (error) {
       console.error("[API] /api/v4/bg.php error:", error);
@@ -669,6 +700,15 @@ export function registerApiRoutes(app: Express) {
         icon_series_url: cfg.icon_series_url || "",
         icon_account_url: cfg.icon_account_url || "",
         icon_change_playlist_url: cfg.icon_change_playlist_url || "",
+<<<<<<< Updated upstream
+=======
+        icon_reload_url: cfg.icon_reload_url || "",
+        icon_exit_url: cfg.icon_exit_url || "",
+        icon_settings_url: cfg.icon_settings_url || "",
+        trial_logo_hidden: cfg.trial_logo_hidden === "true",
+        impact_phrase: cfg.impact_phrase || "",
+        contact_info: cfg.contact_info || "",
+>>>>>>> Stashed changes
         updated_at: new Date().toISOString(),
       });
     } catch (error) {
@@ -695,6 +735,9 @@ export function registerApiRoutes(app: Express) {
     series: "icon_series_url",
     account: "icon_account_url",
     change_playlist: "icon_change_playlist_url",
+    reload: "icon_reload_url",
+    exit: "icon_exit_url",
+    settings: "icon_settings_url",
   };
 
   app.get("/api/v4/icon/:name", async (req: Request, res: Response) => {
@@ -711,9 +754,46 @@ export function registerApiRoutes(app: Express) {
         res.redirect(302, iconUrl);
         return;
       }
+<<<<<<< Updated upstream
       res.status(404).json({ error: "No icon configured" });
+=======
+      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
+      const imgRes = await fetch(iconUrl, { redirect: "follow" });
+      if (!imgRes.ok) {
+        res.status(204).end();
+        return;
+      }
+      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+      const detectedType = detectImageType(imgBuffer);
+      res.setHeader("Content-Type", detectedType);
+      res.setHeader("Content-Length", imgBuffer.length);
+      res.setHeader("Cache-Control", "public, max-age=60");
+      res.status(200).end(imgBuffer);
+>>>>>>> Stashed changes
     } catch (error) {
       console.error("[API] /api/v4/icon error:", error);
+      res.status(500).json({ error: "Erro interno" });
+    }
+  });
+
+  /**
+   * GET /api/v4/version.php
+   * Retorna a versão atual do APK configurada no painel.
+   * O APK compara com sua versão interna e exibe notificação se houver atualização.
+   */
+  app.get("/api/v4/version.php", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+      const version = cfg.app_version || "5.0";
+      const downloadUrl = cfg.app_download_url || "";
+      res.json({
+        version,
+        download_url: downloadUrl,
+        force_update: false,
+        message: downloadUrl ? `Nova versão ${version} disponível! Baixe agora.` : "",
+      });
+    } catch (error) {
+      console.error("[API] /api/v4/version.php error:", error);
       res.status(500).json({ error: "Erro interno" });
     }
   });

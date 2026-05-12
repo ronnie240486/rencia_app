@@ -111,3 +111,26 @@
 - [ ] Botões dourados (golden) em todo o painel
 - [ ] "Cadastrar DNS" button na página DNS em Massa
 - [ ] APK v26: recompilar com txt_impact/txt_contact visíveis na home screen
+
+## Pendências críticas (09/05/2026)
+- [x] Renomear "Ouro Revenda" → "OuroPro" em todo o painel (título, sidebar, textos)
+- [x] Settings.tsx: adicionar componente AppUpdateTab (botão de atualização do APK)
+- [x] Settings.tsx: adicionar componente ChatbotTab (envio de mensagem WhatsApp para clientes)
+- [x] Corrigir conexão painel-APK: background não muda mais quando salvo no painel (content-type detectado por magic bytes)
+- [ ] Corrigir conexão painel-APK: ícones dos botões não mudam no APK
+- [ ] Corrigir conexão painel-APK: frases de impacto/contato não aparecem no APK
+- [ ] Hierarquia de planos: dono (OuroPro Master) sem limites, Ultra Master com limites maiores, Revenda com limites menores
+- [ ] APK: adicionar texto disclaimer "OuroPro is a media player..." na tela de bloqueio
+- [ ] APK: ícones reload, exit, configurações personalizáveis pelo painel
+- [ ] Chatbot: ao cadastrar telefone do cliente, chatbot envia mensagem WhatsApp direto pelo painel
+- [ ] Planilha de custos: ativações de DNS + custo servidor + clientes de outros serviços (implementar depois)
+
+## Pendências (11/05/2026)
+- [x] Settings: opção "sem logo" (toggle para ocultar logo no APK)
+- [x] Settings: ícones de reload, exit e configurações configuráveis no painel
+- [x] Renomear completamente "Ouro Revenda" → "OuroPro" em todos os arquivos do painel
+- [x] ChatbotTab: buscar telefone real do cliente via procedure tipada (trpc.chatbot.clients)
+- [ ] APK smali: buscar ícones dinâmicos do servidor via proxy
+- [ ] APK smali: exibir frases de impacto e contato na home screen
+- [ ] APK smali: texto disclaimer na tela de bloqueio
+- [ ] Recompilar APK v28

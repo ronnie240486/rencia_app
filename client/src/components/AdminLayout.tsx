@@ -91,7 +91,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           alt="OuroPro"
           className="w-full h-auto object-contain"
           style={{ maxHeight: "64px" }}
-          onError={(e) => { (e.target as HTMLImageElement).src = '/manus-storage/ouro_revenda_panel_logo_top_e5b5216a.png'; }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
       </div>
 

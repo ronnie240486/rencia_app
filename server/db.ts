@@ -449,12 +449,37 @@ export async function getConnectedDevices(ownerId: number, minutesAgo = 30) {
 export async function updateUserProfile(userId: number, data: {
   telefone?: string;
   avatarUrl?: string;
+  bannerColor?: string;
+  bannerImage?: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const updateData: Record<string, unknown> = {};
   if (data.telefone !== undefined) updateData.telefone = data.telefone;
   if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
+  if (data.bannerColor !== undefined) updateData.bannerColor = data.bannerColor;
+  if (data.bannerImage !== undefined) updateData.bannerImage = data.bannerImage;
   if (Object.keys(updateData).length === 0) return;
   await db.update(users).set(updateData).where(eq(users.id, userId));
+}
+
+// ─── Chatbot: clientes com telefone ──────────────────────────────────────────
+export async function getClientsWithPhone(ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  // Busca todos os devices do owner com o telefone do owner (join users)
+  const rows = await db.select({
+    deviceId: devices.id,
+    mac: devices.mac,
+    nomeServer: devices.nomeServer,
+    status: devices.status,
+    dataExpiracao: devices.dataExpiracao,
+    ownerTelefone: users.telefone,
+    ownerName: users.name,
+  }).from(devices)
+    .leftJoin(users, eq(devices.ownerId, users.id))
+    .where(eq(devices.ownerId, ownerId))
+    .orderBy(desc(devices.dataCadastro))
+    .limit(500);
+  return rows;
 }
