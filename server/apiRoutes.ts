@@ -24,22 +24,199 @@ import { devices, appSettings } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { storagePut } from "./storage";
 
-/**
- * Detecta o tipo MIME real de uma imagem pelos magic bytes.
- * Necessário porque o S3/CloudFront às vezes retorna content-type: text/html.
- */
-function detectImageType(buf: Buffer): string {
-  if (buf.length < 4) return "image/jpeg";
-  // JPEG: FF D8 FF
-  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return "image/jpeg";
-  // PNG: 89 50 4E 47
-  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return "image/png";
-  // GIF: 47 49 46
-  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return "image/gif";
-  // WebP: 52 49 46 46 ... 57 45 42 50
-  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46) return "image/webp";
-  return "image/jpeg"; // fallback
-}
+// LanguageModel padrão em português — enviado em todas as respostas para o APK
+// O APK usa esses textos para montar a interface. Sem isso, todas as telas crasham.
+const DEFAULT_LANGUAGE: object = {
+  id: "1",
+  code: "pt",
+  name: "Português",
+  word_model: {
+    _12_hour_format: "12 horas",
+    _24_hour_format: "24 horas",
+    account: "Conta",
+    account_expired: "Conta Expirada",
+    activate_success: "Ativado com sucesso",
+    add_correct_alert: "Adicione os dados corretos",
+    add_m3u: "Adicionar M3U",
+    add_playlist: "Adicionar Playlist",
+    add_to_favorite: "Adicionar aos Favoritos",
+    age: "Idade",
+    all: "Todos",
+    app_is_up_to_date: "App está atualizado",
+    app_status: "Status do App",
+    audio_track: "Faixa de Áudio",
+    auto_update_2day: "Atualizar a cada 2 dias",
+    auto_update_everyday: "Atualizar todo dia",
+    auto_update_everytime: "Atualizar sempre",
+    automatic: "Automático",
+    back: "Voltar",
+    cancel: "Cancelar",
+    cant_add_this_movie: "Não foi possível adicionar este filme",
+    cast: "Elenco",
+    catch_up: "Replay",
+    change_language: "Mudar Idioma",
+    change_layout: "Mudar Layout",
+    change_playlist: "Trocar Playlist",
+    change_theme: "Mudar Tema",
+    channel_added_to_fav: "Canal adicionado aos favoritos",
+    channel_removed_from_fav: "Canal removido dos favoritos",
+    check_internet: "Verifique sua internet",
+    clear_all: "Limpar tudo",
+    clear_history_movies: "Limpar histórico de filmes",
+    clear_history_series: "Limpar histórico de séries",
+    clear_movie_header: "Limpar Filmes",
+    clear_series_header: "Limpar Séries",
+    confirm_password: "Confirmar Senha",
+    connect: "Conectar",
+    contact: "Contato",
+    current_expired: "Validade:",
+    date_added: "Data adicionada",
+    days: "dias",
+    default_resolution: "Resolução padrão",
+    delete: "Excluir",
+    delete_cache: "Limpar Cache",
+    delete_playlist: "Excluir Playlist",
+    device_key: "Chave do Dispositivo",
+    director: "Diretor",
+    edit: "Editar",
+    enable_subtitles: "Ativar Legendas",
+    enjoy_tv: "Aproveite!",
+    enter_m3u: "Digite o link M3U",
+    epg: "Guia de Programação",
+    exit: "Sair",
+    exit_description: "Deseja sair do aplicativo?",
+    expire_date: "Data de Expiração",
+    external_player: "Player Externo",
+    favorite: "Favoritos",
+    fill_screen: "Preencher Tela",
+    find_movie: "Buscar Filme",
+    fit_screen: "Ajustar Tela",
+    grid_layout: "Layout Grade",
+    hide_live_category: "Ocultar Categoria Ao Vivo",
+    hide_series_category: "Ocultar Categoria Séries",
+    hide_vod_category: "Ocultar Categoria Filmes",
+    home: "Início",
+    ibo_pro_description: "Descrição",
+    ibo_pro_general_player: "Player Geral",
+    install_external_player: "Instalar Player Externo",
+    length: "Duração",
+    list_layout: "Layout Lista",
+    live: "Ao Vivo",
+    live_sort: "Ordenar Canais",
+    live_tv: "TV ao Vivo",
+    mac_activated: "MAC Ativado",
+    mac_address: "Endereço MAC",
+    movie_is_added_to_fav: "Filme adicionado aos favoritos",
+    movie_is_removed_from_fav: "Filme removido dos favoritos",
+    movies: "Filmes",
+    mx_player: "MX Player",
+    net_pass: "Senha de Rede",
+    new_software_update_available: "Nova atualização disponível",
+    next_channel: "Próximo Canal",
+    no: "Não",
+    no_audio: "Sem Áudio",
+    no_channels: "Sem Canais",
+    no_connection: "Sem Conexão",
+    no_epg_avaliable: "EPG não disponível",
+    no_episode: "Sem Episódio",
+    no_information: "Sem Informação",
+    no_movies: "Sem Filmes",
+    no_playlist: "Sem Playlist",
+    no_playlist_description: "Adicione uma playlist para continuar",
+    no_recently_movies: "Sem filmes recentes",
+    no_recently_series: "Sem séries recentes",
+    no_series: "Sem Séries",
+    no_subtitle: "Sem Legenda",
+    no_trailer: "Sem Trailer",
+    ok: "OK",
+    open_website: "Abrir Site",
+    order_by_added: "Ordem de adição",
+    order_by_number: "Ordenar por número",
+    order_by_rating: "Ordenar por avaliação",
+    parent_control: "Controle dos Pais",
+    password: "Senha",
+    pay_with_google_pay: "Pagar com Google Pay",
+    pin_incorrect: "PIN incorreto",
+    play: "Reproduzir",
+    play_back_error: "Erro de reprodução",
+    play_back_error_description: "Não foi possível reproduzir o conteúdo",
+    playback_description: "Descrição da reprodução",
+    playlist_expire_date: "Validade da Playlist",
+    playlist_is_loading: "Carregando Playlist...",
+    playlist_is_not_working: "Playlist não está funcionando",
+    playlist_name: "Nome da Playlist",
+    playlist_protected: "Playlist Protegida",
+    port: "Porta",
+    portal_loaded_successfully: "Portal carregado com sucesso",
+    previous_channel: "Canal Anterior",
+    put_m3u_link: "Insira o link M3U",
+    put_password: "Insira a senha",
+    put_pin_code: "Insira o PIN",
+    put_username: "Insira o usuário",
+    rate_us: "Avalie-nos",
+    rating: "Avaliação",
+    recently_viewed: "Vistos Recentemente",
+    refresh_playlist: "Atualizar Playlist",
+    reload_portal: "Recarregar",
+    remove_favorites: "Remover Favoritos",
+    request_download: "Solicitar Download",
+    resume: "Continuar",
+    resume_plyaback_from_ast_position: "Continuar de onde parou",
+    resume_to_watch: "Continuar assistindo",
+    retry: "Tentar novamente",
+    scan_code: "Escanear QR Code",
+    search: "Pesquisar",
+    search_by_title: "Pesquisar por título",
+    season: "Temporada",
+    see_all: "Ver tudo",
+    select: "Selecionar",
+    select_all: "Selecionar tudo",
+    select_categories_you_want_to_hide: "Selecione as categorias para ocultar",
+    select_theme: "Selecionar Tema",
+    series: "Séries",
+    settings: "Configurações",
+    skip: "Pular",
+    sort_a_z: "A-Z",
+    sort_z_a: "Z-A",
+    stop_playback: "Parar reprodução",
+    str_continue: "Continuar",
+    str_edit_playlist: "Editar Playlist",
+    str_more_episodes: "Mais episódios",
+    str_playlist_uploaded_successfully: "Playlist carregada com sucesso",
+    str_protected: "Protegido",
+    str_restart: "Reiniciar",
+    str_trial_description: "Período de teste encerrado",
+    str_update_playlist: "Atualizar Playlist",
+    str_yes: "Sim",
+    string_default: "",
+    sub_remaining: "restante(s)",
+    subtitel_background: "Fundo da Legenda",
+    subtitel_color: "Cor da Legenda",
+    subtitel_size: "Tamanho da Legenda",
+    subtitle: "Legenda",
+    subtitle_settings: "Configurações de Legenda",
+    time_format: "Formato de Hora",
+    to_add_manage: "Adicionar / Gerenciar",
+    to_continue: "Para continuar",
+    trailer: "Trailer",
+    trial_ended: "Acesso Bloqueado",
+    tv_is_trial: "Versão de teste",
+    tv_mac_expired: "MAC expirado",
+    update_failed: "Falha na atualização",
+    update_now: "Atualizar agora",
+    user_incorrect: "Usuário incorreto",
+    username: "Usuário",
+    version: "Versão",
+    via_website: "Assine agora!",
+    vlc_player: "VLC Player",
+    want_delete_playlist: "Deseja excluir a playlist?",
+    want_external_player: "Deseja usar player externo?",
+    watch_season: "Assistir Temporada",
+    watch_trailer: "Assistir Trailer",
+    xtreme_codes: "Xtreme Codes",
+    impact_phrase: "",
+  },
+};
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -61,21 +238,12 @@ const UPLOAD_FIELD_KEYS: Record<string, string> = {
   icon_series_url: "icon_series_url",
   icon_account_url: "icon_account_url",
   icon_change_playlist_url: "icon_change_playlist_url",
-  icon_reload_url: "icon_reload_url",
-  icon_exit_url: "icon_exit_url",
-  icon_settings_url: "icon_settings_url",
-  sidebar_logo_url: "sidebar_logo_url",
 };
 
 // Cache de configurações para evitar query no banco a cada request
 let settingsCache: Record<string, string> = {};
 let settingsCacheTime = 0;
 const SETTINGS_CACHE_TTL = 60_000; // 60 segundos
-
-// ✅ CORREÇÃO: exportar para que routers.ts possa invalidar o cache ao salvar configurações
-export function invalidateSettingsCache() {
-  settingsCacheTime = 0;
-}
 
 async function getSettings(): Promise<Record<string, string>> {
   const now = Date.now();
@@ -128,15 +296,7 @@ function decodeFromApk(encoded: string): Record<string, unknown> | null {
     const p1Char = s[s.length - 1];
     const p1 = ALPHABET.indexOf(p1Char);
 
-    if (p2 < 0 || p1 < 0) {
-      // Fallback: Base64 puro (APK envia sem obfuscação quando termina com = ou =)
-      try {
-        const decoded = Buffer.from(s, "base64").toString("utf-8").trim();
-        return JSON.parse(decoded);
-      } catch {
-        return null;
-      }
-    }
+    if (p2 < 0 || p1 < 0) return null;
 
     // Remover os 2 últimos chars
     let clean = s.slice(0, -2);
@@ -203,7 +363,7 @@ export function registerApiRoutes(app: Express) {
    *   lock: 0,
    *   plan_id: "...",
    *   device_key: "...",
-   *   languages: [],
+   *   languages: [DEFAULT_LANGUAGE],
    *   apk_link: "",
    *   app_version: ""
    * }
@@ -272,7 +432,7 @@ export function registerApiRoutes(app: Express) {
           lock: 1,
           plan_id: "",
           device_key: "",
-          languages: [],
+          languages: [DEFAULT_LANGUAGE],
           apk_link: "",
           app_version: "5.0",
         };
@@ -294,7 +454,7 @@ export function registerApiRoutes(app: Express) {
           lock: 1,
           plan_id: "",
           device_key: "",
-          languages: [],
+          languages: [DEFAULT_LANGUAGE],
           apk_link: "",
           app_version: "5.0",
         };
@@ -330,7 +490,7 @@ export function registerApiRoutes(app: Express) {
           lock: 1,
           plan_id: "",
           device_key: "",
-          languages: [],
+          languages: [DEFAULT_LANGUAGE],
           apk_link: "",
           app_version: "5.0",
         };
@@ -392,8 +552,9 @@ export function registerApiRoutes(app: Express) {
         lock: isAllowed ? 0 : 1,
         plan_id: device.tipo ?? "Usuario",
         device_key: String(device.id),
+        languages: [DEFAULT_LANGUAGE],
         apk_link: "",
-        app_version: cfg.app_version || "5.0",
+        app_version: "5.0",
         // Configurações personalizáveis via painel
         trial_ended: cfg.trial_title || "Acesso Bloqueado",
         via_website: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
@@ -405,27 +566,6 @@ export function registerApiRoutes(app: Express) {
         series_label: cfg.app_series_label || "Séries",
         banner_url: cfg.trial_banner_url || "",
         logo_url: cfg.trial_logo_url || "",
-        // WordModels: frases de impacto e contato para a tela home
-        languages: [
-          {
-            code: "pt",
-            id: "1",
-            name: "Português",
-            words: {
-              impact_phrase: cfg.impact_phrase || "",
-              contact: cfg.contact_info || "",
-            },
-          },
-          {
-            code: "en",
-            id: "2",
-            name: "English",
-            words: {
-              impact_phrase: cfg.impact_phrase || "",
-              contact: cfg.contact_info || "",
-            },
-          },
-        ],
       };
 
       res.json({ data: encodeForApk(JSON.stringify(responsePayload)) });
@@ -441,6 +581,7 @@ export function registerApiRoutes(app: Express) {
         lock: 1,
         plan_id: "",
         device_key: "",
+        languages: [DEFAULT_LANGUAGE],
         apk_link: "",
         app_version: "5.0",
       };
@@ -594,6 +735,8 @@ export function registerApiRoutes(app: Express) {
       const { url } = await storagePut(storageKey, file.buffer, file.mimetype);
 
       // Montar URL absoluta para o APK acessar
+      // Usar o domínio público de produção (renciaapp-ldyffp73.manus.space)
+      // O APK precisa de uma URL pública para buscar as imagens
       const forwardedProto = req.headers["x-forwarded-proto"];
       const forwardedHost = req.headers["x-forwarded-host"] || req.headers["x-forwarded-for"];
       const protocol = Array.isArray(forwardedProto) ? forwardedProto[0] : (forwardedProto || "https");
@@ -634,32 +777,26 @@ export function registerApiRoutes(app: Express) {
   /**
    * GET /api/v4/logo.php
    * Endpoint usado pela classe Logo.java do APK para carregar o logo dinâmico.
-   * Retorna a imagem do logo configurada no painel, ou o logo padrão OuroPro.
+   * Retorna a imagem do logo configurada no painel, ou o logo padrão OURO REVENDA.
    * Suporta: redirect para URL externa ou proxy da imagem.
    */
   app.get("/api/v4/logo.php", async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
-      // Se logo estiver oculto, retornar 204 para o APK não exibir nada
-      if (cfg.trial_logo_hidden === "true") {
-        res.status(204).end();
+      const logoUrl = cfg.trial_logo_url || cfg.trial_background_url || "";
+
+      if (logoUrl && logoUrl.startsWith("http")) {
+        // Redirecionar para a URL configurada no painel
+        res.redirect(302, logoUrl);
         return;
       }
-      const logoUrl = cfg.trial_logo_url || "";
-      const targetUrl = (logoUrl && logoUrl.startsWith("http") && !logoUrl.includes(","))
-        ? logoUrl
-        : "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
-      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
-      const logoImgRes = await fetch(targetUrl, { redirect: "follow" });
-      if (!logoImgRes.ok) { res.status(204).end(); return; }
-      const logoBuffer = Buffer.from(await logoImgRes.arrayBuffer());
-      const logoType = detectImageType(logoBuffer);
-      res.setHeader("Content-Type", logoType);
-      res.setHeader("Content-Length", logoBuffer.length);
-      res.setHeader("Cache-Control", "public, max-age=3600");
-      res.status(200).end(logoBuffer);;
+
+      // Fallback: retornar logo padrão OURO REVENDA via redirect para CDN
+      const defaultLogoUrl = "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
+      res.redirect(302, defaultLogoUrl);
     } catch (error) {
       console.error("[API] /api/v4/logo.php error:", error);
+      // Em caso de erro, redirecionar para o logo padrão
       res.redirect(302, "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png");
     }
   });
@@ -682,17 +819,17 @@ export function registerApiRoutes(app: Express) {
       }
 
       // Proxy da imagem: baixar do S3 e servir com HTTP 200
+      // Node 22 tem fetch nativo com suporte a redirect
       const imgRes = await fetch(bgUrl, { redirect: "follow" });
       if (!imgRes.ok) {
         res.status(204).end();
         return;
       }
+      const contentType = imgRes.headers.get("content-type") || "image/jpeg";
       const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-      // Detectar tipo real pelo magic bytes (ignora content-type do S3 que pode ser text/html)
-      const detectedType = detectImageType(imgBuffer);
-      res.setHeader("Content-Type", detectedType);
+      res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Length", imgBuffer.length);
-      res.setHeader("Cache-Control", "public, max-age=60");
+      res.setHeader("Cache-Control", "public, max-age=3600");
       res.status(200).end(imgBuffer);
     } catch (error) {
       console.error("[API] /api/v4/bg.php error:", error);
@@ -703,6 +840,8 @@ export function registerApiRoutes(app: Express) {
   /**
    * GET /api/app-config
    * Retorna configurações públicas do app para o APK buscar ao iniciar.
+   * O APK pode usar este endpoint para obter a URL da imagem de fundo dinâmica.
+   * Resposta: { background_url, logo_url, banner_url, support_text, contact_whatsapp }
    */
   app.get("/api/app-config", async (_req: Request, res: Response) => {
     try {
@@ -718,19 +857,13 @@ export function registerApiRoutes(app: Express) {
         trial_subtitle: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
         app_channels_label: cfg.app_channels_label || "Canais",
         app_movies_label: cfg.app_movies_label || "Filmes",
-        app_series_label: cfg.app_series_label || "Séries",
+        app_series_label: cfg.app_series_label || "S\u00e9ries",
         // Ícones dos botões
         icon_live_tv_url: cfg.icon_live_tv_url || "",
         icon_movies_url: cfg.icon_movies_url || "",
         icon_series_url: cfg.icon_series_url || "",
         icon_account_url: cfg.icon_account_url || "",
         icon_change_playlist_url: cfg.icon_change_playlist_url || "",
-        icon_reload_url: cfg.icon_reload_url || "",
-        icon_exit_url: cfg.icon_exit_url || "",
-        icon_settings_url: cfg.icon_settings_url || "",
-        trial_logo_hidden: cfg.trial_logo_hidden === "true",
-        impact_phrase: cfg.impact_phrase || "",
-        contact_info: cfg.contact_info || "",
         updated_at: new Date().toISOString(),
       });
     } catch (error) {
@@ -757,9 +890,6 @@ export function registerApiRoutes(app: Express) {
     series: "icon_series_url",
     account: "icon_account_url",
     change_playlist: "icon_change_playlist_url",
-    reload: "icon_reload_url",
-    exit: "icon_exit_url",
-    settings: "icon_settings_url",
   };
 
   app.get("/api/v4/icon/:name", async (req: Request, res: Response) => {
@@ -779,94 +909,6 @@ export function registerApiRoutes(app: Express) {
       res.status(404).json({ error: "No icon configured" });
     } catch (error) {
       console.error("[API] /api/v4/icon error:", error);
-      res.status(500).json({ error: "Erro interno" });
-    }
-  });
-
-  /**
-   * POST /api/heartbeat.php
-   * Recebe heartbeat do APK com informações do que está assistindo.
-   * Payload (codificado igual ao guim.php):
-   *   { mac_address, device_type, current_content }
-   * Atualiza: devices.lastSeen, devices.connectedAt (se null), devices.currentContent, devices.deviceType
-   */
-  app.post("/api/heartbeat.php", async (req: Request, res: Response) => {
-    try {
-      const body = req.body;
-      let macAddress = "";
-      let deviceType = "";
-      let currentContent = "";
-
-      if (body?.data) {
-        const parsed = decodeFromApk(String(body.data));
-        if (parsed) {
-          macAddress = String(parsed.mac_address || "").trim();
-          deviceType = String(parsed.device_type || "").trim();
-          currentContent = String(parsed.current_content || "").trim().slice(0, 500);
-        }
-      } else if (body?.mac_address) {
-        macAddress = String(body.mac_address || "").trim();
-        deviceType = String(body.device_type || "").trim();
-        currentContent = String(body.current_content || "").trim().slice(0, 500);
-      }
-
-      if (!macAddress) {
-        res.json({ status: "ok" });
-        return;
-      }
-
-      // Normalizar MAC
-      const macNorm = macAddress.toUpperCase();
-      const db = await getDb();
-      if (!db) { res.json({ status: "ok" }); return; }
-
-      const result = await db.select({ id: devices.id, connectedAt: devices.connectedAt })
-        .from(devices)
-        .where(eq(devices.mac, macNorm))
-        .limit(1);
-
-      if (result.length === 0) {
-        res.json({ status: "ok" });
-        return;
-      }
-
-      const device = result[0];
-      const now = new Date();
-      const updateData: Record<string, unknown> = {
-        lastSeen: now,
-        currentContent: currentContent || null,
-        deviceType: deviceType || null,
-      };
-      if (!device.connectedAt) {
-        updateData.connectedAt = now;
-      }
-
-      await db.update(devices).set(updateData).where(eq(devices.id, device.id));
-      res.json({ status: "ok" });
-    } catch (error) {
-      console.error("[API] /api/heartbeat.php error:", error);
-      res.json({ status: "ok" });
-    }
-  });
-
-  /**
-   * GET /api/v4/version.php
-   * Retorna a versão atual do APK configurada no painel.
-   * O APK compara com sua versão interna e exibe notificação se houver atualização.
-   */
-  app.get("/api/v4/version.php", async (_req: Request, res: Response) => {
-    try {
-      const cfg = await getSettings();
-      const version = cfg.app_version || "5.0";
-      const downloadUrl = cfg.app_download_url || "";
-      res.json({
-        version,
-        download_url: downloadUrl,
-        force_update: false,
-        message: downloadUrl ? `Nova versão ${version} disponível! Baixe agora.` : "",
-      });
-    } catch (error) {
-      console.error("[API] /api/v4/version.php error:", error);
       res.status(500).json({ error: "Erro interno" });
     }
   });
