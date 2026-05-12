@@ -23,6 +23,7 @@ const DEFAULT_VALUES: Record<string, string> = {
   contact_info: "",
   // Tema
   primary_color: "#D4AF37",
+  sidebar_color: "",
   // Chatbot
   chatbot_dias_aviso: "3",
   chatbot_mensagem_vencimento: "Olá {nome}! Sua assinatura vence em {dias} dia(s) ({data}). Renove agora para não perder o acesso! 😊",
@@ -30,6 +31,17 @@ const DEFAULT_VALUES: Record<string, string> = {
   apk_download_url: "",
   apk_version: "",
 };
+
+const SIDEBAR_PRESETS = [
+  { name: "Escuro Padrão", value: "#1a1208" },
+  { name: "Azul Escuro", value: "#0f172a" },
+  { name: "Cinza Escuro", value: "#111827" },
+  { name: "Verde Escuro", value: "#052e16" },
+  { name: "Roxo Escuro", value: "#1e1b4b" },
+  { name: "Vermelho Escuro", value: "#1c0a0a" },
+  { name: "Marrom", value: "#1c1007" },
+  { name: "Preto Puro", value: "#000000" },
+];
 
 const COLOR_PRESETS = [
   { name: "Dourado", value: "#D4AF37" },
@@ -438,6 +450,76 @@ export default function Settings() {
 
                 <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
                   A cor é aplicada imediatamente no painel e salva para ser restaurada no próximo acesso.
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Cor da Sidebar */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Palette size={16} /> Cor da Sidebar (Menu Lateral)
+                </CardTitle>
+                <CardDescription>
+                  Personalize a cor de fundo do menu lateral. Deixe em branco para usar o padrão escuro.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 block">
+                    Cores Predefinidas
+                  </Label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {SIDEBAR_PRESETS.map(preset => (
+                      <button
+                        key={preset.value}
+                        type="button"
+                        onClick={() => handleChange("sidebar_color", preset.value)}
+                        className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border-2 transition-all hover:scale-105 ${
+                          form.sidebar_color === preset.value
+                            ? "border-foreground shadow-md scale-105"
+                            : "border-transparent hover:border-muted-foreground/30"
+                        }`}
+                      >
+                        <div
+                          className="w-10 h-10 rounded-full shadow-sm border border-white/20"
+                          style={{ backgroundColor: preset.value }}
+                        />
+                        <span className="text-xs font-medium text-muted-foreground">{preset.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Cor Personalizada (HEX)
+                  </Label>
+                  <div className="flex gap-3 items-center">
+                    <input
+                      type="color"
+                      value={form.sidebar_color || "#1a1208"}
+                      onChange={e => handleChange("sidebar_color", e.target.value)}
+                      className="w-12 h-10 rounded cursor-pointer border border-input"
+                    />
+                    <Input
+                      value={form.sidebar_color}
+                      onChange={e => handleChange("sidebar_color", e.target.value)}
+                      placeholder="#1a1208 (deixe vazio para padrão)"
+                      className="h-10 font-mono"
+                      maxLength={7}
+                    />
+                    {form.sidebar_color && (
+                      <div
+                        className="w-10 h-10 rounded-md border border-white/20 flex-shrink-0"
+                        style={{ backgroundColor: form.sidebar_color }}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+                  A cor da sidebar é aplicada imediatamente. Recarregue a página após salvar para ver o efeito completo.
                 </div>
               </CardContent>
             </Card>

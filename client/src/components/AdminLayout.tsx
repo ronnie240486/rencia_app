@@ -49,14 +49,16 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: settings } = trpc.settings.getAll.useQuery();
 
-  // Aplicar cor primária e logo da sidebar ao carregar
+  // Aplicar cor primária, cor da sidebar e logo ao carregar
   useEffect(() => {
     if (!settings) return;
-    const color = settings.primary_color;
-    if (color && color.startsWith("#") && color.length === 7) {
-      const r = parseInt(color.slice(1, 3), 16) / 255;
-      const g = parseInt(color.slice(3, 5), 16) / 255;
-      const b = parseInt(color.slice(5, 7), 16) / 255;
+
+    // Helper: converte HEX para oklch aproximado via HSL
+    const hexToOklch = (hex: string) => {
+      if (!hex || !hex.startsWith("#") || hex.length !== 7) return null;
+      const r = parseInt(hex.slice(1, 3), 16) / 255;
+      const g = parseInt(hex.slice(3, 5), 16) / 255;
+      const b = parseInt(hex.slice(5, 7), 16) / 255;
       const max = Math.max(r, g, b), min = Math.min(r, g, b);
       let h = 0, s = 0;
       const l = (max + min) / 2;
@@ -69,12 +71,31 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           case b: h = ((r - g) / d + 4) / 6; break;
         }
       }
-      const hsl = `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-      document.documentElement.style.setProperty("--primary", hsl);
+      return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+    };
+
+    // Cor primária dos botões
+    const primaryHsl = hexToOklch(settings.primary_color);
+    if (primaryHsl) {
+      document.documentElement.style.setProperty("--primary", `${primaryHsl.h} ${primaryHsl.s}% ${primaryHsl.l}%`);
+    }
+
+    // Cor da sidebar
+    const sidebarColor = (settings as Record<string, string>).sidebar_color;
+    if (sidebarColor && sidebarColor.startsWith("#") && sidebarColor.length === 7) {
+      const r2 = parseInt(sidebarColor.slice(1, 3), 16) / 255;
+      const g2 = parseInt(sidebarColor.slice(3, 5), 16) / 255;
+      const b2 = parseInt(sidebarColor.slice(5, 7), 16) / 255;
+      const l2 = (Math.max(r2, g2, b2) + Math.min(r2, g2, b2)) / 2;
+      const c2 = Math.max(r2, g2, b2) - Math.min(r2, g2, b2);
+      // Usar oklch aproximado
+      document.documentElement.style.setProperty("--sidebar", `oklch(${l2.toFixed(2)} ${(c2 * 0.3).toFixed(2)} ${hexToOklch(sidebarColor)?.h ?? 55})`);
+      document.documentElement.style.setProperty("--sidebar-accent", `oklch(${Math.min(l2 + 0.06, 1).toFixed(2)} ${(c2 * 0.25).toFixed(2)} ${hexToOklch(sidebarColor)?.h ?? 55})`);
+      document.documentElement.style.setProperty("--sidebar-border", `oklch(${Math.min(l2 + 0.12, 1).toFixed(2)} ${(c2 * 0.2).toFixed(2)} ${hexToOklch(sidebarColor)?.h ?? 55})`);
     }
   }, [settings]);
 
-  const sidebarLogoUrl = settings?.sidebar_logo_url || "https://renciaapp-ldyffp73.manus.space/api/v4/logo.php";
+  const sidebarLogoUrl = settings?.sidebar_logo_url || "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouroupro_logo_dark-fXyM9RJb5jrckbNeNbskGi.webp";
 
   if (loading) {
     return (
@@ -122,7 +143,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           alt="OuroPro"
           className="w-full h-auto object-contain"
           style={{ maxHeight: "64px" }}
-          onError={(e) => { (e.target as HTMLImageElement).src = 'https://renciaapp-ldyffp73.manus.space/api/v4/logo.php'; }}
+          onError={(e) => { (e.target as HTMLImageElement).src = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouroupro_logo_dark-fXyM9RJb5jrckbNeNbskGi.webp'; }}
         />
       </div>
 

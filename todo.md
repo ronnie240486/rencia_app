@@ -130,3 +130,9 @@
 - [x] Perfil: botão de upload para mudar o banner superior da página de perfil
 - [x] Configurações: campo para cadastrar link do APK (URL de download do .apk)
 - [x] Configurações: endpoint /api/v4/update.php que retorna o link do APK atual (consumido pelo app ao clicar em "Atualizar Aplicativo")
+
+## Novas funcionalidades (12/05/2026 - v3)
+- [x] Logo: recriar logo OuroPro mantendo coroa dourada, trocar texto "Ouro Revenda" por "OuroPro"
+- [x] Painel: trocar todas as ocorrências de "IboPlayer Pro" por "OuroPro"
+- [x] Dashboard: mostrar canal/série/filme que o dispositivo está assistindo na tabela de online
+- [x] Configurações: paleta de cores para trocar a cor do painel (sidebar background + primary)

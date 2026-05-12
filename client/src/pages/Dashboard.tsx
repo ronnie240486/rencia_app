@@ -180,6 +180,7 @@ export default function Dashboard() {
                     <TableHead className="text-xs"><span>{"MAC"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"NOME DO SERVER"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"TIPO"}</span></TableHead>
+                    <TableHead className="text-xs"><span>{"ASSISTINDO"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"ÚLTIMA CONEXÃO"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"EXPIRA EM"}</span></TableHead>
                   </TableRow>
@@ -205,6 +206,16 @@ export default function Dashboard() {
                         <TableCell className="text-xs"><span>{d.nomeServer}</span></TableCell>
                         <TableCell>
                           <Badge variant="secondary" className="text-xs"><span>{d.tipo}</span></Badge>
+                        </TableCell>
+                        <TableCell className="text-xs max-w-[160px]">
+                          {d.currentContent ? (
+                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium truncate" title={d.currentContent}>
+                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+                              <span className="truncate">{d.currentContent}</span>
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           <span>{formatLastSeen(d.lastSeen)}</span>

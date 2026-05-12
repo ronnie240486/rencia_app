@@ -346,10 +346,26 @@ export function registerApiRoutes(app: Express) {
           .where(eq(devices.id, device.id));
         device.status = "Expirado";
       } else {
-        // Registrar lastSeen para rastrear dispositivos conectados
+        // Registrar lastSeen e currentContent para rastrear dispositivos conectados
+        // O APK pode enviar current_channel, current_movie ou current_series no body
+        let currentContent: string | null = null;
+        if (body && body.data) {
+          try {
+            const parsed2 = decodeFromApk(String(body.data));
+            if (parsed2) {
+              currentContent = (parsed2.current_channel as string)
+                || (parsed2.current_movie as string)
+                || (parsed2.current_series as string)
+                || (parsed2.current_content as string)
+                || null;
+            }
+          } catch { /* ignora */ }
+        }
+        const updateSet: Record<string, unknown> = { lastSeen: now };
+        if (currentContent !== null) updateSet.currentContent = currentContent;
         await db
           .update(devices)
-          .set({ lastSeen: now })
+          .set(updateSet)
           .where(eq(devices.id, device.id));
       }
 

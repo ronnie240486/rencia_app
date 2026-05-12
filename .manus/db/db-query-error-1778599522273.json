@@ -1,0 +1,8 @@
+{
+  "query": "ALTER TABLE devices ADD COLUMN currentContent TEXT;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute ALTER TABLE devices ADD COLUMN currentContent TEXT;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1060 (42S21) at line 1: Duplicate column name 'currentContent'"
+  ]
+}

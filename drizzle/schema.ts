@@ -44,6 +44,7 @@ export const devices = mysqlTable("devices", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSeen: timestamp("lastSeen"),
+  currentContent: text("currentContent"), // canal/série/filme que está assistindo
   telefone: varchar("telefone", { length: 32 }),
 });
 
