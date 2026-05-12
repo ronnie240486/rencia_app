@@ -380,9 +380,8 @@ export function registerApiRoutes(app: Express) {
         lock: isAllowed ? 0 : 1,
         plan_id: device.tipo ?? "Usuario",
         device_key: String(device.id),
-        languages: [],
         apk_link: "",
-        app_version: "5.0",
+        app_version: cfg.app_version || "5.0",
         // Configurações personalizáveis via painel
         trial_ended: cfg.trial_title || "Acesso Bloqueado",
         via_website: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
@@ -394,6 +393,27 @@ export function registerApiRoutes(app: Express) {
         series_label: cfg.app_series_label || "Séries",
         banner_url: cfg.trial_banner_url || "",
         logo_url: cfg.trial_logo_url || "",
+        // WordModels: frases de impacto e contato para a tela home
+        languages: [
+          {
+            code: "pt",
+            id: "1",
+            name: "Português",
+            words: {
+              impact_phrase: cfg.impact_phrase || "",
+              contact: cfg.contact_info || "",
+            },
+          },
+          {
+            code: "en",
+            id: "2",
+            name: "English",
+            words: {
+              impact_phrase: cfg.impact_phrase || "",
+              contact: cfg.contact_info || "",
+            },
+          },
+        ],
       };
 
       res.json({ data: encodeForApk(JSON.stringify(responsePayload)) });
@@ -409,7 +429,6 @@ export function registerApiRoutes(app: Express) {
         lock: 1,
         plan_id: "",
         device_key: "",
-        languages: [],
         apk_link: "",
         app_version: "5.0",
       };
@@ -609,30 +628,24 @@ export function registerApiRoutes(app: Express) {
   app.get("/api/v4/logo.php", async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
-<<<<<<< Updated upstream
-      const logoUrl = cfg.trial_logo_url || cfg.trial_background_url || "";
-=======
-      // Se logo estiver oculto, retornar 204 (sem conteúdo) para o APK não exibir nada
+      // Se logo estiver oculto, retornar 204 para o APK não exibir nada
       if (cfg.trial_logo_hidden === "true") {
         res.status(204).end();
         return;
       }
       const logoUrl = cfg.trial_logo_url || "";
-      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
       const targetUrl = (logoUrl && logoUrl.startsWith("http") && !logoUrl.includes(","))
         ? logoUrl
-        : "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";;
->>>>>>> Stashed changes
-
-      if (logoUrl && logoUrl.startsWith("http")) {
-        // Redirecionar para a URL configurada no painel
-        res.redirect(302, logoUrl);
-        return;
-      }
-
-      // Fallback: retornar logo padrão OURO REVENDA via redirect para CDN
-      const defaultLogoUrl = "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
-      res.redirect(302, defaultLogoUrl);
+        : "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
+      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
+      const logoImgRes = await fetch(targetUrl, { redirect: "follow" });
+      if (!logoImgRes.ok) { res.status(204).end(); return; }
+      const logoBuffer = Buffer.from(await logoImgRes.arrayBuffer());
+      const logoType = detectImageType(logoBuffer);
+      res.setHeader("Content-Type", logoType);
+      res.setHeader("Content-Length", logoBuffer.length);
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.status(200).end(logoBuffer);;
     } catch (error) {
       console.error("[API] /api/v4/logo.php error:", error);
       res.redirect(302, "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png");
@@ -700,15 +713,12 @@ export function registerApiRoutes(app: Express) {
         icon_series_url: cfg.icon_series_url || "",
         icon_account_url: cfg.icon_account_url || "",
         icon_change_playlist_url: cfg.icon_change_playlist_url || "",
-<<<<<<< Updated upstream
-=======
         icon_reload_url: cfg.icon_reload_url || "",
         icon_exit_url: cfg.icon_exit_url || "",
         icon_settings_url: cfg.icon_settings_url || "",
         trial_logo_hidden: cfg.trial_logo_hidden === "true",
         impact_phrase: cfg.impact_phrase || "",
         contact_info: cfg.contact_info || "",
->>>>>>> Stashed changes
         updated_at: new Date().toISOString(),
       });
     } catch (error) {
@@ -754,22 +764,7 @@ export function registerApiRoutes(app: Express) {
         res.redirect(302, iconUrl);
         return;
       }
-<<<<<<< Updated upstream
       res.status(404).json({ error: "No icon configured" });
-=======
-      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
-      const imgRes = await fetch(iconUrl, { redirect: "follow" });
-      if (!imgRes.ok) {
-        res.status(204).end();
-        return;
-      }
-      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-      const detectedType = detectImageType(imgBuffer);
-      res.setHeader("Content-Type", detectedType);
-      res.setHeader("Content-Length", imgBuffer.length);
-      res.setHeader("Cache-Control", "public, max-age=60");
-      res.status(200).end(imgBuffer);
->>>>>>> Stashed changes
     } catch (error) {
       console.error("[API] /api/v4/icon error:", error);
       res.status(500).json({ error: "Erro interno" });
