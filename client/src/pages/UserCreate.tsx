@@ -53,7 +53,6 @@ export default function UserCreate() {
     valor: "",
     dataExpiracao: "",
     tipo: "Usuario" as "Usuario" | "Revenda" | "UltraMaster" | "Master",
-    telefone: "+55",
   });
 
   const [listas, setListas] = useState<ListaItem[]>([newLista(true)]);
@@ -125,7 +124,6 @@ export default function UserCreate() {
       urlEpg: principal.urlEpg || undefined,
       valor: form.valor || undefined,
       dataExpiracao: form.dataExpiracao || undefined,
-      telefone: form.telefone.trim() !== "+55" ? form.telefone.trim() : undefined,
     });
   };
 
@@ -171,24 +169,6 @@ export default function UserCreate() {
                 onChange={e => setForm(f => ({ ...f, nomeServer: e.target.value }))}
                 className="h-10"
               />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">TELEFONE / WHATSAPP DO CLIENTE:</Label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">+55</span>
-                <Input
-                  placeholder="11999999999"
-                  value={form.telefone.replace(/^\+55/, "")}
-                  onChange={e => {
-                    const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
-                    setForm(f => ({ ...f, telefone: "+55" + digits }));
-                  }}
-                  className="h-10 rounded-l-none"
-                  maxLength={11}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">Usado pelo chatbot para enviar mensagens WhatsApp ao cliente.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

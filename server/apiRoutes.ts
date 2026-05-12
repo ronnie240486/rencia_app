@@ -20,203 +20,9 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { storagePut } from "./storage";
-
-// LanguageModel padrão em português — enviado em todas as respostas para o APK
-// O APK usa esses textos para montar a interface. Sem isso, todas as telas crasham.
-const DEFAULT_LANGUAGE: object = {
-  id: "1",
-  code: "pt",
-  name: "Português",
-  word_model: {
-    _12_hour_format: "12 horas",
-    _24_hour_format: "24 horas",
-    account: "Conta",
-    account_expired: "Conta Expirada",
-    activate_success: "Ativado com sucesso",
-    add_correct_alert: "Adicione os dados corretos",
-    add_m3u: "Adicionar M3U",
-    add_playlist: "Adicionar Playlist",
-    add_to_favorite: "Adicionar aos Favoritos",
-    age: "Idade",
-    all: "Todos",
-    app_is_up_to_date: "App está atualizado",
-    app_status: "Status do App",
-    audio_track: "Faixa de Áudio",
-    auto_update_2day: "Atualizar a cada 2 dias",
-    auto_update_everyday: "Atualizar todo dia",
-    auto_update_everytime: "Atualizar sempre",
-    automatic: "Automático",
-    back: "Voltar",
-    cancel: "Cancelar",
-    cant_add_this_movie: "Não foi possível adicionar este filme",
-    cast: "Elenco",
-    catch_up: "Replay",
-    change_language: "Mudar Idioma",
-    change_layout: "Mudar Layout",
-    change_playlist: "Trocar Playlist",
-    change_theme: "Mudar Tema",
-    channel_added_to_fav: "Canal adicionado aos favoritos",
-    channel_removed_from_fav: "Canal removido dos favoritos",
-    check_internet: "Verifique sua internet",
-    clear_all: "Limpar tudo",
-    clear_history_movies: "Limpar histórico de filmes",
-    clear_history_series: "Limpar histórico de séries",
-    clear_movie_header: "Limpar Filmes",
-    clear_series_header: "Limpar Séries",
-    confirm_password: "Confirmar Senha",
-    connect: "Conectar",
-    contact: "Contato",
-    current_expired: "Validade:",
-    date_added: "Data adicionada",
-    days: "dias",
-    default_resolution: "Resolução padrão",
-    delete: "Excluir",
-    delete_cache: "Limpar Cache",
-    delete_playlist: "Excluir Playlist",
-    device_key: "Chave do Dispositivo",
-    director: "Diretor",
-    edit: "Editar",
-    enable_subtitles: "Ativar Legendas",
-    enjoy_tv: "Aproveite!",
-    enter_m3u: "Digite o link M3U",
-    epg: "Guia de Programação",
-    exit: "Sair",
-    exit_description: "Deseja sair do aplicativo?",
-    expire_date: "Data de Expiração",
-    external_player: "Player Externo",
-    favorite: "Favoritos",
-    fill_screen: "Preencher Tela",
-    find_movie: "Buscar Filme",
-    fit_screen: "Ajustar Tela",
-    grid_layout: "Layout Grade",
-    hide_live_category: "Ocultar Categoria Ao Vivo",
-    hide_series_category: "Ocultar Categoria Séries",
-    hide_vod_category: "Ocultar Categoria Filmes",
-    home: "Início",
-    ibo_pro_description: "Descrição",
-    ibo_pro_general_player: "Player Geral",
-    install_external_player: "Instalar Player Externo",
-    length: "Duração",
-    list_layout: "Layout Lista",
-    live: "Ao Vivo",
-    live_sort: "Ordenar Canais",
-    live_tv: "TV ao Vivo",
-    mac_activated: "MAC Ativado",
-    mac_address: "Endereço MAC",
-    movie_is_added_to_fav: "Filme adicionado aos favoritos",
-    movie_is_removed_from_fav: "Filme removido dos favoritos",
-    movies: "Filmes",
-    mx_player: "MX Player",
-    net_pass: "Senha de Rede",
-    new_software_update_available: "Nova atualização disponível",
-    next_channel: "Próximo Canal",
-    no: "Não",
-    no_audio: "Sem Áudio",
-    no_channels: "Sem Canais",
-    no_connection: "Sem Conexão",
-    no_epg_avaliable: "EPG não disponível",
-    no_episode: "Sem Episódio",
-    no_information: "Sem Informação",
-    no_movies: "Sem Filmes",
-    no_playlist: "Sem Playlist",
-    no_playlist_description: "Adicione uma playlist para continuar",
-    no_recently_movies: "Sem filmes recentes",
-    no_recently_series: "Sem séries recentes",
-    no_series: "Sem Séries",
-    no_subtitle: "Sem Legenda",
-    no_trailer: "Sem Trailer",
-    ok: "OK",
-    open_website: "Abrir Site",
-    order_by_added: "Ordem de adição",
-    order_by_number: "Ordenar por número",
-    order_by_rating: "Ordenar por avaliação",
-    parent_control: "Controle dos Pais",
-    password: "Senha",
-    pay_with_google_pay: "Pagar com Google Pay",
-    pin_incorrect: "PIN incorreto",
-    play: "Reproduzir",
-    play_back_error: "Erro de reprodução",
-    play_back_error_description: "Não foi possível reproduzir o conteúdo",
-    playback_description: "Descrição da reprodução",
-    playlist_expire_date: "Validade da Playlist",
-    playlist_is_loading: "Carregando Playlist...",
-    playlist_is_not_working: "Playlist não está funcionando",
-    playlist_name: "Nome da Playlist",
-    playlist_protected: "Playlist Protegida",
-    port: "Porta",
-    portal_loaded_successfully: "Portal carregado com sucesso",
-    previous_channel: "Canal Anterior",
-    put_m3u_link: "Insira o link M3U",
-    put_password: "Insira a senha",
-    put_pin_code: "Insira o PIN",
-    put_username: "Insira o usuário",
-    rate_us: "Avalie-nos",
-    rating: "Avaliação",
-    recently_viewed: "Vistos Recentemente",
-    refresh_playlist: "Atualizar Playlist",
-    reload_portal: "Recarregar",
-    remove_favorites: "Remover Favoritos",
-    request_download: "Solicitar Download",
-    resume: "Continuar",
-    resume_plyaback_from_ast_position: "Continuar de onde parou",
-    resume_to_watch: "Continuar assistindo",
-    retry: "Tentar novamente",
-    scan_code: "Escanear QR Code",
-    search: "Pesquisar",
-    search_by_title: "Pesquisar por título",
-    season: "Temporada",
-    see_all: "Ver tudo",
-    select: "Selecionar",
-    select_all: "Selecionar tudo",
-    select_categories_you_want_to_hide: "Selecione as categorias para ocultar",
-    select_theme: "Selecionar Tema",
-    series: "Séries",
-    settings: "Configurações",
-    skip: "Pular",
-    sort_a_z: "A-Z",
-    sort_z_a: "Z-A",
-    stop_playback: "Parar reprodução",
-    str_continue: "Continuar",
-    str_edit_playlist: "Editar Playlist",
-    str_more_episodes: "Mais episódios",
-    str_playlist_uploaded_successfully: "Playlist carregada com sucesso",
-    str_protected: "Protegido",
-    str_restart: "Reiniciar",
-    str_trial_description: "Período de teste encerrado",
-    str_update_playlist: "Atualizar Playlist",
-    str_yes: "Sim",
-    string_default: "",
-    sub_remaining: "restante(s)",
-    subtitel_background: "Fundo da Legenda",
-    subtitel_color: "Cor da Legenda",
-    subtitel_size: "Tamanho da Legenda",
-    subtitle: "Legenda",
-    subtitle_settings: "Configurações de Legenda",
-    time_format: "Formato de Hora",
-    to_add_manage: "Adicionar / Gerenciar",
-    to_continue: "Para continuar",
-    trailer: "Trailer",
-    trial_ended: "Acesso Bloqueado",
-    tv_is_trial: "Versão de teste",
-    tv_mac_expired: "MAC expirado",
-    update_failed: "Falha na atualização",
-    update_now: "Atualizar agora",
-    user_incorrect: "Usuário incorreto",
-    username: "Usuário",
-    version: "Versão",
-    via_website: "Assine agora!",
-    vlc_player: "VLC Player",
-    want_delete_playlist: "Deseja excluir a playlist?",
-    want_external_player: "Deseja usar player externo?",
-    watch_season: "Assistir Temporada",
-    watch_trailer: "Assistir Trailer",
-    xtreme_codes: "Xtreme Codes",
-    impact_phrase: "",
-  },
-};
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -344,6 +150,26 @@ function encodeForApk(jsonStr: string): string {
   return obfuscated + ALPHABET[pos1] + ALPHABET[pos2];
 }
 
+/**
+ * Monta o objeto `words` com os textos da tela de bloqueio vindos do painel.
+ * O APK BoxV3 usa WordModels para exibir esses textos na tela de trial/bloqueio.
+ */
+function buildWords(cfg: Record<string, string>) {
+  return {
+    trial_ended: cfg.trial_title || "Acesso Bloqueado",
+    to_continue: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
+    trial_description: cfg.trial_support_text || "Suporte com seu revendedor",
+    str_link: cfg.contact_website || "",
+    str_whatsapp: cfg.contact_whatsapp || "",
+    open_website: "Conectar",
+    mac_activated: "Seu MAC está Ativado.",
+    add_manage: "Para adicionar/gerenciar playlists, use os valores no site.",
+    mac_address_label: "Mac Address",
+    impact_phrase: cfg.impact_phrase || "",
+    contact: cfg.contact_info || "",
+  };
+}
+
 export function registerApiRoutes(app: Express) {
 
   /**
@@ -363,7 +189,7 @@ export function registerApiRoutes(app: Express) {
    *   lock: 0,
    *   plan_id: "...",
    *   device_key: "...",
-   *   languages: [DEFAULT_LANGUAGE],
+   *   languages: [],
    *   apk_link: "",
    *   app_version: ""
    * }
@@ -422,7 +248,8 @@ export function registerApiRoutes(app: Express) {
       }
 
       if (!macAddress) {
-        // Retornar resposta codificada mesmo para erro
+        const cfgErr = await getSettings();
+        const wordsErr = buildWords(cfgErr);
         const errorPayload = {
           mac_registered: false,
           mac_address: "",
@@ -432,9 +259,10 @@ export function registerApiRoutes(app: Express) {
           lock: 1,
           plan_id: "",
           device_key: "",
-          languages: [DEFAULT_LANGUAGE],
+          languages: [],
           apk_link: "",
           app_version: "5.0",
+          words: wordsErr,
         };
         res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
         return;
@@ -445,6 +273,8 @@ export function registerApiRoutes(app: Express) {
 
       const db = await getDb();
       if (!db) {
+        const cfgDb = await getSettings();
+        const wordsDb = buildWords(cfgDb);
         const errorPayload = {
           mac_registered: false,
           mac_address: macAddress,
@@ -454,9 +284,10 @@ export function registerApiRoutes(app: Express) {
           lock: 1,
           plan_id: "",
           device_key: "",
-          languages: [DEFAULT_LANGUAGE],
+          languages: [],
           apk_link: "",
           app_version: "5.0",
+          words: wordsDb,
         };
         res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
         return;
@@ -481,6 +312,8 @@ export function registerApiRoutes(app: Express) {
 
       // Device não encontrado
       if (result.length === 0) {
+        const cfgNf = await getSettings();
+        const wordsNf = buildWords(cfgNf);
         const notFoundPayload = {
           mac_registered: false,
           mac_address: macAddress,
@@ -490,9 +323,10 @@ export function registerApiRoutes(app: Express) {
           lock: 1,
           plan_id: "",
           device_key: "",
-          languages: [DEFAULT_LANGUAGE],
+          languages: [],
           apk_link: "",
           app_version: "5.0",
+          words: wordsNf,
         };
         res.json({ data: encodeForApk(JSON.stringify(notFoundPayload)) });
         return;
@@ -506,9 +340,15 @@ export function registerApiRoutes(app: Express) {
       if (expired && device.status !== "Expirado") {
         await db
           .update(devices)
-          .set({ status: "Expirado" })
+          .set({ status: "Expirado", lastSeen: now })
           .where(eq(devices.id, device.id));
         device.status = "Expirado";
+      } else {
+        // Registrar lastSeen para rastrear dispositivos conectados
+        await db
+          .update(devices)
+          .set({ lastSeen: now })
+          .where(eq(devices.id, device.id));
       }
 
       const isAllowed = device.status === "Liberado";
@@ -522,8 +362,26 @@ export function registerApiRoutes(app: Express) {
           url: device.urlM3u8,
           name: device.nomeServer || "Lista",
           type: "m3u_plus",
-          is_protected: "0",
+          is_protected: "1",  // Protegido: APK mostra "Protegido" no lugar da URL
         });
+      }
+
+      // Buscar listas extras cadastradas no painel (device_urls)
+      if (isAllowed) {
+        try {
+          const extraUrls = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, device.id));
+          for (const eu of extraUrls) {
+            if (eu.urlM3u8) {
+              urls.push({
+                id: String(eu.id),
+                url: eu.urlM3u8,
+                name: eu.nome || `Lista ${urls.length + 1}`,
+                type: eu.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
+                is_protected: "1",  // Protegido: APK mostra "Protegido" no lugar da URL
+              });
+            }
+          }
+        } catch { /* ignora erro de listas extras */ }
       }
 
       // Formatar data de expiração
@@ -543,6 +401,7 @@ export function registerApiRoutes(app: Express) {
       }
 
       const cfg = await getSettings();
+      const words = buildWords(cfg);
       const responsePayload = {
         mac_registered: isAllowed,
         mac_address: device.mac,
@@ -552,26 +411,29 @@ export function registerApiRoutes(app: Express) {
         lock: isAllowed ? 0 : 1,
         plan_id: device.tipo ?? "Usuario",
         device_key: String(device.id),
-        languages: [DEFAULT_LANGUAGE],
+        languages: [],
         apk_link: "",
         app_version: "5.0",
         // Configurações personalizáveis via painel
-        trial_ended: cfg.trial_title || "Acesso Bloqueado",
-        via_website: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
-        str_trial_description: cfg.trial_support_text || "Suporte com seu revendedor",
-        str_link: cfg.contact_website || "",
-        str_whatsapp: cfg.contact_whatsapp || "",
+        trial_ended: words.trial_ended,
+        via_website: words.to_continue,
+        str_trial_description: words.trial_description,
+        str_link: words.str_link,
+        str_whatsapp: words.str_whatsapp,
         live_label: cfg.app_channels_label || "Canais",
         movie_label: cfg.app_movies_label || "Filmes",
         series_label: cfg.app_series_label || "Séries",
         banner_url: cfg.trial_banner_url || "",
         logo_url: cfg.trial_logo_url || "",
+        words,
       };
 
       res.json({ data: encodeForApk(JSON.stringify(responsePayload)) });
 
     } catch (error) {
       console.error("[API] /api/guim.php error:", error);
+      const cfgCatch = await getSettings().catch(() => ({} as Record<string, string>));
+      const wordsCatch = buildWords(cfgCatch);
       const errorPayload = {
         mac_registered: false,
         mac_address: "",
@@ -581,9 +443,10 @@ export function registerApiRoutes(app: Express) {
         lock: 1,
         plan_id: "",
         device_key: "",
-        languages: [DEFAULT_LANGUAGE],
+        languages: [],
         apk_link: "",
         app_version: "5.0",
+        words: wordsCatch,
       };
       res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
     }
@@ -640,6 +503,16 @@ export function registerApiRoutes(app: Express) {
       console.error("[API] GET /api/guim.php error:", error);
       res.status(500).json({ mac_registered: false, error: "Erro interno do servidor." });
     }
+  });
+
+  // Alias /api/v4/guim.php → /api/guim.php (compatibilidade com APK que usa /api/v4/)
+  app.post("/api/v4/guim.php", (req: Request, res: Response, next) => {
+    req.url = "/api/guim.php";
+    app._router.handle(req, res, next);
+  });
+  app.get("/api/v4/guim.php", (req: Request, res: Response, next) => {
+    req.url = "/api/guim.php";
+    app._router.handle(req, res, next);
   });
 
   /**
@@ -735,17 +608,8 @@ export function registerApiRoutes(app: Express) {
       const { url } = await storagePut(storageKey, file.buffer, file.mimetype);
 
       // Montar URL absoluta para o APK acessar
-      // Usar o domínio público de produção (renciaapp-ldyffp73.manus.space)
-      // O APK precisa de uma URL pública para buscar as imagens
-      const forwardedProto = req.headers["x-forwarded-proto"];
-      const forwardedHost = req.headers["x-forwarded-host"] || req.headers["x-forwarded-for"];
-      const protocol = Array.isArray(forwardedProto) ? forwardedProto[0] : (forwardedProto || "https");
-      const host = Array.isArray(forwardedHost) ? forwardedHost[0] : (forwardedHost || req.headers.host || "");
-      // Se host for localhost, usar o domínio de produção configurado
-      const publicHost = (host.includes("localhost") || host.includes("127.0.0.1"))
-        ? "renciaapp-ldyffp73.manus.space"
-        : host;
-      const absoluteUrl = `https://${publicHost}${url}`;
+      // Sempre usar o domínio público fixo de produção
+      const absoluteUrl = `https://renciaapp-ldyffp73.manus.space${url}`;
 
       // Atualizar no banco de dados
       const db = await getDb();
@@ -783,21 +647,27 @@ export function registerApiRoutes(app: Express) {
   app.get("/api/v4/logo.php", async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
-      const logoUrl = cfg.trial_logo_url || cfg.trial_background_url || "";
+      const logoUrl = cfg.trial_logo_url || "";
 
-      if (logoUrl && logoUrl.startsWith("http")) {
-        // Redirecionar para a URL configurada no painel
-        res.redirect(302, logoUrl);
+      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
+      const targetUrl = (logoUrl && logoUrl.startsWith("http") && !logoUrl.includes(","))
+        ? logoUrl
+        : "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
+
+      const imgRes = await fetch(targetUrl, { redirect: "follow" });
+      if (!imgRes.ok) {
+        res.status(204).end();
         return;
       }
-
-      // Fallback: retornar logo padrão OURO REVENDA via redirect para CDN
-      const defaultLogoUrl = "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
-      res.redirect(302, defaultLogoUrl);
+      const contentType = imgRes.headers.get("content-type") || "image/png";
+      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", imgBuffer.length);
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.status(200).end(imgBuffer);
     } catch (error) {
       console.error("[API] /api/v4/logo.php error:", error);
-      // Em caso de erro, redirecionar para o logo padrão
-      res.redirect(302, "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png");
+      res.status(204).end();
     }
   });
 
@@ -812,8 +682,10 @@ export function registerApiRoutes(app: Express) {
       const cfg = await getSettings();
       const bgUrl = cfg.trial_background_url || "";
 
-      if (!bgUrl || !bgUrl.startsWith("http")) {
-        // Sem fundo configurado: retornar 204 para o APK usar o fundo padrão
+      // Validar URL: rejeitar URLs com vírgula ou caracteres inválidos
+      const isValidUrl = bgUrl && bgUrl.startsWith("http") && !bgUrl.includes(",") && !bgUrl.includes(" ");
+      if (!isValidUrl) {
+        // Sem fundo configurado ou URL inválida: retornar 204
         res.status(204).end();
         return;
       }
@@ -864,6 +736,8 @@ export function registerApiRoutes(app: Express) {
         icon_series_url: cfg.icon_series_url || "",
         icon_account_url: cfg.icon_account_url || "",
         icon_change_playlist_url: cfg.icon_change_playlist_url || "",
+        impact_phrase: cfg.impact_phrase || "",
+        contact_info: cfg.contact_info || "",
         updated_at: new Date().toISOString(),
       });
     } catch (error) {
@@ -902,11 +776,22 @@ export function registerApiRoutes(app: Express) {
     try {
       const cfg = await getSettings();
       const iconUrl = cfg[settingKey] || ICON_DEFAULTS[name] || "";
-      if (iconUrl && iconUrl.startsWith("http")) {
-        res.redirect(302, iconUrl);
+      if (!iconUrl || !iconUrl.startsWith("http") || iconUrl.includes(",")) {
+        res.status(404).json({ error: "No icon configured" });
         return;
       }
-      res.status(404).json({ error: "No icon configured" });
+      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
+      const imgRes = await fetch(iconUrl, { redirect: "follow" });
+      if (!imgRes.ok) {
+        res.status(204).end();
+        return;
+      }
+      const contentType = imgRes.headers.get("content-type") || "image/png";
+      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", imgBuffer.length);
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.status(200).end(imgBuffer);
     } catch (error) {
       console.error("[API] /api/v4/icon error:", error);
       res.status(500).json({ error: "Erro interno" });

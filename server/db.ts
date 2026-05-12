@@ -101,7 +101,6 @@ export async function createDevice(data: {
   urlEpg?: string;
   valor?: string;
   dataExpiracao?: string;
-  telefone?: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -117,7 +116,6 @@ export async function createDevice(data: {
     valor: data.valor ?? null,
     dataExpiracao: data.dataExpiracao ? new Date(data.dataExpiracao) : null,
     status: "Liberado",
-    telefone: data.telefone ?? null,
   });
   // Retornar o id do device recém-criado
   const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
@@ -397,7 +395,7 @@ export async function seedApps() {
   const existing = await db.select({ count: count() }).from(apps);
   if ((existing[0]?.count ?? 0) > 0) return;
   await db.insert(apps).values([
-    { nome: "OuroPro", totalClientes: 219789 },
+    { nome: "OURO REVENDA", totalClientes: 219789 },
     { nome: "VU REVENDA", totalClientes: 4868 },
     { nome: "TV ROKU -GPC PRO", totalClientes: 2841 },
     { nome: "ZONE X", totalClientes: 2774 },
@@ -439,9 +437,6 @@ export async function getConnectedDevices(ownerId: number, minutesAgo = 30) {
     tipo: devices.tipo,
     status: devices.status,
     lastSeen: devices.lastSeen,
-    connectedAt: devices.connectedAt,
-    currentContent: devices.currentContent,
-    deviceType: devices.deviceType,
     dataExpiracao: devices.dataExpiracao,
   }).from(devices)
     .where(and(eq(devices.ownerId, ownerId), gte(devices.lastSeen, cutoff)))
@@ -454,37 +449,12 @@ export async function getConnectedDevices(ownerId: number, minutesAgo = 30) {
 export async function updateUserProfile(userId: number, data: {
   telefone?: string;
   avatarUrl?: string;
-  bannerColor?: string;
-  bannerImage?: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const updateData: Record<string, unknown> = {};
   if (data.telefone !== undefined) updateData.telefone = data.telefone;
   if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
-  if (data.bannerColor !== undefined) updateData.bannerColor = data.bannerColor;
-  if (data.bannerImage !== undefined) updateData.bannerImage = data.bannerImage;
   if (Object.keys(updateData).length === 0) return;
   await db.update(users).set(updateData).where(eq(users.id, userId));
-}
-
-// ─── Chatbot: clientes com telefone ──────────────────────────────────────────
-export async function getClientsWithPhone(ownerId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  // Busca todos os devices do owner com o telefone do próprio device (campo devices.telefone)
-  const rows = await db.select({
-    deviceId: devices.id,
-    mac: devices.mac,
-    nomeServer: devices.nomeServer,
-    status: devices.status,
-    dataExpiracao: devices.dataExpiracao,
-    ownerTelefone: devices.telefone,
-    ownerName: users.name,
-  }).from(devices)
-    .leftJoin(users, eq(devices.ownerId, users.id))
-    .where(eq(devices.ownerId, ownerId))
-    .orderBy(desc(devices.dataCadastro))
-    .limit(500);
-  return rows;
 }

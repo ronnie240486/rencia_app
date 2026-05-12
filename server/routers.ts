@@ -10,7 +10,7 @@ import {
   listApps, listDevices, seedApps, updateDevice, upsertUser, getDb,
   getDeviceUrls, addDeviceUrl, updateDeviceUrl, deleteDeviceUrl,
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
-  getConnectedDevices, updateUserProfile, getClientsWithPhone,
+  getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
 import { users, appSettings, devices, deviceUrls } from "../drizzle/schema";
@@ -80,17 +80,13 @@ export const appRouter = router({
         urlEpg: z.string().optional(),
         valor: z.string().optional(),
         dataExpiracao: z.string().optional(),
-        telefone: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const isOwner = ctx.user.openId === ENV.ownerOpenId;
-        if (!isOwner) {
-          const planInfo = await getUserPlanInfo(ctx.user.id);
-          const stats = await getDeviceStats(ctx.user.id);
-          const limite = planInfo?.limiteDevices ?? 50;
-          if (stats.total >= limite) {
-            throw new TRPCError({ code: "FORBIDDEN", message: `Limite de ${limite} devices atingido para o seu plano.` });
-          }
+        const planInfo = await getUserPlanInfo(ctx.user.id);
+        const stats = await getDeviceStats(ctx.user.id);
+        const limite = planInfo?.limiteDevices ?? 999;
+        if (stats.total >= limite) {
+          throw new TRPCError({ code: "FORBIDDEN", message: `Limite de ${limite} devices atingido.` });
         }
         const result = await createDevice({ ownerId: ctx.user.id, ...input });
         return { success: true, id: result.id };
@@ -364,22 +360,13 @@ export const appRouter = router({
       const isOwner = ctx.user.openId === ENV.ownerOpenId;
       if (isOwner) {
         return {
-          plano: "OuroPro Master ★",
+          plano: "Criador / Desenvolvedor ★",
           planValidade: null,
-          limiteDevices: -1, // ilimitado
-          limiteRevendas: -1, // ilimitado
-          isOwner: true,
+          limiteDevices: 999999,
+          limiteRevendas: 999999,
         };
       }
-      const info = await getUserPlanInfo(ctx.user.id);
-      // Hierarquia: UltraMaster > Master > Revenda > Usuario
-      const planoNivel = {
-        "UltraMaster": 4,
-        "Master": 3,
-        "Revenda": 2,
-        "Usuario": 1,
-      };
-      return { ...info, isOwner: false };
+      return getUserPlanInfo(ctx.user.id);
     }),
   }),
 
@@ -520,8 +507,6 @@ export const appRouter = router({
       .input(z.object({
         telefone: z.string().optional(),
         avatarUrl: z.string().optional(),
-        bannerColor: z.string().optional(),
-        bannerImage: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         await updateUserProfile(ctx.user.id, input);
@@ -538,13 +523,6 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         return getConnectedDevices(ctx.user.id, input.minutesAgo);
       }),
-  }),
-
-  // ─── Chatbot WhatsApp ─────────────────────────────────────────────────────
-  chatbot: router({
-    clients: protectedProcedure.query(async ({ ctx }) => {
-      return getClientsWithPhone(ctx.user.id);
-    }),
   }),
 });
 

@@ -36,13 +36,6 @@
       "when": 1778103498570,
       "tag": "0004_happy_zarda",
       "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "5",
-      "when": 1778555433403,
-      "tag": "0005_little_purple_man",
-      "breakpoints": true
     }
   ]
 }

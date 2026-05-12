@@ -13,8 +13,6 @@ export const users = mysqlTable("users", {
   isActive: boolean("isActive").default(true).notNull(),
   telefone: varchar("telefone", { length: 32 }),
   avatarUrl: text("avatarUrl"),
-  bannerColor: text("bannerColor"),
-  bannerImage: text("bannerImage"),
   // Plan info
   plano: varchar("plano", { length: 64 }).default("Revenda"),
   planValidade: date("planValidade"),
@@ -45,10 +43,6 @@ export const devices = mysqlTable("devices", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSeen: timestamp("lastSeen"),
-  connectedAt: timestamp("connectedAt"),
-  currentContent: varchar("currentContent", { length: 512 }),
-  deviceType: varchar("deviceType", { length: 32 }),
-  telefone: varchar("telefone", { length: 32 }),
 });
 
 export type Device = typeof devices.$inferSelect;
