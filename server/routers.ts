@@ -80,6 +80,7 @@ export const appRouter = router({
         urlEpg: z.string().optional(),
         valor: z.string().optional(),
         dataExpiracao: z.string().optional(),
+        telefone: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const planInfo = await getUserPlanInfo(ctx.user.id);
@@ -105,6 +106,7 @@ export const appRouter = router({
         valor: z.string().optional(),
         dataExpiracao: z.string().optional(),
         status: z.enum(["Liberado", "Bloqueado", "Expirado"]).optional(),
+        telefone: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;

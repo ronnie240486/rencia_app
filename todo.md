@@ -111,3 +111,17 @@
 - [ ] Botões dourados (golden) em todo o painel
 - [ ] "Cadastrar DNS" button na página DNS em Massa
 - [ ] APK v26: recompilar com txt_impact/txt_contact visíveis na home screen
+
+## Novas funcionalidades (12/05/2026)
+- [x] Schema: adicionar coluna `telefone` na tabela devices (VARCHAR 20)
+- [ ] Schema: adicionar coluna `data_vencimento` na tabela devices (se não existir)
+- [x] Formulário de cadastro: campo telefone (+55 fixo) para clientes novos
+- [x] Formulário de edição: campo telefone para clientes já cadastrados
+- [x] Configurações: aba "Banner" com upload de foto de banner (igual ao logo)
+- [x] Configurações: aba "Tema" com paleta de cores dos botões (presets + HEX personalizado)
+- [x] Configurações: remover aba/seção "Mudar Ícones" (não funciona)
+- [x] Configurações: remover aba/seção "Tela de Bloqueio" (não funciona)
+- [x] Chatbot: envio automático de mensagem de vencimento via WhatsApp (X dias antes do vencimento)
+- [x] Chatbot: campo para configurar quantos dias antes do vencimento enviar o aviso
+- [x] Chatbot: campo para configurar a mensagem de aviso de vencimento
+- [x] Chatbot: job periódico que verifica vencimentos e dispara mensagens (manual via botão, links WhatsApp gerados)

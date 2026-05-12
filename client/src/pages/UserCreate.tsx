@@ -53,6 +53,7 @@ export default function UserCreate() {
     valor: "",
     dataExpiracao: "",
     tipo: "Usuario" as "Usuario" | "Revenda" | "UltraMaster" | "Master",
+    telefone: "",
   });
 
   const [listas, setListas] = useState<ListaItem[]>([newLista(true)]);
@@ -124,6 +125,7 @@ export default function UserCreate() {
       urlEpg: principal.urlEpg || undefined,
       valor: form.valor || undefined,
       dataExpiracao: form.dataExpiracao || undefined,
+      telefone: form.telefone ? `+55${form.telefone.replace(/\D/g, "")}` : undefined,
     });
   };
 
@@ -223,6 +225,22 @@ export default function UserCreate() {
                   value={form.dataExpiracao}
                   onChange={e => setForm(f => ({ ...f, dataExpiracao: e.target.value }))}
                   className="h-10"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">TELEFONE / WHATSAPP:</Label>
+              <div className="flex h-10">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 bg-muted text-muted-foreground text-sm font-medium">
+                  +55
+                </span>
+                <Input
+                  placeholder="11999999999"
+                  value={form.telefone}
+                  onChange={e => setForm(f => ({ ...f, telefone: e.target.value.replace(/\D/g, "") }))}
+                  className="h-10 rounded-l-none"
+                  maxLength={11}
                 />
               </div>
             </div>

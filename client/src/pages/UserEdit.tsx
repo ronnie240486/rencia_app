@@ -64,6 +64,7 @@ export default function UserEdit() {
     dataExpiracao: "",
     tipo: "Usuario" as "Usuario" | "Revenda" | "UltraMaster" | "Master",
     status: "Liberado" as "Liberado" | "Bloqueado" | "Expirado",
+    telefone: "",
   });
 
   const [initialized, setInitialized] = useState(false);
@@ -96,6 +97,7 @@ export default function UserEdit() {
           : "",
         tipo: (device.tipo as "Usuario" | "Revenda" | "UltraMaster" | "Master") ?? "Usuario",
         status: (device.status as "Liberado" | "Bloqueado" | "Expirado") ?? "Liberado",
+        telefone: device.telefone ? device.telefone.replace(/^\+55/, "") : "",
       });
       setInitialized(true);
     }
@@ -147,6 +149,7 @@ export default function UserEdit() {
       urlEpg: form.urlEpg || undefined,
       valor: form.valor || undefined,
       dataExpiracao: form.dataExpiracao || undefined,
+      telefone: form.telefone ? `+55${form.telefone.replace(/\D/g, "")}` : undefined,
     });
   };
 
@@ -382,6 +385,23 @@ export default function UserEdit() {
                 onChange={e => setForm(f => ({ ...f, dataExpiracao: e.target.value }))}
                 className="h-10"
               />
+            </div>
+
+            {/* Telefone */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">TELEFONE / WHATSAPP:</Label>
+              <div className="flex h-10">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 bg-muted text-muted-foreground text-sm font-medium">
+                  +55
+                </span>
+                <Input
+                  placeholder="11999999999"
+                  value={form.telefone}
+                  onChange={e => setForm(f => ({ ...f, telefone: e.target.value.replace(/\D/g, "") }))}
+                  className="h-10 rounded-l-none"
+                  maxLength={11}
+                />
+              </div>
             </div>
 
             {/* Submit */}

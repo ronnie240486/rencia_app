@@ -36,6 +36,20 @@
       "when": 1778103498570,
       "tag": "0004_happy_zarda",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1778555433403,
+      "tag": "0005_little_purple_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1778596527917,
+      "tag": "0006_wandering_morbius",
+      "breakpoints": true
     }
   ]
 }

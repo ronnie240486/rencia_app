@@ -7,28 +7,39 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Smartphone, Image, Upload } from "lucide-react";
+import { Loader2, Save, Image, Upload, Palette, MessageCircle } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 
 const DEFAULT_VALUES: Record<string, string> = {
-  trial_title: "Acesso Bloqueado",
-  trial_subtitle: "🚀 Assine agora e tenha acesso ilimitado a canais, filmes e séries!",
-  trial_support_text: "Suporte com seu revendedor",
+  // Imagens
   trial_banner_url: "",
   trial_logo_url: "",
   trial_background_url: "",
+  sidebar_logo_url: "",
+  // Contato
   contact_website: "",
   contact_whatsapp: "",
   impact_phrase: "",
   contact_info: "",
-  icon_live_tv_url: "",
-  icon_movies_url: "",
-  icon_series_url: "",
-  icon_account_url: "",
-  icon_change_playlist_url: "",
+  // Tema
+  primary_color: "#D4AF37",
+  // Chatbot
+  chatbot_dias_aviso: "3",
+  chatbot_mensagem_vencimento: "Olá {nome}! Sua assinatura vence em {dias} dia(s) ({data}). Renove agora para não perder o acesso! 😊",
 };
 
-// Componente reutilizável para botão de upload que funciona corretamente
+const COLOR_PRESETS = [
+  { name: "Dourado", value: "#D4AF37" },
+  { name: "Laranja", value: "#F97316" },
+  { name: "Roxo", value: "#8B5CF6" },
+  { name: "Azul", value: "#3B82F6" },
+  { name: "Verde", value: "#22C55E" },
+  { name: "Rosa", value: "#EC4899" },
+  { name: "Vermelho", value: "#EF4444" },
+  { name: "Ciano", value: "#06B6D4" },
+];
+
+// Componente reutilizável para botão de upload
 function UploadButton({ field, uploadingField, onUpload }: { field: string; uploadingField: string | null; onUpload: (field: string, file: File) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
@@ -61,6 +72,7 @@ function UploadButton({ field, uploadingField, onUpload }: { field: string; uplo
 export default function Settings() {
   const { data: settings, isLoading, refetch } = trpc.settings.getAll.useQuery();
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [sendingTest, setSendingTest] = useState(false);
 
   const handleFileUpload = async (field: string, file: File) => {
     try {
@@ -81,10 +93,9 @@ export default function Settings() {
       }
 
       const { url } = await resp.json() as { url: string };
-      // url já vem no formato https://renciaapp-ldyffp73.manus.space/manus-storage/...
       handleChange(field, url);
       await updateMany.mutateAsync({ ...form, [field]: url });
-      toast.success("✅ Imagem enviada e salva! O APK buscará a nova imagem ao reiniciar.");
+      toast.success("✅ Imagem enviada e salva!");
       refetch();
     } catch (e: any) {
       toast.error("Erro ao enviar imagem: " + (e.message ?? "erro desconhecido"));
@@ -95,7 +106,7 @@ export default function Settings() {
 
   const updateMany = trpc.settings.updateMany.useMutation({
     onSuccess: () => {
-      toast.success("Configurações salvas! As alterações serão aplicadas no próximo acesso do APK.");
+      toast.success("Configurações salvas!");
       refetch();
     },
     onError: (e) => toast.error(e.message),
@@ -116,6 +127,32 @@ export default function Settings() {
     }
   }, [settings]);
 
+  // Aplica a cor primária no painel ao mudar
+  useEffect(() => {
+    const color = form.primary_color;
+    if (color) {
+      document.documentElement.style.setProperty("--primary-hex", color);
+      // Converter hex para hsl para o Tailwind
+      const r = parseInt(color.slice(1, 3), 16) / 255;
+      const g = parseInt(color.slice(3, 5), 16) / 255;
+      const b = parseInt(color.slice(5, 7), 16) / 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h = 0, s = 0;
+      const l = (max + min) / 2;
+      if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+          case g: h = ((b - r) / d + 2) / 6; break;
+          case b: h = ((r - g) / d + 4) / 6; break;
+        }
+      }
+      const hsl = `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+      document.documentElement.style.setProperty("--primary", hsl);
+    }
+  }, [form.primary_color]);
+
   const handleChange = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
     setDirty(true);
@@ -124,6 +161,28 @@ export default function Settings() {
   const handleSave = () => {
     updateMany.mutate(form);
     setDirty(false);
+  };
+
+  const handleTestChatbot = async () => {
+    setSendingTest(true);
+    try {
+      const resp = await fetch("/api/chatbot/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ dias: parseInt(form.chatbot_dias_aviso) || 3 }),
+      });
+      const data = await resp.json() as { sent?: number; message?: string };
+      if (resp.ok) {
+        toast.success(`✅ ${data.message || `${data.sent ?? 0} mensagem(ns) enviada(s)!`}`);
+      } else {
+        toast.error(data.message || "Erro ao disparar mensagens");
+      }
+    } catch (e: any) {
+      toast.error("Erro: " + e.message);
+    } finally {
+      setSendingTest(false);
+    }
   };
 
   if (isLoading) {
@@ -141,7 +200,7 @@ export default function Settings() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-muted-foreground text-sm">
-            Personalize as imagens e textos exibidos no APK para seus clientes.
+            Personalize imagens, cores e mensagens automáticas do seu painel.
           </p>
           <Button onClick={handleSave} disabled={!dirty || updateMany.isPending} className="gap-2">
             {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
@@ -149,120 +208,33 @@ export default function Settings() {
           </Button>
         </div>
 
-        <Tabs defaultValue="trial">
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="trial" className="gap-2">
-              <Smartphone size={14} /> Tela de Bloqueio
+        <Tabs defaultValue="banner">
+          <TabsList className="grid grid-cols-3 w-full">
+            <TabsTrigger value="banner" className="gap-2">
+              <Image size={14} /> Banner / Logo
             </TabsTrigger>
-            <TabsTrigger value="images" className="gap-2">
-              <Image size={14} /> Imagens
+            <TabsTrigger value="tema" className="gap-2">
+              <Palette size={14} /> Tema
+            </TabsTrigger>
+            <TabsTrigger value="chatbot" className="gap-2">
+              <MessageCircle size={14} /> Chatbot
             </TabsTrigger>
           </TabsList>
 
-          {/* Tela de Bloqueio (Trial) */}
-          <TabsContent value="trial" className="space-y-4 mt-4">
+          {/* ─── Aba Banner / Logo ─────────────────────────────────────────── */}
+          <TabsContent value="banner" className="space-y-4 mt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Tela de Bloqueio</CardTitle>
+                <CardTitle className="text-base">Imagens do Painel e APK</CardTitle>
                 <CardDescription>
-                  Textos exibidos quando o device não está liberado no painel.
+                  Clique em <Upload size={12} className="inline" /> para enviar uma imagem. A URL é gerada automaticamente.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Título da tela de bloqueio</Label>
-                  <Input
-                    value={form.trial_title}
-                    onChange={e => handleChange("trial_title", e.target.value)}
-                    placeholder="Ex: Acesso Bloqueado"
-                  />
-                  <p className="text-xs text-muted-foreground">Substitui "Trial is ended" no APK.</p>
-                </div>
+              <CardContent className="space-y-5">
 
+                {/* Banner do APK */}
                 <div className="space-y-2">
-                  <Label>Frase de impacto / subtítulo</Label>
-                  <Textarea
-                    value={form.trial_subtitle}
-                    onChange={e => handleChange("trial_subtitle", e.target.value)}
-                    placeholder="Ex: Assine agora e tenha acesso ilimitado!"
-                    rows={3}
-                  />
-                  <p className="text-xs text-muted-foreground">Substitui "To continue the app, please pay €7.9 via website or Google Pay."</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Texto de suporte</Label>
-                  <Input
-                    value={form.trial_support_text}
-                    onChange={e => handleChange("trial_support_text", e.target.value)}
-                    placeholder="Ex: Suporte: (11) 99999-9999"
-                  />
-                  <p className="text-xs text-muted-foreground">Texto em amarelo abaixo do MAC address.</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>URL do site (exibida na tela)</Label>
-                  <Input
-                    value={form.contact_website}
-                    onChange={e => handleChange("contact_website", e.target.value)}
-                    placeholder="Ex: https://ourorevenda.manus.space"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>WhatsApp do suporte</Label>
-                  <Input
-                    value={form.contact_whatsapp}
-                    onChange={e => handleChange("contact_whatsapp", e.target.value)}
-                    placeholder="Ex: 5511999999999"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Tela Principal (Home)</CardTitle>
-                <CardDescription>
-                  Textos exibidos na tela principal do APK para todos os dispositivos.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Frase de impacto (tela home)</Label>
-                  <Textarea
-                    value={form.impact_phrase}
-                    onChange={e => handleChange("impact_phrase", e.target.value)}
-                    placeholder="Ex: 🚀 O melhor IPTV do Brasil!"
-                    rows={2}
-                  />
-                  <p className="text-xs text-muted-foreground">Exibida em branco na parte inferior da tela home. Deixe vazio para ocultar.</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Contato (tela home)</Label>
-                  <Input
-                    value={form.contact_info}
-                    onChange={e => handleChange("contact_info", e.target.value)}
-                    placeholder="Ex: WhatsApp: (11) 99999-9999"
-                  />
-                  <p className="text-xs text-muted-foreground">Exibido em dourado abaixo da frase de impacto. Deixe vazio para ocultar.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Imagens */}
-          <TabsContent value="images" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Imagens do App</CardTitle>
-                <CardDescription>
-                  Clique em <Upload size={12} className="inline" /> para enviar uma imagem. A URL é gerada automaticamente e o APK buscará a nova imagem ao reiniciar.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Banner lateral (320×180px)</Label>
+                  <Label className="font-semibold">Banner do APK (320×180px)</Label>
                   <div className="flex gap-2">
                     <Input
                       value={form.trial_banner_url}
@@ -275,14 +247,15 @@ export default function Settings() {
                     <img
                       src={form.trial_banner_url}
                       alt="Preview banner"
-                      className="mt-2 rounded border max-h-24 object-contain"
+                      className="mt-2 rounded border max-h-28 object-contain"
                       onError={e => (e.currentTarget.style.display = "none")}
                     />
                   )}
                 </div>
 
+                {/* Logo do APK */}
                 <div className="space-y-2">
-                  <Label>Logo do APK (home_logo)</Label>
+                  <Label className="font-semibold">Logo do APK (home_logo)</Label>
                   <div className="flex gap-2">
                     <Input
                       value={form.trial_logo_url}
@@ -301,8 +274,9 @@ export default function Settings() {
                   )}
                 </div>
 
+                {/* Fundo principal */}
                 <div className="space-y-2">
-                  <Label>Imagem de fundo principal (960×540px)</Label>
+                  <Label className="font-semibold">Imagem de fundo principal (960×540px)</Label>
                   <div className="flex gap-2">
                     <Input
                       value={form.trial_background_url}
@@ -312,7 +286,7 @@ export default function Settings() {
                     <UploadButton field="trial_background_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    <strong>Dinâmica:</strong> Ao salvar, o APK buscará esta imagem automaticamente ao reiniciar via <code>/api/v4/bg.php</code>.
+                    Servida via <code>/api/v4/bg.php</code> — o APK buscará ao reiniciar.
                   </p>
                   {form.trial_background_url && (
                     <img
@@ -323,57 +297,211 @@ export default function Settings() {
                     />
                   )}
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Image size={16} /> Ícones dos Botões
-                </CardTitle>
-                <CardDescription>
-                  Substitua os ícones dos botões principais do APK. Use o botão <Upload size={12} className="inline" /> para enviar.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-6">
-                  {([
-                    { key: "icon_live_tv_url", label: "TV ao Vivo", hint: "tv_icon — 144×144px" },
-                    { key: "icon_movies_url", label: "Filmes", hint: "movie_icon — 70×70px" },
-                    { key: "icon_series_url", label: "Séries", hint: "icon_series — 70×70px" },
-                    { key: "icon_account_url", label: "Account", hint: "Ícone da conta — 70×70px" },
-                    { key: "icon_change_playlist_url", label: "Trocar Playlist", hint: "Ícone de troca — 70×70px" },
-                  ] as { key: string; label: string; hint: string }[]).map(({ key, label, hint }) => (
-                    <div key={key} className="space-y-2">
-                      <Label className="font-medium">{label}</Label>
-                      <div className="flex gap-2 items-center">
-                        {form[key] ? (
-                          <img src={form[key]} alt={label} className="w-14 h-14 rounded border object-contain bg-black/10" onError={e => (e.currentTarget.style.display = "none")} />
-                        ) : (
-                          <div className="w-14 h-14 rounded border border-dashed flex items-center justify-center bg-muted text-muted-foreground text-xs text-center">sem ícone</div>
-                        )}
-                        <div className="flex-1 space-y-1">
-                          <Input
-                            value={form[key]}
-                            onChange={e => handleChange(key, e.target.value)}
-                            placeholder="https://..."
-                            className="text-xs"
-                          />
-                          <p className="text-xs text-muted-foreground">{hint}</p>
-                        </div>
-                        <UploadButton field={key} uploadingField={uploadingField} onUpload={handleFileUpload} />
-                      </div>
-                    </div>
-                  ))}
+                {/* Logo da Sidebar do Painel */}
+                <div className="space-y-2">
+                  <Label className="font-semibold">Logo da Sidebar do Painel</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.sidebar_logo_url}
+                      onChange={e => handleChange("sidebar_logo_url", e.target.value)}
+                      placeholder="https://exemplo.com/sidebar-logo.png"
+                    />
+                    <UploadButton field="sidebar_logo_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Logo exibida na barra lateral do painel (substitui o logo padrão OuroPro).
+                  </p>
+                  {form.sidebar_logo_url && (
+                    <img
+                      src={form.sidebar_logo_url}
+                      alt="Preview sidebar logo"
+                      className="mt-2 rounded border max-h-16 object-contain"
+                      onError={e => (e.currentTarget.style.display = "none")}
+                    />
+                  )}
+                </div>
+
+                {/* Contato */}
+                <div className="border-t pt-4 space-y-4">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contato / Home do APK</p>
+                  <div className="space-y-2">
+                    <Label>Frase de impacto (tela home)</Label>
+                    <Textarea
+                      value={form.impact_phrase}
+                      onChange={e => handleChange("impact_phrase", e.target.value)}
+                      placeholder="Ex: 🚀 O melhor IPTV do Brasil!"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Contato (tela home)</Label>
+                    <Input
+                      value={form.contact_info}
+                      onChange={e => handleChange("contact_info", e.target.value)}
+                      placeholder="Ex: WhatsApp: (11) 99999-9999"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>WhatsApp do suporte</Label>
+                    <Input
+                      value={form.contact_whatsapp}
+                      onChange={e => handleChange("contact_whatsapp", e.target.value)}
+                      placeholder="Ex: 5511999999999"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>URL do site</Label>
+                    <Input
+                      value={form.contact_website}
+                      onChange={e => handleChange("contact_website", e.target.value)}
+                      placeholder="Ex: https://ourorevenda.com"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
 
-            <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
-              <CardContent className="pt-4">
-                <p className="text-sm text-amber-800 dark:text-amber-200">
-                  <strong>Nota:</strong> As imagens são servidas via <code>https://renciaapp-ldyffp73.manus.space/manus-storage/...</code>. Se você hospedar o servidor em outro domínio, basta atualizar a URL base no arquivo <code>server/apiRoutes.ts</code>.
-                </p>
+          {/* ─── Aba Tema ──────────────────────────────────────────────────── */}
+          <TabsContent value="tema" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Palette size={16} /> Cor dos Botões
+                </CardTitle>
+                <CardDescription>
+                  Escolha a cor principal dos botões do painel. A mudança é aplicada imediatamente.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* Presets */}
+                <div>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 block">
+                    Cores Predefinidas
+                  </Label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {COLOR_PRESETS.map(preset => (
+                      <button
+                        key={preset.value}
+                        type="button"
+                        onClick={() => handleChange("primary_color", preset.value)}
+                        className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border-2 transition-all hover:scale-105 ${
+                          form.primary_color === preset.value
+                            ? "border-foreground shadow-md scale-105"
+                            : "border-transparent hover:border-muted-foreground/30"
+                        }`}
+                      >
+                        <div
+                          className="w-10 h-10 rounded-full shadow-sm border border-black/10"
+                          style={{ backgroundColor: preset.value }}
+                        />
+                        <span className="text-xs font-medium text-muted-foreground">{preset.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Cor personalizada */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Cor Personalizada (HEX)
+                  </Label>
+                  <div className="flex gap-3 items-center">
+                    <input
+                      type="color"
+                      value={form.primary_color}
+                      onChange={e => handleChange("primary_color", e.target.value)}
+                      className="w-12 h-10 rounded cursor-pointer border border-input"
+                    />
+                    <Input
+                      value={form.primary_color}
+                      onChange={e => handleChange("primary_color", e.target.value)}
+                      placeholder="#D4AF37"
+                      className="h-10 font-mono w-36"
+                      maxLength={7}
+                    />
+                    <div
+                      className="flex-1 h-10 rounded-md border flex items-center justify-center text-sm font-medium"
+                      style={{ backgroundColor: form.primary_color, color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
+                    >
+                      Prévia do Botão
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+                  A cor é aplicada imediatamente no painel e salva para ser restaurada no próximo acesso.
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ─── Aba Chatbot ───────────────────────────────────────────────── */}
+          <TabsContent value="chatbot" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MessageCircle size={16} /> Aviso Automático de Vencimento
+                </CardTitle>
+                <CardDescription>
+                  Configure o chatbot para enviar mensagem automática via WhatsApp quando a assinatura de um cliente estiver prestes a vencer.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+
+                <div className="space-y-2">
+                  <Label className="font-semibold">Dias antes do vencimento para avisar</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={form.chatbot_dias_aviso}
+                    onChange={e => handleChange("chatbot_dias_aviso", e.target.value)}
+                    placeholder="3"
+                    className="w-32"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Ex: 3 = envia mensagem 3 dias antes do vencimento.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-semibold">Mensagem de aviso</Label>
+                  <Textarea
+                    value={form.chatbot_mensagem_vencimento}
+                    onChange={e => handleChange("chatbot_mensagem_vencimento", e.target.value)}
+                    rows={4}
+                    placeholder="Olá {nome}! Sua assinatura vence em {dias} dia(s) ({data}). Renove agora!"
+                  />
+                  <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
+                    <p className="font-semibold">Variáveis disponíveis:</p>
+                    <p><code>{"{nome}"}</code> — Nome do servidor do cliente</p>
+                    <p><code>{"{dias}"}</code> — Dias restantes até o vencimento</p>
+                    <p><code>{"{data}"}</code> — Data de vencimento formatada (dd/mm/aaaa)</p>
+                    <p><code>{"{mac}"}</code> — MAC do dispositivo</p>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 space-y-3">
+                  <p className="text-sm font-semibold">Disparar manualmente agora</p>
+                  <p className="text-xs text-muted-foreground">
+                    Clique abaixo para enviar avisos imediatamente para todos os clientes que vencem nos próximos <strong>{form.chatbot_dias_aviso || 3} dia(s)</strong> e têm telefone cadastrado.
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={handleTestChatbot}
+                    disabled={sendingTest}
+                    className="gap-2"
+                  >
+                    {sendingTest ? <Loader2 size={14} className="animate-spin" /> : <MessageCircle size={14} />}
+                    Enviar Avisos Agora
+                  </Button>
+                </div>
+
+                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-3 text-xs text-amber-800 dark:text-amber-200">
+                  <strong>Como funciona:</strong> O sistema verifica automaticamente todos os dias os clientes com vencimento próximo e envia mensagem via WhatsApp para o número cadastrado no campo "Telefone" do cliente. Certifique-se de que os clientes tenham telefone cadastrado.
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

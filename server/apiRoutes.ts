@@ -39,6 +39,7 @@ const UPLOAD_FIELD_KEYS: Record<string, string> = {
   trial_logo_url: "trial_logo_url",
   trial_background_url: "trial_background_url",
   trial_banner_url: "trial_banner_url",
+  sidebar_logo_url: "sidebar_logo_url",
   icon_live_tv_url: "icon_live_tv_url",
   icon_movies_url: "icon_movies_url",
   icon_series_url: "icon_series_url",
@@ -765,6 +766,103 @@ export function registerApiRoutes(app: Express) {
     account: "icon_account_url",
     change_playlist: "icon_change_playlist_url",
   };
+
+  /**
+   * POST /api/chatbot/test
+   * Dispara mensagens WhatsApp para clientes que vencem nos próximos N dias.
+   * Requer autenticação (session cookie).
+   */
+  app.post("/api/chatbot/test", async (req: Request, res: Response) => {
+    try {
+      const db = await getDb();
+      if (!db) { res.status(500).json({ message: "Banco indisponível" }); return; }
+
+      const cfg = await getSettings();
+      const diasAviso = parseInt(cfg.chatbot_dias_aviso ?? "3") || 3;
+      const mensagemTemplate = cfg.chatbot_mensagem_vencimento ||
+        "Olá {nome}! Sua assinatura vence em {dias} dia(s) ({data}). Renove agora para não perder o acesso!";
+
+      // Calcular janela de datas
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const limite = new Date(hoje);
+      limite.setDate(limite.getDate() + diasAviso);
+
+      const { and, lte, gte, isNotNull } = await import("drizzle-orm");
+      const { devices: devTable } = await import("../drizzle/schema");
+
+      // Buscar devices com vencimento dentro da janela e telefone cadastrado
+      const expiring = await db.select()
+        .from(devTable)
+        .where(
+          and(
+            isNotNull(devTable.telefone),
+            gte(devTable.dataExpiracao, hoje),
+            lte(devTable.dataExpiracao, limite)
+          )
+        );
+
+      if (expiring.length === 0) {
+        res.json({ sent: 0, message: "Nenhum cliente vence nos próximos " + diasAviso + " dia(s) ou sem telefone cadastrado." });
+        return;
+      }
+
+      let sent = 0;
+      for (const device of expiring) {
+        if (!device.telefone) continue;
+        const expDate = device.dataExpiracao ? new Date(device.dataExpiracao) : null;
+        const dias = expDate ? Math.ceil((expDate.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+        const dataFormatada = expDate
+          ? `${String(expDate.getDate()).padStart(2, "0")}/${String(expDate.getMonth() + 1).padStart(2, "0")}/${expDate.getFullYear()}`
+          : "";
+
+        const mensagem = mensagemTemplate
+          .replace(/\{nome\}/g, device.nomeServer || "Cliente")
+          .replace(/\{dias\}/g, String(dias))
+          .replace(/\{data\}/g, dataFormatada)
+          .replace(/\{mac\}/g, device.mac || "");
+
+        // Montar número: remover +, espaços, traços
+        const numero = device.telefone.replace(/[^0-9]/g, "");
+        const waUrl = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
+
+        // Log para debug (em produção, aqui poderia chamar API WhatsApp Business)
+        console.log(`[Chatbot] Enviando para ${numero}: ${mensagem.slice(0, 60)}...`);
+        console.log(`[Chatbot] Link: ${waUrl}`);
+        sent++;
+      }
+
+      res.json({
+        sent,
+        message: `${sent} aviso(s) processado(s). Os links WhatsApp foram gerados — abra o painel para enviar manualmente ou integre com a API WhatsApp Business.`,
+        links: expiring
+          .filter(d => d.telefone)
+          .map(d => {
+            const expDate = d.dataExpiracao ? new Date(d.dataExpiracao) : null;
+            const dias = expDate ? Math.ceil((expDate.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+            const dataFormatada = expDate
+              ? `${String(expDate.getDate()).padStart(2, "0")}/${String(expDate.getMonth() + 1).padStart(2, "0")}/${expDate.getFullYear()}`
+              : "";
+            const msg = mensagemTemplate
+              .replace(/\{nome\}/g, d.nomeServer || "Cliente")
+              .replace(/\{dias\}/g, String(dias))
+              .replace(/\{data\}/g, dataFormatada)
+              .replace(/\{mac\}/g, d.mac || "");
+            const numero = (d.telefone || "").replace(/[^0-9]/g, "");
+            return {
+              nome: d.nomeServer,
+              telefone: d.telefone,
+              vencimento: dataFormatada,
+              dias,
+              waUrl: `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`,
+            };
+          }),
+      });
+    } catch (error) {
+      console.error("[API] /api/chatbot/test error:", error);
+      res.status(500).json({ message: "Erro interno" });
+    }
+  });
 
   app.get("/api/v4/icon/:name", async (req: Request, res: Response) => {
     const name = req.params.name as string;

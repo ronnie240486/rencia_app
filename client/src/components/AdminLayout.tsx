@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { cn } from "@/lib/utils";
 import {
@@ -8,6 +9,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageCircle,
   SlidersHorizontal,
   Shield,
   Store,
@@ -15,7 +17,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 
 interface NavItem {
@@ -31,6 +33,7 @@ const navItems: NavItem[] = [
   { label: "Cadastrar Usuário", href: "/users/create", icon: <BarChart3 size={18} /> },
   { label: "Revendas", href: "/revendas", icon: <Store size={18} /> },
   { label: "Trocar DNS em Massa", href: "/dns-massa", icon: <ArrowRightLeft size={18} /> },
+  { label: "Chatbot de Avisos", href: "/chatbot", icon: <MessageCircle size={18} /> },
   { label: "Configurações do App", href: "/settings", icon: <SlidersHorizontal size={18} /> },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];
@@ -44,6 +47,34 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { data: settings } = trpc.settings.getAll.useQuery();
+
+  // Aplicar cor primária e logo da sidebar ao carregar
+  useEffect(() => {
+    if (!settings) return;
+    const color = settings.primary_color;
+    if (color && color.startsWith("#") && color.length === 7) {
+      const r = parseInt(color.slice(1, 3), 16) / 255;
+      const g = parseInt(color.slice(3, 5), 16) / 255;
+      const b = parseInt(color.slice(5, 7), 16) / 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h = 0, s = 0;
+      const l = (max + min) / 2;
+      if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+          case g: h = ((b - r) / d + 2) / 6; break;
+          case b: h = ((r - g) / d + 4) / 6; break;
+        }
+      }
+      const hsl = `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+      document.documentElement.style.setProperty("--primary", hsl);
+    }
+  }, [settings]);
+
+  const sidebarLogoUrl = settings?.sidebar_logo_url || "https://renciaapp-ldyffp73.manus.space/api/v4/logo.php";
 
   if (loading) {
     return (
@@ -87,11 +118,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       {/* Logo */}
       <div className="px-4 py-4 border-b border-sidebar-border">
         <img
-          src="https://renciaapp-ldyffp73.manus.space/api/v4/logo.php"
+          src={sidebarLogoUrl}
           alt="OuroPro"
           className="w-full h-auto object-contain"
           style={{ maxHeight: "64px" }}
-          onError={(e) => { (e.target as HTMLImageElement).src = '/manus-storage/ouro_revenda_panel_logo_top_e5b5216a.png'; }}
+          onError={(e) => { (e.target as HTMLImageElement).src = 'https://renciaapp-ldyffp73.manus.space/api/v4/logo.php'; }}
         />
       </div>
 

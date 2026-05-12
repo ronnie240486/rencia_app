@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import Revendas from "./pages/Revendas";
 import DeviceLists from "./pages/DeviceLists";
 import DnsMassa from "./pages/DnsMassa";
+import Chatbot from "./pages/Chatbot";
 
 function Router() {
   return (
@@ -29,6 +30,7 @@ function Router() {
       <Route path={"/revendas"} component={Revendas} />
       <Route path={"/users/:id/lists"} component={DeviceLists} />
       <Route path={"/dns-massa"} component={DnsMassa} />
+      <Route path={"/chatbot"} component={Chatbot} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

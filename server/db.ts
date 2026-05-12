@@ -101,6 +101,7 @@ export async function createDevice(data: {
   urlEpg?: string;
   valor?: string;
   dataExpiracao?: string;
+  telefone?: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -115,6 +116,7 @@ export async function createDevice(data: {
     urlEpg: data.urlEpg ?? null,
     valor: data.valor ?? null,
     dataExpiracao: data.dataExpiracao ? new Date(data.dataExpiracao) : null,
+    telefone: data.telefone ?? null,
     status: "Liberado",
   });
   // Retornar o id do device recém-criado
@@ -133,6 +135,7 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
   valor: string;
   dataExpiracao: string;
   status: "Liberado" | "Bloqueado" | "Expirado";
+  telefone: string;
 }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -147,6 +150,7 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
   if (data.valor !== undefined) updateData.valor = data.valor;
   if (data.dataExpiracao !== undefined) updateData.dataExpiracao = data.dataExpiracao ? new Date(data.dataExpiracao) : null;
   if (data.status !== undefined) updateData.status = data.status;
+  if (data.telefone !== undefined) updateData.telefone = data.telefone;
   if (Object.keys(updateData).length === 0) return;
   await db.update(devices).set(updateData).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId)));
 }
