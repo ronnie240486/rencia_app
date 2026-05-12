@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE `devices` ADD COLUMN IF NOT EXISTS `connectedAt` timestamp;\nALTER TABLE `devices` ADD COLUMN IF NOT EXISTS `currentContent` varchar(512);\nALTER TABLE `devices` ADD COLUMN IF NOT EXISTS `deviceType` varchar(32);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute ALTER TABLE `devices` ADD COLUMN IF NOT EXISTS `connectedAt` timestamp;\nALTER TABLE `devices` ADD COLUMN IF NOT EXISTS `currentContent` varchar(512);\nALTER TABLE `devices` ADD COLUMN IF NOT EXISTS `deviceType` varchar(32);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1230
+}

@@ -439,6 +439,9 @@ export async function getConnectedDevices(ownerId: number, minutesAgo = 30) {
     tipo: devices.tipo,
     status: devices.status,
     lastSeen: devices.lastSeen,
+    connectedAt: devices.connectedAt,
+    currentContent: devices.currentContent,
+    deviceType: devices.deviceType,
     dataExpiracao: devices.dataExpiracao,
   }).from(devices)
     .where(and(eq(devices.ownerId, ownerId), gte(devices.lastSeen, cutoff)))

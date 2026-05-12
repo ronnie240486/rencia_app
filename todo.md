@@ -146,3 +146,10 @@
 - [ ] Corrigir crash APK v29 (fechar ao abrir)
 - [x] Sidebar logo: upload pelo painel + fallback texto OuroPro
 - [x] Cor dos botões do painel: laranja → dourado correto
+
+## Novas features (12/05/2026 - v3)
+- [x] APK v30: corrigir crash SettingActivity (parseDouble sem null-check)
+- [x] Painel Usuários Online: mostrar canal/série/filme que está assistindo
+- [x] Painel Usuários Online: mostrar tempo online (quanto tempo está conectado)
+- [x] Painel Usuários Online: mostrar dispositivo (TV/Mobile)
+- [x] APK: enviar heartbeat com canal/série/filme atual para o painel (endpoint criado, APK v31 necessário)

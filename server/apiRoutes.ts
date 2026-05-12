@@ -784,6 +784,72 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
+   * POST /api/heartbeat.php
+   * Recebe heartbeat do APK com informações do que está assistindo.
+   * Payload (codificado igual ao guim.php):
+   *   { mac_address, device_type, current_content }
+   * Atualiza: devices.lastSeen, devices.connectedAt (se null), devices.currentContent, devices.deviceType
+   */
+  app.post("/api/heartbeat.php", async (req: Request, res: Response) => {
+    try {
+      const body = req.body;
+      let macAddress = "";
+      let deviceType = "";
+      let currentContent = "";
+
+      if (body?.data) {
+        const parsed = decodeFromApk(String(body.data));
+        if (parsed) {
+          macAddress = String(parsed.mac_address || "").trim();
+          deviceType = String(parsed.device_type || "").trim();
+          currentContent = String(parsed.current_content || "").trim().slice(0, 500);
+        }
+      } else if (body?.mac_address) {
+        macAddress = String(body.mac_address || "").trim();
+        deviceType = String(body.device_type || "").trim();
+        currentContent = String(body.current_content || "").trim().slice(0, 500);
+      }
+
+      if (!macAddress) {
+        res.json({ status: "ok" });
+        return;
+      }
+
+      // Normalizar MAC
+      const macNorm = macAddress.toUpperCase();
+      const db = await getDb();
+      if (!db) { res.json({ status: "ok" }); return; }
+
+      const result = await db.select({ id: devices.id, connectedAt: devices.connectedAt })
+        .from(devices)
+        .where(eq(devices.mac, macNorm))
+        .limit(1);
+
+      if (result.length === 0) {
+        res.json({ status: "ok" });
+        return;
+      }
+
+      const device = result[0];
+      const now = new Date();
+      const updateData: Record<string, unknown> = {
+        lastSeen: now,
+        currentContent: currentContent || null,
+        deviceType: deviceType || null,
+      };
+      if (!device.connectedAt) {
+        updateData.connectedAt = now;
+      }
+
+      await db.update(devices).set(updateData).where(eq(devices.id, device.id));
+      res.json({ status: "ok" });
+    } catch (error) {
+      console.error("[API] /api/heartbeat.php error:", error);
+      res.json({ status: "ok" });
+    }
+  });
+
+  /**
    * GET /api/v4/version.php
    * Retorna a versão atual do APK configurada no painel.
    * O APK compara com sua versão interna e exibe notificação se houver atualização.

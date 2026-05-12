@@ -173,52 +173,80 @@ export default function Dashboard() {
                 </p>
               </div>
             ) : (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="text-xs"><span>{"STATUS"}</span></TableHead>
-                    <TableHead className="text-xs"><span>{"MAC"}</span></TableHead>
-                    <TableHead className="text-xs"><span>{"NOME DO SERVER"}</span></TableHead>
-                    <TableHead className="text-xs"><span>{"TIPO"}</span></TableHead>
-                    <TableHead className="text-xs"><span>{"ÚLTIMA CONEXÃO"}</span></TableHead>
-                    <TableHead className="text-xs"><span>{"EXPIRA EM"}</span></TableHead>
+                    <TableHead className="text-xs">{"STATUS"}</TableHead>
+                    <TableHead className="text-xs">{"DISPOSITIVO"}</TableHead>
+                    <TableHead className="text-xs">{"ASSISTINDO"}</TableHead>
+                    <TableHead className="text-xs">{"TIPO"}</TableHead>
+                    <TableHead className="text-xs">{"TEMPO ONLINE"}</TableHead>
+                    <TableHead className="text-xs">{"ÚLTIMA ATIVIDADE"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(connectedDevices ?? []).map(d => {
                     const isRecent = d.lastSeen && (Date.now() - new Date(d.lastSeen).getTime()) < 5 * 60 * 1000;
+                    const tempoOnline = d.connectedAt
+                      ? formatDistanceToNow(new Date(d.connectedAt), { locale: ptBR })
+                      : null;
+                    const deviceIcon = d.deviceType?.toLowerCase().includes("tv") ? "📺"
+                      : d.deviceType?.toLowerCase().includes("mobile") ? "📱"
+                      : d.deviceType?.toLowerCase().includes("tablet") ? "📱" : "📺";
                     return (
                       <TableRow key={d.id}>
                         <TableCell>
-                          <div className="flex items-center gap-1">
-                            {isRecent ? (
-                              <Wifi className="w-3 h-3 text-green-500" />
-                            ) : (
-                              <Wifi className="w-3 h-3 text-amber-400" />
-                            )}
-                            <span className={`text-xs font-medium ${isRecent ? "text-green-600" : "text-amber-600"}`}>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`inline-block w-2 h-2 rounded-full ${isRecent ? "bg-green-500 animate-pulse" : "bg-amber-400"}`} />
+                            <span className={`text-xs font-semibold ${isRecent ? "text-green-600" : "text-amber-600"}`}>
                               {isRecent ? "Online" : "Recente"}
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs font-mono"><span>{d.mac}</span></TableCell>
-                        <TableCell className="text-xs"><span>{d.nomeServer}</span></TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className="text-xs"><span>{d.tipo}</span></Badge>
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm">{deviceIcon}</span>
+                              <span className="text-xs font-mono font-medium">{d.mac}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">{d.nomeServer}</span>
+                            {d.deviceType && (
+                              <span className="text-xs text-muted-foreground/70">{d.deviceType}</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-[200px]">
+                          {d.currentContent ? (
+                            <div className="flex items-center gap-1.5">
+                              <Activity className="w-3 h-3 text-primary flex-shrink-0" />
+                              <span className="text-xs text-foreground font-medium truncate" title={d.currentContent}>
+                                {d.currentContent}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/50 italic">{"—"}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-xs">{d.tipo}</Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {tempoOnline ? (
+                            <span className="text-green-600 font-medium">{tempoOnline}</span>
+                          ) : (
+                            <span>{"—"}</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           <span>{formatLastSeen(d.lastSeen)}</span>
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <span className={d.dataExpiracao && new Date(d.dataExpiracao) < new Date() ? "text-red-500" : "text-foreground"}>
-                            {formatDate(d.dataExpiracao)}
-                          </span>
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>

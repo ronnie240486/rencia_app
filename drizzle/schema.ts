@@ -45,6 +45,9 @@ export const devices = mysqlTable("devices", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSeen: timestamp("lastSeen"),
+  connectedAt: timestamp("connectedAt"),
+  currentContent: varchar("currentContent", { length: 512 }),
+  deviceType: varchar("deviceType", { length: 32 }),
   telefone: varchar("telefone", { length: 32 }),
 });
 
