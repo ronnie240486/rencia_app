@@ -20,7 +20,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls } from "../drizzle/schema";
+import { devices, appSettings } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { storagePut } from "./storage";
 
@@ -50,6 +50,11 @@ const UPLOAD_FIELD_KEYS: Record<string, string> = {
 let settingsCache: Record<string, string> = {};
 let settingsCacheTime = 0;
 const SETTINGS_CACHE_TTL = 60_000; // 60 segundos
+
+// ✅ CORREÇÃO: exportar para que routers.ts possa invalidar o cache ao salvar configurações
+export function invalidateSettingsCache() {
+  settingsCacheTime = 0;
+}
 
 async function getSettings(): Promise<Record<string, string>> {
   const now = Date.now();
@@ -150,26 +155,6 @@ function encodeForApk(jsonStr: string): string {
   return obfuscated + ALPHABET[pos1] + ALPHABET[pos2];
 }
 
-/**
- * Monta o objeto `words` com os textos da tela de bloqueio vindos do painel.
- * O APK BoxV3 usa WordModels para exibir esses textos na tela de trial/bloqueio.
- */
-function buildWords(cfg: Record<string, string>) {
-  return {
-    trial_ended: cfg.trial_title || "Acesso Bloqueado",
-    to_continue: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
-    trial_description: cfg.trial_support_text || "Suporte com seu revendedor",
-    str_link: cfg.contact_website || "",
-    str_whatsapp: cfg.contact_whatsapp || "",
-    open_website: "Conectar",
-    mac_activated: "Seu MAC está Ativado.",
-    add_manage: "Para adicionar/gerenciar playlists, use os valores no site.",
-    mac_address_label: "Mac Address",
-    impact_phrase: cfg.impact_phrase || "",
-    contact: cfg.contact_info || "",
-  };
-}
-
 export function registerApiRoutes(app: Express) {
 
   /**
@@ -248,8 +233,7 @@ export function registerApiRoutes(app: Express) {
       }
 
       if (!macAddress) {
-        const cfgErr = await getSettings();
-        const wordsErr = buildWords(cfgErr);
+        // Retornar resposta codificada mesmo para erro
         const errorPayload = {
           mac_registered: false,
           mac_address: "",
@@ -262,7 +246,6 @@ export function registerApiRoutes(app: Express) {
           languages: [],
           apk_link: "",
           app_version: "5.0",
-          words: wordsErr,
         };
         res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
         return;
@@ -273,8 +256,6 @@ export function registerApiRoutes(app: Express) {
 
       const db = await getDb();
       if (!db) {
-        const cfgDb = await getSettings();
-        const wordsDb = buildWords(cfgDb);
         const errorPayload = {
           mac_registered: false,
           mac_address: macAddress,
@@ -287,7 +268,6 @@ export function registerApiRoutes(app: Express) {
           languages: [],
           apk_link: "",
           app_version: "5.0",
-          words: wordsDb,
         };
         res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
         return;
@@ -312,8 +292,6 @@ export function registerApiRoutes(app: Express) {
 
       // Device não encontrado
       if (result.length === 0) {
-        const cfgNf = await getSettings();
-        const wordsNf = buildWords(cfgNf);
         const notFoundPayload = {
           mac_registered: false,
           mac_address: macAddress,
@@ -326,7 +304,6 @@ export function registerApiRoutes(app: Express) {
           languages: [],
           apk_link: "",
           app_version: "5.0",
-          words: wordsNf,
         };
         res.json({ data: encodeForApk(JSON.stringify(notFoundPayload)) });
         return;
@@ -340,15 +317,9 @@ export function registerApiRoutes(app: Express) {
       if (expired && device.status !== "Expirado") {
         await db
           .update(devices)
-          .set({ status: "Expirado", lastSeen: now })
+          .set({ status: "Expirado" })
           .where(eq(devices.id, device.id));
         device.status = "Expirado";
-      } else {
-        // Registrar lastSeen para rastrear dispositivos conectados
-        await db
-          .update(devices)
-          .set({ lastSeen: now })
-          .where(eq(devices.id, device.id));
       }
 
       const isAllowed = device.status === "Liberado";
@@ -362,26 +333,8 @@ export function registerApiRoutes(app: Express) {
           url: device.urlM3u8,
           name: device.nomeServer || "Lista",
           type: "m3u_plus",
-          is_protected: "1",  // Protegido: APK mostra "Protegido" no lugar da URL
+          is_protected: "0",
         });
-      }
-
-      // Buscar listas extras cadastradas no painel (device_urls)
-      if (isAllowed) {
-        try {
-          const extraUrls = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, device.id));
-          for (const eu of extraUrls) {
-            if (eu.urlM3u8) {
-              urls.push({
-                id: String(eu.id),
-                url: eu.urlM3u8,
-                name: eu.nome || `Lista ${urls.length + 1}`,
-                type: eu.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
-                is_protected: "1",  // Protegido: APK mostra "Protegido" no lugar da URL
-              });
-            }
-          }
-        } catch { /* ignora erro de listas extras */ }
       }
 
       // Formatar data de expiração
@@ -401,7 +354,6 @@ export function registerApiRoutes(app: Express) {
       }
 
       const cfg = await getSettings();
-      const words = buildWords(cfg);
       const responsePayload = {
         mac_registered: isAllowed,
         mac_address: device.mac,
@@ -415,25 +367,22 @@ export function registerApiRoutes(app: Express) {
         apk_link: "",
         app_version: "5.0",
         // Configurações personalizáveis via painel
-        trial_ended: words.trial_ended,
-        via_website: words.to_continue,
-        str_trial_description: words.trial_description,
-        str_link: words.str_link,
-        str_whatsapp: words.str_whatsapp,
+        trial_ended: cfg.trial_title || "Acesso Bloqueado",
+        via_website: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
+        str_trial_description: cfg.trial_support_text || "Suporte com seu revendedor",
+        str_link: cfg.contact_website || "",
+        str_whatsapp: cfg.contact_whatsapp || "",
         live_label: cfg.app_channels_label || "Canais",
         movie_label: cfg.app_movies_label || "Filmes",
         series_label: cfg.app_series_label || "Séries",
         banner_url: cfg.trial_banner_url || "",
         logo_url: cfg.trial_logo_url || "",
-        words,
       };
 
       res.json({ data: encodeForApk(JSON.stringify(responsePayload)) });
 
     } catch (error) {
       console.error("[API] /api/guim.php error:", error);
-      const cfgCatch = await getSettings().catch(() => ({} as Record<string, string>));
-      const wordsCatch = buildWords(cfgCatch);
       const errorPayload = {
         mac_registered: false,
         mac_address: "",
@@ -446,7 +395,6 @@ export function registerApiRoutes(app: Express) {
         languages: [],
         apk_link: "",
         app_version: "5.0",
-        words: wordsCatch,
       };
       res.json({ data: encodeForApk(JSON.stringify(errorPayload)) });
     }
@@ -503,16 +451,6 @@ export function registerApiRoutes(app: Express) {
       console.error("[API] GET /api/guim.php error:", error);
       res.status(500).json({ mac_registered: false, error: "Erro interno do servidor." });
     }
-  });
-
-  // Alias /api/v4/guim.php → /api/guim.php (compatibilidade com APK que usa /api/v4/)
-  app.post("/api/v4/guim.php", (req: Request, res: Response, next) => {
-    req.url = "/api/guim.php";
-    app._router.handle(req, res, next);
-  });
-  app.get("/api/v4/guim.php", (req: Request, res: Response, next) => {
-    req.url = "/api/guim.php";
-    app._router.handle(req, res, next);
   });
 
   /**
@@ -608,8 +546,15 @@ export function registerApiRoutes(app: Express) {
       const { url } = await storagePut(storageKey, file.buffer, file.mimetype);
 
       // Montar URL absoluta para o APK acessar
-      // Sempre usar o domínio público fixo de produção
-      const absoluteUrl = `https://renciaapp-ldyffp73.manus.space${url}`;
+      const forwardedProto = req.headers["x-forwarded-proto"];
+      const forwardedHost = req.headers["x-forwarded-host"] || req.headers["x-forwarded-for"];
+      const protocol = Array.isArray(forwardedProto) ? forwardedProto[0] : (forwardedProto || "https");
+      const host = Array.isArray(forwardedHost) ? forwardedHost[0] : (forwardedHost || req.headers.host || "");
+      // Se host for localhost, usar o domínio de produção configurado
+      const publicHost = (host.includes("localhost") || host.includes("127.0.0.1"))
+        ? "renciaapp-ldyffp73.manus.space"
+        : host;
+      const absoluteUrl = `https://${publicHost}${url}`;
 
       // Atualizar no banco de dados
       const db = await getDb();
@@ -647,27 +592,20 @@ export function registerApiRoutes(app: Express) {
   app.get("/api/v4/logo.php", async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
-      const logoUrl = cfg.trial_logo_url || "";
+      const logoUrl = cfg.trial_logo_url || cfg.trial_background_url || "";
 
-      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
-      const targetUrl = (logoUrl && logoUrl.startsWith("http") && !logoUrl.includes(","))
-        ? logoUrl
-        : "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
-
-      const imgRes = await fetch(targetUrl, { redirect: "follow" });
-      if (!imgRes.ok) {
-        res.status(204).end();
+      if (logoUrl && logoUrl.startsWith("http")) {
+        // Redirecionar para a URL configurada no painel
+        res.redirect(302, logoUrl);
         return;
       }
-      const contentType = imgRes.headers.get("content-type") || "image/png";
-      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Length", imgBuffer.length);
-      res.setHeader("Cache-Control", "public, max-age=3600");
-      res.status(200).end(imgBuffer);
+
+      // Fallback: retornar logo padrão OURO REVENDA via redirect para CDN
+      const defaultLogoUrl = "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
+      res.redirect(302, defaultLogoUrl);
     } catch (error) {
       console.error("[API] /api/v4/logo.php error:", error);
-      res.status(204).end();
+      res.redirect(302, "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png");
     }
   });
 
@@ -682,16 +620,13 @@ export function registerApiRoutes(app: Express) {
       const cfg = await getSettings();
       const bgUrl = cfg.trial_background_url || "";
 
-      // Validar URL: rejeitar URLs com vírgula ou caracteres inválidos
-      const isValidUrl = bgUrl && bgUrl.startsWith("http") && !bgUrl.includes(",") && !bgUrl.includes(" ");
-      if (!isValidUrl) {
-        // Sem fundo configurado ou URL inválida: retornar 204
+      if (!bgUrl || !bgUrl.startsWith("http")) {
+        // Sem fundo configurado: retornar 204 para o APK usar o fundo padrão
         res.status(204).end();
         return;
       }
 
       // Proxy da imagem: baixar do S3 e servir com HTTP 200
-      // Node 22 tem fetch nativo com suporte a redirect
       const imgRes = await fetch(bgUrl, { redirect: "follow" });
       if (!imgRes.ok) {
         res.status(204).end();
@@ -712,8 +647,6 @@ export function registerApiRoutes(app: Express) {
   /**
    * GET /api/app-config
    * Retorna configurações públicas do app para o APK buscar ao iniciar.
-   * O APK pode usar este endpoint para obter a URL da imagem de fundo dinâmica.
-   * Resposta: { background_url, logo_url, banner_url, support_text, contact_whatsapp }
    */
   app.get("/api/app-config", async (_req: Request, res: Response) => {
     try {
@@ -729,15 +662,13 @@ export function registerApiRoutes(app: Express) {
         trial_subtitle: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
         app_channels_label: cfg.app_channels_label || "Canais",
         app_movies_label: cfg.app_movies_label || "Filmes",
-        app_series_label: cfg.app_series_label || "S\u00e9ries",
+        app_series_label: cfg.app_series_label || "Séries",
         // Ícones dos botões
         icon_live_tv_url: cfg.icon_live_tv_url || "",
         icon_movies_url: cfg.icon_movies_url || "",
         icon_series_url: cfg.icon_series_url || "",
         icon_account_url: cfg.icon_account_url || "",
         icon_change_playlist_url: cfg.icon_change_playlist_url || "",
-        impact_phrase: cfg.impact_phrase || "",
-        contact_info: cfg.contact_info || "",
         updated_at: new Date().toISOString(),
       });
     } catch (error) {
@@ -776,22 +707,11 @@ export function registerApiRoutes(app: Express) {
     try {
       const cfg = await getSettings();
       const iconUrl = cfg[settingKey] || ICON_DEFAULTS[name] || "";
-      if (!iconUrl || !iconUrl.startsWith("http") || iconUrl.includes(",")) {
-        res.status(404).json({ error: "No icon configured" });
+      if (iconUrl && iconUrl.startsWith("http")) {
+        res.redirect(302, iconUrl);
         return;
       }
-      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
-      const imgRes = await fetch(iconUrl, { redirect: "follow" });
-      if (!imgRes.ok) {
-        res.status(204).end();
-        return;
-      }
-      const contentType = imgRes.headers.get("content-type") || "image/png";
-      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Length", imgBuffer.length);
-      res.setHeader("Cache-Control", "public, max-age=3600");
-      res.status(200).end(imgBuffer);
+      res.status(404).json({ error: "No icon configured" });
     } catch (error) {
       console.error("[API] /api/v4/icon error:", error);
       res.status(500).json({ error: "Erro interno" });
