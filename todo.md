@@ -138,3 +138,11 @@
 ## Bugs críticos (12/05/2026)
 - [x] APK v29 crash corrigido (null-check antes de check-cast nos ImageViews do initView)
 - [x] Textos de disclaimer adicionados na tela de bloqueio (fragment_description.xml)
+
+## Novas features (11/05/2026 - v2)
+- [x] Paleta de cores para trocar cor dos botões do painel (primary color picker nas configurações)
+- [x] Campo telefone (+55 pré-fixado) no cadastro de usuário
+- [x] Chatbot puxar telefone do cliente cadastrado (não só do dono)
+- [ ] Corrigir crash APK v29 (fechar ao abrir)
+- [x] Sidebar logo: upload pelo painel + fallback texto OuroPro
+- [x] Cor dos botões do painel: laranja → dourado correto

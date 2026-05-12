@@ -45,6 +45,7 @@ export const devices = mysqlTable("devices", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSeen: timestamp("lastSeen"),
+  telefone: varchar("telefone", { length: 32 }),
 });
 
 export type Device = typeof devices.$inferSelect;

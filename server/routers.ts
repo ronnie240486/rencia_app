@@ -80,6 +80,7 @@ export const appRouter = router({
         urlEpg: z.string().optional(),
         valor: z.string().optional(),
         dataExpiracao: z.string().optional(),
+        telefone: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const isOwner = ctx.user.openId === ENV.ownerOpenId;

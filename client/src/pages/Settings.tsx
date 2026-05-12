@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Smartphone, Image, Upload, RefreshCw, MessageCircle, Send, EyeOff } from "lucide-react";
+import { Loader2, Save, Smartphone, Image, Upload, RefreshCw, MessageCircle, Send, EyeOff, Palette } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 
 const DEFAULT_VALUES: Record<string, string> = {
@@ -32,6 +32,8 @@ const DEFAULT_VALUES: Record<string, string> = {
   icon_settings_url: "",
   app_version: "",
   app_download_url: "",
+  sidebar_logo_url: "",
+  primary_color: "#D4AF37",
 };
 
 function UploadButton({ field, uploadingField, onUpload }: { field: string; uploadingField: string | null; onUpload: (field: string, file: File) => void }) {
@@ -154,7 +156,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="trial">
-          <TabsList className="grid grid-cols-4 w-full">
+          <TabsList className="grid grid-cols-5 w-full">
             <TabsTrigger value="trial" className="gap-1 text-xs">
               <Smartphone size={13} /> Bloqueio
             </TabsTrigger>
@@ -163,6 +165,9 @@ export default function Settings() {
             </TabsTrigger>
             <TabsTrigger value="update" className="gap-1 text-xs">
               <RefreshCw size={13} /> Atualização
+            </TabsTrigger>
+            <TabsTrigger value="theme" className="gap-1 text-xs">
+              <Palette size={12} /> Tema
             </TabsTrigger>
             <TabsTrigger value="chat" className="gap-1 text-xs">
               <MessageCircle size={13} /> Chatbot
@@ -356,6 +361,38 @@ export default function Settings() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
+                  <Image size={16} /> Logo do Painel (Sidebar)
+                </CardTitle>
+                <CardDescription>
+                  Logo exibido na barra lateral do painel OuroPro. Recomendado: PNG transparente, 200×64px.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <Label>URL do Logo do Painel</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.sidebar_logo_url ?? ""}
+                      onChange={e => handleChange("sidebar_logo_url", e.target.value)}
+                      placeholder="https://exemplo.com/logo-painel.png"
+                    />
+                    <UploadButton field="sidebar_logo_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
+                  </div>
+                  {form.sidebar_logo_url && (
+                    <img
+                      src={form.sidebar_logo_url}
+                      alt="Preview logo painel"
+                      className="mt-2 rounded border max-h-16 object-contain bg-sidebar p-2"
+                      onError={e => (e.currentTarget.style.display = "none")}
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground">Deixe em branco para exibir o texto <strong>OuroPro</strong> como logo.</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
                   <Image size={16} /> Ícones dos Botões
                 </CardTitle>
                 <CardDescription>
@@ -407,6 +444,9 @@ export default function Settings() {
           </TabsContent>
 
           {/* Chatbot WhatsApp */}
+          <TabsContent value="theme" className="space-y-4 mt-4">
+            <ThemeColorTab form={form} handleChange={handleChange} />
+          </TabsContent>
           <TabsContent value="chat" className="space-y-4 mt-4">
             <ChatbotTab />
           </TabsContent>
@@ -512,7 +552,7 @@ function ChatbotTab() {
 
     const phone = selectedClient.ownerTelefone || "";
     if (!phone) {
-      toast.error("Este cliente não tem telefone cadastrado. Cadastre o telefone no perfil do cliente.");
+      toast.error("Este cliente não tem telefone cadastrado. Edite o device e adicione o telefone.");
       return;
     }
     const cleanPhone = phone.replace(/\D/g, "");
@@ -536,7 +576,7 @@ function ChatbotTab() {
             <MessageCircle size={16} /> Enviar Mensagem WhatsApp
           </CardTitle>
           <CardDescription>
-            Selecione um cliente e envie uma mensagem diretamente pelo WhatsApp. O cliente precisa ter telefone cadastrado no perfil.
+            Selecione um cliente e envie uma mensagem diretamente pelo WhatsApp. O cliente precisa ter telefone cadastrado no formulário de cadastro do device.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -564,7 +604,7 @@ function ChatbotTab() {
             <div className="rounded-md bg-muted p-3 text-sm space-y-1">
               <p><strong>Cliente:</strong> {selectedClient.nomeServer}</p>
               <p><strong>MAC:</strong> {selectedClient.mac}</p>
-              <p><strong>Telefone:</strong> {selectedClient.ownerTelefone || <span className="text-destructive">Não cadastrado — vá em Usuários e edite o perfil</span>}</p>
+              <p><strong>Telefone:</strong> {selectedClient.ownerTelefone || <span className="text-destructive">Não cadastrado — edite o device e adicione o telefone</span>}</p>
               <p><strong>Status:</strong> {selectedClient.status}</p>
             </div>
           )}
@@ -603,6 +643,153 @@ function ChatbotTab() {
             <Send size={16} />
             Enviar via WhatsApp
           </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Aba: Tema / Paleta de Cores ─────────────────────────────────────────────
+const PRESET_COLORS = [
+  { name: "Dourado", value: "#D4AF37" },
+  { name: "Ouro Velho", value: "#B8860B" },
+  { name: "Âmbar", value: "#F59E0B" },
+  { name: "Laranja", value: "#F97316" },
+  { name: "Vermelho", value: "#EF4444" },
+  { name: "Rosa", value: "#EC4899" },
+  { name: "Roxo", value: "#8B5CF6" },
+  { name: "Azul", value: "#3B82F6" },
+  { name: "Ciano", value: "#06B6D4" },
+  { name: "Verde", value: "#10B981" },
+  { name: "Lima", value: "#84CC16" },
+  { name: "Branco", value: "#F8FAFC" },
+];
+
+function hexToOklch(hex: string): string {
+  // Simple conversion for CSS custom property — use oklch approximation
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  const lightness = Math.round(l * 100) / 100;
+  return `${(lightness * 0.8 + 0.2).toFixed(2)} 0.15 ${Math.round(Math.atan2(b - g, r - b) * 180 / Math.PI + 180)}`;
+}
+
+function ThemeColorTab({ form, handleChange }: { form: Record<string, string>; handleChange: (k: string, v: string) => void }) {
+  const currentColor = form.primary_color || "#D4AF37";
+
+  const applyColor = (hex: string) => {
+    handleChange("primary_color", hex);
+    // Apply immediately to CSS variables for live preview
+    const oklch = hexToOklch(hex);
+    document.documentElement.style.setProperty("--primary", oklch);
+    // Compute foreground: dark text on light colors, light on dark
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    const fgOklch = luminance > 0.5 ? "0.15 0 0" : "0.98 0 0";
+    document.documentElement.style.setProperty("--primary-foreground", fgOklch);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Palette size={16} /> Cor Principal dos Botões
+          </CardTitle>
+          <CardDescription>
+            Escolha a cor dos botões, links e elementos de destaque do painel. A mudança é aplicada em tempo real.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Paleta de presets */}
+          <div className="space-y-2">
+            <Label>Paleta de Cores</Label>
+            <div className="grid grid-cols-6 gap-2">
+              {PRESET_COLORS.map(({ name, value }) => (
+                <button
+                  key={value}
+                  type="button"
+                  title={name}
+                  onClick={() => applyColor(value)}
+                  className={`w-full aspect-square rounded-lg border-2 transition-all hover:scale-110 ${currentColor.toLowerCase() === value.toLowerCase() ? "border-foreground scale-110 shadow-lg" : "border-transparent"}`}
+                  style={{ backgroundColor: value }}
+                />
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {PRESET_COLORS.map(({ name, value }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => applyColor(value)}
+                  className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${currentColor.toLowerCase() === value.toLowerCase() ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Cor personalizada */}
+          <div className="space-y-2">
+            <Label>Cor Personalizada (HEX)</Label>
+            <div className="flex gap-3 items-center">
+              <input
+                type="color"
+                value={currentColor}
+                onChange={e => applyColor(e.target.value)}
+                className="w-12 h-10 rounded-md border cursor-pointer"
+              />
+              <Input
+                value={currentColor}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (/^#[0-9A-Fa-f]{0,6}$/.test(v)) applyColor(v);
+                }}
+                placeholder="#D4AF37"
+                className="font-mono w-36"
+                maxLength={7}
+              />
+              <div
+                className="flex-1 h-10 rounded-md border"
+                style={{ backgroundColor: currentColor }}
+              />
+            </div>
+          </div>
+
+          {/* Preview */}
+          <div className="space-y-2">
+            <Label>Preview</Label>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                type="button"
+                className="px-4 py-2 rounded-md text-sm font-medium text-white"
+                style={{ backgroundColor: currentColor }}
+              >
+                Botão Principal
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 rounded-md text-sm font-medium border"
+                style={{ borderColor: currentColor, color: currentColor }}
+              >
+                Botão Outline
+              </button>
+              <span
+                className="px-3 py-1 rounded-full text-xs font-bold text-white"
+                style={{ backgroundColor: currentColor }}
+              >
+                Badge
+              </span>
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            A cor é salva nas configurações e aplicada automaticamente ao painel. Clique em <strong>Salvar Alterações</strong> para persistir.
+          </p>
         </CardContent>
       </Card>
     </div>

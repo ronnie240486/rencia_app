@@ -61,6 +61,10 @@ const UPLOAD_FIELD_KEYS: Record<string, string> = {
   icon_series_url: "icon_series_url",
   icon_account_url: "icon_account_url",
   icon_change_playlist_url: "icon_change_playlist_url",
+  icon_reload_url: "icon_reload_url",
+  icon_exit_url: "icon_exit_url",
+  icon_settings_url: "icon_settings_url",
+  sidebar_logo_url: "sidebar_logo_url",
 };
 
 // Cache de configurações para evitar query no banco a cada request

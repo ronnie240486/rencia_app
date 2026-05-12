@@ -101,6 +101,7 @@ export async function createDevice(data: {
   urlEpg?: string;
   valor?: string;
   dataExpiracao?: string;
+  telefone?: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -116,6 +117,7 @@ export async function createDevice(data: {
     valor: data.valor ?? null,
     dataExpiracao: data.dataExpiracao ? new Date(data.dataExpiracao) : null,
     status: "Liberado",
+    telefone: data.telefone ?? null,
   });
   // Retornar o id do device recém-criado
   const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
@@ -467,14 +469,14 @@ export async function updateUserProfile(userId: number, data: {
 export async function getClientsWithPhone(ownerId: number) {
   const db = await getDb();
   if (!db) return [];
-  // Busca todos os devices do owner com o telefone do owner (join users)
+  // Busca todos os devices do owner com o telefone do próprio device (campo devices.telefone)
   const rows = await db.select({
     deviceId: devices.id,
     mac: devices.mac,
     nomeServer: devices.nomeServer,
     status: devices.status,
     dataExpiracao: devices.dataExpiracao,
-    ownerTelefone: users.telefone,
+    ownerTelefone: devices.telefone,
     ownerName: users.name,
   }).from(devices)
     .leftJoin(users, eq(devices.ownerId, users.id))

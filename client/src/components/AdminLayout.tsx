@@ -15,8 +15,9 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
 
 interface NavItem {
   label: string;
@@ -44,6 +45,22 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Aplica a cor primária salva nas configurações ao carregar o layout
+  const { data: allSettings } = trpc.settings.getAll.useQuery(undefined, { staleTime: 60_000 });
+  useEffect(() => {
+    const hex = allSettings?.primary_color;
+    if (!hex || !/^#[0-9A-Fa-f]{6}$/.test(hex)) return;
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const lightness = (l * 0.8 + 0.2).toFixed(2);
+    const hue = Math.round(Math.atan2(b - g, r - b) * 180 / Math.PI + 180);
+    document.documentElement.style.setProperty("--primary", `${lightness} 0.15 ${hue}`);
+    const luminance = (0.299 * parseInt(hex.slice(1,3),16) + 0.587 * parseInt(hex.slice(3,5),16) + 0.114 * parseInt(hex.slice(5,7),16)) / 255;
+    document.documentElement.style.setProperty("--primary-foreground", luminance > 0.5 ? "0.15 0 0" : "0.98 0 0");
+  }, [allSettings?.primary_color]);
 
   if (loading) {
     return (
@@ -82,12 +99,14 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const isAdmin = user?.role === "admin";
   const visibleNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
 
+  const sidebarLogoUrl = allSettings?.sidebar_logo_url || "/api/v4/logo.php";
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-4 py-4 border-b border-sidebar-border flex items-center justify-center">
         <img
-          src="/api/v4/logo.php"
+          src={sidebarLogoUrl}
           alt="OuroPro"
           className="w-full h-auto object-contain"
           style={{ maxHeight: "64px" }}
