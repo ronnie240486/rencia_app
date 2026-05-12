@@ -134,3 +134,7 @@
 - [ ] APK smali: exibir frases de impacto e contato na home screen
 - [ ] APK smali: texto disclaimer na tela de bloqueio
 - [ ] Recompilar APK v28
+
+## Bugs críticos (12/05/2026)
+- [x] APK v29 crash corrigido (null-check antes de check-cast nos ImageViews do initView)
+- [x] Textos de disclaimer adicionados na tela de bloqueio (fragment_description.xml)

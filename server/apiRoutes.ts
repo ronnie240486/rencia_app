@@ -622,7 +622,7 @@ export function registerApiRoutes(app: Express) {
   /**
    * GET /api/v4/logo.php
    * Endpoint usado pela classe Logo.java do APK para carregar o logo dinâmico.
-   * Retorna a imagem do logo configurada no painel, ou o logo padrão OURO REVENDA.
+   * Retorna a imagem do logo configurada no painel, ou o logo padrão OuroPro.
    * Suporta: redirect para URL externa ou proxy da imagem.
    */
   app.get("/api/v4/logo.php", async (_req: Request, res: Response) => {

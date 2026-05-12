@@ -395,7 +395,7 @@ export async function seedApps() {
   const existing = await db.select({ count: count() }).from(apps);
   if ((existing[0]?.count ?? 0) > 0) return;
   await db.insert(apps).values([
-    { nome: "OURO REVENDA", totalClientes: 219789 },
+    { nome: "OuroPro", totalClientes: 219789 },
     { nome: "VU REVENDA", totalClientes: 4868 },
     { nome: "TV ROKU -GPC PRO", totalClientes: 2841 },
     { nome: "ZONE X", totalClientes: 2774 },
