@@ -85,13 +85,24 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-sidebar-border">
+      <div className="px-4 py-4 border-b border-sidebar-border flex items-center justify-center">
         <img
-          src="https://renciaapp-ldyffp73.manus.space/api/v4/logo.php"
+          src="/api/v4/logo.php"
           alt="OuroPro"
           className="w-full h-auto object-contain"
           style={{ maxHeight: "64px" }}
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          onError={(e) => {
+            const img = e.target as HTMLImageElement;
+            img.style.display = 'none';
+            const parent = img.parentElement;
+            if (parent && !parent.querySelector('.logo-fallback')) {
+              const span = document.createElement('span');
+              span.className = 'logo-fallback text-xl font-bold';
+              span.style.color = 'oklch(0.80 0.15 55)';
+              span.textContent = 'OuroPro';
+              parent.appendChild(span);
+            }
+          }}
         />
       </div>
 

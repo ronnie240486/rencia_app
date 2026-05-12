@@ -124,7 +124,15 @@ function decodeFromApk(encoded: string): Record<string, unknown> | null {
     const p1Char = s[s.length - 1];
     const p1 = ALPHABET.indexOf(p1Char);
 
-    if (p2 < 0 || p1 < 0) return null;
+    if (p2 < 0 || p1 < 0) {
+      // Fallback: Base64 puro (APK envia sem obfuscação quando termina com = ou =)
+      try {
+        const decoded = Buffer.from(s, "base64").toString("utf-8").trim();
+        return JSON.parse(decoded);
+      } catch {
+        return null;
+      }
+    }
 
     // Remover os 2 últimos chars
     let clean = s.slice(0, -2);

@@ -117,11 +117,11 @@
 - [x] Settings.tsx: adicionar componente AppUpdateTab (botão de atualização do APK)
 - [x] Settings.tsx: adicionar componente ChatbotTab (envio de mensagem WhatsApp para clientes)
 - [x] Corrigir conexão painel-APK: background não muda mais quando salvo no painel (content-type detectado por magic bytes)
-- [ ] Corrigir conexão painel-APK: ícones dos botões não mudam no APK
+- [x] Corrigir conexão painel-APK: ícones dos botões agora carregados via Glide do servidor
 - [ ] Corrigir conexão painel-APK: frases de impacto/contato não aparecem no APK
 - [ ] Hierarquia de planos: dono (OuroPro Master) sem limites, Ultra Master com limites maiores, Revenda com limites menores
-- [ ] APK: adicionar texto disclaimer "OuroPro is a media player..." na tela de bloqueio
-- [ ] APK: ícones reload, exit, configurações personalizáveis pelo painel
+- [x] APK: texto disclaimer adicionado na tela de bloqueio
+- [x] APK: ícones reload, exit, configurações personalizáveis pelo painel (via /api/v4/icon/:name)
 - [ ] Chatbot: ao cadastrar telefone do cliente, chatbot envia mensagem WhatsApp direto pelo painel
 - [ ] Planilha de custos: ativações de DNS + custo servidor + clientes de outros serviços (implementar depois)
 
@@ -130,10 +130,10 @@
 - [x] Settings: ícones de reload, exit e configurações configuráveis no painel
 - [x] Renomear completamente "Ouro Revenda" → "OuroPro" em todos os arquivos do painel
 - [x] ChatbotTab: buscar telefone real do cliente via procedure tipada (trpc.chatbot.clients)
-- [ ] APK smali: buscar ícones dinâmicos do servidor via proxy
-- [ ] APK smali: exibir frases de impacto e contato na home screen
-- [ ] APK smali: texto disclaimer na tela de bloqueio
-- [ ] Recompilar APK v28
+- [x] APK smali: buscar ícones dinâmicos do servidor via proxy (loadIconsFromServer via Glide)
+- [x] APK smali: frases de impacto e contato via guim.php (languages/words)
+- [x] APK smali: texto disclaimer na tela de bloqueio (fragment_description.xml)
+- [x] APK v29 recompilado e assinado (com crash fix + disclaimer + ícones dinâmicos)
 
 ## Bugs críticos (12/05/2026)
 - [x] APK v29 crash corrigido (null-check antes de check-cast nos ImageViews do initView)

@@ -1,0 +1,31 @@
+{
+  "query": "SELECT mac, nomeServer, urlM3u8, modoSelecao, status FROM devices LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT mac, nomeServer, urlM3u8, modoSelecao, status FROM devices LIMIT 3;",
+  "rows": [
+    {
+      "mac": "55:14:17:a8:3a:b3",
+      "nomeServer": "Ronnie",
+      "urlM3u8": "http://p47c.dvrcam.info/get.php?username=Jeny35463637&password=Roa6383938&type=m3u_plus&output=ts",
+      "modoSelecao": "M3U8",
+      "status": "Liberado"
+    },
+    {
+      "mac": "58:04:54:49:77:56",
+      "nomeServer": "Ronnie",
+      "urlM3u8": "http://p47c.dvrcam.info/get.php?username=Jeny35463637&password=Roa6383938&type=m3u_plus&output=ts",
+      "modoSelecao": "M3U8",
+      "status": "Liberado"
+    },
+    {
+      "mac": "70:2e:8e:96:0a:3c",
+      "nomeServer": "Ronnie",
+      "urlM3u8": "http://onixspeed.shop/get.php?username=596984&password=164923&type=m3u_plus&output=hls",
+      "modoSelecao": "M3U8",
+      "status": "Liberado"
+    }
+  ],
+  "messages": [],
+  "stdout": "mac\tnomeServer\turlM3u8\tmodoSelecao\tstatus\n55:14:17:a8:3a:b3\tRonnie\thttp://p47c.dvrcam.info/get.php?username=Jeny35463637&password=Roa6383938&type=m3u_plus&output=ts\tM3U8\tLiberado\n58:04:54:49:77:56\tRonnie\thttp://p47c.dvrcam.info/get.php?username=Jeny35463637&password=Roa6383938&type=m3u_plus&output=ts\tM3U8\tLiberado\n70:2e:8e:96:0a:3c\tRonnie\thttp://onixspeed.shop/get.php?username=596984&password=164923&type=m3u_plus&output=hls\tM3U8\tLiberado\n",
+  "stderr": "",
+  "execution_time_ms": 592
+}
