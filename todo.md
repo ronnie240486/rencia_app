@@ -141,3 +141,8 @@
 - [ ] API /api/guim.php: incluir telefone de contato, frase de impacto e frase legal no response (campos str_whatsapp, impact_phrase, legal_notice)
 - [ ] Configurações: garantir campos "Telefone de contato", "Frase de impacto" e "Frase legal (tela de bloqueio)" visíveis e salvando corretamente
 - [ ] Frase legal padrão: "OuroPro is a media player application. The app does not provide or include any media or content."
+
+## Heartbeat de conteúdo assistido (12/05/2026 - v5)
+- [x] Endpoint POST /api/v4/heartbeat.php — APK envia mac + current_content periodicamente
+- [x] Endpoint GET /api/v4/heartbeat.php — APK pode consultar o status atual
+- [x] Dashboard: coluna ASSISTINDO atualiza em tempo real via polling

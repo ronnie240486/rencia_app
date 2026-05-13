@@ -47,7 +47,10 @@ export default function Dashboard() {
   const { data: stats, isLoading: statsLoading, error: statsError } = trpc.devices.stats.useQuery();
   const { data: planInfo } = trpc.plan.info.useQuery();
   const { data: recentDevices, isLoading: recentLoading } = trpc.devices.recentList.useQuery({ search: recentSearch, limit: 5 });
-  const { data: connectedDevices, isLoading: connectedLoading, refetch: refetchConnected } = trpc.connected.list.useQuery({ minutesAgo: connectedFilter });
+  const { data: connectedDevices, isLoading: connectedLoading, refetch: refetchConnected } = trpc.connected.list.useQuery(
+    { minutesAgo: connectedFilter },
+    { refetchInterval: 30_000 } // atualiza a cada 30s para mostrar canal assistido em tempo real
+  );
 
   const formatDate = (d: Date | string | null | undefined) => {
     if (!d) return "—";

@@ -21,7 +21,7 @@ import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
 import { devices, appSettings, deviceUrls } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { storagePut } from "./storage";
 
 // Multer: armazena em memória para depois enviar ao S3
@@ -828,6 +828,116 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error("[API] /api/v4/update.php error:", error);
       res.status(500).json({ error: "Erro interno" });
+    }
+  });
+
+  /**
+   * POST /api/v4/heartbeat.php
+   *
+   * Endpoint de heartbeat para o APK reportar o conteúdo assistido em tempo real.
+   * O APK deve chamar este endpoint periodicamente (ex: a cada 60s) enviando:
+   *   { mac: "XX:XX:XX:XX:XX:XX", content: "Nome do Canal/Série/Filme" }
+   * ou no formato codificado:
+   *   { data: "<BASE64_ENCODED>" }  com campos: app_device_id + current_content
+   *
+   * Retorna: { ok: true }
+   */
+  app.post("/api/v4/heartbeat.php", async (req: Request, res: Response) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      let macAddress: string | null = null;
+      let currentContent: string | null = null;
+
+      // Formato 1: { mac, content } — plain JSON
+      if (body && body.mac) {
+        macAddress = String(body.mac).trim().toUpperCase();
+        currentContent = body.content ? String(body.content).trim() : null;
+      }
+
+      // Formato 2: { data: "<BASE64>" } — mesmo formato do /api/guim.php
+      if (!macAddress && body && body.data) {
+        try {
+          const parsed = decodeFromApk(String(body.data));
+          if (parsed) {
+            const rawId = (parsed.app_device_id as string) ?? null;
+            if (rawId) macAddress = rawId.trim().toUpperCase();
+            currentContent = (parsed.current_channel as string)
+              || (parsed.current_movie as string)
+              || (parsed.current_series as string)
+              || (parsed.current_content as string)
+              || null;
+          }
+        } catch { /* ignora */ }
+      }
+
+      // Formato 3: query string ?mac=XX&content=Canal
+      if (!macAddress && req.query.mac) {
+        macAddress = String(req.query.mac).trim().toUpperCase();
+        currentContent = req.query.content ? String(req.query.content).trim() : null;
+      }
+
+      if (!macAddress) {
+        res.status(400).json({ ok: false, error: "mac obrigatório" });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      // Normalizar MAC (aceita com ou sem dois-pontos, maiúsculo/minúsculo)
+      const normalizedMac = macAddress.replace(/[^A-F0-9]/gi, "").toUpperCase();
+      const formattedMac = normalizedMac.length === 12
+        ? normalizedMac.match(/.{2}/g)!.join(":")
+        : macAddress;
+
+      const now = new Date();
+      const updateSet: Record<string, unknown> = { lastSeen: now };
+      if (currentContent) updateSet.currentContent = currentContent;
+
+      // Atualizar por MAC exato ou normalizado
+      await db
+        .update(devices)
+        .set(updateSet)
+        .where(or(
+          eq(devices.mac, formattedMac),
+          eq(devices.mac, macAddress)
+        ));
+
+      console.log(`[HEARTBEAT] MAC=${formattedMac} content=${currentContent ?? "(none)"}`);
+      res.json({ ok: true, mac: formattedMac, content: currentContent });
+    } catch (error) {
+      console.error("[API] /api/v4/heartbeat.php error:", error);
+      res.status(500).json({ ok: false, error: "Erro interno" });
+    }
+  });
+
+  // GET /api/v4/heartbeat.php — retorna o conteúdo atual de um dispositivo
+  app.get("/api/v4/heartbeat.php", async (req: Request, res: Response) => {
+    try {
+      const mac = req.query.mac ? String(req.query.mac).trim().toUpperCase() : null;
+      if (!mac) {
+        res.status(400).json({ ok: false, error: "mac obrigatório" });
+        return;
+      }
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const normalizedMac = mac.replace(/[^A-F0-9]/gi, "").toUpperCase();
+      const formattedMac = normalizedMac.length === 12
+        ? normalizedMac.match(/.{2}/g)!.join(":")
+        : mac;
+      const result = await db
+        .select({ currentContent: devices.currentContent, lastSeen: devices.lastSeen })
+        .from(devices)
+        .where(or(eq(devices.mac, formattedMac), eq(devices.mac, mac)))
+        .limit(1);
+      if (!result.length) {
+        res.status(404).json({ ok: false, error: "Dispositivo não encontrado" });
+        return;
+      }
+      res.json({ ok: true, mac: formattedMac, content: result[0].currentContent, last_seen: result[0].lastSeen });
+    } catch (error) {
+      console.error("[API] GET /api/v4/heartbeat.php error:", error);
+      res.status(500).json({ ok: false, error: "Erro interno" });
     }
   });
 
