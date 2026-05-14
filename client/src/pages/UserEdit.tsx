@@ -144,7 +144,7 @@ export default function UserEdit() {
       modoSelecao: form.modoSelecao,
       tipo: form.tipo,
       status: form.status,
-      app: form.app !== "__none__" ? form.app : undefined,
+      app: "OuroPro",
       urlM3u8: urlM3u8 || undefined,
       urlEpg: form.urlEpg || undefined,
       valor: form.valor || undefined,
@@ -304,36 +304,12 @@ export default function UserEdit() {
               </div>
             )}
 
-            {/* App */}
+            {/* App - fixo OuroPro */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP QUE O CLIENTE USARÁ:</Label>
-              <Select value={form.app} onValueChange={v => setForm(f => ({ ...f, app: v }))}>
-                <SelectTrigger className="h-10 w-full">
-                  <SelectValue placeholder="Selecione um app (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Nenhum</SelectItem>
-                  {apps.map(a => (
-                    <SelectItem key={a.id} value={a.nome}>{a.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Tipo */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">TIPO DE CONTA:</Label>
-              <Select value={form.tipo} onValueChange={v => setForm(f => ({ ...f, tipo: v as "Usuario" | "Revenda" | "UltraMaster" | "Master" }))}>
-                <SelectTrigger className="h-10 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Usuario">Usuário</SelectItem>
-                  <SelectItem value="Revenda">Revenda</SelectItem>
-                  <SelectItem value="UltraMaster">Ultra Master</SelectItem>
-                  <SelectItem value="Master">Master</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP DO CLIENTE:</Label>
+              <div className="h-10 flex items-center px-3 rounded-md border bg-muted text-sm font-medium text-muted-foreground">
+                OuroPro
+              </div>
             </div>
 
             {/* Status */}

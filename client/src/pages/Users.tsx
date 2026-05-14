@@ -173,15 +173,6 @@ export default function Users() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-xl font-bold text-foreground">Lista de Usuários</h1>
           <div className="flex gap-2 flex-wrap">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 text-xs gap-1 border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100"
-              onClick={() => openDnsDialog("all")}
-            >
-              <Globe className="w-3 h-3" />
-              Trocar DNS de Todos
-            </Button>
             <Link href="/users/create">
               <Button size="sm" className="h-8 text-xs gap-1">
                 <Plus className="w-3 h-3" />

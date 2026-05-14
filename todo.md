@@ -146,3 +146,13 @@
 - [x] Endpoint POST /api/v4/heartbeat.php — APK envia mac + current_content periodicamente
 - [x] Endpoint GET /api/v4/heartbeat.php — APK pode consultar o status atual
 - [x] Dashboard: coluna ASSISTINDO atualiza em tempo real via polling
+
+## Ajustes de UI (13/05/2026)
+- [ ] Remover item "Trocar DNS em Massa" do menu lateral (AdminLayout)
+- [ ] Remover botão de cadastro rápido "Usuário" da tela de Usuários
+- [ ] Remover opção "UltraMaster" do select de tipo no cadastro e edição de usuários
+
+## Ajustes UI (14/05/2026)
+- [x] Remover botão "Trocar DNS de Todos" da tela de Usuários
+- [x] Remover campo "Tipo de Conta" do formulário de cadastro de usuário
+- [x] Fixar "App do Cliente" como OuroPro (sem select) no cadastro e edição

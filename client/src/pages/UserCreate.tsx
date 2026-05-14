@@ -49,7 +49,7 @@ export default function UserCreate() {
   const [form, setForm] = useState({
     mac: "",
     nomeServer: "",
-    app: "__none__",
+    app: "OuroPro",
     valor: "",
     dataExpiracao: "",
     tipo: "Usuario" as "Usuario" | "Revenda" | "UltraMaster" | "Master",
@@ -120,7 +120,7 @@ export default function UserCreate() {
       nomeServer: form.nomeServer.trim(),
       modoSelecao: principal.modo,
       tipo: form.tipo,
-      app: form.app !== "__none__" ? form.app : undefined,
+      app: "OuroPro",
       urlM3u8: urlM3u8 || undefined,
       urlEpg: principal.urlEpg || undefined,
       valor: form.valor || undefined,
@@ -173,35 +173,10 @@ export default function UserCreate() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">TIPO DE CONTA:</Label>
-                <Select value={form.tipo} onValueChange={v => setForm(f => ({ ...f, tipo: v as "Usuario" | "Revenda" | "UltraMaster" | "Master" }))}>
-                  <SelectTrigger className="h-10 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Usuario">Usuário</SelectItem>
-                    <SelectItem value="Revenda">Revenda</SelectItem>
-                    <SelectItem value="UltraMaster">Ultra Master</SelectItem>
-                    <SelectItem value="Master">Master</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP DO CLIENTE:</Label>
-                <Select value={form.app} onValueChange={v => setForm(f => ({ ...f, app: v }))}>
-                  <SelectTrigger className="h-10 w-full">
-                    <SelectValue placeholder="Nenhum" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Nenhum</SelectItem>
-                    {apps.map(a => (
-                      <SelectItem key={a.id} value={a.nome}>{a.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP DO CLIENTE:</Label>
+              <div className="h-10 flex items-center px-3 rounded-md border bg-muted text-sm font-medium text-muted-foreground">
+                OuroPro
               </div>
             </div>
 
