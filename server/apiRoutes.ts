@@ -441,8 +441,8 @@ export function registerApiRoutes(app: Express) {
         plan_id: device.tipo ?? "Usuario",
         device_key: String(device.id),
         languages: [],
-        apk_link: "",
-        app_version: "5.0",
+        apk_link: cfg.apk_download_url || "",
+        app_version: cfg.apk_version || "5.0",
         // Configurações personalizáveis via painel
         trial_ended: words.trial_ended,
         via_website: words.to_continue,
