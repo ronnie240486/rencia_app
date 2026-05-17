@@ -542,29 +542,58 @@ export function registerApiRoutes(app: Express) {
     try {
       const db = await getDb();
       if (!db) {
-        res.status(503).json({ mac_registered: false, error: "Banco de dados indisponível." });
+        const cfgErr = await getSettings().catch(() => ({} as Record<string, string>));
+        const wordsErr = buildWords(cfgErr);
+        res.status(503).json({ mac_registered: false, mac_address: mac, urls: [], is_trial: 1, lock: 1, languages: [{ code: "pt", id: "1", name: "Português", words: wordsErr }], words: wordsErr });
         return;
       }
 
+      const cfg = await getSettings().catch(() => ({} as Record<string, string>));
       const result = await db.select().from(devices).where(eq(devices.mac, mac)).limit(1);
 
       if (result.length === 0) {
-        res.json({ mac_registered: false, mac_address: mac, urls: [], is_trial: 1, lock: 1 });
+        const wordsNf = buildWords(cfg);
+        const languagesNf = [{ code: "pt", id: "1", name: "Português", words: wordsNf }, { code: "en", id: "2", name: "English", words: wordsNf }];
+        res.json({ mac_registered: false, mac_address: mac, urls: [], is_trial: 1, lock: 1, languages: languagesNf, words: wordsNf, apk_link: cfg.apk_download_url || "", app_version: cfg.apk_version || "5.0", banner_url: cfg.trial_banner_url || "", logo_url: cfg.trial_logo_url || "", impact_phrase: wordsNf.impact_phrase, legal_notice: wordsNf.legal_notice, app_name: wordsNf.app_name, lock_title: cfg.lock_title || "OuroPro", lock_message: cfg.lock_message || "OuroPro is a media player application.", lock_button_text: cfg.lock_button_text || "Renovar Agora", lock_button_url: cfg.lock_button_url || "" });
         return;
       }
 
       const device = result[0];
       const isAllowed = device.status === "Liberado";
-      const urls = device.urlM3u8 && isAllowed
-        ? [{ url: device.urlM3u8, username: "", password: "", type: "m3u_plus" }]
-        : [];
+
+      // Verificar expiração
+      let expireDate: string | null = null;
+      if (device.dataExpiracao) {
+        try { expireDate = new Date(device.dataExpiracao).toISOString().split("T")[0]; } catch {}
+      }
+
+      const urls: Array<{ url: string; username: string; password: string; type: string }> = [];
+      if (isAllowed && device.urlM3u8) urls.push({ url: device.urlM3u8, username: "", password: "", type: "m3u_plus" });
+
+      const words = buildWords(cfg);
+      const wordsPayload = {
+        trial_ended: words.trial_ended,
+        to_continue: words.to_continue,
+        str_trial_description: words.trial_description,
+        str_link: words.str_link,
+        str_whatsapp: words.str_whatsapp,
+        open_website: words.open_website,
+        mac_activated: words.mac_activated,
+        to_add_manage: words.add_manage,
+        contact: words.contact,
+        impact_phrase: words.impact_phrase,
+        legal_notice: words.legal_notice,
+        app_name: words.app_name,
+      };
+      const languagesPayload = [
+        { code: "pt", id: "1", name: "Português", words: wordsPayload },
+        { code: "en", id: "2", name: "English", words: wordsPayload },
+      ];
 
       res.json({
         mac_registered: isAllowed,
         mac_address: device.mac,
-        expire_date: device.dataExpiracao
-          ? new Date(device.dataExpiracao).toISOString().split("T")[0]
-          : null,
+        expire_date: expireDate,
         urls,
         is_trial: 0,
         lock: isAllowed ? 0 : 1,
@@ -573,6 +602,36 @@ export function registerApiRoutes(app: Express) {
         status: device.status,
         nome_server: device.nomeServer,
         app: device.app ?? "",
+        languages: languagesPayload,
+        apk_link: cfg.apk_download_url || "",
+        app_version: cfg.apk_version || "5.0",
+        trial_ended: words.trial_ended,
+        via_website: words.to_continue,
+        str_trial_description: words.trial_description,
+        str_link: words.str_link,
+        str_whatsapp: words.str_whatsapp,
+        live_label: cfg.app_channels_label || "Canais",
+        movie_label: cfg.app_movies_label || "Filmes",
+        series_label: cfg.app_series_label || "Séries",
+        banner_url: cfg.trial_banner_url || "",
+        logo_url: cfg.trial_logo_url || "",
+        contact: words.contact,
+        contact_whatsapp: words.str_whatsapp,
+        contact_website: words.str_link,
+        impact_phrase: words.impact_phrase,
+        legal_notice: words.legal_notice,
+        app_name: words.app_name,
+        lock_title: cfg.lock_title || "OuroPro",
+        lock_message: cfg.lock_message || "OuroPro is a media player application. The app does not provide or include any media or content.",
+        lock_button_text: cfg.lock_button_text || "Renovar Agora",
+        lock_button_url: cfg.lock_button_url || (cfg.contact_whatsapp ? `https://wa.me/${cfg.contact_whatsapp.replace(/\D/g, "")}` : ""),
+        icon_reload: cfg.icon_reload_url || "",
+        icon_exit: cfg.icon_exit_url || "",
+        icon_settings: cfg.icon_settings_url || "",
+        icon_live_tv: cfg.icon_live_tv_url || "",
+        icon_movies: cfg.icon_movies_url || "",
+        icon_series: cfg.icon_series_url || "",
+        words,
       });
     } catch (error) {
       console.error("[API] GET /api/guim.php error:", error);
