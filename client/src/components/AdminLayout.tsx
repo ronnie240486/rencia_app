@@ -91,6 +91,18 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       document.documentElement.style.setProperty("--sidebar-accent", `oklch(${Math.min(l2 + 0.06, 1).toFixed(2)} ${(c2 * 0.25).toFixed(2)} ${hexToOklch(sidebarColor)?.h ?? 55})`);
       document.documentElement.style.setProperty("--sidebar-border", `oklch(${Math.min(l2 + 0.12, 1).toFixed(2)} ${(c2 * 0.2).toFixed(2)} ${hexToOklch(sidebarColor)?.h ?? 55})`);
     }
+
+    // Cor do texto (letras)
+    const textColor = (settings as Record<string, string>).text_color;
+    if (textColor && textColor.startsWith("#") && textColor.length === 7) {
+      document.documentElement.style.setProperty("--foreground", textColor);
+      document.documentElement.style.setProperty("--card-foreground", textColor);
+      document.documentElement.style.setProperty("--popover-foreground", textColor);
+    } else {
+      document.documentElement.style.removeProperty("--foreground");
+      document.documentElement.style.removeProperty("--card-foreground");
+      document.documentElement.style.removeProperty("--popover-foreground");
+    }
   }, [settings]);
 
   const sidebarLogoUrl = settings?.sidebar_logo_url || "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouroupro_logo_dark-fXyM9RJb5jrckbNeNbskGi.webp";

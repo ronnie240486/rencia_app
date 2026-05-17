@@ -67,6 +67,8 @@ export default function UserEdit() {
     telefone: "",
   });
 
+  // formKey força re-render dos Select quando os dados chegam do servidor
+  const [formKey, setFormKey] = useState(0);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -99,6 +101,8 @@ export default function UserEdit() {
         status: (device.status as "Liberado" | "Bloqueado" | "Expirado") ?? "Liberado",
         telefone: device.telefone ? device.telefone.replace(/^\+55/, "") : "",
       });
+      // Incrementar formKey força os Select a re-renderizarem com os novos valores
+      setFormKey(k => k + 1);
       setInitialized(true);
     }
   }, [device, initialized]);
@@ -153,8 +157,6 @@ export default function UserEdit() {
     });
   };
 
-  const apps = appsData ?? [];
-
   if (error) {
     return (
       <AdminLayout title="Editar Usuário">
@@ -195,7 +197,8 @@ export default function UserEdit() {
             ))}
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="bg-card rounded-xl border shadow-sm p-6 space-y-5">
+          /* key={formKey} garante que todos os Select re-renderizam quando os dados chegam */
+          <form key={formKey} onSubmit={handleSubmit} className="bg-card rounded-xl border shadow-sm p-6 space-y-5">
 
             {/* MAC */}
             <div className="space-y-1.5">
@@ -227,9 +230,12 @@ export default function UserEdit() {
             {/* Modo de Seleção */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MODO DE SELEÇÃO:</Label>
-              <Select value={form.modoSelecao} onValueChange={v => setForm(f => ({ ...f, modoSelecao: v as "XTeamCode" | "M3U8" }))}>
+              <Select
+                value={form.modoSelecao}
+                onValueChange={v => setForm(f => ({ ...f, modoSelecao: v as "XTeamCode" | "M3U8" }))}
+              >
                 <SelectTrigger className="h-10 w-full">
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione o modo" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="XTeamCode">XTeam Code</SelectItem>
@@ -315,14 +321,17 @@ export default function UserEdit() {
             {/* Status */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">STATUS:</Label>
-              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v as "Liberado" | "Bloqueado" | "Expirado" }))}>
+              <Select
+                value={form.status}
+                onValueChange={v => setForm(f => ({ ...f, status: v as "Liberado" | "Bloqueado" | "Expirado" }))}
+              >
                 <SelectTrigger className="h-10 w-full">
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Liberado">Liberado</SelectItem>
-                  <SelectItem value="Bloqueado">Bloqueado</SelectItem>
-                  <SelectItem value="Expirado">Expirado</SelectItem>
+                  <SelectItem value="Liberado">✅ Liberado</SelectItem>
+                  <SelectItem value="Bloqueado">🔒 Bloqueado</SelectItem>
+                  <SelectItem value="Expirado">⏰ Expirado</SelectItem>
                 </SelectContent>
               </Select>
             </div>

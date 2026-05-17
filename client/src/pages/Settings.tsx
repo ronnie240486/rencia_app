@@ -24,6 +24,7 @@ const DEFAULT_VALUES: Record<string, string> = {
   // Tema
   primary_color: "#D4AF37",
   sidebar_color: "",
+  text_color: "",
   // Ícones
   icon_reload_url: "",
   icon_exit_url: "",
@@ -157,6 +158,21 @@ export default function Settings() {
       });
     }
   }, [settings]);
+
+  // Aplica cor do texto no painel ao mudar
+  useEffect(() => {
+    const tc = form.text_color;
+    if (tc && tc.startsWith("#") && tc.length === 7) {
+      document.documentElement.style.setProperty("--foreground", tc);
+      document.documentElement.style.setProperty("--card-foreground", tc);
+      document.documentElement.style.setProperty("--popover-foreground", tc);
+    } else if (!tc) {
+      // restaurar padrão
+      document.documentElement.style.removeProperty("--foreground");
+      document.documentElement.style.removeProperty("--card-foreground");
+      document.documentElement.style.removeProperty("--popover-foreground");
+    }
+  }, [form.text_color]);
 
   // Aplica a cor primária no painel ao mudar
   useEffect(() => {
@@ -609,6 +625,86 @@ export default function Settings() {
 
                 <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
                   A cor da sidebar é aplicada imediatamente. Recarregue a página após salvar para ver o efeito completo.
+                </div>
+              </CardContent>
+            </Card>
+            {/* Cor do Texto */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Palette size={16} /> Cor do Texto (Letras)
+                </CardTitle>
+                <CardDescription>
+                  Personalize a cor das letras/textos do painel. Deixe em branco para usar o padrão do tema.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 block">
+                    Cores Predefinidas
+                  </Label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {[
+                      { name: "Branco", value: "#ffffff" },
+                      { name: "Creme", value: "#fef9ee" },
+                      { name: "Cinza Claro", value: "#e5e7eb" },
+                      { name: "Dourado", value: "#D4AF37" },
+                      { name: "Laranja", value: "#F97316" },
+                      { name: "Azul Claro", value: "#93c5fd" },
+                      { name: "Verde Claro", value: "#86efac" },
+                      { name: "Padrão", value: "" },
+                    ].map(preset => (
+                      <button
+                        key={preset.value || "default"}
+                        type="button"
+                        onClick={() => handleChange("text_color", preset.value)}
+                        className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border-2 transition-all hover:scale-105 ${
+                          form.text_color === preset.value
+                            ? "border-foreground shadow-md scale-105"
+                            : "border-transparent hover:border-muted-foreground/30"
+                        }`}
+                      >
+                        <div
+                          className="w-10 h-10 rounded-full shadow-sm border border-black/10 flex items-center justify-center text-xs font-bold"
+                          style={{ backgroundColor: preset.value || "#374151", color: preset.value ? "#111" : "#fff" }}
+                        >
+                          Aa
+                        </div>
+                        <span className="text-xs font-medium text-muted-foreground">{preset.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Cor Personalizada (HEX)
+                  </Label>
+                  <div className="flex gap-3 items-center">
+                    <input
+                      type="color"
+                      value={form.text_color || "#ffffff"}
+                      onChange={e => handleChange("text_color", e.target.value)}
+                      className="w-12 h-10 rounded cursor-pointer border border-input"
+                    />
+                    <Input
+                      value={form.text_color}
+                      onChange={e => handleChange("text_color", e.target.value)}
+                      placeholder="Deixe vazio para padrão"
+                      className="h-10 font-mono"
+                      maxLength={7}
+                    />
+                    {form.text_color && (
+                      <div
+                        className="flex-1 h-10 rounded-md border flex items-center justify-center text-sm font-bold"
+                        style={{ backgroundColor: "#1a1208", color: form.text_color }}
+                      >
+                        Prévia do Texto
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+                  A cor do texto é aplicada imediatamente. Selecione "Padrão" para restaurar a cor original.
                 </div>
               </CardContent>
             </Card>

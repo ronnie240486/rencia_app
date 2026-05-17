@@ -434,6 +434,30 @@ export function registerApiRoutes(app: Express) {
 
       const cfg = await getSettings();
       const words = buildWords(cfg);
+
+      // O APK BoxV3 busca impact_phrase, contact, trial_ended, etc. dentro de
+      // languages[].words (LanguageModel → WordModels via Gson).
+      // Enviamos dois idiomas (pt + en) para garantir compatibilidade com qualquer
+      // configuração de idioma do dispositivo.
+      const wordsPayload = {
+        trial_ended: words.trial_ended,
+        to_continue: words.to_continue,
+        str_trial_description: words.trial_description,
+        str_link: words.str_link,
+        str_whatsapp: words.str_whatsapp,
+        open_website: words.open_website,
+        mac_activated: words.mac_activated,
+        to_add_manage: words.add_manage,
+        contact: words.contact,
+        impact_phrase: words.impact_phrase,
+        legal_notice: words.legal_notice,
+        app_name: words.app_name,
+      };
+      const languagesPayload = [
+        { code: "pt", id: "1", name: "Português", words: wordsPayload },
+        { code: "en", id: "2", name: "English", words: wordsPayload },
+      ];
+
       const responsePayload = {
         mac_registered: isAllowed,
         mac_address: device.mac,
@@ -443,10 +467,11 @@ export function registerApiRoutes(app: Express) {
         lock: isAllowed ? 0 : 1,
         plan_id: device.tipo ?? "Usuario",
         device_key: String(device.id),
-        languages: [],
+        // languages com words no formato correto (LanguageModel → WordModels)
+        languages: languagesPayload,
         apk_link: cfg.apk_download_url || "",
         app_version: cfg.apk_version || "5.0",
-        // Configurações personalizáveis via painel
+        // Campos extras na raiz para compatibilidade com versões antigas do APK
         trial_ended: words.trial_ended,
         via_website: words.to_continue,
         str_trial_description: words.trial_description,
@@ -457,7 +482,6 @@ export function registerApiRoutes(app: Express) {
         series_label: cfg.app_series_label || "Séries",
         banner_url: cfg.trial_banner_url || "",
         logo_url: cfg.trial_logo_url || "",
-        // Contato e frases exibidas no app
         contact: words.contact,
         contact_whatsapp: words.str_whatsapp,
         contact_website: words.str_link,

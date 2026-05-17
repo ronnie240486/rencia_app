@@ -184,3 +184,8 @@
 - [x] Todos endpoints /api/v4/icon/:name retornam HTTP 200 com ícone dourado padrão
 - [x] Confirmado: APK chama /api/v4/icon/settings, /reload, /exit, /account, /change_playlist, /series, /movies, /live_tv
 - [x] Confirmado: apk_link vem do guim.php (campo apk_download_url no painel → aba APK)
+
+## Melhorias painel (17/05/2026 - v3)
+- [ ] Tema: adicionar campo de cor do texto (letras) além da cor de fundo
+- [ ] Usuários: ao clicar em editar, formulário já vem preenchido automaticamente sem precisar selecionar campos
+- [ ] Seleção visual: destacar item selecionado (faixa branca com texto preto) em listas/selects do painel
