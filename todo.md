@@ -164,3 +164,14 @@
 - [ ] Servidor: corrigir botão de atualização de APK (apk_link usando valor configurado)
 - [ ] APK mobile v30: restaurar ícones originais do v28, corrigir campo Contact na tela principal
 - [ ] APK TV: compilar versão de TV atualizada com nome OuroPro
+
+## APK v31 (16/05/2026)
+- [ ] Usar APK v29 funcional como base (não o v30 que crasha)
+- [ ] Corrigir ícone do launcher para cobrir toda a área redonda (adaptive icon)
+- [ ] Compilar e assinar APK v31
+
+## Correções ícones e bloqueio (17/05/2026)
+- [x] Corrigir UPLOAD_FIELD_KEYS no apiRoutes.ts para aceitar icon_reload_url, icon_exit_url, icon_settings_url, icon_live_tv_url, icon_movies_url, icon_series_url, icon_account_url, icon_change_playlist_url
+- [x] Adicionar ícones faltantes: account e change_playlist na aba Ícones do Settings.tsx
+- [x] Remover aba "Tela de Bloqueio" do Settings.tsx (grid agora 5 colunas)
+- [x] Mover campos de mensagem de bloqueio (título, mensagem, botão) para aba Banner

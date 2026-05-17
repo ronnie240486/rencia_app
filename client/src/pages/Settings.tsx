@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Image, Upload, Palette, MessageCircle, Smartphone, Lock, LayoutGrid } from "lucide-react";
+import { Loader2, Save, Image, Upload, Palette, MessageCircle, Smartphone, LayoutGrid } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 
 const DEFAULT_VALUES: Record<string, string> = {
@@ -28,9 +28,11 @@ const DEFAULT_VALUES: Record<string, string> = {
   icon_reload_url: "",
   icon_exit_url: "",
   icon_settings_url: "",
+  icon_account_url: "",
   icon_live_tv_url: "",
   icon_movies_url: "",
   icon_series_url: "",
+  icon_change_playlist_url: "",
   // Tela de Bloqueio
   lock_title: "OuroPro",
   lock_message: "OuroPro is a media player application. The app does not provide or include any media or content.",
@@ -238,7 +240,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="banner">
-          <TabsList className="grid grid-cols-6 w-full">
+          <TabsList className="grid grid-cols-5 w-full">
             <TabsTrigger value="banner" className="gap-1 text-xs">
               <Image size={13} /> Banner
             </TabsTrigger>
@@ -253,9 +255,6 @@ export default function Settings() {
             </TabsTrigger>
             <TabsTrigger value="icones" className="gap-1 text-xs">
               <LayoutGrid size={13} /> Ícones
-            </TabsTrigger>
-            <TabsTrigger value="bloqueio" className="gap-1 text-xs">
-              <Lock size={13} /> Bloqueio
             </TabsTrigger>
           </TabsList>
 
@@ -414,6 +413,58 @@ export default function Settings() {
                     />
                     <p className="text-xs text-muted-foreground">Exibida na tela de bloqueio e na página &quot;Sobre&quot; do app (campo <code>legal_notice</code>). Deixe vazio para usar o texto padrão.</p>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Card Tela de Bloqueio */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Tela de Bloqueio / Expirado</CardTitle>
+                <CardDescription>
+                  Personalize o texto e botão exibidos quando o acesso do cliente está bloqueado ou expirado.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="font-semibold">Título da tela de bloqueio</Label>
+                  <Input
+                    value={form.lock_title}
+                    onChange={e => handleChange("lock_title", e.target.value)}
+                    placeholder="OuroPro"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold">Mensagem de bloqueio</Label>
+                  <Textarea
+                    value={form.lock_message}
+                    onChange={e => handleChange("lock_message", e.target.value)}
+                    rows={3}
+                    placeholder="OuroPro is a media player application..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold">Texto do botão de renovação</Label>
+                  <Input
+                    value={form.lock_button_text}
+                    onChange={e => handleChange("lock_button_text", e.target.value)}
+                    placeholder="Renovar Agora"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold">URL do botão de renovação (WhatsApp ou site)</Label>
+                  <Input
+                    value={form.lock_button_url}
+                    onChange={e => handleChange("lock_button_url", e.target.value)}
+                    placeholder="https://wa.me/5511999999999"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Quando o cliente clicar em "Renovar Agora" na tela de bloqueio, será redirecionado para esta URL.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 p-3 text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                  <p className="font-semibold">Como funciona:</p>
+                  <p>Esses campos são enviados ao APK via <code>/api/guim.php</code> nos campos <code>lock_title</code>, <code>lock_message</code>, <code>lock_button_text</code> e <code>lock_button_url</code>. O APK exibe esses valores na tela de bloqueio quando o acesso expira.</p>
                 </div>
               </CardContent>
             </Card>
@@ -715,9 +766,11 @@ export default function Settings() {
                   { key: "icon_reload_url", label: "Ícone Recarregar (reload)" },
                   { key: "icon_exit_url", label: "Ícone Sair (exit)" },
                   { key: "icon_settings_url", label: "Ícone Configurações (settings)" },
+                  { key: "icon_account_url", label: "Ícone Conta / Perfil (account)" },
                   { key: "icon_live_tv_url", label: "Ícone TV ao Vivo (live_tv)" },
                   { key: "icon_movies_url", label: "Ícone Filmes (movies)" },
                   { key: "icon_series_url", label: "Ícone Séries (series)" },
+                  { key: "icon_change_playlist_url", label: "Ícone Trocar Playlist (change_playlist)" },
                 ].map(({ key, label }) => (
                   <div key={key} className="space-y-2">
                     <Label className="font-semibold">{label}</Label>
@@ -746,61 +799,7 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          {/* ─── Aba Tela de Bloqueio ─────────────────────────────────────── */}
-          <TabsContent value="bloqueio" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Lock size={16} /> Tela de Bloqueio / Expirado
-                </CardTitle>
-                <CardDescription>
-                  Personalize o texto e botão exibidos quando o acesso do cliente está bloqueado ou expirado.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-2">
-                  <Label className="font-semibold">Título da tela de bloqueio</Label>
-                  <Input
-                    value={form.lock_title}
-                    onChange={e => handleChange("lock_title", e.target.value)}
-                    placeholder="OuroPro"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-semibold">Mensagem de bloqueio</Label>
-                  <Textarea
-                    value={form.lock_message}
-                    onChange={e => handleChange("lock_message", e.target.value)}
-                    rows={3}
-                    placeholder="OuroPro is a media player application..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-semibold">Texto do botão de renovação</Label>
-                  <Input
-                    value={form.lock_button_text}
-                    onChange={e => handleChange("lock_button_text", e.target.value)}
-                    placeholder="Renovar Agora"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-semibold">URL do botão de renovação (WhatsApp ou site)</Label>
-                  <Input
-                    value={form.lock_button_url}
-                    onChange={e => handleChange("lock_button_url", e.target.value)}
-                    placeholder="https://wa.me/5511999999999"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Quando o cliente clicar em "Renovar Agora" na tela de bloqueio, será redirecionado para esta URL.
-                  </p>
-                </div>
-                <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 p-3 text-xs text-blue-800 dark:text-blue-200 space-y-1">
-                  <p className="font-semibold">Como funciona:</p>
-                  <p>Esses campos são enviados ao APK via <code>/api/guim.php</code> nos campos <code>lock_title</code>, <code>lock_message</code>, <code>lock_button_text</code> e <code>lock_button_url</code>. O APK exibe esses valores na tela de bloqueio quando o acesso expira.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+
 
         </Tabs>
 
