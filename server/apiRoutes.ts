@@ -802,12 +802,16 @@ export function registerApiRoutes(app: Express) {
    * Retorna redirect para o ícone dinâmico configurado no painel.
    * :name pode ser: live_tv, movies, series, account, change_playlist
    */
+  // Ícones padrão dourados OuroPro (servidos quando nenhum ícone customizado está configurado no painel)
   const ICON_DEFAULTS: Record<string, string> = {
-    live_tv: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_tv_icon-AAug6wmiVszWoLBpe6xQhX.png",
-    movies: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_series_icon-7CwEZ4S5JmMoikDNVJThqn.png",
-    series: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_series_icon-7CwEZ4S5JmMoikDNVJThqn.png",
-    account: "",
-    change_playlist: "",
+    live_tv: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/icon_live_tv-TyUwK9oRm66N7ZfCLhkh3o.png",
+    movies: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/icon_movies-KKRT3PwPszfgeWNeFxHpje.png",
+    series: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/icon_series-JVKe9h39kQ4kyfPEe3x9YK.png",
+    account: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/icon_account-9KjQyeJwBLforJBcUhiyc8.png",
+    change_playlist: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/icon_change_playlist-4QmNmPzALPLATpUyXY8cRw.png",
+    settings: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/icon_settings-GkcQUtHsny56YmYQePXEEe.png",
+    reload: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/icon_reload-fS3sXA2B8vteQz2Ct8UY98.png",
+    exit: "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/icon_exit-eib62ohFdaGRbkaiHcirtG.png",
   };
   const ICON_SETTING_KEYS: Record<string, string> = {
     live_tv: "icon_live_tv_url",
@@ -815,6 +819,9 @@ export function registerApiRoutes(app: Express) {
     series: "icon_series_url",
     account: "icon_account_url",
     change_playlist: "icon_change_playlist_url",
+    settings: "icon_settings_url",
+    reload: "icon_reload_url",
+    exit: "icon_exit_url",
   };
 
   /**

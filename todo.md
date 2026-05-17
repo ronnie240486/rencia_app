@@ -166,12 +166,21 @@
 - [ ] APK TV: compilar versão de TV atualizada com nome OuroPro
 
 ## APK v31 (16/05/2026)
-- [ ] Usar APK v29 funcional como base (não o v30 que crasha)
-- [ ] Corrigir ícone do launcher para cobrir toda a área redonda (adaptive icon)
-- [ ] Compilar e assinar APK v31
+- [x] Usar APK v29 funcional como base (não o v30 que crasha)
+- [x] Corrigir ícone do launcher para cobrir toda a área redonda (adaptive icon) — novo ícone OuroPro dourado gerado
+- [x] Compilar e assinar APK v31 — OuroPro_v31_mobile.apk (25MB, versionCode 116, versionName 5.2)
 
 ## Correções ícones e bloqueio (17/05/2026)
 - [x] Corrigir UPLOAD_FIELD_KEYS no apiRoutes.ts para aceitar icon_reload_url, icon_exit_url, icon_settings_url, icon_live_tv_url, icon_movies_url, icon_series_url, icon_account_url, icon_change_playlist_url
 - [x] Adicionar ícones faltantes: account e change_playlist na aba Ícones do Settings.tsx
 - [x] Remover aba "Tela de Bloqueio" do Settings.tsx (grid agora 5 colunas)
 - [x] Mover campos de mensagem de bloqueio (título, mensagem, botão) para aba Banner
+
+## Correções ícones dinâmicos (17/05/2026 - v2)
+- [x] Gerar 8 ícones dourados padrão OuroPro (live_tv, movies, series, account, change_playlist, settings, reload, exit)
+- [x] Upload dos ícones para storage do webdev
+- [x] Corrigir ICON_DEFAULTS no servidor para todos os 8 ícones com URLs corretas
+- [x] Corrigir ICON_SETTING_KEYS para incluir settings, reload e exit
+- [x] Todos endpoints /api/v4/icon/:name retornam HTTP 200 com ícone dourado padrão
+- [x] Confirmado: APK chama /api/v4/icon/settings, /reload, /exit, /account, /change_playlist, /series, /movies, /live_tv
+- [x] Confirmado: apk_link vem do guim.php (campo apk_download_url no painel → aba APK)
