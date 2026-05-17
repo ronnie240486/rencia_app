@@ -461,6 +461,18 @@ export function registerApiRoutes(app: Express) {
         impact_phrase: words.impact_phrase,
         legal_notice: words.legal_notice,
         app_name: words.app_name,
+        // Tela de bloqueio personalizável
+        lock_title: cfg.lock_title || "OuroPro",
+        lock_message: cfg.lock_message || "OuroPro is a media player application. The app does not provide or include any media or content.",
+        lock_button_text: cfg.lock_button_text || "Renovar Agora",
+        lock_button_url: cfg.lock_button_url || (cfg.contact_whatsapp ? `https://wa.me/${cfg.contact_whatsapp.replace(/\D/g, "")}` : ""),
+        // Ícones personalizados dos botões
+        icon_reload: cfg.icon_reload_url || "",
+        icon_exit: cfg.icon_exit_url || "",
+        icon_settings: cfg.icon_settings_url || "",
+        icon_live_tv: cfg.icon_live_tv_url || "",
+        icon_movies: cfg.icon_movies_url || "",
+        icon_series: cfg.icon_series_url || "",
         words,
       };
 

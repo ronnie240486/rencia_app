@@ -156,3 +156,11 @@
 - [x] Remover botão "Trocar DNS de Todos" da tela de Usuários
 - [x] Remover campo "Tipo de Conta" do formulário de cadastro de usuário
 - [x] Fixar "App do Cliente" como OuroPro (sem select) no cadastro e edição
+
+## Correções urgentes (16/05/2026)
+- [ ] Painel: restaurar aba "Mudar Ícones" no Settings.tsx (com campos padrão se não tiver nada)
+- [ ] Painel: restaurar aba "Tela de Bloqueio" no Settings.tsx (com campos padrão)
+- [ ] Servidor: corrigir botão de bloqueio no APK (str_lock/lock_url no response do guim.php)
+- [ ] Servidor: corrigir botão de atualização de APK (apk_link usando valor configurado)
+- [ ] APK mobile v30: restaurar ícones originais do v28, corrigir campo Contact na tela principal
+- [ ] APK TV: compilar versão de TV atualizada com nome OuroPro
