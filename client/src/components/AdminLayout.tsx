@@ -9,6 +9,7 @@ import {
   LogOut,
   Menu,
   MessageCircle,
+  ShoppingBag,
   SlidersHorizontal,
   Shield,
   Store,
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
   { label: "Cadastrar Usuário", href: "/users/create", icon: <BarChart3 size={18} /> },
   { label: "Revendas", href: "/revendas", icon: <Store size={18} /> },
   { label: "Chatbot de Avisos", href: "/chatbot", icon: <MessageCircle size={18} /> },
+  { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} /> },
   { label: "Configurações do App", href: "/settings", icon: <SlidersHorizontal size={18} /> },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];

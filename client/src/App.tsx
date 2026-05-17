@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
+import Loja from "@/pages/Loja";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Dashboard from "./pages/Dashboard";
@@ -31,6 +32,7 @@ function Router() {
       <Route path={"/users/:id/lists"} component={DeviceLists} />
       <Route path={"/dns-massa"} component={DnsMassa} />
       <Route path={"/chatbot"} component={Chatbot} />
+      <Route path={"/loja"} component={Loja} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
