@@ -1143,6 +1143,60 @@ export function registerApiRoutes(app: Express) {
     }
   });
 
+  /**
+   * POST /api/chatbot/revendas
+   * Gera links WhatsApp de aviso para revendas que vencem nos próximos N dias.
+   */
+  app.post("/api/chatbot/revendas", async (req: Request, res: Response) => {
+    try {
+      const db = await getDb();
+      if (!db) { res.status(500).json({ message: "Banco indisponível" }); return; }
+      const cfg = await getSettings();
+      const diasAviso = parseInt(req.body?.dias ?? cfg.chatbot_dias_aviso ?? "3") || 3;
+      const mensagemTemplate = cfg.chatbot_mensagem_revenda ||
+        "\u26a0\ufe0f *OuroPro \u2014 Aviso de Vencimento*\n\nOl\u00e1 {nome}! Seu plano de revenda vence em *{dias} dia(s)* ({data}).\n\n\ud83d\udd12 Ap\u00f3s o vencimento, todos os seus clientes ser\u00e3o bloqueados automaticamente.\n\nRenove agora e mantenha seu neg\u00f3cio funcionando sem interrup\u00e7\u00f5es! \ud83d\ude80";
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const limite = new Date(hoje);
+      limite.setDate(limite.getDate() + diasAviso);
+      const { and: andOp, lte: lteOp, gte: gteOp, isNotNull: isNotNullOp, inArray: inArrayOp } = await import("drizzle-orm");
+      const { users: usersTable } = await import("../drizzle/schema");
+      // Filtrar apenas contas do tipo Revenda, Master ou Ultra Master (não usuários comuns)
+      const expiring = await db.select()
+        .from(usersTable)
+        .where(
+          andOp(
+            isNotNullOp(usersTable.telefone),
+            isNotNullOp(usersTable.planValidade),
+            gteOp(usersTable.planValidade, hoje),
+            lteOp(usersTable.planValidade, limite),
+            inArrayOp(usersTable.plano, ["Revenda", "Master", "Ultra Master"])
+          )
+        );
+      if (expiring.length === 0) {
+        res.json({ sent: 0, message: "Nenhuma revenda vence nos pr\u00f3ximos " + diasAviso + " dia(s) ou sem telefone cadastrado.", links: [] });
+        return;
+      }
+      const links = expiring.filter(r => r.telefone).map(r => {
+        const expDate = r.planValidade ? new Date(r.planValidade) : null;
+        const dias = expDate ? Math.ceil((expDate.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+        const dataFormatada = expDate
+          ? `${String(expDate.getDate()).padStart(2, "0")}/${String(expDate.getMonth() + 1).padStart(2, "0")}/${expDate.getFullYear()}`
+          : "";
+        const msg = mensagemTemplate
+          .replace(/\{nome\}/g, r.name || "Revenda")
+          .replace(/\{dias\}/g, String(dias))
+          .replace(/\{data\}/g, dataFormatada);
+        const numero = (r.telefone || "").replace(/[^0-9]/g, "");
+        return { nome: r.name, telefone: r.telefone, vencimento: dataFormatada, dias, waUrl: `https://wa.me/${numero}?text=${encodeURIComponent(msg)}` };
+      });
+      res.json({ sent: links.length, message: `${links.length} revenda(s) com vencimento nos pr\u00f3ximos ${diasAviso} dia(s).`, links });
+    } catch (error) {
+      console.error("[API] /api/chatbot/revendas error:", error);
+      res.status(500).json({ message: "Erro interno" });
+    }
+  });
+
   app.get("/api/v4/icon/:name", async (req: Request, res: Response) => {
     const name = req.params.name as string;
     const settingKey = ICON_SETTING_KEYS[name];

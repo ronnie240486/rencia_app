@@ -299,16 +299,29 @@ export default function Revendas() {
 
       {/* Dialog confirmar exclusão */}
       <Dialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="text-destructive">⚠️</span> Confirmar Exclusão e Bloqueio
+            </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">Tem certeza que deseja remover esta revenda? Esta ação não pode ser desfeita.</p>
+          <div className="space-y-3">
+            <p className="text-sm font-semibold">Esta ação irá realizar o seguinte <strong>imediatamente</strong>:</p>
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1.5 text-sm">
+              <p className="flex items-center gap-2"><span className="text-red-500">✕</span> Bloquear <strong>todos os usuários</strong> vinculados a esta revenda</p>
+              <p className="flex items-center gap-2"><span className="text-red-500">✕</span> Bloquear <strong>todas as sub-revendas</strong> e seus usuários (cascata)</p>
+              <p className="flex items-center gap-2"><span className="text-red-500">✕</span> Remover permanentemente a conta da revenda</p>
+            </div>
+            <div className="rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-800 p-3 text-xs text-yellow-800 dark:text-yellow-200">
+              🔒 Os usuários bloqueados verão no app: <em>"Acesso bloqueado. Entre em contato com seu revendedor para renovar o plano."</em>
+            </div>
+            <p className="text-xs text-muted-foreground">Esta ação não pode ser desfeita.</p>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteId(null)}>Cancelar</Button>
             <Button variant="destructive" onClick={() => deleteId && deleteMut.mutate({ id: deleteId })} disabled={deleteMut.isPending}>
               {deleteMut.isPending && <Loader2 size={14} className="mr-2 animate-spin" />}
-              Remover
+              Bloquear e Remover
             </Button>
           </DialogFooter>
         </DialogContent>

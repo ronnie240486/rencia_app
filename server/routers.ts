@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -343,6 +343,36 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (db) {
+          // 1. Coletar todos os sub-usuários (revendas filhas) da revenda sendo deletada
+          const subRevendas = await db
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.resellerId, input.id));
+          const subIds = subRevendas.map(r => r.id);
+
+          // 2. Bloquear devices diretos da revenda
+          await db.update(devices)
+            .set({ status: "Bloqueado" })
+            .where(eq(devices.ownerId, input.id));
+
+          // 3. Bloquear devices de todas as sub-revendas (cascata)
+          if (subIds.length > 0) {
+            await db.update(devices)
+              .set({ status: "Bloqueado" })
+              .where(inArray(devices.ownerId, subIds));
+            // Marcar sub-revendas como inativas
+            await db.update(users)
+              .set({ isActive: false })
+              .where(inArray(users.id, subIds));
+          }
+
+          // 4. Marcar a própria revenda como inativa antes de deletar
+          await db.update(users)
+            .set({ isActive: false })
+            .where(and(eq(users.id, input.id), eq(users.resellerId, ctx.user.id)));
+        }
         await deleteRevenda(input.id, ctx.user.id);
         return { success: true };
       }),
@@ -513,6 +543,56 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         await updateUserProfile(ctx.user.id, input);
+        return { success: true };
+      }),
+  }),
+
+  // ─── DNS Cadastradas ────────────────────────────────────────────────────
+  dns: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(dnsEntries).where(eq(dnsEntries.ownerId, ctx.user.id));
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        titulo: z.string().min(1, "Título obrigatório"),
+        host: z.string().min(1, "Host obrigatório"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        // Normalizar host: remover barra final
+        const host = input.host.replace(/\/+$/, "");
+        await db.insert(dnsEntries).values({
+          ownerId: ctx.user.id,
+          titulo: input.titulo,
+          host,
+          ativo: true,
+        });
+        return { success: true };
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        titulo: z.string().min(1).optional(),
+        host: z.string().min(1).optional(),
+        ativo: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { id, ...data } = input;
+        if (data.host) data.host = data.host.replace(/\/+$/, "");
+        await db.update(dnsEntries).set(data).where(and(eq(dnsEntries.id, id), eq(dnsEntries.ownerId, ctx.user.id)));
+        return { success: true };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.delete(dnsEntries).where(and(eq(dnsEntries.id, input.id), eq(dnsEntries.ownerId, ctx.user.id)));
         return { success: true };
       }),
   }),

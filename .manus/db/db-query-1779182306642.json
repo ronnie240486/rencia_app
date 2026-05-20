@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `dns_entries` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`ownerId` int NOT NULL,\n\t`titulo` varchar(128) NOT NULL,\n\t`host` varchar(512) NOT NULL,\n\t`ativo` boolean NOT NULL DEFAULT true,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `dns_entries_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute CREATE TABLE IF NOT EXISTS `dns_entries` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`ownerId` int NOT NULL,\n\t`titulo` varchar(128) NOT NULL,\n\t`host` varchar(512) NOT NULL,\n\t`ativo` boolean NOT NULL DEFAULT true,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `dns_entries_id` PRIMARY KEY(`id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1595
+}

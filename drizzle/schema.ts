@@ -91,3 +91,15 @@ export const appSettings = mysqlTable("app_settings", {
 });
 export type AppSetting = typeof appSettings.$inferSelect;
 export type InsertAppSetting = typeof appSettings.$inferInsert;
+
+// Tabela de DNS cadastradas pelo revendedor
+export const dnsEntries = mysqlTable("dns_entries", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  titulo: varchar("titulo", { length: 128 }).notNull(),
+  host: varchar("host", { length: 512 }).notNull(), // Ex: http://servidor.com ou http://servidor.com:8080
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type DnsEntry = typeof dnsEntries.$inferSelect;
+export type InsertDnsEntry = typeof dnsEntries.$inferInsert;

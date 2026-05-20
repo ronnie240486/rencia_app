@@ -189,3 +189,11 @@
 - [ ] Tema: adicionar campo de cor do texto (letras) além da cor de fundo
 - [ ] Usuários: ao clicar em editar, formulário já vem preenchido automaticamente sem precisar selecionar campos
 - [ ] Seleção visual: destacar item selecionado (faixa branca com texto preto) em listas/selects do painel
+
+## Novas funcionalidades (18/05/2026)
+- [x] Loja: campo apk_short_url (link encurtado) com toggle para usar link encurtado ou link completo
+- [x] Ao deletar revenda/master: bloquear imediatamente todos os usuários vinculados no banco (cascata: sub-revendas + devices)
+- [x] Modal de bloqueio para revenda/master deletado: exibir mensagem de pagamento expirado ao tentar acessar o painel deles
+- [x] Aviso automático 3 dias antes do vencimento da revenda via chatbot/WhatsApp (filtro: apenas Revenda/Master/Ultra Master)
+- [x] Botão "Cadastrar DNS" na página de DNS do painel
+- [x] Troca de DNS em massa: trocar somente o host/DNS (não a URL completa) dos usuários vinculados à DNS selecionada
