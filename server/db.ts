@@ -304,7 +304,21 @@ export async function listRevendas(resellerId: number, opts: {
     db.select().from(users).where(whereClause).orderBy(desc(users.createdAt)).limit(pageSize).offset(offset),
     db.select({ count: count() }).from(users).where(whereClause),
   ]);
-  return { data, total: totalRows[0]?.count ?? 0 };
+  // Adicionar contagem de devices (clientes) por revenda
+  const revendaIds = data.map(r => r.id);
+  let deviceCounts: Record<number, number> = {};
+  if (revendaIds.length > 0) {
+    const { inArray: inArr } = await import("drizzle-orm");
+    const counts = await db.select({ ownerId: devices.ownerId, cnt: count() })
+      .from(devices)
+      .where(inArr(devices.ownerId, revendaIds))
+      .groupBy(devices.ownerId);
+    for (const row of counts) {
+      deviceCounts[row.ownerId] = row.cnt;
+    }
+  }
+  const dataWithCounts = data.map(r => ({ ...r, clientCount: deviceCounts[r.id] ?? 0 }));
+  return { data: dataWithCounts, total: totalRows[0]?.count ?? 0 };
 }
 
 export async function createRevenda(data: {

@@ -11,10 +11,12 @@ import {
   Building2,
   Edit2,
   Loader2,
+  Lock,
   Plus,
   Search,
   Smartphone,
   Trash2,
+  Unlock,
   Users,
 } from "lucide-react";
 import { useState } from "react";
@@ -41,12 +43,20 @@ const emptyForm: RevendaForm = {
 export default function Revendas() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "blocked">("all");
   const [showDialog, setShowDialog] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<RevendaForm>(emptyForm);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const { data, isLoading, refetch } = trpc.revendas.list.useQuery({ search, page, pageSize: 20 });
+
+  // Filtrar por status no cliente
+  const filteredData = (data?.data ?? []).filter(r => {
+    if (filterStatus === "active") return r.isActive;
+    if (filterStatus === "blocked") return !r.isActive;
+    return true;
+  });
   const { data: stats } = trpc.revendas.stats.useQuery();
   const { data: planInfo } = trpc.plan.info.useQuery();
 
@@ -60,6 +70,13 @@ export default function Revendas() {
   });
   const deleteMut = trpc.revendas.delete.useMutation({
     onSuccess: () => { toast.success("Revenda removida!"); setDeleteId(null); refetch(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const toggleBlockMut = trpc.revendas.toggleBlock.useMutation({
+    onSuccess: (_, vars) => {
+      toast.success(vars.block ? "Revenda bloqueada! Todos os devices foram bloqueados." : "Revenda desbloqueada! Devices liberados.");
+      refetch();
+    },
     onError: (e) => toast.error(e.message),
   });
 
@@ -137,8 +154,8 @@ export default function Revendas() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar revenda..."
@@ -147,7 +164,21 @@ export default function Revendas() {
             className="pl-9 h-9 text-sm"
           />
         </div>
-        <Button size="sm" onClick={openCreate} className="gap-2">
+        {/* Filtro de status */}
+        <div className="flex gap-1">
+          {(["all", "active", "blocked"] as const).map(s => (
+            <Button
+              key={s}
+              size="sm"
+              variant={filterStatus === s ? "default" : "outline"}
+              className="h-8 px-3 text-xs"
+              onClick={() => setFilterStatus(s)}
+            >
+              {s === "all" ? "Todos" : s === "active" ? "Ativos" : "Bloqueados"}
+            </Button>
+          ))}
+        </div>
+        <Button size="sm" onClick={openCreate} className="gap-2 ml-auto">
           <Plus size={15} />
           Nova Revenda
         </Button>
@@ -163,7 +194,7 @@ export default function Revendas() {
             <div className="flex items-center justify-center py-12">
               <Loader2 size={24} className="animate-spin text-muted-foreground" />
             </div>
-          ) : (data?.data?.length ?? 0) === 0 ? (
+          ) : filteredData.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Building2 size={40} className="mx-auto mb-3 opacity-20" />
               <p className="text-sm">Nenhuma revenda cadastrada</p>
@@ -179,12 +210,13 @@ export default function Revendas() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Plano</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Limite</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden md:table-cell">Validade</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Clientes</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data?.data?.map((r) => (
+                  {filteredData.map((r) => (
                     <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium text-foreground">{r.name ?? "—"}</td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{r.email ?? "—"}</td>
@@ -195,6 +227,12 @@ export default function Revendas() {
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
                         {r.planValidade ? new Date(r.planValidade).toLocaleDateString("pt-BR") : "—"}
                       </td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        <span className="inline-flex items-center gap-1 text-sm font-semibold text-foreground">
+                          <Smartphone size={12} className="text-muted-foreground" />
+                          {(r as any).clientCount ?? 0}
+                        </span>
+                      </td>
                       <td className="px-4 py-3">
                         <Badge variant={r.isActive ? "default" : "destructive"} className="text-xs">
                           {r.isActive ? "Ativo" : "Inativo"}
@@ -204,6 +242,15 @@ export default function Revendas() {
                         <div className="flex items-center justify-end gap-1">
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
                             <Edit2 size={13} />
+                          </Button>
+                          <Button
+                            size="icon" variant="ghost"
+                            className={`h-7 w-7 ${r.isActive ? "text-orange-500 hover:text-orange-600" : "text-green-500 hover:text-green-600"}`}
+                            title={r.isActive ? "Bloquear revenda" : "Desbloquear revenda"}
+                            disabled={toggleBlockMut.isPending}
+                            onClick={() => toggleBlockMut.mutate({ id: r.id, block: !!r.isActive })}
+                          >
+                            {r.isActive ? <Lock size={13} /> : <Unlock size={13} />}
                           </Button>
                           <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(r.id)}>
                             <Trash2 size={13} />

@@ -197,3 +197,14 @@
 - [x] Aviso automático 3 dias antes do vencimento da revenda via chatbot/WhatsApp (filtro: apenas Revenda/Master/Ultra Master)
 - [x] Botão "Cadastrar DNS" na página de DNS do painel
 - [x] Troca de DNS em massa: trocar somente o host/DNS (não a URL completa) dos usuários vinculados à DNS selecionada
+
+## Novas funcionalidades (20/05/2026)
+- [ ] Revendas: botão Bloquear/Desbloquear revenda (sem excluir) com bloqueio cascata de devices
+- [ ] Configurações: corrigir botão "Atualizar Aplicativo" (endpoint /api/v4/update.php retornando link correto)
+- [ ] Heartbeat: investigar e corrigir exibição do canal assistido no painel (coluna ASSISTINDO)
+
+## Novas funcionalidades (21/05/2026)
+- [ ] Perfil: seção de alterar senha e alterar login (email)
+- [ ] DNS: botão excluir DNS cadastradas na página DNS
+- [ ] Revendas: painel de revendas ativas com contagem de clientes por revenda
+- [ ] Configurações APK: corrigir botão Atualizar Aplicativo (apk_link no guim.php)

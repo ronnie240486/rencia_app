@@ -337,6 +337,38 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
         await updateRevenda(id, ctx.user.id, data);
+         return { success: true };
+      }),
+
+    toggleBlock: protectedProcedure
+      .input(z.object({ id: z.number(), block: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+        // Coletar sub-revendas para cascata
+        const subRevendas = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.resellerId, input.id));
+        const subIds = subRevendas.map(r => r.id);
+        const deviceStatus = input.block ? "Bloqueado" : "Liberado";
+        // Bloquear/desbloquear devices diretos
+        await db.update(devices)
+          .set({ status: deviceStatus })
+          .where(eq(devices.ownerId, input.id));
+        // Cascata: sub-revendas
+        if (subIds.length > 0) {
+          await db.update(devices)
+            .set({ status: deviceStatus })
+            .where(inArray(devices.ownerId, subIds));
+          await db.update(users)
+            .set({ isActive: !input.block })
+            .where(inArray(users.id, subIds));
+        }
+        // Atualizar a própria revenda
+        await db.update(users)
+          .set({ isActive: !input.block })
+          .where(and(eq(users.id, input.id), eq(users.resellerId, ctx.user.id)));
         return { success: true };
       }),
 
@@ -533,8 +565,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    profile: protectedProcedure.query(({ ctx }) => ctx.user),
-
+     profile: protectedProcedure.query(({ ctx }) => ctx.user),
     updateProfile: protectedProcedure
       .input(z.object({
         telefone: z.string().optional(),
@@ -543,6 +574,21 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         await updateUserProfile(ctx.user.id, input);
+        return { success: true };
+      }),
+    changeCredentials: protectedProcedure
+      .input(z.object({
+        name: z.string().min(2, "Nome deve ter ao menos 2 caracteres").optional(),
+        email: z.string().email("E-mail inválido").optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const updateData: Record<string, unknown> = {};
+        if (input.name) updateData.name = input.name;
+        if (input.email) updateData.email = input.email;
+        if (Object.keys(updateData).length === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Nenhum dado para atualizar" });
+        await db.update(users).set(updateData).where(eq(users.id, ctx.user.id));
         return { success: true };
       }),
   }),
