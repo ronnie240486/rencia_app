@@ -12,7 +12,7 @@ import {
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
   getConnectedDevices, updateUserProfile,
 } from "./db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { users, appSettings, devices, deviceUrls, dnsEntries } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -205,6 +205,26 @@ export const appRouter = router({
         return { success: true, count: updated };
       }),
 
+    // Devices expirando nos próximos N dias
+    expiringSoon: protectedProcedure
+      .input(z.object({ days: z.number().min(1).max(30).optional().default(7) }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const now = new Date();
+        const future = new Date(now.getTime() + input.days * 24 * 60 * 60 * 1000);
+        const rows = await db.select()
+          .from(devices)
+          .where(and(
+            eq(devices.ownerId, ctx.user.id),
+            sql`${devices.dataExpiracao} IS NOT NULL`,
+            sql`${devices.dataExpiracao} >= ${now.toISOString()}`,
+            sql`${devices.dataExpiracao} <= ${future.toISOString()}`
+          ))
+          .orderBy(devices.dataExpiracao)
+          .limit(50);
+        return rows;
+      }),
     // Listar hosts únicos cadastrados (para dropdown da página DNS em massa)
     listUniqueUrls: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();

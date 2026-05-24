@@ -47,6 +47,7 @@ export default function Dashboard() {
   const { data: stats, isLoading: statsLoading, error: statsError } = trpc.devices.stats.useQuery();
   const { data: planInfo } = trpc.plan.info.useQuery();
   const { data: recentDevices, isLoading: recentLoading } = trpc.devices.recentList.useQuery({ search: recentSearch, limit: 5 });
+  const { data: expiringSoon } = trpc.devices.expiringSoon.useQuery({ days: 7 });
   const { data: connectedDevices, isLoading: connectedLoading, refetch: refetchConnected } = trpc.connected.list.useQuery(
     { minutesAgo: connectedFilter },
     { refetchInterval: 30_000 } // atualiza a cada 30s para mostrar canal assistido em tempo real
@@ -335,6 +336,39 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+      {/* Expirando em breve */}
+      {(expiringSoon ?? []).length > 0 && (
+        <Card className="border-0 shadow-sm border-l-4 border-l-orange-400">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-orange-600">
+              <AlertTriangle className="w-4 h-4" />
+              <span>{`⚠️ Expirando nos próximos 7 dias (${(expiringSoon ?? []).length})`}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="text-xs"><span>{"MAC"}</span></TableHead>
+                  <TableHead className="text-xs"><span>{"NOME DO SERVER"}</span></TableHead>
+                  <TableHead className="text-xs"><span>{"EXPIRA EM"}</span></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(expiringSoon ?? []).map(d => (
+                  <TableRow key={d.id}>
+                    <TableCell className="text-xs font-mono"><span>{d.mac}</span></TableCell>
+                    <TableCell className="text-xs"><span>{d.nomeServer}</span></TableCell>
+                    <TableCell className="text-xs text-orange-600 font-medium">
+                      <span>{formatDate(d.dataExpiracao)}</span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
       </div>
     </AdminLayout>
   );
