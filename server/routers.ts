@@ -443,9 +443,11 @@ export const appRouter = router({
     info: protectedProcedure.query(async ({ ctx }) => {
       const isOwner = ctx.user.openId === ENV.ownerOpenId;
       if (isOwner) {
+        // Buscar plano real do banco para mostrar o nome correto
+        const dbPlan = await getUserPlanInfo(ctx.user.id);
         return {
-          plano: "Criador / Desenvolvedor ★",
-          planValidade: null,
+          plano: dbPlan?.plano || "Ultra Master",
+          planValidade: dbPlan?.planValidade ?? null,
           limiteDevices: 999999,
           limiteRevendas: 999999,
         };

@@ -22,7 +22,7 @@ import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
 import { devices, appSettings, deviceUrls } from "../drizzle/schema";
 import { eq, or } from "drizzle-orm";
-import { storagePut } from "./storage";
+import { storagePut, storageGetSignedUrl } from "./storage";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -78,6 +78,27 @@ async function getSettings(): Promise<Record<string, string>> {
 }
 
 const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+
+/**
+ * Resolve uma URL de imagem do banco para uma URL pública acessível.
+ * Se a URL for do /manus-storage/ (protegido por OAuth), gera uma URL pré-assinada do S3.
+ * Se for URL externa (http/https), retorna diretamente.
+ */
+async function resolvePublicImageUrl(storedUrl: string): Promise<string> {
+  if (!storedUrl) return "";
+  // URL do manus-storage precisa de URL pré-assinada
+  const manusStorageMatch = storedUrl.match(/\/manus-storage\/(.+)$/);
+  if (manusStorageMatch) {
+    try {
+      const key = manusStorageMatch[1];
+      return await storageGetSignedUrl(key);
+    } catch {
+      return storedUrl; // fallback
+    }
+  }
+  // URL externa: retornar diretamente
+  return storedUrl;
+}
 
 /**
  * Decodifica o payload enviado pelo APK BoxV3 (Security.getStringData).
@@ -435,6 +456,18 @@ export function registerApiRoutes(app: Express) {
       const cfg = await getSettings();
       const words = buildWords(cfg);
 
+      // Resolver URLs de imagens para URLs públicas (presigned S3)
+      const [postResolvedLogoUrl, postResolvedBannerUrl, postResolvedIconReload, postResolvedIconExit, postResolvedIconSettings, postResolvedIconLiveTv, postResolvedIconMovies, postResolvedIconSeries] = await Promise.all([
+        resolvePublicImageUrl(cfg.trial_logo_url || ""),
+        resolvePublicImageUrl(cfg.trial_banner_url || ""),
+        resolvePublicImageUrl(cfg.icon_reload_url || ""),
+        resolvePublicImageUrl(cfg.icon_exit_url || ""),
+        resolvePublicImageUrl(cfg.icon_settings_url || ""),
+        resolvePublicImageUrl(cfg.icon_live_tv_url || ""),
+        resolvePublicImageUrl(cfg.icon_movies_url || ""),
+        resolvePublicImageUrl(cfg.icon_series_url || ""),
+      ]);
+
       // O APK BoxV3 busca impact_phrase, contact, trial_ended, etc. dentro de
       // languages[].words (LanguageModel → WordModels via Gson).
       // Enviamos dois idiomas (pt + en) para garantir compatibilidade com qualquer
@@ -480,8 +513,8 @@ export function registerApiRoutes(app: Express) {
         live_label: cfg.app_channels_label || "Canais",
         movie_label: cfg.app_movies_label || "Filmes",
         series_label: cfg.app_series_label || "Séries",
-        banner_url: cfg.trial_banner_url || "",
-        logo_url: cfg.trial_logo_url || "",
+        banner_url: postResolvedBannerUrl,
+        logo_url: postResolvedLogoUrl,
         contact: words.contact,
         contact_whatsapp: words.str_whatsapp,
         contact_website: words.str_link,
@@ -494,12 +527,12 @@ export function registerApiRoutes(app: Express) {
         lock_button_text: cfg.lock_button_text || "Renovar Agora",
         lock_button_url: cfg.lock_button_url || (cfg.contact_whatsapp ? `https://wa.me/${cfg.contact_whatsapp.replace(/\D/g, "")}` : ""),
         // Ícones personalizados dos botões
-        icon_reload: cfg.icon_reload_url || "",
-        icon_exit: cfg.icon_exit_url || "",
-        icon_settings: cfg.icon_settings_url || "",
-        icon_live_tv: cfg.icon_live_tv_url || "",
-        icon_movies: cfg.icon_movies_url || "",
-        icon_series: cfg.icon_series_url || "",
+        icon_reload: postResolvedIconReload,
+        icon_exit: postResolvedIconExit,
+        icon_settings: postResolvedIconSettings,
+        icon_live_tv: postResolvedIconLiveTv,
+        icon_movies: postResolvedIconMovies,
+        icon_series: postResolvedIconSeries,
         words,
       };
 
@@ -570,6 +603,18 @@ export function registerApiRoutes(app: Express) {
       const urls: Array<{ url: string; username: string; password: string; type: string }> = [];
       if (isAllowed && device.urlM3u8) urls.push({ url: device.urlM3u8, username: "", password: "", type: "m3u_plus" });
 
+      // Resolver URLs de imagens para URLs públicas (presigned S3)
+      const [resolvedLogoUrl, resolvedBannerUrl, resolvedIconReload, resolvedIconExit, resolvedIconSettings, resolvedIconLiveTv, resolvedIconMovies, resolvedIconSeries] = await Promise.all([
+        resolvePublicImageUrl(cfg.trial_logo_url || ""),
+        resolvePublicImageUrl(cfg.trial_banner_url || ""),
+        resolvePublicImageUrl(cfg.icon_reload_url || ""),
+        resolvePublicImageUrl(cfg.icon_exit_url || ""),
+        resolvePublicImageUrl(cfg.icon_settings_url || ""),
+        resolvePublicImageUrl(cfg.icon_live_tv_url || ""),
+        resolvePublicImageUrl(cfg.icon_movies_url || ""),
+        resolvePublicImageUrl(cfg.icon_series_url || ""),
+      ]);
+
       const words = buildWords(cfg);
       const wordsPayload = {
         trial_ended: words.trial_ended,
@@ -613,8 +658,8 @@ export function registerApiRoutes(app: Express) {
         live_label: cfg.app_channels_label || "Canais",
         movie_label: cfg.app_movies_label || "Filmes",
         series_label: cfg.app_series_label || "Séries",
-        banner_url: cfg.trial_banner_url || "",
-        logo_url: cfg.trial_logo_url || "",
+        banner_url: resolvedBannerUrl,
+        logo_url: resolvedLogoUrl,
         contact: words.contact,
         contact_whatsapp: words.str_whatsapp,
         contact_website: words.str_link,
@@ -625,12 +670,12 @@ export function registerApiRoutes(app: Express) {
         lock_message: cfg.lock_message || "OuroPro is a media player application. The app does not provide or include any media or content.",
         lock_button_text: cfg.lock_button_text || "Renovar Agora",
         lock_button_url: cfg.lock_button_url || (cfg.contact_whatsapp ? `https://wa.me/${cfg.contact_whatsapp.replace(/\D/g, "")}` : ""),
-        icon_reload: cfg.icon_reload_url || "",
-        icon_exit: cfg.icon_exit_url || "",
-        icon_settings: cfg.icon_settings_url || "",
-        icon_live_tv: cfg.icon_live_tv_url || "",
-        icon_movies: cfg.icon_movies_url || "",
-        icon_series: cfg.icon_series_url || "",
+        icon_reload: resolvedIconReload,
+        icon_exit: resolvedIconExit,
+        icon_settings: resolvedIconSettings,
+        icon_live_tv: resolvedIconLiveTv,
+        icon_movies: resolvedIconMovies,
+        icon_series: resolvedIconSeries,
         words,
       });
     } catch (error) {
@@ -784,9 +829,10 @@ export function registerApiRoutes(app: Express) {
       const cfg = await getSettings();
       const logoUrl = cfg.trial_logo_url || "";
 
-      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
-      const targetUrl = (logoUrl && logoUrl.startsWith("http") && !logoUrl.includes(","))
-        ? logoUrl
+      // Resolver URL pública (gera presigned URL se for manus-storage protegido)
+      const resolvedUrl = logoUrl ? await resolvePublicImageUrl(logoUrl) : "";
+      const targetUrl = (resolvedUrl && resolvedUrl.startsWith("http") && !resolvedUrl.includes(","))
+        ? resolvedUrl
         : "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
 
       const imgRes = await fetch(targetUrl, { redirect: "follow" });
@@ -795,10 +841,15 @@ export function registerApiRoutes(app: Express) {
         return;
       }
       const contentType = imgRes.headers.get("content-type") || "image/png";
+      // Verificar se recebemos HTML (erro de autenticação) em vez de imagem
+      if (contentType.includes("text/html")) {
+        res.status(204).end();
+        return;
+      }
       const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
       res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Length", imgBuffer.length);
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Cache-Control", "public, max-age=300");
       res.status(200).end(imgBuffer);
     } catch (error) {
       console.error("[API] /api/v4/logo.php error:", error);
@@ -820,23 +871,28 @@ export function registerApiRoutes(app: Express) {
       // Validar URL: rejeitar URLs com vírgula ou caracteres inválidos
       const isValidUrl = bgUrl && bgUrl.startsWith("http") && !bgUrl.includes(",") && !bgUrl.includes(" ");
       if (!isValidUrl) {
-        // Sem fundo configurado ou URL inválida: retornar 204
         res.status(204).end();
         return;
       }
 
-      // Proxy da imagem: baixar do S3 e servir com HTTP 200
-      // Node 22 tem fetch nativo com suporte a redirect
-      const imgRes = await fetch(bgUrl, { redirect: "follow" });
+      // Resolver URL pública (gera presigned URL se for manus-storage protegido)
+      const resolvedUrl = await resolvePublicImageUrl(bgUrl);
+
+      const imgRes = await fetch(resolvedUrl, { redirect: "follow" });
       if (!imgRes.ok) {
         res.status(204).end();
         return;
       }
       const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+      // Verificar se recebemos HTML (erro de autenticação) em vez de imagem
+      if (contentType.includes("text/html")) {
+        res.status(204).end();
+        return;
+      }
       const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
       res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Length", imgBuffer.length);
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Cache-Control", "public, max-age=300");
       res.status(200).end(imgBuffer);
     } catch (error) {
       console.error("[API] /api/v4/bg.php error:", error);
@@ -1214,11 +1270,23 @@ export function registerApiRoutes(app: Express) {
     }
     try {
       const cfg = await getSettings();
-      const iconUrl = cfg[settingKey] || ICON_DEFAULTS[name] || "";
-      if (!iconUrl || !iconUrl.startsWith("http") || iconUrl.includes(",")) {
-        res.status(404).json({ error: "No icon configured" });
+      const rawIconUrl = cfg[settingKey] || ICON_DEFAULTS[name] || "";
+      if (!rawIconUrl || !rawIconUrl.startsWith("http") || rawIconUrl.includes(",")) {
+        // Sem ícone configurado: usar padrão do CloudFront
+        const defaultUrl = ICON_DEFAULTS[name] || "";
+        if (!defaultUrl) { res.status(404).json({ error: "No icon configured" }); return; }
+        const imgRes2 = await fetch(defaultUrl, { redirect: "follow" });
+        if (!imgRes2.ok) { res.status(204).end(); return; }
+        const ct2 = imgRes2.headers.get("content-type") || "image/png";
+        const buf2 = Buffer.from(await imgRes2.arrayBuffer());
+        res.setHeader("Content-Type", ct2);
+        res.setHeader("Content-Length", buf2.length);
+        res.setHeader("Cache-Control", "public, max-age=3600");
+        res.status(200).end(buf2);
         return;
       }
+      // Resolver URL pública (gera presigned URL se for manus-storage protegido)
+      const iconUrl = await resolvePublicImageUrl(rawIconUrl);
       // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
       const imgRes = await fetch(iconUrl, { redirect: "follow" });
       if (!imgRes.ok) {
@@ -1226,10 +1294,29 @@ export function registerApiRoutes(app: Express) {
         return;
       }
       const contentType = imgRes.headers.get("content-type") || "image/png";
+      // Verificar se recebemos HTML (erro de autenticação) em vez de imagem
+      if (contentType.includes("text/html")) {
+        // Fallback para ícone padrão
+        const defaultUrl = ICON_DEFAULTS[name] || "";
+        if (defaultUrl) {
+          const imgDef = await fetch(defaultUrl, { redirect: "follow" });
+          if (imgDef.ok) {
+            const ctDef = imgDef.headers.get("content-type") || "image/png";
+            const bufDef = Buffer.from(await imgDef.arrayBuffer());
+            res.setHeader("Content-Type", ctDef);
+            res.setHeader("Content-Length", bufDef.length);
+            res.setHeader("Cache-Control", "public, max-age=3600");
+            res.status(200).end(bufDef);
+            return;
+          }
+        }
+        res.status(204).end();
+        return;
+      }
       const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
       res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Length", imgBuffer.length);
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Cache-Control", "public, max-age=300");
       res.status(200).end(imgBuffer);
     } catch (error) {
       console.error("[API] /api/v4/icon error:", error);

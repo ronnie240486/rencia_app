@@ -1,0 +1,60 @@
+{
+  "query": "SELECT id, name, email, role, plano, planValidade, limiteDevices, limiteRevendas FROM users LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT id, name, email, role, plano, planValidade, limiteDevices, limiteRevendas FROM users LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "DELICIA DE DICAS",
+      "email": "ronnie240486@gmail.com",
+      "role": "admin",
+      "plano": "Revenda",
+      "planValidade": "NULL",
+      "limiteDevices": "999",
+      "limiteRevendas": "0"
+    },
+    {
+      "id": "390001",
+      "name": "testeu163",
+      "email": "testeu163@gmail.com",
+      "role": "user",
+      "plano": "Revenda",
+      "planValidade": "NULL",
+      "limiteDevices": "999",
+      "limiteRevendas": "0"
+    },
+    {
+      "id": "720017",
+      "name": "Minhacasaminhadica",
+      "email": "minhacasaminhadica9@gmail.com",
+      "role": "user",
+      "plano": "Revenda",
+      "planValidade": "NULL",
+      "limiteDevices": "999",
+      "limiteRevendas": "0"
+    },
+    {
+      "id": "2040001",
+      "name": "lamodo2214",
+      "email": "lamodo2214@readav.com",
+      "role": "user",
+      "plano": "Revenda",
+      "planValidade": "NULL",
+      "limiteDevices": "999",
+      "limiteRevendas": "0"
+    },
+    {
+      "id": "4500022",
+      "name": "Tiago Fleming",
+      "email": "flemingfleming10fleming@gmail.com",
+      "role": "user",
+      "plano": "Revenda",
+      "planValidade": "NULL",
+      "limiteDevices": "999",
+      "limiteRevendas": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tplano\tplanValidade\tlimiteDevices\tlimiteRevendas\n1\tDELICIA DE DICAS\tronnie240486@gmail.com\tadmin\tRevenda\tNULL\t999\t0\n390001\ttesteu163\ttesteu163@gmail.com\tuser\tRevenda\tNULL\t999\t0\n720017\tMinhacasaminhadica\tminhacasaminhadica9@gmail.com\tuser\tRevenda\tNULL\t999\t0\n2040001\tlamodo2214\tlamodo2214@readav.com\tuser\tRevenda\tNULL\t999\t0\n4500022\tTiago Fleming\tflemingfleming10fleming@gmail.com\tuser\tRevenda\tNULL\t999\t0\n",
+  "stderr": "",
+  "execution_time_ms": 569
+}
