@@ -1,0 +1,42 @@
+{
+  "query": "SELECT `key`, `value` FROM app_settings WHERE `value` LIKE '%manus-storage%' OR `value` LIKE '%manus.space%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT `key`, `value` FROM app_settings WHERE `value` LIKE '%manus-storage%' OR `value` LIKE '%manus.space%';",
+  "rows": [
+    {
+      "key": "trial_banner_url",
+      "value": "https://renciaapp.manus.space/manus-storage/app-images/trial_banner_url_1779630392638_1333bcdf.png"
+    },
+    {
+      "key": "trial_logo_url",
+      "value": "https://renciaapp.manus.space/manus-storage/app-images/trial_logo_url_1779630912923_8b7c84b2.png"
+    },
+    {
+      "key": "trial_background_url",
+      "value": "https://renciaapp-ldyffp73.manus.space/manus-storage/app-images/trial_background_url_1778994414295_d7f0d939.jpg"
+    },
+    {
+      "key": "icon_live_tv_url",
+      "value": "https://renciaapp-ldyffp73.manus.space/manus-storage/app-images/icon_live_tv_url_1778994644399_5dcec666.png"
+    },
+    {
+      "key": "icon_movies_url",
+      "value": "https://renciaapp-ldyffp73.manus.space/manus-storage/app-images/icon_movies_url_1778993484894_6ae306b6.webp"
+    },
+    {
+      "key": "icon_reload_url",
+      "value": "https://renciaapp-ldyffp73.manus.space/manus-storage/app-images/icon_reload_url_1778993173828_d1810a0a.webp"
+    },
+    {
+      "key": "sidebar_logo_url",
+      "value": "https://renciaapp-ldyffp73.manus.space/manus-storage/app-images/trial_logo_url_1778992896010_b68522d0.png"
+    },
+    {
+      "key": "profile_banner_url",
+      "value": "https://renciaapp-ldyffp73.manus.space/manus-storage/app-images/profile_banner_url_1778994904147_d7efffb7.jpg"
+    }
+  ],
+  "messages": [],
+  "stdout": "key\tvalue\ntrial_banner_url\thttps://renciaapp.manus.space/manus-storage/app-images/trial_banner_url_1779630392638_1333bcdf.png\ntrial_logo_url\thttps://renciaapp.manus.space/manus-storage/app-images/trial_logo_url_1779630912923_8b7c84b2.png\ntrial_background_url\thttps://renciaapp-ldyffp73.manus.space/manus-storage/app-images/trial_background_url_1778994414295_d7f0d939.jpg\nicon_live_tv_url\thttps://renciaapp-ldyffp73.manus.space/manus-storage/app-images/icon_live_tv_url_1778994644399_5dcec666.png\nicon_movies_url\thttps://renciaapp-ldyffp73.manus.space/manus-storage/app-images/icon_movies_url_1778993484894_6ae306b6.webp\nicon_reload_url\thttps://renciaapp-ldyffp73.manus.space/manus-storage/app-images/icon_reload_url_1778993173828_d1810a0a.webp\nsidebar_logo_url\thttps://renciaapp-ldyffp73.manus.space/manus-storage/app-images/trial_logo_url_1778992896010_b68522d0.png\nprofile_banner_url\thttps://renciaapp-ldyffp73.manus.space/manus-storage/app-images/profile_banner_url_1778994904147_d7efffb7.jpg\n",
+  "stderr": "",
+  "execution_time_ms": 2332
+}

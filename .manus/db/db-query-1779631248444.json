@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE app_settings SET `value` = REPLACE(`value`, 'https://renciaapp-ldyffp73.manus.space', 'https://renciaapp.manus.space') WHERE `value` LIKE '%renciaapp-ldyffp73.manus.space%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute UPDATE app_settings SET `value` = REPLACE(`value`, 'https://renciaapp-ldyffp73.manus.space', 'https://renciaapp.manus.space') WHERE `value` LIKE '%renciaapp-ldyffp73.manus.space%';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 578
+}

@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE app_settings SET `value` = '7.0' WHERE `key` = 'apk_version';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute UPDATE app_settings SET `value` = '7.0' WHERE `key` = 'apk_version';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 557
+}
