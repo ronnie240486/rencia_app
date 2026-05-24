@@ -742,8 +742,9 @@ export function registerApiRoutes(app: Express) {
       const { url } = await storagePut(storageKey, file.buffer, file.mimetype);
 
       // Montar URL absoluta para o APK acessar
-      // Sempre usar o domínio público fixo de produção
-      const absoluteUrl = `https://renciaapp-ldyffp73.manus.space${url}`;
+      // Usar o origin da requisição (funciona tanto no dev quanto em produção)
+      const reqOrigin = (req.headers.origin as string) || (req.headers.referer ? new URL(req.headers.referer as string).origin : null) || 'https://renciaapp.manus.space';
+      const absoluteUrl = `${reqOrigin}${url}`;
 
       // Atualizar no banco de dados
       const db = await getDb();
