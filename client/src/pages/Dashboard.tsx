@@ -94,7 +94,7 @@ export default function Dashboard() {
             <Badge variant="outline" className="text-xs gap-1 border-green-300 text-green-700 bg-green-50">
               <Shield className="w-3 h-3" />
               <span>{"DEVICES: "}</span>
-              <span>{planInfo?.limiteDevices === 999999 ? "Ilimitado" : (planInfo?.limiteDevices ?? 999)}</span>
+              <span>{(!planInfo?.limiteDevices || planInfo.limiteDevices >= 999999 || planInfo.plano === 'Ultra Master') ? 'Ilimitado' : planInfo.limiteDevices}</span>
             </Badge>
           </div>
         </div>
@@ -261,11 +261,11 @@ export default function Dashboard() {
                 </TableRow>
                 <TableRow>
                   <TableCell className="text-sm font-medium"><span>{"Limite de Cadastro Device"}</span></TableCell>
-                  <TableCell className="text-sm text-primary"><span>{planInfo?.limiteDevices ?? 999}</span></TableCell>
+                  <TableCell className="text-sm text-primary"><span>{(!planInfo?.limiteDevices || planInfo.limiteDevices >= 999999 || planInfo.plano === 'Ultra Master') ? 'Ilimitado' : planInfo.limiteDevices}</span></TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="text-sm font-medium"><span>{"Limite Restante de Cadastro Device"}</span></TableCell>
-                  <TableCell className="text-sm text-primary"><span>{(planInfo?.limiteDevices ?? 999) - (stats?.total ?? 0)}</span></TableCell>
+                  <TableCell className="text-sm text-primary"><span>{(!planInfo?.limiteDevices || planInfo.limiteDevices >= 999999 || planInfo.plano === 'Ultra Master') ? 'Ilimitado' : Math.max(0, planInfo.limiteDevices - (stats?.total ?? 0))}</span></TableCell>
                 </TableRow>
               </TableBody>
             </Table>

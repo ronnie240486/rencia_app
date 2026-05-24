@@ -434,7 +434,13 @@ export async function getUserPlanInfo(userId: number) {
     limiteDevices: users.limiteDevices,
     limiteRevendas: users.limiteRevendas,
   }).from(users).where(eq(users.id, userId)).limit(1);
-  return result[0] ?? null;
+  const row = result[0] ?? null;
+  if (!row) return null;
+  // Ultra Master tem limite ilimitado
+  if (row.plano === 'Ultra Master') {
+    return { ...row, limiteDevices: 999999, limiteRevendas: 999999 };
+  }
+  return row;
 }
 
 // ─── Dispositivos Conectados (lastSeen) ───────────────────────────────────────
