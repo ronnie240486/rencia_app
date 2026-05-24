@@ -835,22 +835,9 @@ export function registerApiRoutes(app: Express) {
         ? resolvedUrl
         : "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
 
-      const imgRes = await fetch(targetUrl, { redirect: "follow" });
-      if (!imgRes.ok) {
-        res.status(204).end();
-        return;
-      }
-      const contentType = imgRes.headers.get("content-type") || "image/png";
-      // Verificar se recebemos HTML (erro de autenticação) em vez de imagem
-      if (contentType.includes("text/html")) {
-        res.status(204).end();
-        return;
-      }
-      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Length", imgBuffer.length);
-      res.setHeader("Cache-Control", "public, max-age=300");
-      res.status(200).end(imgBuffer);
+      // Usar redirect para que o Glide faça cache da URL final do S3
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.redirect(302, targetUrl);
     } catch (error) {
       console.error("[API] /api/v4/logo.php error:", error);
       res.status(204).end();
@@ -878,22 +865,9 @@ export function registerApiRoutes(app: Express) {
       // Resolver URL pública (gera presigned URL se for manus-storage protegido)
       const resolvedUrl = await resolvePublicImageUrl(bgUrl);
 
-      const imgRes = await fetch(resolvedUrl, { redirect: "follow" });
-      if (!imgRes.ok) {
-        res.status(204).end();
-        return;
-      }
-      const contentType = imgRes.headers.get("content-type") || "image/jpeg";
-      // Verificar se recebemos HTML (erro de autenticação) em vez de imagem
-      if (contentType.includes("text/html")) {
-        res.status(204).end();
-        return;
-      }
-      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Length", imgBuffer.length);
-      res.setHeader("Cache-Control", "public, max-age=300");
-      res.status(200).end(imgBuffer);
+      // Usar redirect para que o Glide faça cache da URL final do S3
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.redirect(302, resolvedUrl);
     } catch (error) {
       console.error("[API] /api/v4/bg.php error:", error);
       res.status(204).end();
@@ -1271,53 +1245,22 @@ export function registerApiRoutes(app: Express) {
     try {
       const cfg = await getSettings();
       const rawIconUrl = cfg[settingKey] || ICON_DEFAULTS[name] || "";
+
+      // Sem ícone configurado: usar padrão do CloudFront via redirect
       if (!rawIconUrl || !rawIconUrl.startsWith("http") || rawIconUrl.includes(",")) {
-        // Sem ícone configurado: usar padrão do CloudFront
         const defaultUrl = ICON_DEFAULTS[name] || "";
         if (!defaultUrl) { res.status(404).json({ error: "No icon configured" }); return; }
-        const imgRes2 = await fetch(defaultUrl, { redirect: "follow" });
-        if (!imgRes2.ok) { res.status(204).end(); return; }
-        const ct2 = imgRes2.headers.get("content-type") || "image/png";
-        const buf2 = Buffer.from(await imgRes2.arrayBuffer());
-        res.setHeader("Content-Type", ct2);
-        res.setHeader("Content-Length", buf2.length);
         res.setHeader("Cache-Control", "public, max-age=3600");
-        res.status(200).end(buf2);
+        res.redirect(302, defaultUrl);
         return;
       }
+
       // Resolver URL pública (gera presigned URL se for manus-storage protegido)
       const iconUrl = await resolvePublicImageUrl(rawIconUrl);
-      // Proxy da imagem: baixar e servir com HTTP 200 (APK não aceita redirect 302)
-      const imgRes = await fetch(iconUrl, { redirect: "follow" });
-      if (!imgRes.ok) {
-        res.status(204).end();
-        return;
-      }
-      const contentType = imgRes.headers.get("content-type") || "image/png";
-      // Verificar se recebemos HTML (erro de autenticação) em vez de imagem
-      if (contentType.includes("text/html")) {
-        // Fallback para ícone padrão
-        const defaultUrl = ICON_DEFAULTS[name] || "";
-        if (defaultUrl) {
-          const imgDef = await fetch(defaultUrl, { redirect: "follow" });
-          if (imgDef.ok) {
-            const ctDef = imgDef.headers.get("content-type") || "image/png";
-            const bufDef = Buffer.from(await imgDef.arrayBuffer());
-            res.setHeader("Content-Type", ctDef);
-            res.setHeader("Content-Length", bufDef.length);
-            res.setHeader("Cache-Control", "public, max-age=3600");
-            res.status(200).end(bufDef);
-            return;
-          }
-        }
-        res.status(204).end();
-        return;
-      }
-      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Length", imgBuffer.length);
-      res.setHeader("Cache-Control", "public, max-age=300");
-      res.status(200).end(imgBuffer);
+
+      // Redirect para URL final — Glide segue redirect e faz cache da URL do S3
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.redirect(302, iconUrl);
     } catch (error) {
       console.error("[API] /api/v4/icon error:", error);
       res.status(500).json({ error: "Erro interno" });
