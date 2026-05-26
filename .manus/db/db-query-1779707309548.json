@@ -1,0 +1,60 @@
+{
+  "query": "SELECT mac, currentContent, lastSeen FROM devices ORDER BY lastSeen DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT mac, currentContent, lastSeen FROM devices ORDER BY lastSeen DESC LIMIT 10;",
+  "rows": [
+    {
+      "mac": "98:c9:7c:d2:c5:aa",
+      "currentContent": "NULL",
+      "lastSeen": "2026-05-25 01:56:54"
+    },
+    {
+      "mac": "70:2e:8e:96:0a:3c",
+      "currentContent": "NULL",
+      "lastSeen": "2026-05-25 01:56:05"
+    },
+    {
+      "mac": "47:65:B7:52:ad:56",
+      "currentContent": "NULL",
+      "lastSeen": "2026-05-24 23:04:09"
+    },
+    {
+      "mac": "66:D5:27:5a:Ed:d3",
+      "currentContent": "NULL",
+      "lastSeen": "2026-05-24 21:12:40"
+    },
+    {
+      "mac": "58:04:54:49:77:56",
+      "currentContent": "Canal de Teste",
+      "lastSeen": "2026-05-24 15:07:11"
+    },
+    {
+      "mac": "7c:94:9f:94:5a:08",
+      "currentContent": "NULL",
+      "lastSeen": "2026-05-22 21:47:09"
+    },
+    {
+      "mac": "C4:4E:AC:0A:65:85",
+      "currentContent": "NULL",
+      "lastSeen": "2026-05-20 18:59:09"
+    },
+    {
+      "mac": "13:e1:c7:a1:66:f3",
+      "currentContent": "NULL",
+      "lastSeen": "2026-05-17 22:29:47"
+    },
+    {
+      "mac": "34:c3:d2:3f:32:de",
+      "currentContent": "NULL",
+      "lastSeen": "2026-05-16 21:37:23"
+    },
+    {
+      "mac": "55:14:17:a8:3a:b3",
+      "currentContent": "NULL",
+      "lastSeen": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "mac\tcurrentContent\tlastSeen\n98:c9:7c:d2:c5:aa\tNULL\t2026-05-25 01:56:54\n70:2e:8e:96:0a:3c\tNULL\t2026-05-25 01:56:05\n47:65:B7:52:ad:56\tNULL\t2026-05-24 23:04:09\n66:D5:27:5a:Ed:d3\tNULL\t2026-05-24 21:12:40\n58:04:54:49:77:56\tCanal de Teste\t2026-05-24 15:07:11\n7c:94:9f:94:5a:08\tNULL\t2026-05-22 21:47:09\nC4:4E:AC:0A:65:85\tNULL\t2026-05-20 18:59:09\n13:e1:c7:a1:66:f3\tNULL\t2026-05-17 22:29:47\n34:c3:d2:3f:32:de\tNULL\t2026-05-16 21:37:23\n55:14:17:a8:3a:b3\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 582
+}

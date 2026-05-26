@@ -1,0 +1,15 @@
+{
+  "query": "SELECT mac, currentContent, lastSeen FROM devices WHERE mac = '58:04:54:49:77:56' LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT mac, currentContent, lastSeen FROM devices WHERE mac = '58:04:54:49:77:56' LIMIT 1;",
+  "rows": [
+    {
+      "mac": "58:04:54:49:77:56",
+      "currentContent": "Canal de Teste",
+      "lastSeen": "2026-05-24 15:07:11"
+    }
+  ],
+  "messages": [],
+  "stdout": "mac\tcurrentContent\tlastSeen\n58:04:54:49:77:56\tCanal de Teste\t2026-05-24 15:07:11\n",
+  "stderr": "",
+  "execution_time_ms": 597
+}

@@ -34,6 +34,18 @@ const upload = multer({
   },
 });
 
+// Multer para APK: aceita .apk até 200MB
+const uploadApk = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB
+  fileFilter: (_req, file, cb) => {
+    const ok = file.mimetype === "application/vnd.android.package-archive"
+      || file.originalname.endsWith(".apk");
+    if (ok) cb(null, true);
+    else cb(new Error("Apenas arquivos .apk são permitidos"));
+  },
+});
+
 // Chaves de configuração válidas para upload de imagem
 const UPLOAD_FIELD_KEYS: Record<string, string> = {
   trial_logo_url: "trial_logo_url",
@@ -1232,6 +1244,68 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error("[API] /api/chatbot/revendas error:", error);
       res.status(500).json({ message: "Erro interno" });
+    }
+  });
+
+  // ─── Upload de APK (POST /api/upload-apk) ───────────────────────────────
+  // Recebe o arquivo .apk, faz upload para o S3 e atualiza apk_download_url no banco
+  app.post("/api/upload-apk", uploadApk.single("apk"), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        res.status(400).json({ ok: false, error: "Nenhum arquivo enviado" });
+        return;
+      }
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const fileName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const fileKey = `apk/${Date.now()}_${fileName}`;
+      const { url } = await storagePut(fileKey, req.file.buffer, "application/vnd.android.package-archive");
+      // Montar URL pública de download via /apk
+      const origin = req.headers.origin || `https://${req.headers.host}`;
+      const shortUrl = `${origin}/apk`;
+      // Salvar no banco: apk_download_url = URL do S3, apk_file_key = chave S3, apk_file_name = nome
+      const upsert = async (key: string, value: string) => {
+        const existing = await db.select().from(appSettings).where(eq(appSettings.key, key)).limit(1);
+        if (existing.length > 0) {
+          await db.update(appSettings).set({ value }).where(eq(appSettings.key, key));
+        } else {
+          await db.insert(appSettings).values({ key, value });
+        }
+      };
+      await upsert("apk_download_url", url);
+      await upsert("apk_file_key", fileKey);
+      await upsert("apk_file_name", fileName);
+      // Limpar cache de settings
+      settingsCacheTime = 0;
+      console.log(`[APK UPLOAD] ${fileName} → ${url}`);
+      res.json({ ok: true, url, shortUrl, fileName, fileKey });
+    } catch (error) {
+      console.error("[API] /api/upload-apk error:", error);
+      res.status(500).json({ ok: false, error: "Erro ao fazer upload do APK" });
+    }
+  });
+
+  // ─── Download encurtado /apk ──────────────────────────────────────────────
+  // Redireciona para a URL do APK armazenado no S3 (presigned URL)
+  app.get("/apk", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+      const rawUrl = cfg["apk_download_url"] || "";
+      if (!rawUrl) {
+        res.status(404).send("APK não configurado");
+        return;
+      }
+      // Se for manus-storage, gerar presigned URL
+      let downloadUrl = rawUrl;
+      if (rawUrl.includes("/manus-storage/")) {
+        const key = rawUrl.replace(/.*\/manus-storage\//, "");
+        downloadUrl = await storageGetSignedUrl(key);
+      }
+      res.setHeader("Cache-Control", "no-cache");
+      res.redirect(302, downloadUrl);
+    } catch (error) {
+      console.error("[API] /apk error:", error);
+      res.status(500).send("Erro interno");
     }
   });
 
