@@ -32,8 +32,8 @@ export default function Loja() {
   const apkFileName = settings?.apk_file_name || "";
   // Link encurtado do próprio domínio
   const ownShortUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/apk`
-    : "/apk";
+    ? `${window.location.origin}/ouropro`
+    : "/ouropro";
 
   useEffect(() => {
     if (settings) {

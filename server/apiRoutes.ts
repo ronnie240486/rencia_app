@@ -1309,6 +1309,29 @@ export function registerApiRoutes(app: Express) {
     }
   });
 
+  // Alias curto: renciaapp.manus.space/ouropro
+  app.get("/ouropro", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+      const rawUrl = cfg["apk_download_url"] || "";
+      if (!rawUrl) {
+        res.status(404).send("APK não configurado");
+        return;
+      }
+      let downloadUrl = rawUrl;
+      if (rawUrl.includes("/manus-storage/")) {
+        const key = rawUrl.replace(/.*\/manus-storage\//, "");
+        downloadUrl = await storageGetSignedUrl(key);
+      }
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Content-Disposition", 'attachment; filename="OuroPro.apk"');
+      res.redirect(302, downloadUrl);
+    } catch (error) {
+      console.error("[API] /ouropro error:", error);
+      res.status(500).send("Erro interno");
+    }
+  });
+
   app.get("/api/v4/icon/:name", async (req: Request, res: Response) => {
     const name = req.params.name as string;
     const settingKey = ICON_SETTING_KEYS[name];

@@ -26,6 +26,7 @@ interface NavItem {
   href: string;
   icon: React.ReactNode;
   adminOnly?: boolean;
+  ownerOnly?: boolean; // Apenas para Ultra Master e dono
 }
 
 const navItems: NavItem[] = [
@@ -33,10 +34,10 @@ const navItems: NavItem[] = [
   { label: "Usuários", href: "/users", icon: <Users size={18} /> },
   { label: "Cadastrar Usuário", href: "/users/create", icon: <BarChart3 size={18} /> },
   { label: "Revendas", href: "/revendas", icon: <Store size={18} /> },
-  { label: "Chatbot de Avisos", href: "/chatbot", icon: <MessageCircle size={18} /> },
+  { label: "Chatbot de Avisos", href: "/chatbot", icon: <MessageCircle size={18} />, ownerOnly: true },
   { label: "DNS", href: "/dns", icon: <Server size={18} /> },
-  { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} /> },
-  { label: "Configurações do App", href: "/settings", icon: <SlidersHorizontal size={18} /> },
+  { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} />, ownerOnly: true },
+  { label: "Configurações do App", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];
 
@@ -146,7 +147,14 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   }
 
   const isAdmin = user?.role === "admin";
-  const visibleNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
+  const { data: planInfo } = trpc.plan.info.useQuery();
+  // Ultra Master e dono veem tudo; Revenda e Master não veem itens ownerOnly
+  const isUltraMaster = !planInfo?.plano || planInfo.plano === "Ultra Master" || (planInfo.limiteDevices ?? 0) >= 999999;
+  const visibleNavItems = navItems.filter(item => {
+    if (item.adminOnly && !isAdmin) return false;
+    if (item.ownerOnly && !isUltraMaster) return false;
+    return true;
+  });
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">

@@ -208,3 +208,17 @@
 - [ ] DNS: botão excluir DNS cadastradas na página DNS
 - [ ] Revendas: painel de revendas ativas com contagem de clientes por revenda
 - [ ] Configurações APK: corrigir botão Atualizar Aplicativo (apk_link no guim.php)
+
+## Novas funcionalidades (26/05/2026)
+- [ ] Corrigir "Assistindo" — heartbeat periódico a cada 30s no APK para manter canal fixo enquanto app aberto
+- [ ] Corrigir "Assistindo" — limpar currentContent ao fechar o app (onDestroy envia heartbeat com content vazio)
+- [ ] Ocultar aba "Configurações do App" no painel para planos Master e Revenda
+- [ ] Informar sobre desenvolvimento de apps para Roku, LG (webOS), Samsung (Tizen), TCL (Android TV)
+
+## Correções (27/05/2026)
+- [ ] Corrigir download APK na Loja (link /apk retornando erro)
+- [ ] Link encurtado: trocar texto longo por URL curta (ex: renciaapp.manus.space/apk)
+- [ ] Heartbeat periódico no APK: enviar a cada 30s enquanto assistindo (não apagar ao não mudar de canal)
+- [ ] Ocultar aba "Configurações do App" no painel para planos Revenda e Master
+- [ ] APK v33: compilar com heartbeat periódico
+- [ ] Explicar e preparar APKs para TVs (Roku, LG webOS, Samsung Tizen, TCL Android TV)

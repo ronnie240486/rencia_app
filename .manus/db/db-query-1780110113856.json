@@ -1,0 +1,22 @@
+{
+  "query": "SELECT `key`, value FROM app_settings WHERE `key` IN ('apk_download_url', 'apk_version', 'apk_file_key');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT `key`, value FROM app_settings WHERE `key` IN ('apk_download_url', 'apk_version', 'apk_file_key');",
+  "rows": [
+    {
+      "key": "apk_download_url",
+      "value": "/manus-storage/apk/1779894221030_OuroPro_v32_mobile__1__79f1af9b.apk"
+    },
+    {
+      "key": "apk_version",
+      "value": "7.0"
+    },
+    {
+      "key": "apk_file_key",
+      "value": "apk/1779894221030_OuroPro_v32_mobile__1_.apk"
+    }
+  ],
+  "messages": [],
+  "stdout": "key\tvalue\napk_download_url\t/manus-storage/apk/1779894221030_OuroPro_v32_mobile__1__79f1af9b.apk\napk_version\t7.0\napk_file_key\tapk/1779894221030_OuroPro_v32_mobile__1_.apk\n",
+  "stderr": "",
+  "execution_time_ms": 842
+}
