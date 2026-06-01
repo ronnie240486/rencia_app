@@ -1286,49 +1286,52 @@ export function registerApiRoutes(app: Express) {
   });
 
   // ─── Download encurtado /apk ──────────────────────────────────────────────
-  // Redireciona para a URL do APK armazenado no S3 (presigned URL)
+  // Proxy direto do APK armazenado no S3 (sem redirect — evita problema de autenticação)
+  async function serveApkProxy(res: Response, fileName: string) {
+    const cfg = await getSettings();
+    const rawUrl = cfg["apk_download_url"] || "";
+    if (!rawUrl) {
+      res.status(404).send("APK não configurado");
+      return;
+    }
+    let downloadUrl = rawUrl;
+    if (rawUrl.includes("/manus-storage/")) {
+      const key = rawUrl.replace(/.*\/manus-storage\//, "");
+      downloadUrl = await storageGetSignedUrl(key);
+    }
+    // Fazer proxy do arquivo — baixar do S3 e servir diretamente
+    const upstream = await fetch(downloadUrl);
+    if (!upstream.ok) {
+      res.status(502).send("Erro ao buscar APK do servidor de armazenamento");
+      return;
+    }
+    res.setHeader("Content-Type", "application/vnd.android.package-archive");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`); 
+    res.setHeader("Cache-Control", "no-cache");
+    const contentLength = upstream.headers.get("content-length");
+    if (contentLength) res.setHeader("Content-Length", contentLength);
+    // Stream do S3 direto para o cliente
+    const { Readable } = await import("stream");
+    const nodeStream = Readable.fromWeb(upstream.body as any);
+    nodeStream.pipe(res);
+  }
+
   app.get("/apk", async (_req: Request, res: Response) => {
     try {
-      const cfg = await getSettings();
-      const rawUrl = cfg["apk_download_url"] || "";
-      if (!rawUrl) {
-        res.status(404).send("APK não configurado");
-        return;
-      }
-      // Se for manus-storage, gerar presigned URL
-      let downloadUrl = rawUrl;
-      if (rawUrl.includes("/manus-storage/")) {
-        const key = rawUrl.replace(/.*\/manus-storage\//, "");
-        downloadUrl = await storageGetSignedUrl(key);
-      }
-      res.setHeader("Cache-Control", "no-cache");
-      res.redirect(302, downloadUrl);
+      await serveApkProxy(res, "OuroPro.apk");
     } catch (error) {
       console.error("[API] /apk error:", error);
-      res.status(500).send("Erro interno");
+      if (!res.headersSent) res.status(500).send("Erro interno");
     }
   });
 
   // Alias curto: renciaapp.manus.space/ouropro
   app.get("/ouropro", async (_req: Request, res: Response) => {
     try {
-      const cfg = await getSettings();
-      const rawUrl = cfg["apk_download_url"] || "";
-      if (!rawUrl) {
-        res.status(404).send("APK não configurado");
-        return;
-      }
-      let downloadUrl = rawUrl;
-      if (rawUrl.includes("/manus-storage/")) {
-        const key = rawUrl.replace(/.*\/manus-storage\//, "");
-        downloadUrl = await storageGetSignedUrl(key);
-      }
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Content-Disposition", 'attachment; filename="OuroPro.apk"');
-      res.redirect(302, downloadUrl);
+      await serveApkProxy(res, "OuroPro.apk");
     } catch (error) {
       console.error("[API] /ouropro error:", error);
-      res.status(500).send("Erro interno");
+      if (!res.headersSent) res.status(500).send("Erro interno");
     }
   });
 
