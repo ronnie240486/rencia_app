@@ -222,3 +222,6 @@
 - [ ] Ocultar aba "Configurações do App" no painel para planos Revenda e Master
 - [ ] APK v33: compilar com heartbeat periódico
 - [ ] Explicar e preparar APKs para TVs (Roku, LG webOS, Samsung Tizen, TCL Android TV)
+
+## Bug crítico (02/06/2026)
+- [x] Corrigir React Error #310 ao atualizar a página do painel (hooks chamados em ordem inválida)

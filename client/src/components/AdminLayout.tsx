@@ -52,6 +52,10 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: settings } = trpc.settings.getAll.useQuery();
 
+  // IMPORTANTE: trpc.plan.info.useQuery() deve ser chamado ANTES de qualquer return condicional
+  // para não violar a regra dos hooks do React (React Error #310)
+  const { data: planInfo } = trpc.plan.info.useQuery();
+
   // Aplicar cor primária, cor da sidebar e logo ao carregar
   useEffect(() => {
     if (!settings) return;
@@ -147,7 +151,6 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   }
 
   const isAdmin = user?.role === "admin";
-  const { data: planInfo } = trpc.plan.info.useQuery();
   // Ultra Master e dono veem tudo; Revenda e Master não veem itens ownerOnly
   const isUltraMaster = !planInfo?.plano || planInfo.plano === "Ultra Master" || (planInfo.limiteDevices ?? 0) >= 999999;
   const visibleNavItems = navItems.filter(item => {
