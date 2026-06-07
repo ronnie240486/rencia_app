@@ -103,3 +103,33 @@ export const dnsEntries = mysqlTable("dns_entries", {
 });
 export type DnsEntry = typeof dnsEntries.$inferSelect;
 export type InsertDnsEntry = typeof dnsEntries.$inferInsert;
+
+// Carousel de imagens/vídeos para o app OuroPro
+export const carouselSlides = mysqlTable("carousel_slides", {
+  id: int("id").autoincrement().primaryKey(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  descricao: text("descricao"),
+  tipo: mysqlEnum("tipo", ["image", "video"]).default("image").notNull(),
+  urlMedia: text("urlMedia").notNull(), // URL da imagem ou vídeo
+  ordem: int("ordem").default(0).notNull(),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CarouselSlide = typeof carouselSlides.$inferSelect;
+export type InsertCarouselSlide = typeof carouselSlides.$inferInsert;
+
+// Configurações do carousel (intervalo de auto-play, etc)
+export const carouselConfig = mysqlTable("carousel_config", {
+  id: int("id").autoincrement().primaryKey(),
+  autoplay: boolean("autoplay").default(true).notNull(),
+  autoplayInterval: int("autoplayInterval").default(5000).notNull(), // em milissegundos
+  impactPhrase: text("impactPhrase").default("O melhor IPTV sempre"),
+  contactPhrase: text("contactPhrase").default("Contate seu revenda"),
+  legalNotice: text("legalNotice").default("OuroPro is a media player application. The app does not provide or include any media or content."),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CarouselConfig = typeof carouselConfig.$inferSelect;
+export type InsertCarouselConfig = typeof carouselConfig.$inferInsert;

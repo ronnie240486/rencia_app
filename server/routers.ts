@@ -12,8 +12,8 @@ import {
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
   getConnectedDevices, updateUserProfile,
 } from "./db";
-import { eq, and, inArray, sql } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries } from "../drizzle/schema";
+import { eq, and, inArray, sql, desc } from "drizzle-orm";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -673,6 +673,99 @@ export const appRouter = router({
       }))
       .query(async ({ ctx, input }) => {
         return getConnectedDevices(ctx.user.id, input.minutesAgo);
+      }),
+  }),
+
+  // ─── Carousel (OuroPro App) ────────────────────────────────────────────────
+  carousel: router({
+    // Obter slides do carousel (público para o app)
+    slides: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(carouselSlides)
+        .where(eq(carouselSlides.ativo, true))
+        .orderBy(carouselSlides.ordem);
+    }),
+
+    // Obter configurações do carousel (público para o app)
+    config: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return null;
+      const config = await db.select().from(carouselConfig).limit(1);
+      return config[0] || null;
+    }),
+
+    // Admin: Listar todos os slides
+    adminList: adminProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(carouselSlides).orderBy(desc(carouselSlides.ordem));
+    }),
+
+    // Admin: Criar slide
+    createSlide: adminProcedure
+      .input(z.object({
+        titulo: z.string().min(1),
+        descricao: z.string().optional(),
+        tipo: z.enum(["image", "video"]).default("image"),
+        urlMedia: z.string().url(),
+        ordem: z.number().optional().default(0),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.insert(carouselSlides).values(input);
+        return { success: true };
+      }),
+
+    // Admin: Atualizar slide
+    updateSlide: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        titulo: z.string().optional(),
+        descricao: z.string().optional(),
+        tipo: z.enum(["image", "video"]).optional(),
+        urlMedia: z.string().url().optional(),
+        ordem: z.number().optional(),
+        ativo: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { id, ...data } = input;
+        await db.update(carouselSlides).set(data).where(eq(carouselSlides.id, id));
+        return { success: true };
+      }),
+
+    // Admin: Deletar slide
+    deleteSlide: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.delete(carouselSlides).where(eq(carouselSlides.id, input.id));
+        return { success: true };
+      }),
+
+    // Admin: Atualizar configurações
+    updateConfig: adminProcedure
+      .input(z.object({
+        autoplay: z.boolean().optional(),
+        autoplayInterval: z.number().optional(),
+        impactPhrase: z.string().optional(),
+        contactPhrase: z.string().optional(),
+        legalNotice: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const existing = await db.select().from(carouselConfig).limit(1);
+        if (existing.length > 0) {
+          await db.update(carouselConfig).set(input).where(eq(carouselConfig.id, existing[0].id));
+        } else {
+          await db.insert(carouselConfig).values({ ...input, id: 1 });
+        }
+        return { success: true };
       }),
   }),
 });
