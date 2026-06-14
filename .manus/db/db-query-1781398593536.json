@@ -1,0 +1,262 @@
+{
+  "query": "SELECT * FROM app_settings ORDER BY `key` ASC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT * FROM app_settings ORDER BY `key` ASC;",
+  "rows": [
+    {
+      "id": "750013",
+      "key": "apk_download_url",
+      "value": "https://cur.to/FdkA",
+      "updatedAt": "2026-06-04 03:50:02"
+    },
+    {
+      "id": "1710001",
+      "key": "apk_file_key",
+      "value": "apk/1780543256524_OuroPro_v34_mobile.apk",
+      "updatedAt": "2026-06-04 03:20:58"
+    },
+    {
+      "id": "1710002",
+      "key": "apk_file_name",
+      "value": "OuroPro_v34_mobile.apk",
+      "updatedAt": "2026-06-04 03:20:58"
+    },
+    {
+      "id": "1470001",
+      "key": "apk_short_url",
+      "value": " https://cur.to/FdkA",
+      "updatedAt": "2026-05-25 02:16:06"
+    },
+    {
+      "id": "1470002",
+      "key": "apk_use_short_url",
+      "value": "false",
+      "updatedAt": "2026-05-24 03:31:21"
+    },
+    {
+      "id": "750014",
+      "key": "apk_version",
+      "value": "7.0",
+      "updatedAt": "2026-05-24 14:04:48"
+    },
+    {
+      "id": "7",
+      "key": "app_channels_label",
+      "value": "Canais",
+      "updatedAt": "2026-05-03 03:57:16"
+    },
+    {
+      "id": "660057",
+      "key": "app_download_url",
+      "value": "",
+      "updatedAt": "2026-05-12 01:28:40"
+    },
+    {
+      "id": "8",
+      "key": "app_movies_label",
+      "value": "Filme",
+      "updatedAt": "2026-05-05 15:27:04"
+    },
+    {
+      "id": "9",
+      "key": "app_series_label",
+      "value": "Séries",
+      "updatedAt": "2026-05-03 03:54:29"
+    },
+    {
+      "id": "660056",
+      "key": "app_version",
+      "value": "1.0.2",
+      "updatedAt": "2026-05-12 11:13:19"
+    },
+    {
+      "id": "750011",
+      "key": "chatbot_dias_aviso",
+      "value": "1",
+      "updatedAt": "2026-05-18 02:33:48"
+    },
+    {
+      "id": "750012",
+      "key": "chatbot_mensagem_vencimento",
+      "value": "Olá {nome}! Sua assinatura vence em {dias} dia(s) ({data}). Renove agora para não perder o acesso! 😊",
+      "updatedAt": "2026-05-12 19:47:09"
+    },
+    {
+      "id": "480010",
+      "key": "contact_info",
+      "value": "Contate seu revenda",
+      "updatedAt": "2026-06-07 03:20:06"
+    },
+    {
+      "id": "10",
+      "key": "contact_website",
+      "value": "Ouropro.com.br",
+      "updatedAt": "2026-06-07 03:20:06"
+    },
+    {
+      "id": "11",
+      "key": "contact_whatsapp",
+      "value": "⁹9999999999",
+      "updatedAt": "2026-06-14 00:37:36"
+    },
+    {
+      "id": "15",
+      "key": "icon_account_url",
+      "value": "",
+      "updatedAt": "2026-05-03 03:54:30"
+    },
+    {
+      "id": "16",
+      "key": "icon_change_playlist_url",
+      "value": "",
+      "updatedAt": "2026-05-17 03:18:53"
+    },
+    {
+      "id": "660054",
+      "key": "icon_exit_url",
+      "value": "",
+      "updatedAt": "2026-05-17 03:35:36"
+    },
+    {
+      "id": "12",
+      "key": "icon_live_tv_url",
+      "value": "https://renciaapp.manus.space/manus-storage/app-images/icon_live_tv_url_1778994644399_5dcec666.png",
+      "updatedAt": "2026-05-24 14:00:48"
+    },
+    {
+      "id": "13",
+      "key": "icon_movies_url",
+      "value": "https://renciaapp.manus.space/manus-storage/app-images/icon_movies_url_1778993484894_6ae306b6.webp",
+      "updatedAt": "2026-05-24 14:00:48"
+    },
+    {
+      "id": "660053",
+      "key": "icon_reload_url",
+      "value": "https://renciaapp.manus.space/manus-storage/app-images/icon_reload_url_1778993173828_d1810a0a.webp",
+      "updatedAt": "2026-05-24 16:26:24"
+    },
+    {
+      "id": "14",
+      "key": "icon_series_url",
+      "value": "",
+      "updatedAt": "2026-05-17 23:05:29"
+    },
+    {
+      "id": "660055",
+      "key": "icon_settings_url",
+      "value": "",
+      "updatedAt": "2026-05-17 23:05:29"
+    },
+    {
+      "id": "480009",
+      "key": "impact_phrase",
+      "value": "O melhor IPTV sempre...",
+      "updatedAt": "2026-06-14 00:37:36"
+    },
+    {
+      "id": "750015",
+      "key": "legal_notice",
+      "value": "OuroPro is a media player application. The app does not provide or include any media or content....",
+      "updatedAt": "2026-06-02 21:25:45"
+    },
+    {
+      "id": "870019",
+      "key": "lock_button_text",
+      "value": "Renova",
+      "updatedAt": "2026-06-14 00:39:23"
+    },
+    {
+      "id": "870020",
+      "key": "lock_button_url",
+      "value": "35997300806",
+      "updatedAt": "2026-06-07 03:23:33"
+    },
+    {
+      "id": "870018",
+      "key": "lock_message",
+      "value": "OuroPro is a media player application. The app does not provide or include any media or content...",
+      "updatedAt": "2026-06-02 21:25:45"
+    },
+    {
+      "id": "870017",
+      "key": "lock_title",
+      "value": "OuroPro",
+      "updatedAt": "2026-06-07 03:23:49"
+    },
+    {
+      "id": "660107",
+      "key": "primary_color",
+      "value": "#EF4444",
+      "updatedAt": "2026-05-17 04:29:57"
+    },
+    {
+      "id": "720027",
+      "key": "profile_banner_url",
+      "value": "https://renciaapp.manus.space/manus-storage/app-images/profile_banner_url_1778994904147_d7efffb7.jpg",
+      "updatedAt": "2026-05-24 14:00:48"
+    },
+    {
+      "id": "750010",
+      "key": "sidebar_color",
+      "value": "#1c0a0a",
+      "updatedAt": "2026-05-17 22:18:08"
+    },
+    {
+      "id": "660106",
+      "key": "sidebar_logo_url",
+      "value": "",
+      "updatedAt": "2026-05-24 14:34:11"
+    },
+    {
+      "id": "1230011",
+      "key": "text_color",
+      "value": "#000000",
+      "updatedAt": "2026-05-24 14:40:46"
+    },
+    {
+      "id": "6",
+      "key": "trial_background_url",
+      "value": "https://renciaapp.manus.space/manus-storage/app-images/trial_background_url_1779633461574_8ba215fa.jpg",
+      "updatedAt": "2026-05-24 14:37:42"
+    },
+    {
+      "id": "4",
+      "key": "trial_banner_url",
+      "value": "https://renciaapp.manus.space/manus-storage/app-images/trial_banner_url_1779630392638_1333bcdf.png",
+      "updatedAt": "2026-05-24 13:47:47"
+    },
+    {
+      "id": "660042",
+      "key": "trial_logo_hidden",
+      "value": "false",
+      "updatedAt": "2026-05-12 01:28:40"
+    },
+    {
+      "id": "5",
+      "key": "trial_logo_url",
+      "value": "https://renciaapp.manus.space/manus-storage/app-images/trial_logo_url_1779633218738_6690a609.png",
+      "updatedAt": "2026-05-24 14:33:39"
+    },
+    {
+      "id": "2",
+      "key": "trial_subtitle",
+      "value": "🚀 Assine agora e tenha acesso ilimitado a canais, filmes e séries!!",
+      "updatedAt": "2026-05-05 15:27:04"
+    },
+    {
+      "id": "3",
+      "key": "trial_support_text",
+      "value": "Suporte com seu revendedor.",
+      "updatedAt": "2026-05-09 02:37:29"
+    },
+    {
+      "id": "1",
+      "key": "trial_title",
+      "value": "Acesso Bloqueado pra vc",
+      "updatedAt": "2026-05-06 14:24:13"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tkey\tvalue\tupdatedAt\n750013\tapk_download_url\thttps://cur.to/FdkA\t2026-06-04 03:50:02\n1710001\tapk_file_key\tapk/1780543256524_OuroPro_v34_mobile.apk\t2026-06-04 03:20:58\n1710002\tapk_file_name\tOuroPro_v34_mobile.apk\t2026-06-04 03:20:58\n1470001\tapk_short_url\t https://cur.to/FdkA\t2026-05-25 02:16:06\n1470002\tapk_use_short_url\tfalse\t2026-05-24 03:31:21\n750014\tapk_version\t7.0\t2026-05-24 14:04:48\n7\tapp_channels_label\tCanais\t2026-05-03 03:57:16\n660057\tapp_download_url\t\t2026-05-12 01:28:40\n8\tapp_movies_label\tFilme\t2026-05-05 15:27:04\n9\tapp_series_label\tSéries\t2026-05-03 03:54:29\n660056\tapp_version\t1.0.2\t2026-05-12 11:13:19\n750011\tchatbot_dias_aviso\t1\t2026-05-18 02:33:48\n750012\tchatbot_mensagem_vencimento\tOlá {nome}! Sua assinatura vence em {dias} dia(s) ({data}). Renove agora para não perder o acesso! 😊\t2026-05-12 19:47:09\n480010\tcontact_info\tContate seu revenda\t2026-06-07 03:20:06\n10\tcontact_website\tOuropro.com.br\t2026-06-07 03:20:06\n11\tcontact_whatsapp\t⁹9999999999\t2026-06-14 00:37:36\n15\ticon_account_url\t\t2026-05-03 03:54:30\n16\ticon_change_playlist_url\t\t2026-05-17 03:18:53\n660054\ticon_exit_url\t\t2026-05-17 03:35:36\n12\ticon_live_tv_url\thttps://renciaapp.manus.space/manus-storage/app-images/icon_live_tv_url_1778994644399_5dcec666.png\t2026-05-24 14:00:48\n13\ticon_movies_url\thttps://renciaapp.manus.space/manus-storage/app-images/icon_movies_url_1778993484894_6ae306b6.webp\t2026-05-24 14:00:48\n660053\ticon_reload_url\thttps://renciaapp.manus.space/manus-storage/app-images/icon_reload_url_1778993173828_d1810a0a.webp\t2026-05-24 16:26:24\n14\ticon_series_url\t\t2026-05-17 23:05:29\n660055\ticon_settings_url\t\t2026-05-17 23:05:29\n480009\timpact_phrase\tO melhor IPTV sempre...\t2026-06-14 00:37:36\n750015\tlegal_notice\tOuroPro is a media player application. The app does not provide or include any media or content....\t2026-06-02 21:25:45\n870019\tlock_button_text\tRenova\t2026-06-14 00:39:23\n870020\tlock_button_url\t35997300806\t2026-06-07 03:23:33\n870018\tlock_message\tOuroPro is a media player application. The app does not provide or include any media or content...\t2026-06-02 21:25:45\n870017\tlock_title\tOuroPro\t2026-06-07 03:23:49\n660107\tprimary_color\t#EF4444\t2026-05-17 04:29:57\n720027\tprofile_banner_url\thttps://renciaapp.manus.space/manus-storage/app-images/profile_banner_url_1778994904147_d7efffb7.jpg\t2026-05-24 14:00:48\n750010\tsidebar_color\t#1c0a0a\t2026-05-17 22:18:08\n660106\tsidebar_logo_url\t\t2026-05-24 14:34:11\n1230011\ttext_color\t#000000\t2026-05-24 14:40:46\n6\ttrial_background_url\thttps://renciaapp.manus.space/manus-storage/app-images/trial_background_url_1779633461574_8ba215fa.jpg\t2026-05-24 14:37:42\n4\ttrial_banner_url\thttps://renciaapp.manus.space/manus-storage/app-images/trial_banner_url_1779630392638_1333bcdf.png\t2026-05-24 13:47:47\n660042\ttrial_logo_hidden\tfalse\t2026-05-12 01:28:40\n5\ttrial_logo_url\thttps://renciaapp.manus.space/manus-storage/app-images/trial_logo_url_1779633218738_6690a609.png\t2026-05-24 14:33:39\n2\ttrial_subtitle\t🚀 Assine agora e tenha acesso ilimitado a canais, filmes e séries!!\t2026-05-05 15:27:04\n3\ttrial_support_text\tSuporte com seu revendedor.\t2026-05-09 02:37:29\n1\ttrial_title\tAcesso Bloqueado pra vc\t2026-05-06 14:24:13\n",
+  "stderr": "",
+  "execution_time_ms": 610
+}

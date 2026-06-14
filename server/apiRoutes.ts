@@ -193,20 +193,80 @@ function encodeForApk(jsonStr: string): string {
  * O APK BoxV3 usa WordModels para exibir esses textos na tela de trial/bloqueio.
  */
 function buildWords(cfg: Record<string, string>) {
+  // Montar URL do WhatsApp para o botão de renovação
+  const whatsappNumber = (cfg.contact_whatsapp || "").replace(/\D/g, "");
+  const whatsappUrl = whatsappNumber ? `https://wa.me/${whatsappNumber}` : "";
+  const lockButtonUrl = cfg.lock_button_url || whatsappUrl;
+
   return {
+    // Campos de bloqueio/trial
     trial_ended: cfg.trial_title || "Acesso Bloqueado",
+    tv_mac_expired: cfg.lock_title || cfg.trial_title || "Acesso Bloqueado",
     to_continue: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
-    trial_description: cfg.trial_support_text || "Suporte com seu revendedor",
+    str_trial_description: cfg.trial_support_text || "Suporte com seu revendedor",
+    tv_is_trial: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
+    current_expired: cfg.lock_message || "Sua assinatura expirou.",
+    // Campos de contato/links
     str_link: cfg.contact_website || "",
     str_whatsapp: cfg.contact_whatsapp || "",
-    open_website: "Conectar",
-    mac_activated: "Seu MAC está Ativado.",
-    add_manage: "Para adicionar/gerenciar playlists, use os valores no site.",
-    mac_address_label: "Mac Address",
-    impact_phrase: cfg.impact_phrase || "",
     contact: cfg.contact_info || "",
+    // Botões
+    open_website: cfg.lock_button_text || "Renovar Agora",
+    str_continue: cfg.lock_button_text || "Renovar Agora",
+    ok: "OK",
+    cancel: "Cancelar",
+    yes: "Sim",
+    no: "Não",
+    // Campos de informação
+    mac_activated: "Seu MAC está Ativado.",
+    to_add_manage: "Para adicionar/gerenciar playlists, use os valores no site.",
+    mac_address: "Mac Address",
+    device_key: "Device Key",
+    impact_phrase: cfg.impact_phrase || "",
     legal_notice: cfg.legal_notice || "OuroPro is a media player application. The app does not provide or include any media or content.",
     app_name: cfg.app_name || "OuroPro",
+    // Campos de navegação/labels
+    live_tv: cfg.app_channels_label || "Canais",
+    live: cfg.app_channels_label || "Canais",
+    movies: cfg.app_movies_label || "Filmes",
+    series: cfg.app_series_label || "Séries",
+    home: "Home",
+    settings: "Configurações",
+    exit: "Sair",
+    exit_description: "Deseja realmente sair?",
+    // Campos de playlist
+    no_playlist: "Nenhuma playlist encontrada",
+    no_playlist_description: "Adicione uma playlist para começar a assistir.",
+    playlist_name: "Nome da Playlist",
+    playlist_protected: "Protegido",
+    playlist_expire_date: "Data de Expiração",
+    playlist_is_loading: "Carregando playlist...",
+    playlist_is_not_working: "Playlist não está funcionando",
+    refresh_playlist: "Atualizar Playlist",
+    delete_playlist: "Excluir Playlist",
+    // Campos de player
+    no_channels: "Nenhum canal disponível",
+    no_movies: "Nenhum filme disponível",
+    no_series: "Nenhuma série disponível",
+    search: "Buscar",
+    favorite: "Favoritos",
+    recently_viewed: "Vistos Recentemente",
+    // Campos de atualização
+    new_software_update_available: "Nova atualização disponível",
+    update_now: "Atualizar Agora",
+    // Campos extras
+    enjoy_tv: "Aproveite sua TV!",
+    connect: "Conectar",
+    select: "Selecionar",
+    play: "Reproduzir",
+    resume: "Continuar",
+    retry: "Tentar novamente",
+    epg: "Guia de Programação",
+    sub_remaining: "Dias restantes",
+    expire_date: "Data de Expiração",
+    version: "Versão",
+    ibo_pro_description: cfg.legal_notice || "OuroPro is a media player application. The app does not provide or include any media or content.",
+    via_website: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
   };
 }
 
@@ -484,23 +544,9 @@ export function registerApiRoutes(app: Express) {
       // languages[].words (LanguageModel → WordModels via Gson).
       // Enviamos dois idiomas (pt + en) para garantir compatibilidade com qualquer
       // configuração de idioma do dispositivo.
-      const wordsPayload = {
-        trial_ended: words.trial_ended,
-        to_continue: words.to_continue,
-        str_trial_description: words.trial_description,
-        str_link: words.str_link,
-        str_whatsapp: words.str_whatsapp,
-        open_website: words.open_website,
-        mac_activated: words.mac_activated,
-        to_add_manage: words.add_manage,
-        contact: words.contact,
-        impact_phrase: words.impact_phrase,
-        legal_notice: words.legal_notice,
-        app_name: words.app_name,
-      };
       const languagesPayload = [
-        { code: "pt", id: "1", name: "Português", words: wordsPayload },
-        { code: "en", id: "2", name: "English", words: wordsPayload },
+        { code: "pt", id: "1", name: "Português", words },
+        { code: "en", id: "2", name: "English", words },
       ];
 
       const responsePayload = {
@@ -519,7 +565,7 @@ export function registerApiRoutes(app: Express) {
         // Campos extras na raiz para compatibilidade com versões antigas do APK
         trial_ended: words.trial_ended,
         via_website: words.to_continue,
-        str_trial_description: words.trial_description,
+        str_trial_description: words.str_trial_description,
         str_link: words.str_link,
         str_whatsapp: words.str_whatsapp,
         live_label: cfg.app_channels_label || "Canais",
@@ -628,23 +674,9 @@ export function registerApiRoutes(app: Express) {
       ]);
 
       const words = buildWords(cfg);
-      const wordsPayload = {
-        trial_ended: words.trial_ended,
-        to_continue: words.to_continue,
-        str_trial_description: words.trial_description,
-        str_link: words.str_link,
-        str_whatsapp: words.str_whatsapp,
-        open_website: words.open_website,
-        mac_activated: words.mac_activated,
-        to_add_manage: words.add_manage,
-        contact: words.contact,
-        impact_phrase: words.impact_phrase,
-        legal_notice: words.legal_notice,
-        app_name: words.app_name,
-      };
       const languagesPayload = [
-        { code: "pt", id: "1", name: "Português", words: wordsPayload },
-        { code: "en", id: "2", name: "English", words: wordsPayload },
+        { code: "pt", id: "1", name: "Português", words },
+        { code: "en", id: "2", name: "English", words },
       ];
 
       res.json({
@@ -664,7 +696,7 @@ export function registerApiRoutes(app: Express) {
         app_version: cfg.apk_version || "5.0",
         trial_ended: words.trial_ended,
         via_website: words.to_continue,
-        str_trial_description: words.trial_description,
+        str_trial_description: words.str_trial_description,
         str_link: words.str_link,
         str_whatsapp: words.str_whatsapp,
         live_label: cfg.app_channels_label || "Canais",

@@ -1,0 +1,64 @@
+{
+  "query": "SELECT * FROM app_settings WHERE `key` IN ('impact_phrase', 'legal_notice', 'lock_title', 'lock_message', 'lock_button_text', 'lock_button_url', 'trial_title', 'trial_subtitle', 'trial_support_text');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT * FROM app_settings WHERE `key` IN ('impact_phrase', 'legal_notice', 'lock_title', 'lock_message', 'lock_button_text', 'lock_button_url', 'trial_title', 'trial_subtitle', 'trial_support_text');",
+  "rows": [
+    {
+      "id": "480009",
+      "key": "impact_phrase",
+      "value": "O melhor IPTV sempre...",
+      "updatedAt": "2026-06-14 00:37:36"
+    },
+    {
+      "id": "750015",
+      "key": "legal_notice",
+      "value": "OuroPro is a media player application. The app does not provide or include any media or content....",
+      "updatedAt": "2026-06-02 21:25:45"
+    },
+    {
+      "id": "870017",
+      "key": "lock_title",
+      "value": "OuroPro",
+      "updatedAt": "2026-06-07 03:23:49"
+    },
+    {
+      "id": "870018",
+      "key": "lock_message",
+      "value": "OuroPro is a media player application. The app does not provide or include any media or content...",
+      "updatedAt": "2026-06-02 21:25:45"
+    },
+    {
+      "id": "870019",
+      "key": "lock_button_text",
+      "value": "Renova",
+      "updatedAt": "2026-06-14 00:39:23"
+    },
+    {
+      "id": "870020",
+      "key": "lock_button_url",
+      "value": "35997300806",
+      "updatedAt": "2026-06-07 03:23:33"
+    },
+    {
+      "id": "1",
+      "key": "trial_title",
+      "value": "Acesso Bloqueado pra vc",
+      "updatedAt": "2026-05-06 14:24:13"
+    },
+    {
+      "id": "2",
+      "key": "trial_subtitle",
+      "value": "🚀 Assine agora e tenha acesso ilimitado a canais, filmes e séries!!",
+      "updatedAt": "2026-05-05 15:27:04"
+    },
+    {
+      "id": "3",
+      "key": "trial_support_text",
+      "value": "Suporte com seu revendedor.",
+      "updatedAt": "2026-05-09 02:37:29"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tkey\tvalue\tupdatedAt\n480009\timpact_phrase\tO melhor IPTV sempre...\t2026-06-14 00:37:36\n750015\tlegal_notice\tOuroPro is a media player application. The app does not provide or include any media or content....\t2026-06-02 21:25:45\n870017\tlock_title\tOuroPro\t2026-06-07 03:23:49\n870018\tlock_message\tOuroPro is a media player application. The app does not provide or include any media or content...\t2026-06-02 21:25:45\n870019\tlock_button_text\tRenova\t2026-06-14 00:39:23\n870020\tlock_button_url\t35997300806\t2026-06-07 03:23:33\n1\ttrial_title\tAcesso Bloqueado pra vc\t2026-05-06 14:24:13\n2\ttrial_subtitle\t🚀 Assine agora e tenha acesso ilimitado a canais, filmes e séries!!\t2026-05-05 15:27:04\n3\ttrial_support_text\tSuporte com seu revendedor.\t2026-05-09 02:37:29\n",
+  "stderr": "",
+  "execution_time_ms": 561
+}

@@ -225,3 +225,14 @@
 
 ## Bug crítico (02/06/2026)
 - [x] Corrigir React Error #310 ao atualizar a página do painel (hooks chamados em ordem inválida)
+
+## Carousel e Endpoints APK (13/06/2026)
+- [x] Schema: tabela carousel_slides e carousel_config
+- [x] Procedure: CRUD de slides do carousel (listar, criar, editar, deletar, reordenar)
+- [x] Procedure: configuração do carousel (auto-play, intervalo)
+- [x] Frontend: página CarouselManager com gerenciamento completo
+- [x] Frontend: botão "Carousel do App" no menu lateral (AdminLayout)
+- [x] Corrigir buildWords() para enviar TODOS os campos do WordModels (tv_mac_expired, open_website, str_continue, ok, cancel, etc)
+- [x] Enviar objeto words COMPLETO nos endpoints /api/guim.php (não apenas parcial)
+- [ ] Tela de bloqueio: botão "Renovar Agora" abrindo WhatsApp
+- [ ] Tela home: frases do painel aparecendo corretamente no app
