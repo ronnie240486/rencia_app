@@ -17,7 +17,7 @@ import DeviceLists from "./pages/DeviceLists";
 import DnsMassa from "./pages/DnsMassa";
 import Chatbot from "./pages/Chatbot";
 import DNS from "./pages/DNS";
-import { CarouselManager } from "./pages/CarouselManager";
+import CarouselManager from "./pages/CarouselManager";
 
 function Router() {
   return (

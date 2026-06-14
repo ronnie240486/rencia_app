@@ -1,340 +1,164 @@
 import { useState } from "react";
-import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, Trash2, Edit2 } from "lucide-react";
-import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc";
+import { Upload, Trash2, Plus } from "lucide-react";
 
-export function CarouselManager() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
-    titulo: "",
-    descricao: "",
-    tipo: "image" as "image" | "video",
-    urlMedia: "",
-    ordem: 0,
-  });
+export default function CarouselManager() {
+  const [slides, setSlides] = useState<any[]>([]);
+  const [newSlide, setNewSlide] = useState({ duration: 5, type: "image" });
+  const [uploading, setUploading] = useState(false);
 
-  const [configData, setConfigData] = useState({
-    autoplay: true,
-    autoplayInterval: 5000,
-    impactPhrase: "O melhor IPTV sempre",
-    contactPhrase: "Contate seu revenda",
-    legalNotice: "OuroPro is a media player application. The app does not provide or include any media or content.",
-  });
+  const { data: carouselSlides } = trpc.carousel.adminList.useQuery();
+  const createSlideMutation = trpc.carousel.createSlide.useMutation();
+  const updateSlideMutation = trpc.carousel.updateSlide.useMutation();
 
-  // Queries
-  const slidesQuery = trpc.carousel.adminList.useQuery();
-  const configQuery = trpc.carousel.config.useQuery();
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  // Mutations
-  const createMutation = trpc.carousel.createSlide.useMutation({
-    onSuccess: () => {
-      toast.success("Slide criado com sucesso!");
-      slidesQuery.refetch();
-      resetForm();
-      setIsOpen(false);
-    },
-    onError: (err) => toast.error(err.message),
-  });
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("duration", newSlide.duration.toString());
+    formData.append("type", newSlide.type);
 
-  const updateMutation = trpc.carousel.updateSlide.useMutation({
-    onSuccess: () => {
-      toast.success("Slide atualizado com sucesso!");
-      slidesQuery.refetch();
-      resetForm();
-      setIsOpen(false);
-    },
-    onError: (err) => toast.error(err.message),
-  });
+    try {
+      const response = await fetch("/api/carousel/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+      
+      await createSlideMutation.mutateAsync({
+        titulo: `Slide ${Date.now()}`,
+        tipo: newSlide.type as "image" | "video",
+        urlMedia: data.url,
+        ordem: (carouselSlides?.length || 0) + 1,
+      });
 
-  const deleteMutation = trpc.carousel.deleteSlide.useMutation({
-    onSuccess: () => {
-      toast.success("Slide deletado com sucesso!");
-      slidesQuery.refetch();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
-  const updateConfigMutation = trpc.carousel.updateConfig.useMutation({
-    onSuccess: () => {
-      toast.success("Configurações atualizadas!");
-      configQuery.refetch();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
-  const resetForm = () => {
-    setFormData({
-      titulo: "",
-      descricao: "",
-      tipo: "image",
-      urlMedia: "",
-      ordem: 0,
-    });
-    setEditingId(null);
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.titulo || !formData.urlMedia) {
-      toast.error("Título e URL são obrigatórios");
-      return;
-    }
-
-    if (editingId) {
-      await updateMutation.mutateAsync({ id: editingId, ...formData });
-    } else {
-      await createMutation.mutateAsync(formData);
+      setNewSlide({ duration: 5, type: "image" });
+      e.target.value = "";
+    } catch (error) {
+      console.error("Erro ao fazer upload:", error);
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handleEdit = (slide: any) => {
-    setFormData({
-      titulo: slide.titulo,
-      descricao: slide.descricao || "",
-      tipo: slide.tipo,
-      urlMedia: slide.urlMedia,
-      ordem: slide.ordem,
-    });
-    setEditingId(slide.id);
-    setIsOpen(true);
+  const handleDelete = async (slideId: number) => {
+    await updateSlideMutation.mutateAsync({ id: slideId, ativo: false });
   };
-
-  const handleDelete = (id: number) => {
-    if (confirm("Tem certeza que deseja deletar este slide?")) {
-      deleteMutation.mutate({ id });
-    }
-  };
-
-  const slides = slidesQuery.data || [];
-  const isLoading = slidesQuery.isLoading || createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Gerenciador de Carousel</h1>
-        <p className="text-gray-600">Gerencie os slides de imagens e vídeos do app OuroPro</p>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Carousel do App</h1>
       </div>
 
-      {/* Configurações */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Configurações do Carousel</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* Adicionar novo slide */}
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Adicionar Novo Slide</h2>
+        <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium">Auto-play (segundos)</label>
+              <label className="block text-sm font-medium mb-2">Tipo</label>
+              <select
+                value={newSlide.type}
+                onChange={(e) =>
+                  setNewSlide({ ...newSlide, type: e.target.value })
+                }
+                className="w-full px-3 py-2 border rounded-lg"
+              >
+                <option value="image">Imagem</option>
+                <option value="video">Vídeo</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Duração (segundos)
+              </label>
               <Input
                 type="number"
-                value={configData.autoplayInterval / 1000}
+                min="1"
+                max="60"
+                value={newSlide.duration}
                 onChange={(e) =>
-                  setConfigData({
-                    ...configData,
-                    autoplayInterval: parseInt(e.target.value) * 1000,
+                  setNewSlide({
+                    ...newSlide,
+                    duration: parseInt(e.target.value),
                   })
                 }
               />
             </div>
-            <div className="flex items-end">
-              <Button
-                onClick={() => updateConfigMutation.mutate(configData)}
-                disabled={updateConfigMutation.isPending}
-              >
-                {updateConfigMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Salvar Configurações
-              </Button>
-            </div>
           </div>
 
           <div>
-            <label className="text-sm font-medium">Frase de Impacto</label>
-            <Input
-              value={configData.impactPhrase}
-              onChange={(e) =>
-                setConfigData({ ...configData, impactPhrase: e.target.value })
-              }
-            />
+            <label className="block text-sm font-medium mb-2">
+              Selecionar {newSlide.type === "image" ? "Imagem" : "Vídeo"}
+            </label>
+            <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
+              <div className="flex flex-col items-center">
+                <Upload className="w-8 h-8 mb-2" />
+                <span className="text-sm">
+                  Clique para fazer upload ou arraste o arquivo
+                </span>
+              </div>
+              <input
+                type="file"
+                className="hidden"
+                accept={newSlide.type === "image" ? "image/*" : "video/*"}
+                onChange={handleFileUpload}
+                disabled={uploading}
+              />
+            </label>
           </div>
-
-          <div>
-            <label className="text-sm font-medium">Frase de Contato</label>
-            <Input
-              value={configData.contactPhrase}
-              onChange={(e) =>
-                setConfigData({ ...configData, contactPhrase: e.target.value })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium">Aviso Legal</label>
-            <Textarea
-              value={configData.legalNotice}
-              onChange={(e) =>
-                setConfigData({ ...configData, legalNotice: e.target.value })
-              }
-              rows={3}
-            />
-          </div>
-        </CardContent>
+        </div>
       </Card>
 
-      {/* Slides */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Slides ({slides.length})</CardTitle>
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => resetForm()}>
-                <Plus className="mr-2 h-4 w-4" />
-                Novo Slide
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {editingId ? "Editar Slide" : "Criar Novo Slide"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Título *</label>
-                  <Input
-                    value={formData.titulo}
-                    onChange={(e) =>
-                      setFormData({ ...formData, titulo: e.target.value })
-                    }
-                    placeholder="Ex: Promoção de Verão"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Descrição</label>
-                  <Textarea
-                    value={formData.descricao}
-                    onChange={(e) =>
-                      setFormData({ ...formData, descricao: e.target.value })
-                    }
-                    placeholder="Descrição opcional"
-                    rows={2}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Tipo *</label>
-                  <Select
-                    value={formData.tipo}
-                    onValueChange={(value: "image" | "video") =>
-                      setFormData({ ...formData, tipo: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="image">Imagem</SelectItem>
-                      <SelectItem value="video">Vídeo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">URL da Mídia *</label>
-                  <Input
-                    value={formData.urlMedia}
-                    onChange={(e) =>
-                      setFormData({ ...formData, urlMedia: e.target.value })
-                    }
-                    placeholder="https://..."
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Ordem</label>
-                  <Input
-                    type="number"
-                    value={formData.ordem}
-                    onChange={(e) =>
-                      setFormData({ ...formData, ordem: parseInt(e.target.value) })
-                    }
-                  />
-                </div>
-
+      {/* Lista de slides */}
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Slides Atuais</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {carouselSlides?.map((slide: any) => (
+            <div key={slide.id} className="border rounded-lg overflow-hidden">
+              {slide.type === "image" ? (
+                <img
+                  src={slide.url}
+                  alt="Slide"
+                  className="w-full h-40 object-cover"
+                />
+              ) : (
+                <video
+                  src={slide.url}
+                  className="w-full h-40 object-cover"
+                  controls
+                />
+              )}
+              <div className="p-3 bg-gray-50">
+                <p className="text-sm text-gray-600">
+                  {slide.type === "image" ? "🖼️ Imagem" : "🎬 Vídeo"} •{" "}
+                  {slide.duration}s
+                </p>
                 <Button
-                  onClick={handleSubmit}
-                  disabled={isLoading}
-                  className="w-full"
+                  variant="destructive"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => handleDelete(Number(slide.id))}
                 >
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {editingId ? "Atualizar" : "Criar"}
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Remover
                 </Button>
               </div>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent>
-          {slidesQuery.isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-          ) : slides.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">Nenhum slide criado ainda</p>
-          ) : (
-            <div className="space-y-2">
-              {slides.map((slide: any) => (
-                <div
-                  key={slide.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
-                >
-                  <div className="flex-1">
-                    <h3 className="font-medium">{slide.titulo}</h3>
-                    <p className="text-sm text-gray-600">
-                      {slide.tipo === "image" ? "🖼️ Imagem" : "🎬 Vídeo"} • Ordem: {slide.ordem}
-                    </p>
-                    {slide.descricao && (
-                      <p className="text-sm text-gray-500 mt-1">{slide.descricao}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(slide)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(slide.id)}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
+          ))}
+        </div>
+        {!carouselSlides?.length && (
+          <p className="text-center text-gray-500 py-8">
+            Nenhum slide adicionado ainda
+          </p>
+        )}
       </Card>
     </div>
   );
