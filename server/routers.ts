@@ -458,6 +458,18 @@ export const appRouter = router({
 
   // ─── Configurações do App ─────────────────────────────────────────────────
   settings: router({
+    // Endpoint PUBLICO para o app buscar configuracoes (sem autenticacao)
+    getPublic: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return {};
+      const rows = await db.select().from(appSettings);
+      const result: Record<string, string> = {};
+      for (const row of rows) {
+        result[row.key] = row.value ?? "";
+      }
+      return result;
+    }),
+
     getAll: protectedProcedure.query(async () => {
       const db = await getDb();
       if (!db) return {};
