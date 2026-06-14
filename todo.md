@@ -236,3 +236,10 @@
 - [x] Enviar objeto words COMPLETO nos endpoints /api/guim.php (não apenas parcial)
 - [ ] Tela de bloqueio: botão "Renovar Agora" abrindo WhatsApp
 - [ ] Tela home: frases do painel aparecendo corretamente no app
+
+## Correções APK v34 (13/06/2026)
+- [ ] Remover/ocultar texto "Sua assinatura expirou" na home quando o MAC NÃO está expirado
+- [ ] Corrigir botão URL do site (não funciona no app)
+- [ ] Corrigir botão WhatsApp do suporte (não funciona no app)
+- [ ] Corrigir botão Telefone/Contato na tela home (não funciona no app)
+- [ ] Corrigir botão URL de renovação na tela de bloqueio (não funciona no app)

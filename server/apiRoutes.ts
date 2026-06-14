@@ -194,9 +194,30 @@ function encodeForApk(jsonStr: string): string {
  */
 function buildWords(cfg: Record<string, string>) {
   // Montar URL do WhatsApp para o botão de renovação
-  const whatsappNumber = (cfg.contact_whatsapp || "").replace(/\D/g, "");
+  // Limpar caracteres unicode invisíveis e não-numéricos do WhatsApp
+  const whatsappRaw = (cfg.contact_whatsapp || "").replace(/[^\d+]/g, "");
+  const whatsappNumber = whatsappRaw.replace(/\D/g, "");
   const whatsappUrl = whatsappNumber ? `https://wa.me/${whatsappNumber}` : "";
-  const lockButtonUrl = cfg.lock_button_url || whatsappUrl;
+  
+  // Formatar lock_button_url: se for só número, converter para URL do WhatsApp
+  let lockButtonUrl = cfg.lock_button_url || "";
+  if (lockButtonUrl && !lockButtonUrl.startsWith("http")) {
+    // É apenas um número de telefone, converter para URL do WhatsApp
+    const lockNumber = lockButtonUrl.replace(/\D/g, "");
+    if (lockNumber) {
+      lockButtonUrl = `https://wa.me/${lockNumber}`;
+    }
+  }
+  if (!lockButtonUrl) lockButtonUrl = whatsappUrl;
+
+  // Formatar contact_website: garantir que tem protocolo
+  let contactWebsite = (cfg.contact_website || "").trim();
+  if (contactWebsite && !contactWebsite.startsWith("http")) {
+    contactWebsite = `https://${contactWebsite}`;
+  }
+
+  // Formatar str_whatsapp como URL do WhatsApp para o APK abrir
+  const strWhatsapp = whatsappUrl || whatsappNumber;
 
   return {
     // Campos de bloqueio/trial
@@ -205,14 +226,15 @@ function buildWords(cfg: Record<string, string>) {
     to_continue: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
     str_trial_description: cfg.trial_support_text || "Suporte com seu revendedor",
     tv_is_trial: cfg.trial_subtitle || "Assine agora e tenha acesso ilimitado!",
-    current_expired: cfg.lock_message || "Sua assinatura expirou.",
-    // Campos de contato/links
-    str_link: cfg.contact_website || "",
-    str_whatsapp: cfg.contact_whatsapp || "",
+    current_expired: cfg.lock_message || "",
+    // Campos de contato/links - formatados como URLs válidas
+    str_link: contactWebsite,
+    str_whatsapp: strWhatsapp,
     contact: cfg.contact_info || "",
     // Botões
     open_website: cfg.lock_button_text || "Renovar Agora",
     str_continue: cfg.lock_button_text || "Renovar Agora",
+    lock_button_url: lockButtonUrl,
     ok: "OK",
     cancel: "Cancelar",
     yes: "Sim",
@@ -583,7 +605,7 @@ export function registerApiRoutes(app: Express) {
         lock_title: cfg.lock_title || "OuroPro",
         lock_message: cfg.lock_message || "OuroPro is a media player application. The app does not provide or include any media or content.",
         lock_button_text: cfg.lock_button_text || "Renovar Agora",
-        lock_button_url: cfg.lock_button_url || (cfg.contact_whatsapp ? `https://wa.me/${cfg.contact_whatsapp.replace(/\D/g, "")}` : ""),
+        lock_button_url: words.lock_button_url,
         // Ícones personalizados dos botões
         icon_reload: postResolvedIconReload,
         icon_exit: postResolvedIconExit,
@@ -713,7 +735,7 @@ export function registerApiRoutes(app: Express) {
         lock_title: cfg.lock_title || "OuroPro",
         lock_message: cfg.lock_message || "OuroPro is a media player application. The app does not provide or include any media or content.",
         lock_button_text: cfg.lock_button_text || "Renovar Agora",
-        lock_button_url: cfg.lock_button_url || (cfg.contact_whatsapp ? `https://wa.me/${cfg.contact_whatsapp.replace(/\D/g, "")}` : ""),
+        lock_button_url: words.lock_button_url,
         icon_reload: resolvedIconReload,
         icon_exit: resolvedIconExit,
         icon_settings: resolvedIconSettings,

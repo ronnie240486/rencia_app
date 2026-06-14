@@ -1,0 +1,8 @@
+{
+  "query": "SELECT setting_key, setting_value FROM app_settings WHERE setting_key IN ('contact_whatsapp', 'contact_website', 'contact_info', 'lock_button_url', 'lock_button_text', 'lock_title', 'lock_message', 'impact_phrase', 'trial_title', 'trial_subtitle');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT setting_key, setting_value FROM app_settings WHERE setting_key IN ('contact_whatsapp', 'contact_website', 'contact_info', 'lock_button_url', 'lock_button_text', 'lock_title', 'lock_message', 'impact_phrase', 'trial_title', 'trial_subtitle');",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'setting_key' in 'where clause'"
+  ]
+}

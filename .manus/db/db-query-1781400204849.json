@@ -1,0 +1,50 @@
+{
+  "query": "SELECT `key`, `value` FROM app_settings WHERE `key` IN ('contact_whatsapp', 'contact_website', 'contact_info', 'lock_button_url', 'lock_button_text', 'lock_title', 'lock_message', 'impact_phrase', 'trial_title', 'trial_subtitle');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT `key`, `value` FROM app_settings WHERE `key` IN ('contact_whatsapp', 'contact_website', 'contact_info', 'lock_button_url', 'lock_button_text', 'lock_title', 'lock_message', 'impact_phrase', 'trial_title', 'trial_subtitle');",
+  "rows": [
+    {
+      "key": "contact_whatsapp",
+      "value": "⁹99999999999999"
+    },
+    {
+      "key": "contact_website",
+      "value": "Ouropro.com.brrrrr"
+    },
+    {
+      "key": "contact_info",
+      "value": "⁹99999"
+    },
+    {
+      "key": "lock_button_url",
+      "value": "35997300806"
+    },
+    {
+      "key": "lock_button_text",
+      "value": ""
+    },
+    {
+      "key": "lock_title",
+      "value": "OuroPro"
+    },
+    {
+      "key": "lock_message",
+      "value": ""
+    },
+    {
+      "key": "impact_phrase",
+      "value": "O melhor IPTV sempre"
+    },
+    {
+      "key": "trial_title",
+      "value": "Acesso Bloqueado pra vc"
+    },
+    {
+      "key": "trial_subtitle",
+      "value": "🚀 Assine agora e tenha acesso ilimitado a canais, filmes e séries!!"
+    }
+  ],
+  "messages": [],
+  "stdout": "key\tvalue\ncontact_whatsapp\t⁹99999999999999\ncontact_website\tOuropro.com.brrrrr\ncontact_info\t⁹99999\nlock_button_url\t35997300806\nlock_button_text\t\nlock_title\tOuroPro\nlock_message\t\nimpact_phrase\tO melhor IPTV sempre\ntrial_title\tAcesso Bloqueado pra vc\ntrial_subtitle\t🚀 Assine agora e tenha acesso ilimitado a canais, filmes e séries!!\n",
+  "stderr": "",
+  "execution_time_ms": 572
+}
