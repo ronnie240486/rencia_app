@@ -133,3 +133,34 @@ export const carouselConfig = mysqlTable("carousel_config", {
 
 export type CarouselConfig = typeof carouselConfig.$inferSelect;
 export type InsertCarouselConfig = typeof carouselConfig.$inferInsert;
+
+// Sugestões de melhorias de master/revenda
+export const suggestions = mysqlTable("suggestions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  telefone: varchar("telefone", { length: 32 }),
+  email: varchar("email", { length: 320 }),
+  sugestao: text("sugestao").notNull(),
+  status: mysqlEnum("status", ["novo", "lido", "respondido"]).default("novo").notNull(),
+  resposta: text("resposta"),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+  respondidoEm: timestamp("respondidoEm"),
+});
+
+export type Suggestion = typeof suggestions.$inferSelect;
+export type InsertSuggestion = typeof suggestions.$inferInsert;
+
+// Avisos do ultra master para todos os master/revenda
+export const notices = mysqlTable("notices", {
+  id: int("id").autoincrement().primaryKey(),
+  autorId: int("autorId").notNull(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  conteudo: text("conteudo").notNull(),
+  ativo: boolean("ativo").default(true).notNull(),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+  atualizadoEm: timestamp("atualizadoEm").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Notice = typeof notices.$inferSelect;
+export type InsertNotice = typeof notices.$inferInsert;
