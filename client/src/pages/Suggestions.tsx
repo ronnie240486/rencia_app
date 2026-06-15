@@ -15,7 +15,7 @@ export default function Suggestions() {
   const [submitted, setSubmitted] = useState(false);
 
   const createSuggestionMutation = trpc.suggestions.create.useMutation();
-  const { data: suggestions } = trpc.suggestions.list.useQuery();
+  const { data: suggestionsList } = trpc.suggestions.list.useQuery();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,13 +123,13 @@ export default function Suggestions() {
       </Card>
 
       {/* Lista de sugestões (apenas para admin) */}
-      {suggestions && suggestions.length > 0 && (
+      {suggestionsList && suggestionsList.length > 0 && (
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">
-            Sugestões Recebidas ({suggestions.length})
+            Sugestões Recebidas ({suggestionsList.length})
           </h2>
           <div className="space-y-4">
-            {suggestions.map((suggestion: any) => (
+            {suggestionsList.map((suggestion: any) => (
               <div
                 key={suggestion.id}
                 className="p-4 border rounded-lg hover:bg-gray-50"

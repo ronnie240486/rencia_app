@@ -18,6 +18,8 @@ import {
   Users,
   X,
   Film,
+  MessageSquare,
+  AlertCircle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -39,6 +41,8 @@ const navItems: NavItem[] = [
   { label: "DNS", href: "/dns", icon: <Server size={18} /> },
   { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} />, ownerOnly: true },
   { label: "Carousel do App", href: "/carousel", icon: <Film size={18} />, ownerOnly: true },
+  { label: "Sugestões", href: "/sugestoes", icon: <MessageSquare size={18} /> },
+  { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true },
   { label: "Configurações do App", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];

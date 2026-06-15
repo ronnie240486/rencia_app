@@ -18,6 +18,8 @@ import DnsMassa from "./pages/DnsMassa";
 import Chatbot from "./pages/Chatbot";
 import DNS from "./pages/DNS";
 import CarouselManager from "./pages/CarouselManager";
+import Suggestions from "./pages/Suggestions";
+import Notices from "./pages/Notices";
 
 function Router() {
   return (
@@ -37,7 +39,9 @@ function Router() {
       <Route path={"/chatbot"} component={Chatbot} />
       <Route path={"/loja"} component={Loja} />
       <Route path={"/carousel"} component={CarouselManager} />
-      <Route path={"/404"} component={NotFound} />
+      <Route path={"/sugestoes"} component={Suggestions} />
+      <Route path={"/avisos"} component={Notices} />
+      <Route path={"/configuracoes"} component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );

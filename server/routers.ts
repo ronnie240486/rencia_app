@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -777,6 +777,68 @@ export const appRouter = router({
         } else {
           await db.insert(carouselConfig).values({ ...input, id: 1 });
         }
+        return { success: true };
+      }),
+  }),
+
+  suggestions: router({
+    create: protectedProcedure
+      .input(z.object({
+        nome: z.string().min(1),
+        telefone: z.string().optional(),
+        email: z.string().email().optional(),
+        sugestao: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.insert(suggestions).values({
+          userId: ctx.user.id,
+          ...input,
+        });
+        return { success: true };
+      }),
+
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      
+      // Admin vê todas, outros veem apenas suas
+      const where = ctx.user.role === "admin" ? undefined : eq(suggestions.userId, ctx.user.id);
+      const result = await db.select().from(suggestions).where(where).orderBy(desc(suggestions.criadoEm));
+      return result;
+    }),
+  }),
+
+  notices: router({
+    list: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const result = await db.select().from(notices).where(eq(notices.ativo, true)).orderBy(desc(notices.criadoEm));
+      return result;
+    }),
+
+    create: adminProcedure
+      .input(z.object({
+        titulo: z.string().min(1),
+        conteudo: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.insert(notices).values({
+          autorId: ctx.user.id,
+          ...input,
+        });
+        return { success: true };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.delete(notices).where(eq(notices.id, input.id));
         return { success: true };
       }),
   }),
