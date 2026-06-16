@@ -20,7 +20,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides } from "../drizzle/schema";
 import { eq, or } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
@@ -1464,6 +1464,24 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error("[API] /api/carousel/upload error:", error);
       res.status(500).json({ error: "Erro ao fazer upload do arquivo" });
+    }
+  });
+
+  // ─── Delete de Carousel (DELETE /api/carousel/delete/:id) ───────────────────────────────
+  app.delete("/api/carousel/delete/:id", async (req: Request, res: Response) => {
+    try {
+      const slideId = parseInt(req.params.id);
+      const db = await getDb();
+
+      // Deletar slide do banco de dados
+      if (db) {
+        await db.delete(carouselSlides).where(eq(carouselSlides.id, slideId));
+      }
+
+      res.json({ ok: true, message: "Slide removido com sucesso" });
+    } catch (error) {
+      console.error("[API] /api/carousel/delete error:", error);
+      res.status(500).json({ error: "Erro ao remover slide" });
     }
   });
 }

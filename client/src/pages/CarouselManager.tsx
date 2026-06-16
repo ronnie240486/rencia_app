@@ -65,7 +65,22 @@ export default function CarouselManager() {
   };
 
   const handleDelete = async (slideId: number) => {
-    await updateSlideMutation.mutateAsync({ id: slideId, ativo: false });
+    try {
+      const response = await fetch(`/api/carousel/delete/${slideId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (response.ok) {
+        // Recarregar slides
+        trpc.useUtils().carousel.adminList.invalidate();
+        alert('Slide removido com sucesso!');
+      } else {
+        alert('Erro ao remover slide');
+      }
+    } catch (error) {
+      console.error('Erro ao remover slide:', error);
+      alert(`Erro ao remover slide: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
   };
 
   return (
