@@ -1450,9 +1450,12 @@ export function registerApiRoutes(app: Express) {
         mimeType
       );
 
+      // Construir URL completa se for relativa
+      const fullUrl = url.startsWith('http') ? url : `${req.protocol}://${req.get('host')}${url}`;
+
       res.json({
         ok: true,
-        url,
+        url: fullUrl,
         key,
         fileName,
         duration: parseInt(duration) || 5,

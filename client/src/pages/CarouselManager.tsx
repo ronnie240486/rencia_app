@@ -141,23 +141,23 @@ export default function CarouselManager() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {carouselSlides?.map((slide: any) => (
             <div key={slide.id} className="border rounded-lg overflow-hidden">
-              {slide.type === "image" ? (
+              {slide.tipo === "image" ? (
                 <img
-                  src={slide.url}
+                  src={slide.urlMedia}
                   alt="Slide"
                   className="w-full h-40 object-cover"
                 />
               ) : (
                 <video
-                  src={slide.url}
+                  src={slide.urlMedia}
                   className="w-full h-40 object-cover"
                   controls
                 />
               )}
               <div className="p-3 bg-gray-50">
                 <p className="text-sm text-gray-600">
-                  {slide.type === "image" ? "🖼️ Imagem" : "🎬 Vídeo"} •{" "}
-                  {slide.duration}s
+                  {slide.tipo === "image" ? "🖼️ Imagem" : "🎬 Vídeo"} •{" "}
+                  {slide.duracao}s
                 </p>
                 <Button
                   variant="destructive"
