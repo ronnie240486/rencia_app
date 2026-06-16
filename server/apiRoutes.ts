@@ -912,31 +912,72 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * GET /api/v4/bg.php
-   * Endpoint usado pela classe Back.java do APK para carregar o fundo dinâmico.
-   * O APK só aceita HTTP 200 com bytes da imagem — NÃO aceita redirect 302.
-   * Por isso fazemos proxy da imagem: baixamos do S3 e servimos diretamente.
+   * Retorna carousel de imagens de fundo em JSON.
+   * Se tiver carousel configurado: retorna lista de URLs com duração
+   * Se não tiver: retorna imagem estática do banner
    */
-  app.get("/api/v4/bg.php", async (_req: Request, res: Response) => {
+  app.get("/api/v4/bg.php", async (req: Request, res: Response) => {
     try {
+      const { mac } = req.query;
+      const db = await getDb();
+      if (!db) {
+        return res.status(500).json({ error: "Erro ao conectar ao banco" });
+      }
+
+      // Se tiver MAC, buscar carousel do usuário
+      if (mac) {
+        const device = await db
+          .select()
+          .from(devices)
+          .where(eq(devices.mac, mac as string))
+          .limit(1);
+
+        if (device.length) {
+          const userId = device[0].ownerId;
+          const backgrounds = await db
+            .select({
+              urlMedia: carouselSlides.urlMedia,
+              duration: backgroundImages.duration,
+            })
+            .from(backgroundImages)
+            .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
+            .where(eq(backgroundImages.userId, userId))
+            .orderBy(backgroundImages.order);
+
+          if (backgrounds.length > 0) {
+            return res.json({
+              ok: true,
+              isCarousel: backgrounds.length > 1,
+              images: backgrounds.map((bg) => ({
+                url: bg.urlMedia,
+                duration: bg.duration,
+              })),
+            });
+          }
+        }
+      }
+
+      // Se não tiver carousel, retorna imagem estática do banner
       const cfg = await getSettings();
       const bgUrl = cfg.trial_background_url || "";
 
-      // Validar URL: rejeitar URLs com vírgula ou caracteres inválidos
+      // Validar URL
       const isValidUrl = bgUrl && bgUrl.startsWith("http") && !bgUrl.includes(",") && !bgUrl.includes(" ");
       if (!isValidUrl) {
-        res.status(204).end();
-        return;
+        return res.json({ ok: true, isCarousel: false, images: [] });
       }
 
-      // Resolver URL pública (gera presigned URL se for manus-storage protegido)
+      // Resolver URL pública
       const resolvedUrl = await resolvePublicImageUrl(bgUrl);
 
-      // Usar redirect para que o Glide faça cache da URL final do S3
-      res.setHeader("Cache-Control", "public, max-age=3600");
-      res.redirect(302, resolvedUrl);
+      res.json({
+        ok: true,
+        isCarousel: false,
+        images: [{ url: resolvedUrl, duration: 5 }],
+      });
     } catch (error) {
       console.error("[API] /api/v4/bg.php error:", error);
-      res.status(204).end();
+      res.json({ ok: false, error: "Erro ao buscar background" });
     }
   });
 
