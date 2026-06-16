@@ -73,6 +73,22 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     }
   }, [isDark]);
 
+  // Fechar sidebar ao navegar
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location]);
+
+  // Fechar sidebar em telas grandes
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // IMPORTANTE: trpc.plan.info.useQuery() deve ser chamado ANTES de qualquer return condicional
   // para não violar a regra dos hooks do React (React Error #310)
   const { data: planInfo } = trpc.plan.info.useQuery();
