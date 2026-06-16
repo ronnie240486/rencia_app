@@ -1655,6 +1655,7 @@ export function registerApiRoutes(app: Express) {
   app.post("/api/background/save", async (req: Request, res: Response) => {
     try {
       const { userId, selectedSlides } = req.body;
+      console.log("[API] /api/background/save - userId:", userId, "selectedSlides:", selectedSlides);
       const db = await getDb();
       if (!db) {
         return res.status(500).json({ error: "Erro ao conectar ao banco" });

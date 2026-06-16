@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Trash2, Upload, Play, Pause } from "lucide-react";
+import { Trash2, Upload } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 
 interface SelectedSlide {
@@ -14,38 +16,31 @@ interface SelectedSlide {
 export default function BackgroundImagesSettings() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const carouselRef = useRef<HTMLDivElement>(null);
   const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
-  const [selectedSlides, setSelectedSlides] = useState<SelectedSlide[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isPlayingPreview, setIsPlayingPreview] = useState(true);
 
   useEffect(() => {
+    console.log("BackgroundImagesSettings montado");
     fetchSlides();
     if (user?.id) {
       fetchBackgroundConfig();
     }
   }, [user?.id]);
 
-  // Auto-play carousel preview
-  useEffect(() => {
-    if (!isPlayingPreview || selectedSlides.length === 0) return;
-
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % selectedSlides.length);
-    }, 5000); // 5 segundos
-
-    return () => clearInterval(interval);
-  }, [isPlayingPreview, selectedSlides.length]);
-
   const fetchSlides = async () => {
     try {
       const response = await fetch("/api/carousel/list");
       const data = await response.json();
       if (data.ok) {
-        setCarouselSlides(data.slides);
+        // Normalizar IDs para number
+        const normalizedSlides = data.slides.map((s: any) => ({
+          ...s,
+          id: Number(s.id),
+        }));
+        console.log("Slides carregados:", normalizedSlides);
+        setCarouselSlides(normalizedSlides);
       }
     } catch (error) {
       console.error("Erro ao buscar slides:", error);
@@ -53,18 +48,14 @@ export default function BackgroundImagesSettings() {
   };
 
   const fetchBackgroundConfig = async () => {
-    if (!user?.id) return;
     try {
-      const response = await fetch(`/api/background/get/${user.id}`);
+      const response = await fetch(`/api/background/get/${user?.id}`);
       const data = await response.json();
-      if (data.ok && data.backgrounds && data.backgrounds.length > 0) {
-        setSelectedSlides(
-          data.backgrounds.map((bg: any) => ({
-            slideId: bg.slideId,
-            urlMedia: bg.urlMedia,
-            titulo: bg.titulo,
-          }))
-        );
+      if (data.ok && data.backgrounds) {
+        // Normalizar IDs para number (pode vir como slideId ou carouselSlideId)
+        const ids = data.backgrounds.map((b: any) => Number(b.slideId ?? b.carouselSlideId));
+        console.log("Configurações carregadas, IDs selecionados:", ids);
+        setSelectedIds(ids);
       }
     } catch (error) {
       console.error("Erro ao buscar configurações:", error);
@@ -72,29 +63,29 @@ export default function BackgroundImagesSettings() {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+    const files = e.currentTarget.files;
     if (!files) return;
 
     setUploading(true);
+    const formData = new FormData();
+
+    for (let i = 0; i < files.length; i++) {
+      formData.append("files", files[i]);
+    }
+
     try {
-      for (const file of Array.from(files)) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("titulo", file.name.replace(/\.[^/.]+$/, ""));
+      const response = await fetch("/api/carousel/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-        const response = await fetch("/api/carousel/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await response.json();
-        if (data.ok) {
-          toast.success(`${file.name} enviado!`);
-        } else {
-          toast.error(`Erro ao enviar ${file.name}`);
-        }
+      const data = await response.json();
+      if (data.ok) {
+        toast.success("Imagens enviadas com sucesso!");
+        await fetchSlides();
+      } else {
+        toast.error("Erro ao enviar imagens");
       }
-      await fetchSlides();
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
       toast.error("Erro ao fazer upload");
@@ -106,28 +97,21 @@ export default function BackgroundImagesSettings() {
     }
   };
 
-  const handleToggleSlide = (slide: any) => {
-    const isSelected = selectedSlides.some((s) => s.slideId === slide.id);
-
-    if (isSelected) {
-      setSelectedSlides(selectedSlides.filter((s) => s.slideId !== slide.id));
-    } else {
-      setSelectedSlides([
-        ...selectedSlides,
-        {
-          slideId: slide.id,
-          urlMedia: slide.urlMedia,
-          titulo: slide.titulo,
-        },
-      ]);
-    }
+  const toggleSlide = (slideId: any) => {
+    // Normalizar para number
+    const normalizedId = Number(slideId);
+    console.log("toggleSlide chamado com slideId:", normalizedId, "(tipo:", typeof normalizedId, ")");
+    console.log("selectedIds antes:", selectedIds);
+    
+    const newSelected = selectedIds.includes(normalizedId)
+      ? selectedIds.filter(id => id !== normalizedId)
+      : [...selectedIds, normalizedId];
+    
+    console.log("selectedIds depois:", newSelected);
+    setSelectedIds(newSelected);
   };
 
-  const handleRemoveSlide = (slideId: number) => {
-    setSelectedSlides(selectedSlides.filter((s) => s.slideId !== slideId));
-  };
-
-  const handleDeleteSlide = async (slideId: number) => {
+  const deleteSlide = async (slideId: number) => {
     if (!confirm("Tem certeza que deseja deletar esta imagem?")) return;
 
     try {
@@ -137,15 +121,14 @@ export default function BackgroundImagesSettings() {
 
       const data = await response.json();
       if (data.ok) {
-        toast.success("Imagem deletada com sucesso!");
-        setSelectedSlides(selectedSlides.filter((s) => s.slideId !== slideId));
+        toast.success("Imagem deletada!");
         await fetchSlides();
       } else {
         toast.error("Erro ao deletar imagem");
       }
     } catch (error) {
       console.error("Erro ao deletar:", error);
-      toast.error("Erro ao deletar imagem");
+      toast.error("Erro ao deletar");
     }
   };
 
@@ -155,31 +138,31 @@ export default function BackgroundImagesSettings() {
       return;
     }
 
-    // Permitir salvar mesmo sem seleção (será deletado do banco)
-    // if (selectedSlides.length === 0) {
-    //   toast.error("Selecione pelo menos 1 imagem");
-    //   return;
-    // }
+    if (selectedIds.length < 2) {
+      toast.error("Selecione pelo menos 2 imagens");
+      return;
+    }
 
     setLoading(true);
     try {
-      const response = await fetch("/api/background/save", {
+      const selectedSlides = carouselSlides
+        .filter((s) => selectedIds.includes(Number(s.id)))
+        .map((s) => ({
+          slideId: s.id,
+          duration: 5,
+        }));
+
+      const response = await fetch(`/api/background/save/${user.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          selectedSlides: selectedSlides.map((s) => ({
-            slideId: s.slideId,
-            duration: 5,
-          })),
-        }),
+        body: JSON.stringify({ backgrounds: selectedSlides }),
       });
 
       const data = await response.json();
       if (data.ok) {
         toast.success("Configurações salvas com sucesso!");
       } else {
-        toast.error(data.error || "Erro ao salvar");
+        toast.error(data.message || "Erro ao salvar");
       }
     } catch (error) {
       console.error("Erro ao salvar:", error);
@@ -189,96 +172,43 @@ export default function BackgroundImagesSettings() {
     }
   };
 
+  console.log("Renderizando BackgroundImagesSettings");
+  console.log("carouselSlides:", carouselSlides);
+  console.log("selectedIds:", selectedIds);
+
   return (
-    <div className="space-y-6">
-      {/* PREVIEW DO CAROUSEL - GRANDE E VISÍVEL */}
-      {selectedSlides.length > 0 && (
-        <Card className="border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5">
-          <CardHeader>
-            <CardTitle className="text-primary">Preview do Carousel</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div
-              ref={carouselRef}
-              className="relative w-full bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center"
-            >
-              {/* Imagem atual */}
-              <img
-                src={selectedSlides[currentImageIndex]?.urlMedia}
-                alt={selectedSlides[currentImageIndex]?.titulo}
-                className="w-full h-full object-cover"
-              />
+    <Card>
+      <CardHeader>
+        <CardTitle>Carousel de Fundo</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Selecione multiplas imagens para criar um carousel automatico na tela inicial do APK.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Upload */}
+        <div className="space-y-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleFileUpload}
+            disabled={uploading}
+            className="hidden"
+          />
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            {uploading ? "Enviando..." : "Fazer Upload de Imagens"}
+          </Button>
+        </div>
 
-              {/* Overlay com informações */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                <p className="text-white font-semibold text-sm">
-                  {selectedSlides[currentImageIndex]?.titulo}
-                </p>
-                <p className="text-white/70 text-xs">
-                  {currentImageIndex + 1} de {selectedSlides.length}
-                </p>
-              </div>
-
-              {/* Controles de preview */}
-              <div className="absolute top-2 right-2 flex gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setIsPlayingPreview(!isPlayingPreview)}
-                  className="rounded-full"
-                >
-                  {isPlayingPreview ? (
-                    <Pause className="w-4 h-4" />
-                  ) : (
-                    <Play className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-
-              {/* Indicadores de slide */}
-              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
-                {selectedSlides.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`w-2 h-2 rounded-full transition ${
-                      index === currentImageIndex ? "bg-primary" : "bg-white/50"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Botão Upload */}
-      <div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleFileUpload}
-          className="hidden"
-        />
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          variant="outline"
-          className="w-full gap-2"
-        >
-          <Upload size={16} />
-          {uploading ? "Enviando..." : "Fazer Upload de Imagens"}
-        </Button>
-      </div>
-
-      {/* Imagens Disponíveis */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Imagens Disponíveis</CardTitle>
-        </CardHeader>
-        <CardContent>
+        {/* Imagens */}
+        <div className="space-y-4">
+          <p className="text-sm font-medium">Imagens Disponíveis</p>
           {carouselSlides.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
               Nenhuma imagem. Faça upload acima.
@@ -286,105 +216,76 @@ export default function BackgroundImagesSettings() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {carouselSlides.map((slide) => {
-                const isSelected = selectedSlides.some((s) => s.slideId === slide.id);
+                const slideId = Number(slide.id);
+                const isSelected = selectedIds.includes(slideId);
                 return (
-                  <div
-                    key={slide.id}
-                    className={`relative rounded-lg overflow-hidden border-4 transition ${
-                      isSelected ? "border-primary" : "border-border"
-                    }`}
-                  >
-                    <img
-                      src={slide.urlMedia}
-                      alt={slide.titulo}
-                      className="w-full h-32 object-cover cursor-pointer"
-                      onClick={() => handleToggleSlide(slide)}
-                    />
-                    {isSelected && (
-                      <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
-                        <div className="bg-primary text-primary-foreground px-3 py-1 rounded text-sm font-bold">
-                          ✓ Selecionada
+                  <div key={slide.id} className="space-y-2">
+                    {/* Imagem Clicável */}
+                    <div
+                      onClick={() => toggleSlide(slideId)}
+                      className={`relative rounded-lg overflow-hidden border-4 transition cursor-pointer ${
+                        isSelected ? "border-primary" : "border-border"
+                      }`}
+                    >
+                      <img
+                        src={slide.urlMedia}
+                        alt={slide.titulo}
+                        className="w-full h-40 object-cover"
+                      />
+                      {isSelected && (
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                          <span className="text-white text-2xl">✓</span>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+
+                    {/* Botão Delete */}
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="absolute top-1 right-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteSlide(slide.id);
-                      }}
+                      className="w-full"
+                      onClick={() => deleteSlide(slideId)}
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Deletar
                     </Button>
                   </div>
                 );
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Imagens Selecionadas - GRANDE */}
-      {selectedSlides.length > 0 && (
-        <Card className="border-primary bg-primary/5">
-          <CardHeader>
-            <CardTitle className="text-primary">
-              Imagens Selecionadas ({selectedSlides.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {selectedSlides.map((slide, index) => (
-                <div
-                  key={slide.slideId}
-                  className="flex items-center gap-4 p-4 border-2 border-primary rounded-lg bg-background"
-                >
-                  {/* Número */}
-                  <div className="text-2xl font-bold text-primary w-10 h-10 flex items-center justify-center bg-primary/10 rounded">
-                    {index + 1}
-                  </div>
-
-                  {/* Imagem Grande */}
-                  <div className="w-32 h-32 flex-shrink-0 rounded overflow-hidden border-2 border-primary">
-                    <img
-                      src={slide.urlMedia}
-                      alt={slide.titulo}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* Informações */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-base truncate">{slide.titulo}</p>
-                    <p className="text-sm text-muted-foreground">Duração: 5s</p>
-                  </div>
-
-                  {/* Botão Remover */}
-                  <Button
-                    variant="destructive"
-                    size="lg"
-                    onClick={() => handleRemoveSlide(slide.slideId)}
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </Button>
-                </div>
-              ))}
+        {/* Resumo das selecionadas */}
+        {selectedIds.length > 0 && (
+          <div className="space-y-2 p-4 bg-muted rounded-lg">
+            <p className="text-sm font-medium">
+              {selectedIds.length} imagem(ns) selecionada(s)
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              {carouselSlides
+                .filter((s) => selectedIds.includes(Number(s.id)))
+                .map((s) => (
+                  <img
+                    key={s.id}
+                    src={s.urlMedia}
+                    alt={s.titulo}
+                    className="w-full h-20 object-cover rounded"
+                  />
+                ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
 
-      {/* Botão Salvar */}
-      <Button
-        onClick={handleSave}
-        disabled={loading}
-        size="lg"
-        className="w-full"
-      >
-        {loading ? "Salvando..." : "Salvar Configurações"}
-      </Button>
-    </div>
+        {/* Botão Salvar */}
+        <Button
+          onClick={handleSave}
+          disabled={loading || selectedIds.length < 2}
+          className="w-full"
+        >
+          {loading ? "Salvando..." : "Salvar Configurações"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
