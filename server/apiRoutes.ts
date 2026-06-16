@@ -1514,4 +1514,32 @@ export function registerApiRoutes(app: Express) {
       res.status(500).json({ error: "Erro ao buscar slides" });
     }
   });
+
+  // POST /api/background/save - Salvar configurações de background
+  app.post("/api/background/save", async (req: Request, res: Response) => {
+    try {
+      const { userId, selectedSlides } = req.body;
+      const db = await getDb();
+      if (!db) {
+        return res.status(500).json({ error: "Erro ao conectar ao banco" });
+      }
+      
+      // Deletar configurações antigas
+      await (db as any).$client.promise().query(`DELETE FROM background_images WHERE userId = ?`, [userId]);
+      
+      // Inserir novas configurações
+      for (let i = 0; i < selectedSlides.length; i++) {
+        const { slideId, duration } = selectedSlides[i];
+        await (db as any).$client.promise().query(
+          `INSERT INTO background_images (userId, carouselSlideId, duration, \`order\`) VALUES (?, ?, ?, ?)`,
+          [userId, slideId, duration || 5, i + 1]
+        )
+      }
+      
+      res.json({ ok: true, message: "Configurações salvas com sucesso" });
+    } catch (error) {
+      console.error("[API] /api/background/save error:", error);
+      res.status(500).json({ error: "Erro ao salvar configurações" });
+    }
+  });
 }
