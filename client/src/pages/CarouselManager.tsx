@@ -10,9 +10,10 @@ export default function CarouselManager() {
   const [newSlide, setNewSlide] = useState({ duration: 5, type: "image" });
   const [uploading, setUploading] = useState(false);
 
-  const { data: carouselSlides } = trpc.carousel.adminList.useQuery();
+  const { data: carouselSlides, refetch } = trpc.carousel.adminList.useQuery();
   const createSlideMutation = trpc.carousel.createSlide.useMutation();
   const updateSlideMutation = trpc.carousel.updateSlide.useMutation();
+  const utils = trpc.useUtils();
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -72,7 +73,7 @@ export default function CarouselManager() {
       });
       if (response.ok) {
         // Recarregar slides
-        trpc.useUtils().carousel.adminList.invalidate();
+        await refetch();
         alert('Slide removido com sucesso!');
       } else {
         alert('Erro ao remover slide');

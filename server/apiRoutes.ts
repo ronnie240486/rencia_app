@@ -1484,4 +1484,34 @@ export function registerApiRoutes(app: Express) {
       res.status(500).json({ error: "Erro ao remover slide" });
     }
   });
+
+  // GET Carousel Slides para o APK
+  app.get("/api/carousel/list", async (req: Request, res: Response) => {
+    try {
+      const db = await getDb();
+      if (!db) {
+        return res.status(500).json({ error: "Erro ao conectar ao banco" });
+      }
+
+      const slides = await db
+        .select()
+        .from(carouselSlides)
+        .where(eq(carouselSlides.ativo, true))
+        .orderBy(carouselSlides.ordem);
+
+      res.json({
+        ok: true,
+        slides: slides.map((slide) => ({
+          id: slide.id,
+          titulo: slide.titulo,
+          tipo: slide.tipo,
+          urlMedia: slide.urlMedia,
+          ordem: slide.ordem,
+        })),
+      });
+    } catch (error) {
+      console.error("[API] /api/carousel/list error:", error);
+      res.status(500).json({ error: "Erro ao buscar slides" });
+    }
+  });
 }
