@@ -1554,49 +1554,65 @@ export function registerApiRoutes(app: Express) {
     },
   });
 
-  app.post("/api/carousel/upload", uploadCarousel.single("file"), async (req: Request, res: Response) => {
+  app.post("/api/carousel/upload", uploadCarousel.array("files", 10), async (req: Request, res: Response) => {
     try {
-      if (!req.file) {
+      if (!req.files || req.files.length === 0) {
         return res.status(400).json({ error: "Nenhum arquivo foi enviado" });
       }
 
-      const { duration = 5, type = "image" } = req.body;
-      const fileName = `carousel_${Date.now()}_${req.file.originalname}`;
-      const mimeType = req.file.mimetype;
-
-      // Upload para S3
-      const { url, key } = await storagePut(
-        `carousel/${fileName}`,
-        req.file.buffer,
-        mimeType
-      );
-
-      // Construir URL completa se for relativa
-      const fullUrl = url.startsWith('http') ? url : `${req.protocol}://${req.get('host')}${url}`;
-
-      // Salvar no banco de dados
       const db = await getDb();
-      if (db) {
-        const result = await db.insert(carouselSlides).values({
-          titulo: req.body.titulo || fileName,
-          tipo: type as any,
-          urlMedia: fullUrl,
-          ativo: true,
-          ordem: 0,
-        });
-
-        res.json({
-          ok: true,
-          id: (result as any).lastID || (result as any).insertId,
-          url: fullUrl,
-          key,
-          fileName,
-          titulo: req.body.titulo || fileName,
-          type,
-        });
-      } else {
-        res.status(500).json({ error: "Erro ao conectar ao banco" });
+      if (!db) {
+        return res.status(500).json({ error: "Erro ao conectar ao banco" });
       }
+
+      const slides = [];
+      for (const file of req.files as Express.Multer.File[]) {
+        try {
+          const { duration = 5, type = "image" } = req.body;
+          const fileName = `carousel_${Date.now()}_${file.originalname}`;
+          const mimeType = file.mimetype;
+
+          // Upload para S3
+          const { url, key } = await storagePut(
+            `carousel/${fileName}`,
+            file.buffer,
+            mimeType
+          );
+
+          // Construir URL completa se for relativa
+          const fullUrl = url.startsWith('http') ? url : `${req.protocol}://${req.get('host')}${url}`;
+
+          // Salvar no banco de dados
+          const result = await db.insert(carouselSlides).values({
+            titulo: file.originalname,
+            tipo: type as any,
+            urlMedia: fullUrl,
+            ativo: true,
+            ordem: 0,
+          });
+
+          slides.push({
+            ok: true,
+            url: fullUrl,
+            key,
+            fileName,
+            titulo: file.originalname,
+            type,
+          });
+        } catch (fileError) {
+          console.error("[API] Erro ao fazer upload de arquivo individual:", fileError);
+          slides.push({
+            ok: false,
+            error: "Erro ao fazer upload deste arquivo",
+          });
+        }
+      }
+
+      res.json({
+        ok: true,
+        slides,
+        count: slides.filter((s: any) => s.ok).length,
+      })
     } catch (error) {
       console.error("[API] /api/carousel/upload error:", error);
       res.status(500).json({ error: "Erro ao fazer upload do arquivo" });
