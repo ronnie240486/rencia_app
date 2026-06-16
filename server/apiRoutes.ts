@@ -1420,4 +1420,47 @@ export function registerApiRoutes(app: Express) {
       res.status(500).json({ error: "Erro interno" });
     }
   });
+  // ─── Upload de Carousel (POST /api/carousel/upload) ───────────────────────────────
+  // Recebe imagens/vídeos para o carousel do app
+  const uploadCarousel = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB para vídeos
+    fileFilter: (_req, file, cb) => {
+      const isImage = file.mimetype.startsWith("image/");
+      const isVideo = file.mimetype.startsWith("video/");
+      if (isImage || isVideo) cb(null, true);
+      else cb(new Error("Apenas imagens e vídeos são permitidos"));
+    },
+  });
+
+  app.post("/api/carousel/upload", uploadCarousel.single("file"), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Nenhum arquivo foi enviado" });
+      }
+
+      const { duration = 5, type = "image" } = req.body;
+      const fileName = `carousel_${Date.now()}_${req.file.originalname}`;
+      const mimeType = req.file.mimetype;
+
+      // Upload para S3
+      const { url, key } = await storagePut(
+        `carousel/${fileName}`,
+        req.file.buffer,
+        mimeType
+      );
+
+      res.json({
+        ok: true,
+        url,
+        key,
+        fileName,
+        duration: parseInt(duration) || 5,
+        type,
+      });
+    } catch (error) {
+      console.error("[API] /api/carousel/upload error:", error);
+      res.status(500).json({ error: "Erro ao fazer upload do arquivo" });
+    }
+  });
 }

@@ -1,4 +1,5 @@
 import { boolean, decimal, int, mysqlEnum, mysqlTable, text, timestamp, varchar, date } from "drizzle-orm/mysql-core";
+import { sql } from "drizzle-orm";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -10,6 +11,7 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  lastLoginDate: date("lastLoginDate").default(sql`CURDATE()`).notNull(), // Data do último login para logout automático diário
   isActive: boolean("isActive").default(true).notNull(),
   telefone: varchar("telefone", { length: 32 }),
   avatarUrl: text("avatarUrl"),

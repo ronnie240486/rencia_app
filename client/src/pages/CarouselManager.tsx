@@ -28,7 +28,11 @@ export default function CarouselManager() {
       const response = await fetch("/api/carousel/upload", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
       const data = await response.json();
       
       await createSlideMutation.mutateAsync({
@@ -40,8 +44,11 @@ export default function CarouselManager() {
 
       setNewSlide({ duration: 5, type: "image" });
       e.target.value = "";
+      // Invalidar cache para recarregar slides
+      trpc.useUtils().carousel.adminList.invalidate();
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
+      alert(`Erro ao fazer upload: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setUploading(false);
     }

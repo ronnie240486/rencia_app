@@ -245,8 +245,8 @@
 - [ ] Corrigir botão URL de renovação na tela de bloqueio (não funciona no app)
 
 ## Novas Funcionalidades (14/06/2026)
-- [ ] Gerar assets com ícone OuroPro para Samsung, LG, Roku e TCL
+- [x] Gerar assets com ícone OuroPro para Samsung, LG, Roku e TCL
 - [x] Corrigir carousel de slides - upload de imagens/vídeos com tempo configurável
 - [ ] Criar sistema de Sugestões - formulário para master/revenda com nome, telefone, etc
 - [ ] Criar sistema de Avisos - ultra master escreve avisos que aparecem na abertura
-- [ ] Implementar logout automático diário - pedir login/senha ao entrar em novo dia
+- [x] Implementar logout automático diário - pedir login/senha ao entrar em novo dia

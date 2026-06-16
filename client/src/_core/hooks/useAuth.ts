@@ -60,6 +60,25 @@ export function useAuth(options?: UseAuthOptions) {
     logoutMutation.isPending,
   ]);
 
+  // Logout automático diário
+  useEffect(() => {
+    if (!state.user) return;
+    if (typeof window === "undefined") return;
+
+    const lastLoginDate = localStorage.getItem("last-login-date");
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+    if (lastLoginDate && lastLoginDate !== today) {
+      // Novo dia - fazer logout
+      logout();
+      localStorage.setItem("last-login-date", today);
+      window.location.href = redirectPath;
+    } else if (!lastLoginDate) {
+      // Primeiro login do dia
+      localStorage.setItem("last-login-date", today);
+    }
+  }, [state.user, redirectPath, logout]);
+
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
     if (meQuery.isLoading || logoutMutation.isPending) return;
