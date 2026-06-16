@@ -261,9 +261,7 @@ export default function Settings() {
             <TabsTrigger value="banner" className="gap-1 text-xs">
               <Image size={13} /> Banner
             </TabsTrigger>
-            <TabsTrigger value="background" className="gap-1 text-xs">
-              <Image size={13} /> Fundo
-            </TabsTrigger>
+
             <TabsTrigger value="tema" className="gap-1 text-xs">
               <Palette size={13} /> Tema
             </TabsTrigger>
@@ -902,9 +900,7 @@ export default function Settings() {
 
 
           {/* ─── Aba Imagens de Fundo ────────────────────────────────────────── */}
-          <TabsContent value="background" className="space-y-4 mt-4">
-            <BackgroundImagesSettings />
-          </TabsContent>
+
         </Tabs>
 
         {dirty && (
