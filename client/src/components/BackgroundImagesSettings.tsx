@@ -155,10 +155,11 @@ export default function BackgroundImagesSettings() {
       return;
     }
 
-    if (selectedSlides.length === 0) {
-      toast.error("Selecione pelo menos 1 imagem");
-      return;
-    }
+    // Permitir salvar mesmo sem seleção (será deletado do banco)
+    // if (selectedSlides.length === 0) {
+    //   toast.error("Selecione pelo menos 1 imagem");
+    //   return;
+    // }
 
     setLoading(true);
     try {
