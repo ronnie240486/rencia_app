@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Trash2, Upload } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -20,43 +19,43 @@ export default function BackgroundImagesSettings() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Buscar slides do carousel
   useEffect(() => {
-    const fetchSlides = async () => {
-      try {
-        const response = await fetch("/api/carousel/list");
-        const data = await response.json();
-        if (data.ok) {
-          setCarouselSlides(data.slides);
-        }
-      } catch (error) {
-        console.error("Erro ao buscar slides:", error);
-      }
-    };
-
-    // Buscar configurações salvas
-    const fetchBackgroundConfig = async () => {
-      if (!user?.id) return;
-      try {
-        const response = await fetch(`/api/background/get/${user.id}`);
-        const data = await response.json();
-        if (data.ok && data.backgrounds.length > 0) {
-          setSelectedSlides(
-            data.backgrounds.map((bg: any) => ({
-              slideId: bg.slideId,
-              urlMedia: bg.urlMedia,
-              titulo: bg.titulo,
-            }))
-          );
-        }
-      } catch (error) {
-        console.error("Erro ao buscar configurações:", error);
-      }
-    };
-
     fetchSlides();
-    fetchBackgroundConfig();
+    if (user?.id) {
+      fetchBackgroundConfig();
+    }
   }, [user?.id]);
+
+  const fetchSlides = async () => {
+    try {
+      const response = await fetch("/api/carousel/list");
+      const data = await response.json();
+      if (data.ok) {
+        setCarouselSlides(data.slides);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar slides:", error);
+    }
+  };
+
+  const fetchBackgroundConfig = async () => {
+    if (!user?.id) return;
+    try {
+      const response = await fetch(`/api/background/get/${user.id}`);
+      const data = await response.json();
+      if (data.ok && data.backgrounds && data.backgrounds.length > 0) {
+        setSelectedSlides(
+          data.backgrounds.map((bg: any) => ({
+            slideId: bg.slideId,
+            urlMedia: bg.urlMedia,
+            titulo: bg.titulo,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error("Erro ao buscar configurações:", error);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -76,17 +75,13 @@ export default function BackgroundImagesSettings() {
 
         const data = await response.json();
         if (data.ok) {
-          // Recarregar slides
-          const listResponse = await fetch("/api/carousel/list");
-          const listData = await listResponse.json();
-          if (listData.ok) {
-            setCarouselSlides(listData.slides);
-          }
-          toast.success(`${file.name} enviado com sucesso!`);
+          toast.success(`${file.name} enviado!`);
         } else {
           toast.error(`Erro ao enviar ${file.name}`);
         }
       }
+      // Recarregar slides
+      await fetchSlides();
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
       toast.error("Erro ao fazer upload");
@@ -137,7 +132,7 @@ export default function BackgroundImagesSettings() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user.id,
-          selectedSlides: selectedSlides.map((s, index) => ({
+          selectedSlides: selectedSlides.map((s) => ({
             slideId: s.slideId,
             duration: 5,
           })),
@@ -184,69 +179,67 @@ export default function BackgroundImagesSettings() {
       {/* Imagens Disponíveis */}
       <Card>
         <CardHeader>
-          <CardTitle>Imagens Disponíveis do Carousel</CardTitle>
-          <p className="text-sm text-muted-foreground mt-2">
-            Clique para selecionar as imagens que deseja usar
-          </p>
+          <CardTitle>Imagens Disponíveis</CardTitle>
         </CardHeader>
         <CardContent>
           {carouselSlides.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              Nenhuma imagem disponível. Faça upload acima.
+              Nenhuma imagem. Faça upload acima.
             </p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {carouselSlides.map((slide) => (
-                <div
-                  key={slide.id}
-                  className="relative rounded-lg overflow-hidden border-2 border-border hover:border-primary transition cursor-pointer"
-                  onClick={() => handleToggleSlide(slide)}
-                >
-                  <img
-                    src={slide.urlMedia}
-                    alt={slide.titulo}
-                    className="w-full h-32 object-cover"
-                  />
-                  <div className="absolute top-2 left-2">
-                    <Checkbox
-                      checked={selectedSlides.some((s) => s.slideId === slide.id)}
-                      onCheckedChange={() => handleToggleSlide(slide)}
+              {carouselSlides.map((slide) => {
+                const isSelected = selectedSlides.some((s) => s.slideId === slide.id);
+                return (
+                  <div
+                    key={slide.id}
+                    onClick={() => handleToggleSlide(slide)}
+                    className={`relative rounded-lg overflow-hidden border-4 cursor-pointer transition ${
+                      isSelected ? "border-primary" : "border-border"
+                    }`}
+                  >
+                    <img
+                      src={slide.urlMedia}
+                      alt={slide.titulo}
+                      className="w-full h-32 object-cover"
                     />
+                    {isSelected && (
+                      <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
+                        <div className="bg-primary text-primary-foreground px-3 py-1 rounded text-sm font-bold">
+                          ✓ Selecionada
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {selectedSlides.some((s) => s.slideId === slide.id) && (
-                    <div className="absolute inset-0 bg-primary/20 border-2 border-primary rounded-lg" />
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Imagens Selecionadas - VISÍVEL */}
-      <Card className="border-primary bg-primary/5">
-        <CardHeader>
-          <CardTitle className="text-primary">
-            Imagens Selecionadas ({selectedSlides.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {selectedSlides.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              Nenhuma imagem selecionada
-            </p>
-          ) : (
-            <div className="space-y-3">
+      {/* Imagens Selecionadas - GRANDE */}
+      {selectedSlides.length > 0 && (
+        <Card className="border-primary bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-primary">
+              Imagens Selecionadas ({selectedSlides.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
               {selectedSlides.map((slide, index) => (
                 <div
                   key={slide.slideId}
-                  className="flex items-center gap-3 p-3 border-2 border-primary rounded-lg bg-background"
+                  className="flex items-center gap-4 p-4 border-2 border-primary rounded-lg bg-background"
                 >
-                  <div className="text-sm font-semibold text-primary w-6 h-6 flex items-center justify-center bg-primary/10 rounded">
+                  {/* Número */}
+                  <div className="text-2xl font-bold text-primary w-10 h-10 flex items-center justify-center bg-primary/10 rounded">
                     {index + 1}
                   </div>
 
-                  <div className="w-20 h-20 flex-shrink-0 rounded overflow-hidden border-2 border-primary">
+                  {/* Imagem Grande */}
+                  <div className="w-32 h-32 flex-shrink-0 rounded overflow-hidden border-2 border-primary">
                     <img
                       src={slide.urlMedia}
                       alt={slide.titulo}
@@ -254,46 +247,36 @@ export default function BackgroundImagesSettings() {
                     />
                   </div>
 
+                  {/* Informações */}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{slide.titulo}</p>
-                    <p className="text-xs text-muted-foreground">Duração: 5s</p>
+                    <p className="font-semibold text-base truncate">{slide.titulo}</p>
+                    <p className="text-sm text-muted-foreground">Duração: 5s</p>
                   </div>
 
+                  {/* Botão Remover */}
                   <Button
                     variant="destructive"
-                    size="sm"
+                    size="lg"
                     onClick={() => handleRemoveSlide(slide.slideId)}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5" />
                   </Button>
                 </div>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Botão Salvar */}
-      <div className="flex gap-2">
-        <Button
-          onClick={handleSave}
-          disabled={loading || selectedSlides.length === 0}
-          className="flex-1"
-        >
-          {loading ? "Salvando..." : "Salvar Configurações"}
-        </Button>
-      </div>
-
-      {/* Info */}
-      <div className="bg-muted p-4 rounded-lg text-sm">
-        <p className="font-medium mb-2">ℹ️ Como funciona:</p>
-        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-          <li>Clique em "Fazer Upload" para adicionar novas imagens</li>
-          <li>Clique nas imagens para selecionar (até 5)</li>
-          <li>As selecionadas aparecem abaixo em destaque</li>
-          <li>Clique "Salvar" para aplicar as mudanças</li>
-        </ul>
-      </div>
+      <Button
+        onClick={handleSave}
+        disabled={loading || selectedSlides.length === 0}
+        size="lg"
+        className="w-full"
+      >
+        {loading ? "Salvando..." : "Salvar Configurações"}
+      </Button>
     </div>
   );
 }
