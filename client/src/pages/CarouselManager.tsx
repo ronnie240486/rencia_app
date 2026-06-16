@@ -15,37 +15,47 @@ export default function CarouselManager() {
   const updateSlideMutation = trpc.carousel.updateSlide.useMutation();
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("duration", newSlide.duration.toString());
-    formData.append("type", newSlide.type);
-
     try {
-      const response = await fetch("/api/carousel/upload", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status}`);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("duration", newSlide.duration.toString());
+        formData.append("type", newSlide.type);
+
+        const response = await fetch("/api/carousel/upload", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Upload failed for ${file.name}: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.url) {
+          throw new Error(`Invalid response: no URL returned for ${file.name}`);
+        }
+        
+        await createSlideMutation.mutateAsync({
+          titulo: `Slide ${file.name}`,
+          tipo: newSlide.type as "image" | "video",
+          urlMedia: data.url,
+          ordem: (carouselSlides?.length || 0) + i + 1,
+        });
       }
-      const data = await response.json();
-      
-      await createSlideMutation.mutateAsync({
-        titulo: `Slide ${Date.now()}`,
-        tipo: newSlide.type as "image" | "video",
-        urlMedia: data.url,
-        ordem: (carouselSlides?.length || 0) + 1,
-      });
 
       setNewSlide({ duration: 5, type: "image" });
       e.target.value = "";
       // Invalidar cache para recarregar slides
       trpc.useUtils().carousel.adminList.invalidate();
+      alert(`${files.length} slide(s) adicionado(s) com sucesso!`);
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
       alert(`Erro ao fazer upload: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
@@ -109,7 +119,7 @@ export default function CarouselManager() {
               <div className="flex flex-col items-center">
                 <Upload className="w-8 h-8 mb-2" />
                 <span className="text-sm">
-                  Clique para fazer upload ou arraste o arquivo
+                  Clique para fazer upload de múltiplos arquivos
                 </span>
               </div>
               <input
@@ -118,6 +128,7 @@ export default function CarouselManager() {
                 accept={newSlide.type === "image" ? "image/*" : "video/*"}
                 onChange={handleFileUpload}
                 disabled={uploading}
+                multiple
               />
             </label>
           </div>

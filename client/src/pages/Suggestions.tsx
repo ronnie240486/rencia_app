@@ -3,7 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Send, CheckCircle } from "lucide-react";
+import { Send, CheckCircle, Menu } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useLocation } from "wouter";
 
 export default function Suggestions() {
   const [formData, setFormData] = useState({
@@ -13,6 +20,7 @@ export default function Suggestions() {
     sugestao: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [, setLocation] = useLocation();
 
   const createSuggestionMutation = trpc.suggestions.create.useMutation();
   const { data: suggestionsList } = trpc.suggestions.list.useQuery();
@@ -41,6 +49,27 @@ export default function Suggestions() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Sugestões de Melhorias</h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon">
+              <Menu className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setLocation("/dashboard")}>
+              Dashboard
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocation("/avisos")}>
+              Avisos
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocation("/carousel")}>
+              Carousel
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocation("/configuracoes")}>
+              Configurações
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Formulário de sugestão */}

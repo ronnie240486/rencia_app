@@ -71,18 +71,21 @@ export default function Dashboard() {
   return (
     <AdminLayout title="Dashboard">
       <div className="space-y-6">
-        {/* Header */}
+        {/* Header com Logo */}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-foreground"><span>Dashboard</span></h1>
-            {user && (
-              <p className="text-sm text-muted-foreground">
-                <span>{"ID: "}</span>
-                <span>{user.id}</span>
-                <span>{" · Bem-vindo, "}</span>
-                <span>{user.name?.split(" ")[0]}</span>
-              </p>
-            )}
+          <div className="flex items-center gap-4">
+            <img src="/manus-storage/ouropro_logo_8ef5f444.png" alt="OuroPro" className="h-12 w-12 object-contain" />
+            <div>
+                <h1 className="text-xl font-bold text-foreground"><span>Dashboard</span></h1>
+              {user && (
+                <p className="text-sm text-muted-foreground">
+                  <span>{"ID: "}</span>
+                  <span>{user.id}</span>
+                  <span>{" · Bem-vindo, "}</span>
+                  <span>{user.name?.split(" ")[0]}</span>
+                </p>
+              )}
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {planInfo?.planValidade && (

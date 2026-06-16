@@ -20,6 +20,8 @@ import {
   Film,
   MessageSquare,
   AlertCircle,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -56,7 +58,21 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem("theme");
+    return saved === "dark";
+  });
   const { data: settings } = trpc.settings.getAll.useQuery();
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDark]);
 
   // IMPORTANTE: trpc.plan.info.useQuery() deve ser chamado ANTES de qualquer return condicional
   // para não violar a regra dos hooks do React (React Error #310)
@@ -290,6 +306,13 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              aria-label="Toggle theme"
+            >
+              {isDark ? <Sun size={18} className="text-foreground" /> : <Moon size={18} className="text-foreground" />}
+            </button>
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
               <span>{user?.name ?? "Usuário"}</span>

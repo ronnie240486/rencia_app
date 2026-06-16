@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Users, Moon, Sun } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -46,7 +46,21 @@ export default function DashboardLayout({
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem("theme");
+    return saved === "dark";
+  });
   const { loading, user } = useAuth();
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDark]);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
@@ -90,7 +104,7 @@ export default function DashboardLayout({
         } as CSSProperties
       }
     >
-      <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
+      <DashboardLayoutContent setSidebarWidth={setSidebarWidth} isDark={isDark} setIsDark={setIsDark}>
         {children}
       </DashboardLayoutContent>
     </SidebarProvider>
@@ -100,11 +114,15 @@ export default function DashboardLayout({
 type DashboardLayoutContentProps = {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
+  isDark: boolean;
+  setIsDark: (isDark: boolean) => void;
 };
 
 function DashboardLayoutContent({
   children,
   setSidebarWidth,
+  isDark,
+  setIsDark,
 }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
@@ -255,8 +273,27 @@ function DashboardLayoutContent({
                 </div>
               </div>
             </div>
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className="h-9 w-9 flex items-center justify-center hover:bg-accent rounded-lg transition-colors"
+              aria-label="Toggle theme"
+            >
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
           </div>
         )}
+        <div className="flex items-center justify-between border-b h-14 px-4 sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur">
+          <div className="text-sm font-medium text-muted-foreground">
+            {activeMenuItem?.label ?? "Dashboard"}
+          </div>
+          <button
+            onClick={() => setIsDark(!isDark)}
+            className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded-lg transition-colors"
+            aria-label="Toggle theme"
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+        </div>
         <main className="flex-1 p-4">{children}</main>
       </SidebarInset>
     </>

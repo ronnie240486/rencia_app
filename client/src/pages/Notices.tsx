@@ -3,7 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Send, Trash2, AlertCircle } from "lucide-react";
+import { Send, Trash2, AlertCircle, Menu } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useLocation } from "wouter";
 export default function Notices() {
   const { data: user } = trpc.auth.me.useQuery();
   const [formData, setFormData] = useState({
@@ -11,6 +18,7 @@ export default function Notices() {
     conteudo: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [, setLocation] = useLocation();
 
   const createNoticeMutation = trpc.notices.create.useMutation();
   const deleteNoticeMutation = trpc.notices.delete.useMutation();
@@ -57,6 +65,27 @@ export default function Notices() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Avisos Importantes</h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon">
+              <Menu className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setLocation("/dashboard")}>
+              Dashboard
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocation("/sugestoes")}>
+              Sugestões
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocation("/carousel")}>
+              Carousel
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocation("/configuracoes")}>
+              Configurações
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Formulário de aviso (apenas para admin) */}

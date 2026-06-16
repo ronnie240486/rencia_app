@@ -250,3 +250,12 @@
 - [ ] Criar sistema de Sugestões - formulário para master/revenda com nome, telefone, etc
 - [ ] Criar sistema de Avisos - ultra master escreve avisos que aparecem na abertura
 - [x] Implementar logout automático diário - pedir login/senha ao entrar em novo dia
+
+
+## Melhorias Solicitadas (16/06/2026)
+- [x] Adicionar tema claro/escuro com botão de toggle
+- [x] Adicionar menu hambúrguer (3 traços) nas páginas de Sugestões e Avisos
+- [x] Corrigir upload de carousel - suportar múltiplas imagens e URL válida
+- [x] Implementar modal de avisos na abertura do painel
+- [x] Usar logo OuroPro fornecido e melhorar design geral
+- [x] Melhorar design do painel com mais fluidez

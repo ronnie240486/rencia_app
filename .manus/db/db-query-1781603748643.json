@@ -1,0 +1,9 @@
+{
+  "query": "SHOW TABLES LIKE 'suggestions';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SHOW TABLES LIKE 'suggestions';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 586
+}

@@ -5,6 +5,7 @@ import { Route, Switch, useLocation } from "wouter";
 import Loja from "@/pages/Loja";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import NoticesModal from "./components/NoticesModal";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
@@ -53,6 +54,7 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster richColors position="top-right" />
+          <NoticesModal />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

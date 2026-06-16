@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS suggestions (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  userId INT NOT NULL,\n  nome VARCHAR(255) NOT NULL,\n  telefone VARCHAR(32),\n  email VARCHAR(320),\n  sugestao TEXT NOT NULL,\n  status ENUM('novo', 'lido', 'respondido') DEFAULT 'novo' NOT NULL,\n  resposta TEXT,\n  criadoEm TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n  respondidoEm TIMESTAMP NULL,\n  FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute CREATE TABLE IF NOT EXISTS suggestions (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  userId INT NOT NULL,\n  nome VARCHAR(255) NOT NULL,\n  telefone VARCHAR(32),\n  email VARCHAR(320),\n  sugestao TEXT NOT NULL,\n  status ENUM('novo', 'lido', 'respondido') DEFAULT 'novo' NOT NULL,\n  resposta TEXT,\n  criadoEm TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n  respondidoEm TIMESTAMP NULL,\n  FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 718
+}
