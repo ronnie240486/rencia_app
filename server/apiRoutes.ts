@@ -20,7 +20,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides, backgroundImages } from "../drizzle/schema";
 import { eq, or } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
@@ -1525,15 +1525,17 @@ export function registerApiRoutes(app: Express) {
       }
       
       // Deletar configurações antigas
-      await (db as any).$client.promise().query(`DELETE FROM background_images WHERE userId = ?`, [userId]);
+      await db.delete(backgroundImages).where(eq(backgroundImages.userId, userId));
       
       // Inserir novas configurações
       for (let i = 0; i < selectedSlides.length; i++) {
         const { slideId, duration } = selectedSlides[i];
-        await (db as any).$client.promise().query(
-          `INSERT INTO background_images (userId, carouselSlideId, duration, \`order\`) VALUES (?, ?, ?, ?)`,
-          [userId, slideId, duration || 5, i + 1]
-        )
+        await db.insert(backgroundImages).values({
+          userId,
+          carouselSlideId: slideId,
+          duration: duration || 5,
+          order: i + 1,
+        });
       }
       
       res.json({ ok: true, message: "Configurações salvas com sucesso" });
@@ -1552,14 +1554,21 @@ export function registerApiRoutes(app: Express) {
         return res.status(500).json({ error: "Erro ao conectar ao banco" });
       }
 
-      const backgrounds = await (db as any).$client.promise().query(
-        `SELECT bg.slideId, bg.duration, cs.titulo, cs.urlMedia FROM background_images bg JOIN carousel_slides cs ON bg.carouselSlideId = cs.id WHERE bg.userId = ? ORDER BY bg.\`order\``,
-        [userId]
-      );
+      const backgrounds = await db
+        .select({
+          slideId: backgroundImages.carouselSlideId,
+          duration: backgroundImages.duration,
+          titulo: carouselSlides.titulo,
+          urlMedia: carouselSlides.urlMedia,
+        })
+        .from(backgroundImages)
+        .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
+        .where(eq(backgroundImages.userId, parseInt(userId)))
+        .orderBy(backgroundImages.order);
 
       res.json({
         ok: true,
-        backgrounds: backgrounds[0] || [],
+        backgrounds,
       });
     } catch (error) {
       console.error("[API] /api/background/get error:", error);
@@ -1590,14 +1599,22 @@ export function registerApiRoutes(app: Express) {
       const userId = device[0].ownerId;
 
       // Buscar backgrounds configurados para este usuário
-      const backgrounds = await (db as any).$client.promise().query(
-        `SELECT bg.slideId, bg.duration, cs.titulo, cs.urlMedia, cs.tipo FROM background_images bg JOIN carousel_slides cs ON bg.carouselSlideId = cs.id WHERE bg.userId = ? ORDER BY bg.\`order\``,
-        [userId]
-      );
+      const backgrounds = await db
+        .select({
+          slideId: backgroundImages.carouselSlideId,
+          duration: backgroundImages.duration,
+          titulo: carouselSlides.titulo,
+          urlMedia: carouselSlides.urlMedia,
+          tipo: carouselSlides.tipo,
+        })
+        .from(backgroundImages)
+        .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
+        .where(eq(backgroundImages.userId, userId))
+        .orderBy(backgroundImages.order);
 
       res.json({
         ok: true,
-        backgrounds: backgrounds[0] || [],
+        backgrounds,
       });
     } catch (error) {
       console.error("[API] /api/background/list error:", error);

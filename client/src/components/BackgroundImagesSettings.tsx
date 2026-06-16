@@ -345,7 +345,7 @@ export default function BackgroundImagesSettings() {
       <div className="flex gap-2">
         <Button
           onClick={handleSave}
-          disabled={loading || selectedSlides.length === 0}
+          disabled={loading}
           className="flex-1"
         >
           {loading ? "Salvando..." : "Salvar Configurações"}
