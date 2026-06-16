@@ -1574,14 +1574,29 @@ export function registerApiRoutes(app: Express) {
       // Construir URL completa se for relativa
       const fullUrl = url.startsWith('http') ? url : `${req.protocol}://${req.get('host')}${url}`;
 
-      res.json({
-        ok: true,
-        url: fullUrl,
-        key,
-        fileName,
-        duration: parseInt(duration) || 5,
-        type,
-      });
+      // Salvar no banco de dados
+      const db = await getDb();
+      if (db) {
+        const result = await db.insert(carouselSlides).values({
+          titulo: req.body.titulo || fileName,
+          tipo: type as any,
+          urlMedia: fullUrl,
+          ativo: true,
+          ordem: 0,
+        });
+
+        res.json({
+          ok: true,
+          id: (result as any).lastID || (result as any).insertId,
+          url: fullUrl,
+          key,
+          fileName,
+          titulo: req.body.titulo || fileName,
+          type,
+        });
+      } else {
+        res.status(500).json({ error: "Erro ao conectar ao banco" });
+      }
     } catch (error) {
       console.error("[API] /api/carousel/upload error:", error);
       res.status(500).json({ error: "Erro ao fazer upload do arquivo" });
