@@ -3,17 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Upload, Trash2, Plus } from "lucide-react";
+import { Upload, Trash2 } from "lucide-react";
 
 export default function CarouselManager() {
-  const [slides, setSlides] = useState<any[]>([]);
   const [newSlide, setNewSlide] = useState({ duration: 5, type: "image" });
   const [uploading, setUploading] = useState(false);
 
   const { data: carouselSlides, refetch } = trpc.carousel.adminList.useQuery();
   const createSlideMutation = trpc.carousel.createSlide.useMutation();
-  const updateSlideMutation = trpc.carousel.updateSlide.useMutation();
-  const utils = trpc.useUtils();
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -54,8 +51,7 @@ export default function CarouselManager() {
 
       setNewSlide({ duration: 5, type: "image" });
       e.target.value = "";
-      // Invalidar cache para recarregar slides
-      trpc.useUtils().carousel.adminList.invalidate();
+      await refetch();
       alert(`${files.length} slide(s) adicionado(s) com sucesso!`);
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
@@ -72,7 +68,6 @@ export default function CarouselManager() {
         credentials: 'include',
       });
       if (response.ok) {
-        // Recarregar slides
         await refetch();
         alert('Slide removido com sucesso!');
       } else {
@@ -86,9 +81,7 @@ export default function CarouselManager() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Carousel do App</h1>
-      </div>
+      <h1 className="text-3xl font-bold">Carousel do App</h1>
 
       {/* Adicionar novo slide */}
       <Card className="p-6">
