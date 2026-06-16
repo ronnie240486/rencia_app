@@ -945,13 +945,16 @@ export function registerApiRoutes(app: Express) {
             .orderBy(backgroundImages.order);
 
           if (backgrounds.length > 0) {
+            const images = await Promise.all(
+              backgrounds.map(async (bg) => ({
+                url: await resolvePublicImageUrl(bg.urlMedia),
+                duration: bg.duration,
+              }))
+            );
             return res.json({
               ok: true,
               isCarousel: backgrounds.length > 1,
-              images: backgrounds.map((bg) => ({
-                url: bg.urlMedia,
-                duration: bg.duration,
-              })),
+              images,
             });
           }
         }

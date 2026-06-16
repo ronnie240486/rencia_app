@@ -114,6 +114,30 @@ export default function BackgroundImagesSettings() {
     setSelectedSlides(selectedSlides.filter((s) => s.slideId !== slideId));
   };
 
+  const handleDeleteSlide = async (slideId: number) => {
+    if (!confirm("Tem certeza que deseja deletar esta imagem?")) return;
+
+    try {
+      const response = await fetch(`/api/carousel/delete/${slideId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+      if (data.ok) {
+        toast.success("Imagem deletada com sucesso!");
+        // Remover da lista de selecionadas também
+        setSelectedSlides(selectedSlides.filter((s) => s.slideId !== slideId));
+        // Recarregar slides
+        await fetchSlides();
+      } else {
+        toast.error("Erro ao deletar imagem");
+      }
+    } catch (error) {
+      console.error("Erro ao deletar:", error);
+      toast.error("Erro ao deletar imagem");
+    }
+  };
+
   const handleSave = async () => {
     if (!user?.id) {
       toast.error("Usuário não autenticado");
@@ -193,15 +217,15 @@ export default function BackgroundImagesSettings() {
                 return (
                   <div
                     key={slide.id}
-                    onClick={() => handleToggleSlide(slide)}
-                    className={`relative rounded-lg overflow-hidden border-4 cursor-pointer transition ${
+                    className={`relative rounded-lg overflow-hidden border-4 transition ${
                       isSelected ? "border-primary" : "border-border"
                     }`}
                   >
                     <img
                       src={slide.urlMedia}
                       alt={slide.titulo}
-                      className="w-full h-32 object-cover"
+                      className="w-full h-32 object-cover cursor-pointer"
+                      onClick={() => handleToggleSlide(slide)}
                     />
                     {isSelected && (
                       <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
@@ -210,6 +234,17 @@ export default function BackgroundImagesSettings() {
                         </div>
                       </div>
                     )}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-1 right-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteSlide(slide.id);
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
                   </div>
                 );
               })}
