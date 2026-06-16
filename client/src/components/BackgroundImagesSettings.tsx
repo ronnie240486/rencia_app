@@ -186,7 +186,7 @@ export default function BackgroundImagesSettings() {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Upload */}
-        <div className="space-y-2">
+        <div className="space-y-2 p-4 bg-primary/10 rounded-lg border-2 border-dashed border-primary">
           <input
             ref={fileInputRef}
             type="file"
@@ -199,11 +199,13 @@ export default function BackgroundImagesSettings() {
           <Button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="w-full"
+            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6"
+            size="lg"
           >
-            <Upload className="mr-2 h-4 w-4" />
+            <Upload className="mr-2 h-5 w-5" />
             {uploading ? "Enviando..." : "Fazer Upload de Imagens"}
           </Button>
+          <p className="text-xs text-center text-muted-foreground">Clique para selecionar imagens</p>
         </div>
 
         {/* Imagens */}
