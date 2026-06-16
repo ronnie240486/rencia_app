@@ -268,9 +268,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 flex pointer-events-none">
+        <div className="lg:hidden fixed inset-0 z-40 flex">
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
           />
           <aside
