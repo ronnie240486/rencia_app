@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 
 interface SelectedSlide {
@@ -17,6 +18,7 @@ export default function BackgroundImagesSettings() {
   const { user } = useAuth();
   const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
   const [selectedSlides, setSelectedSlides] = useState<SelectedSlide[]>([]);
+  const [selectedForAdd, setSelectedForAdd] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
 
   // Buscar slides do carousel
@@ -58,27 +60,39 @@ export default function BackgroundImagesSettings() {
     fetchBackgroundConfig();
   }, [user?.id]);
 
-  const handleAddSlide = (slide: any) => {
-    if (selectedSlides.length >= 5) {
-      toast.error("Máximo de 5 imagens permitidas");
+  const handleToggleSlide = (slideId: number) => {
+    const newSet = new Set(selectedForAdd);
+    if (newSet.has(slideId)) {
+      newSet.delete(slideId);
+    } else {
+      newSet.add(slideId);
+    }
+    setSelectedForAdd(newSet);
+  };
+
+  const handleAddSelected = () => {
+    if (selectedForAdd.size === 0) {
+      toast.error("Selecione pelo menos 1 imagem");
       return;
     }
 
-    // Verificar se já está selecionada
-    if (selectedSlides.some((s) => s.slideId === slide.id)) {
-      toast.error("Imagem já selecionada");
+    if (selectedSlides.length + selectedForAdd.size > 5) {
+      toast.error(`Máximo de 5 imagens permitidas. Você tem ${selectedSlides.length} selecionadas.`);
       return;
     }
 
-    setSelectedSlides([
-      ...selectedSlides,
-      {
+    const newSlides = carouselSlides
+      .filter((slide) => selectedForAdd.has(slide.id))
+      .map((slide) => ({
         slideId: slide.id,
         urlMedia: slide.urlMedia,
         titulo: slide.titulo,
         duration: 5,
-      },
-    ]);
+      }));
+
+    setSelectedSlides([...selectedSlides, ...newSlides]);
+    setSelectedForAdd(new Set());
+    toast.success(`${newSlides.length} imagem(ns) adicionada(s)`);
   };
 
   const handleRemoveSlide = (slideId: number) => {
@@ -133,28 +147,28 @@ export default function BackgroundImagesSettings() {
       <Card>
         <CardHeader>
           <CardTitle>Imagens Disponíveis do Carousel</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Selecione as imagens que deseja usar (máximo 5)
+          </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {carouselSlides.map((slide) => (
               <div
                 key={slide.id}
-                className="relative group cursor-pointer rounded-lg overflow-hidden border-2 border-border hover:border-primary transition"
+                className="relative rounded-lg overflow-hidden border-2 border-border hover:border-primary transition"
               >
                 <img
                   src={slide.urlMedia}
                   alt={slide.titulo}
                   className="w-full h-32 object-cover"
                 />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                  <Button
-                    size="sm"
-                    onClick={() => handleAddSlide(slide)}
-                    disabled={selectedSlides.length >= 5 || selectedSlides.some((s) => s.slideId === slide.id)}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Adicionar
-                  </Button>
+                <div className="absolute top-2 left-2">
+                  <Checkbox
+                    checked={selectedForAdd.has(slide.id)}
+                    onCheckedChange={() => handleToggleSlide(slide.id)}
+                    disabled={selectedSlides.length + selectedForAdd.size >= 5 && !selectedForAdd.has(slide.id)}
+                  />
                 </div>
               </div>
             ))}
@@ -163,6 +177,15 @@ export default function BackgroundImagesSettings() {
             <p className="text-center text-muted-foreground py-8">
               Nenhuma imagem disponível no carousel
             </p>
+          )}
+
+          {selectedForAdd.size > 0 && (
+            <Button
+              onClick={handleAddSelected}
+              className="w-full"
+            >
+              Adicionar {selectedForAdd.size} Imagem{selectedForAdd.size > 1 ? "ns" : ""}
+            </Button>
           )}
         </CardContent>
       </Card>
@@ -177,7 +200,7 @@ export default function BackgroundImagesSettings() {
         <CardContent>
           {selectedSlides.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
-              Nenhuma imagem selecionada. Clique em "Adicionar" nas imagens acima.
+              Nenhuma imagem selecionada. Selecione acima e clique "Adicionar".
             </p>
           ) : (
             <div className="space-y-4">
@@ -234,7 +257,7 @@ export default function BackgroundImagesSettings() {
       <div className="flex gap-2">
         <Button
           onClick={handleSave}
-          disabled={loading}
+          disabled={loading || selectedSlides.length === 0}
           className="flex-1"
         >
           {loading ? "Salvando..." : "Salvar Configurações"}
