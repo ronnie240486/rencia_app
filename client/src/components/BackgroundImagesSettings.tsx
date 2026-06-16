@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Trash2, Upload } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 
 interface SelectedSlide {
@@ -14,9 +14,11 @@ interface SelectedSlide {
 
 export default function BackgroundImagesSettings() {
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
   const [selectedSlides, setSelectedSlides] = useState<SelectedSlide[]>([]);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // Buscar slides do carousel
   useEffect(() => {
@@ -55,6 +57,46 @@ export default function BackgroundImagesSettings() {
     fetchSlides();
     fetchBackgroundConfig();
   }, [user?.id]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("titulo", file.name.replace(/\.[^/.]+$/, ""));
+
+        const response = await fetch("/api/carousel/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+        if (data.ok) {
+          // Recarregar slides
+          const listResponse = await fetch("/api/carousel/list");
+          const listData = await listResponse.json();
+          if (listData.ok) {
+            setCarouselSlides(listData.slides);
+          }
+          toast.success(`${file.name} enviado com sucesso!`);
+        } else {
+          toast.error(`Erro ao enviar ${file.name}`);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao fazer upload:", error);
+      toast.error("Erro ao fazer upload");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const handleToggleSlide = (slide: any) => {
     const isSelected = selectedSlides.some((s) => s.slideId === slide.id);
@@ -97,7 +139,7 @@ export default function BackgroundImagesSettings() {
           userId: user.id,
           selectedSlides: selectedSlides.map((s, index) => ({
             slideId: s.slideId,
-            duration: 5, // Duração padrão
+            duration: 5,
           })),
         }),
       });
@@ -118,64 +160,93 @@ export default function BackgroundImagesSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Botão Upload */}
+      <div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
+        <Button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          variant="outline"
+          className="w-full gap-2"
+        >
+          <Upload size={16} />
+          {uploading ? "Enviando..." : "Fazer Upload de Imagens"}
+        </Button>
+      </div>
+
       {/* Imagens Disponíveis */}
       <Card>
         <CardHeader>
           <CardTitle>Imagens Disponíveis do Carousel</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            Selecione as imagens que deseja usar
+            Clique para selecionar as imagens que deseja usar
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {carouselSlides.map((slide) => (
-              <div
-                key={slide.id}
-                className="relative rounded-lg overflow-hidden border-2 border-border hover:border-primary transition cursor-pointer"
-                onClick={() => handleToggleSlide(slide)}
-              >
-                <img
-                  src={slide.urlMedia}
-                  alt={slide.titulo}
-                  className="w-full h-32 object-cover"
-                />
-                <div className="absolute top-2 left-2">
-                  <Checkbox
-                    checked={selectedSlides.some((s) => s.slideId === slide.id)}
-                    onCheckedChange={() => handleToggleSlide(slide)}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-          {carouselSlides.length === 0 && (
+          {carouselSlides.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              Nenhuma imagem disponível no carousel
+              Nenhuma imagem disponível. Faça upload acima.
             </p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {carouselSlides.map((slide) => (
+                <div
+                  key={slide.id}
+                  className="relative rounded-lg overflow-hidden border-2 border-border hover:border-primary transition cursor-pointer"
+                  onClick={() => handleToggleSlide(slide)}
+                >
+                  <img
+                    src={slide.urlMedia}
+                    alt={slide.titulo}
+                    className="w-full h-32 object-cover"
+                  />
+                  <div className="absolute top-2 left-2">
+                    <Checkbox
+                      checked={selectedSlides.some((s) => s.slideId === slide.id)}
+                      onCheckedChange={() => handleToggleSlide(slide)}
+                    />
+                  </div>
+                  {selectedSlides.some((s) => s.slideId === slide.id) && (
+                    <div className="absolute inset-0 bg-primary/20 border-2 border-primary rounded-lg" />
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Imagens Selecionadas */}
-      <Card>
+      {/* Imagens Selecionadas - VISÍVEL */}
+      <Card className="border-primary bg-primary/5">
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="text-primary">
             Imagens Selecionadas ({selectedSlides.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {selectedSlides.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
-              Nenhuma imagem selecionada. Clique nas imagens acima para selecionar.
+              Nenhuma imagem selecionada
             </p>
           ) : (
             <div className="space-y-3">
-              {selectedSlides.map((slide) => (
+              {selectedSlides.map((slide, index) => (
                 <div
                   key={slide.slideId}
-                  className="flex items-center gap-3 p-3 border rounded-lg"
+                  className="flex items-center gap-3 p-3 border-2 border-primary rounded-lg bg-background"
                 >
-                  <div className="w-16 h-16 flex-shrink-0 rounded overflow-hidden">
+                  <div className="text-sm font-semibold text-primary w-6 h-6 flex items-center justify-center bg-primary/10 rounded">
+                    {index + 1}
+                  </div>
+
+                  <div className="w-20 h-20 flex-shrink-0 rounded overflow-hidden border-2 border-primary">
                     <img
                       src={slide.urlMedia}
                       alt={slide.titulo}
@@ -183,8 +254,9 @@ export default function BackgroundImagesSettings() {
                     />
                   </div>
 
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{slide.titulo}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{slide.titulo}</p>
+                    <p className="text-xs text-muted-foreground">Duração: 5s</p>
                   </div>
 
                   <Button
@@ -216,9 +288,10 @@ export default function BackgroundImagesSettings() {
       <div className="bg-muted p-4 rounded-lg text-sm">
         <p className="font-medium mb-2">ℹ️ Como funciona:</p>
         <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-          <li>Selecione 1 imagem para exibir como fundo estático</li>
-          <li>Selecione 2 ou mais imagens para ativar carousel automático</li>
-          <li>Clique em "Salvar Configurações" para aplicar as mudanças</li>
+          <li>Clique em "Fazer Upload" para adicionar novas imagens</li>
+          <li>Clique nas imagens para selecionar (até 5)</li>
+          <li>As selecionadas aparecem abaixo em destaque</li>
+          <li>Clique "Salvar" para aplicar as mudanças</li>
         </ul>
       </div>
     </div>
