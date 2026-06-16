@@ -1542,4 +1542,66 @@ export function registerApiRoutes(app: Express) {
       res.status(500).json({ error: "Erro ao salvar configurações" });
     }
   });
+
+  // GET /api/background/get/:userId - Buscar configurações de background para o painel
+  app.get("/api/background/get/:userId", async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const db = await getDb();
+      if (!db) {
+        return res.status(500).json({ error: "Erro ao conectar ao banco" });
+      }
+
+      const backgrounds = await (db as any).$client.promise().query(
+        `SELECT bg.slideId, bg.duration, cs.titulo, cs.urlMedia FROM background_images bg JOIN carousel_slides cs ON bg.carouselSlideId = cs.id WHERE bg.userId = ? ORDER BY bg.\`order\``,
+        [userId]
+      );
+
+      res.json({
+        ok: true,
+        backgrounds: backgrounds[0] || [],
+      });
+    } catch (error) {
+      console.error("[API] /api/background/get error:", error);
+      res.status(500).json({ error: "Erro ao buscar configurações" });
+    }
+  });
+
+  // GET /api/background/list/:mac - Buscar carousel de background para o APK
+  app.get("/api/background/list/:mac", async (req: Request, res: Response) => {
+    try {
+      const { mac } = req.params;
+      const db = await getDb();
+      if (!db) {
+        return res.status(500).json({ error: "Erro ao conectar ao banco" });
+      }
+
+      // Buscar device pelo MAC
+      const device = await db
+        .select()
+        .from(devices)
+        .where(eq(devices.mac, mac))
+        .limit(1);
+
+      if (!device.length) {
+        return res.json({ ok: true, backgrounds: [] });
+      }
+
+      const userId = device[0].ownerId;
+
+      // Buscar backgrounds configurados para este usuário
+      const backgrounds = await (db as any).$client.promise().query(
+        `SELECT bg.slideId, bg.duration, cs.titulo, cs.urlMedia, cs.tipo FROM background_images bg JOIN carousel_slides cs ON bg.carouselSlideId = cs.id WHERE bg.userId = ? ORDER BY bg.\`order\``,
+        [userId]
+      );
+
+      res.json({
+        ok: true,
+        backgrounds: backgrounds[0] || [],
+      });
+    } catch (error) {
+      console.error("[API] /api/background/list error:", error);
+      res.status(500).json({ error: "Erro ao buscar backgrounds" });
+    }
+  });
 }
