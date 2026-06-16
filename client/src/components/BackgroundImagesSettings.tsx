@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Trash2, Upload } from "lucide-react";
+import { Trash2, Upload, Play, Pause } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 
 interface SelectedSlide {
@@ -14,10 +14,13 @@ interface SelectedSlide {
 export default function BackgroundImagesSettings() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const carouselRef = useRef<HTMLDivElement>(null);
   const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
   const [selectedSlides, setSelectedSlides] = useState<SelectedSlide[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(true);
 
   useEffect(() => {
     fetchSlides();
@@ -25,6 +28,17 @@ export default function BackgroundImagesSettings() {
       fetchBackgroundConfig();
     }
   }, [user?.id]);
+
+  // Auto-play carousel preview
+  useEffect(() => {
+    if (!isPlayingPreview || selectedSlides.length === 0) return;
+
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % selectedSlides.length);
+    }, 5000); // 5 segundos
+
+    return () => clearInterval(interval);
+  }, [isPlayingPreview, selectedSlides.length]);
 
   const fetchSlides = async () => {
     try {
@@ -80,7 +94,6 @@ export default function BackgroundImagesSettings() {
           toast.error(`Erro ao enviar ${file.name}`);
         }
       }
-      // Recarregar slides
       await fetchSlides();
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
@@ -125,9 +138,7 @@ export default function BackgroundImagesSettings() {
       const data = await response.json();
       if (data.ok) {
         toast.success("Imagem deletada com sucesso!");
-        // Remover da lista de selecionadas também
         setSelectedSlides(selectedSlides.filter((s) => s.slideId !== slideId));
-        // Recarregar slides
         await fetchSlides();
       } else {
         toast.error("Erro ao deletar imagem");
@@ -179,6 +190,67 @@ export default function BackgroundImagesSettings() {
 
   return (
     <div className="space-y-6">
+      {/* PREVIEW DO CAROUSEL - GRANDE E VISÍVEL */}
+      {selectedSlides.length > 0 && (
+        <Card className="border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5">
+          <CardHeader>
+            <CardTitle className="text-primary">Preview do Carousel</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div
+              ref={carouselRef}
+              className="relative w-full bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center"
+            >
+              {/* Imagem atual */}
+              <img
+                src={selectedSlides[currentImageIndex]?.urlMedia}
+                alt={selectedSlides[currentImageIndex]?.titulo}
+                className="w-full h-full object-cover"
+              />
+
+              {/* Overlay com informações */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                <p className="text-white font-semibold text-sm">
+                  {selectedSlides[currentImageIndex]?.titulo}
+                </p>
+                <p className="text-white/70 text-xs">
+                  {currentImageIndex + 1} de {selectedSlides.length}
+                </p>
+              </div>
+
+              {/* Controles de preview */}
+              <div className="absolute top-2 right-2 flex gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setIsPlayingPreview(!isPlayingPreview)}
+                  className="rounded-full"
+                >
+                  {isPlayingPreview ? (
+                    <Pause className="w-4 h-4" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+
+              {/* Indicadores de slide */}
+              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
+                {selectedSlides.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`w-2 h-2 rounded-full transition ${
+                      index === currentImageIndex ? "bg-primary" : "bg-white/50"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Botão Upload */}
       <div>
         <input
