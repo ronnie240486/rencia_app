@@ -941,6 +941,83 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
+   * GET /api/v4/bg-carousel.php
+   * Retorna carousel de imagens de fundo configuradas pelo usuário.
+   * Se 1 imagem: retorna como fundo estático
+   * Se 2+: retorna como carousel com duração de cada
+   */
+  app.get("/api/v4/bg-carousel.php", async (req: Request, res: Response) => {
+    try {
+      const { mac } = req.query;
+      if (!mac) {
+        return res.status(400).json({ error: "MAC não fornecido" });
+      }
+
+      const db = await getDb();
+      if (!db) {
+        return res.status(500).json({ error: "Erro ao conectar ao banco" });
+      }
+
+      // Buscar device pelo MAC
+      const device = await db
+        .select()
+        .from(devices)
+        .where(eq(devices.mac, mac as string))
+        .limit(1);
+
+      if (!device.length) {
+        return res.json({ ok: true, backgrounds: [] });
+      }
+
+      const userId = device[0].ownerId;
+
+      // Buscar backgrounds configurados para este usuário
+      const backgrounds = await db
+        .select({
+          slideId: backgroundImages.carouselSlideId,
+          duration: backgroundImages.duration,
+          titulo: carouselSlides.titulo,
+          urlMedia: carouselSlides.urlMedia,
+          tipo: carouselSlides.tipo,
+        })
+        .from(backgroundImages)
+        .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
+        .where(eq(backgroundImages.userId, userId))
+        .orderBy(backgroundImages.order);
+
+      // Se não tem backgrounds, retorna vazio
+      if (!backgrounds.length) {
+        return res.json({ ok: true, backgrounds: [], isCarousel: false });
+      }
+
+      // Se tem 1 imagem: retorna como estático
+      if (backgrounds.length === 1) {
+        return res.json({
+          ok: true,
+          isCarousel: false,
+          backgrounds: [{
+            url: backgrounds[0].urlMedia,
+            duration: backgrounds[0].duration,
+          }],
+        });
+      }
+
+      // Se tem 2+: retorna como carousel
+      res.json({
+        ok: true,
+        isCarousel: true,
+        backgrounds: backgrounds.map((bg) => ({
+          url: bg.urlMedia,
+          duration: bg.duration,
+        })),
+      });
+    } catch (error) {
+      console.error("[API] /api/v4/bg-carousel.php error:", error);
+      res.status(500).json({ error: "Erro ao buscar backgrounds" });
+    }
+  });
+
+  /**
    * GET /api/app-config
    * Retorna configurações públicas do app para o APK buscar ao iniciar.
    * O APK pode usar este endpoint para obter a URL da imagem de fundo dinâmica.
