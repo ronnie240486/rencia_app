@@ -378,7 +378,7 @@ export default function BackgroundImagesSettings() {
       {/* Botão Salvar */}
       <Button
         onClick={handleSave}
-        disabled={loading || selectedSlides.length === 0}
+        disabled={loading}
         size="lg"
         className="w-full"
       >
