@@ -362,7 +362,7 @@ export default function Settings() {
                   <p className="text-xs text-muted-foreground">
                     Selecione multiplas imagens para criar um carousel automatico na tela inicial do APK.
                   </p>
-                  <BackgroundImagesSettings />
+                  <p className="text-xs text-amber-600 mt-2">⚠️ Configure no aba "Fundo" abaixo</p>
                 </div>
 
                 {/* Logo da Sidebar do Painel */}

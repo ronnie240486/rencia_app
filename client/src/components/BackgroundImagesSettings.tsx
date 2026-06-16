@@ -152,10 +152,10 @@ export default function BackgroundImagesSettings() {
           duration: 5,
         }));
 
-      const response = await fetch(`/api/background/save/${user.id}`, {
+      const response = await fetch(`/api/background/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ backgrounds: selectedSlides }),
+        body: JSON.stringify({ userId: user.id, selectedSlides }),
       });
 
       const data = await response.json();
