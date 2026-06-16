@@ -247,8 +247,8 @@
 ## Novas Funcionalidades (14/06/2026)
 - [x] Gerar assets com ícone OuroPro para Samsung, LG, Roku e TCL
 - [x] Corrigir carousel de slides - upload de imagens/vídeos com tempo configurável
-- [ ] Criar sistema de Sugestões - formulário para master/revenda com nome, telefone, etc
-- [ ] Criar sistema de Avisos - ultra master escreve avisos que aparecem na abertura
+- [x] Criar sistema de Sugestões - formulário para master/revenda com nome, telefone, etc
+- [x] Criar sistema de Avisos - ultra master escreve avisos que aparecem na abertura
 - [x] Implementar logout automático diário - pedir login/senha ao entrar em novo dia
 
 
