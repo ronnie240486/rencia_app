@@ -3,10 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Trash2, Upload } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
+
+interface SelectedSlide {
+  slideId: number;
+  urlMedia: string;
+  titulo: string;
+}
 
 export default function BackgroundImagesSettings() {
   const { user } = useAuth();
@@ -17,6 +22,7 @@ export default function BackgroundImagesSettings() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
+    console.log("BackgroundImagesSettings montado");
     fetchSlides();
     if (user?.id) {
       fetchBackgroundConfig();
@@ -28,7 +34,12 @@ export default function BackgroundImagesSettings() {
       const response = await fetch("/api/carousel/list");
       const data = await response.json();
       if (data.ok) {
-        setCarouselSlides(data.slides.map((s: any) => ({ ...s, id: Number(s.id) })));
+        const normalizedSlides = data.slides.map((s: any) => ({
+          ...s,
+          id: Number(s.id),
+        }));
+        console.log("Slides carregados:", normalizedSlides);
+        setCarouselSlides(normalizedSlides);
       }
     } catch (error) {
       console.error("Erro ao buscar slides:", error);
@@ -41,6 +52,7 @@ export default function BackgroundImagesSettings() {
       const data = await response.json();
       if (data.ok && data.backgrounds) {
         const ids = data.backgrounds.map((b: any) => Number(b.slideId ?? b.carouselSlideId));
+        console.log("Configurações carregadas, IDs selecionados:", ids);
         setSelectedIds(ids);
       }
     } catch (error) {
@@ -54,6 +66,7 @@ export default function BackgroundImagesSettings() {
 
     setUploading(true);
     const formData = new FormData();
+    
     Array.from(files).forEach((file) => {
       formData.append("files", file);
     });
@@ -82,12 +95,17 @@ export default function BackgroundImagesSettings() {
     }
   };
 
-  const handleCheckboxChange = (slideId: number, checked: boolean) => {
-    if (checked) {
-      setSelectedIds((prev) => [...prev, slideId]);
-    } else {
-      setSelectedIds((prev) => prev.filter(id => id !== slideId));
-    }
+  const toggleSlide = (slideId: number) => {
+    console.log("toggleSlide chamado com slideId:", slideId);
+    
+    setSelectedIds((prev) => {
+      const newSelected = prev.includes(slideId)
+        ? prev.filter(id => id !== slideId)
+        : [...prev, slideId];
+      
+      console.log("newSelected:", newSelected);
+      return newSelected;
+    });
   };
 
   const deleteSlide = async (slideId: number) => {
@@ -151,6 +169,10 @@ export default function BackgroundImagesSettings() {
     }
   };
 
+  console.log("Renderizando BackgroundImagesSettings");
+  console.log("carouselSlides:", carouselSlides);
+  console.log("selectedIds:", selectedIds);
+  
   return (
     <Card>
       <CardHeader>
@@ -193,38 +215,47 @@ export default function BackgroundImagesSettings() {
               Nenhuma imagem. Faça upload acima.
             </p>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {carouselSlides.map((slide) => {
                 const slideId = Number(slide.id);
                 const isSelected = selectedIds.includes(slideId);
                 return (
-                  <div key={slide.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                    {/* Checkbox */}
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={(checked) => handleCheckboxChange(slideId, checked as boolean)}
-                      className="h-5 w-5"
-                    />
-                    
-                    {/* Imagem */}
-                    <img
-                      src={slide.urlMedia}
-                      alt={slide.titulo}
-                      className="h-16 w-16 object-cover rounded"
-                    />
-                    
-                    {/* Título */}
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{slide.titulo}</p>
+                  <div key={slide.id} className="space-y-2">
+                    {/* Imagem com Button Overlay */}
+                    <div
+                      className={`relative rounded-lg overflow-hidden border-4 transition ${
+                        isSelected ? "border-primary" : "border-border"
+                      }`}
+                    >
+                      <img
+                        src={slide.urlMedia}
+                        alt={slide.titulo}
+                        className="w-full h-40 object-cover"
+                      />
+                      <Button
+                        onClick={() => toggleSlide(slideId)}
+                        variant="ghost"
+                        size="sm"
+                        className="absolute inset-0 w-full h-full rounded-none opacity-0 hover:opacity-100 transition-opacity"
+                      >
+                        {isSelected ? "✓ Selecionada" : "Selecionar"}
+                      </Button>
+                      {isSelected && (
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center pointer-events-none">
+                          <span className="text-white text-2xl font-bold">✓</span>
+                        </div>
+                      )}
                     </div>
-                    
+
                     {/* Botão Delete */}
                     <Button
                       variant="destructive"
                       size="sm"
+                      className="w-full"
                       onClick={() => deleteSlide(slideId)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Deletar
                     </Button>
                   </div>
                 );

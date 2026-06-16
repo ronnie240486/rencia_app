@@ -73,22 +73,6 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     }
   }, [isDark]);
 
-  // Fechar sidebar ao navegar
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location]);
-
-  // Fechar sidebar em telas grandes
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setSidebarOpen(false);
-      }
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   // IMPORTANTE: trpc.plan.info.useQuery() deve ser chamado ANTES de qualquer return condicional
   // para não violar a regra dos hooks do React (React Error #310)
   const { data: planInfo } = trpc.plan.info.useQuery();
@@ -311,10 +295,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         <header className="sticky top-0 z-20 flex items-center gap-4 px-6 py-4 bg-background/80 backdrop-blur-md border-b border-border">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors text-foreground"
-            title="Menu"
+            className="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors"
           >
-            <Menu size={20} />
+            <Menu size={20} className="text-foreground" />
           </button>
           <div className="flex-1">
             {title && (
@@ -324,11 +307,10 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsDark(!isDark)}
-              className="p-2 rounded-lg hover:bg-muted transition-colors text-foreground"
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
               aria-label="Toggle theme"
-              title="Toggle theme"
             >
-              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+              {isDark ? <Sun size={18} className="text-foreground" /> : <Moon size={18} className="text-foreground" />}
             </button>
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
