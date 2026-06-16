@@ -1554,49 +1554,59 @@ export function registerApiRoutes(app: Express) {
     },
   });
 
-  app.post("/api/carousel/upload", uploadCarousel.single("file"), async (req: Request, res: Response) => {
+  app.post("/api/carousel/upload", uploadCarousel.array("files", 50), async (req: Request, res: Response) => {
     try {
-      if (!req.file) {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
         return res.status(400).json({ error: "Nenhum arquivo foi enviado" });
       }
 
       const { duration = 5, type = "image" } = req.body;
-      const fileName = `carousel_${Date.now()}_${req.file.originalname}`;
-      const mimeType = req.file.mimetype;
-
-      // Upload para S3
-      const { url, key } = await storagePut(
-        `carousel/${fileName}`,
-        req.file.buffer,
-        mimeType
-      );
-
-      // Construir URL completa se for relativa
-      const fullUrl = url.startsWith('http') ? url : `${req.protocol}://${req.get('host')}${url}`;
-
-      // Salvar no banco de dados
       const db = await getDb();
-      if (db) {
+      if (!db) {
+        return res.status(500).json({ error: "Erro ao conectar ao banco" });
+      }
+
+      const results = [];
+      for (const file of files) {
+        const fileName = `carousel_${Date.now()}_${file.originalname}`;
+        const mimeType = file.mimetype;
+
+        // Upload para S3
+        const { url, key } = await storagePut(
+          `carousel/${fileName}`,
+          file.buffer,
+          mimeType
+        );
+
+        // Construir URL completa se for relativa
+        const fullUrl = url.startsWith('http') ? url : `${req.protocol}://${req.get('host')}${url}`;
+
+        // Salvar no banco de dados
         const result = await db.insert(carouselSlides).values({
-          titulo: req.body.titulo || fileName,
+          titulo: file.originalname,
           tipo: type as any,
           urlMedia: fullUrl,
           ativo: true,
           ordem: 0,
         });
 
-        res.json({
+        results.push({
           ok: true,
           id: (result as any).lastID || (result as any).insertId,
           url: fullUrl,
           key,
           fileName,
-          titulo: req.body.titulo || fileName,
+          titulo: file.originalname,
           type,
         });
-      } else {
-        res.status(500).json({ error: "Erro ao conectar ao banco" });
       }
+
+      res.json({
+        ok: true,
+        slides: results,
+        count: results.length,
+      });
     } catch (error) {
       console.error("[API] /api/carousel/upload error:", error);
       res.status(500).json({ error: "Erro ao fazer upload do arquivo" });
