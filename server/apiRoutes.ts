@@ -1583,6 +1583,7 @@ export function registerApiRoutes(app: Express) {
           const fullUrl = url.startsWith('http') ? url : `${req.protocol}://${req.get('host')}${url}`;
 
           // Salvar no banco de dados
+          console.log("[API] Inserindo slide:", { titulo: file.originalname, tipo: type, urlMedia: fullUrl });
           const result = await db.insert(carouselSlides).values({
             titulo: file.originalname,
             tipo: type as any,
@@ -1590,6 +1591,7 @@ export function registerApiRoutes(app: Express) {
             ativo: true,
             ordem: 0,
           });
+          console.log("[API] Insert result:", result);
 
           slides.push({
             ok: true,

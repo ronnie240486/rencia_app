@@ -1,0 +1,170 @@
+{
+  "query": "DESCRIBE devices;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute DESCRIBE devices;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "ownerId",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "mac",
+      "Type": "varchar(64)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "nomeServer",
+      "Type": "varchar(255)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "tipo",
+      "Type": "enum('Usuario','Revenda','UltraMaster','Master')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "Usuario",
+      "Extra": ""
+    },
+    {
+      "Field": "modoSelecao",
+      "Type": "enum('XTeamCode','M3U8')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "XTeamCode",
+      "Extra": ""
+    },
+    {
+      "Field": "app",
+      "Type": "varchar(128)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "urlM3u8",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "urlEpg",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "valor",
+      "Type": "decimal(10,2)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "status",
+      "Type": "enum('Liberado','Bloqueado','Expirado')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "Liberado",
+      "Extra": ""
+    },
+    {
+      "Field": "dataCadastro",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "dataExpiracao",
+      "Type": "date",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    },
+    {
+      "Field": "lastSeen",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "telefone",
+      "Type": "varchar(32)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "connectedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "currentContent",
+      "Type": "varchar(512)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "deviceType",
+      "Type": "varchar(32)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nownerId\tint\tNO\t\tNULL\t\nmac\tvarchar(64)\tNO\t\tNULL\t\nnomeServer\tvarchar(255)\tNO\t\tNULL\t\ntipo\tenum('Usuario','Revenda','UltraMaster','Master')\tNO\t\tUsuario\t\nmodoSelecao\tenum('XTeamCode','M3U8')\tNO\t\tXTeamCode\t\napp\tvarchar(128)\tYES\t\tNULL\t\nurlM3u8\ttext\tYES\t\tNULL\t\nurlEpg\ttext\tYES\t\tNULL\t\nvalor\tdecimal(10,2)\tYES\t\tNULL\t\nstatus\tenum('Liberado','Bloqueado','Expirado')\tNO\t\tLiberado\t\ndataCadastro\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\ndataExpiracao\tdate\tYES\t\tNULL\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\nlastSeen\ttimestamp\tYES\t\tNULL\t\ntelefone\tvarchar(32)\tYES\t\tNULL\t\nconnectedAt\ttimestamp\tYES\t\tNULL\t\ncurrentContent\tvarchar(512)\tYES\t\tNULL\t\ndeviceType\tvarchar(32)\tYES\t\tNULL\t\n",
+  "stderr": "",
+  "execution_time_ms": 707
+}

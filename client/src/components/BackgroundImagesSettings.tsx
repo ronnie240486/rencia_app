@@ -148,7 +148,7 @@ export default function BackgroundImagesSettings() {
       const selectedSlides = carouselSlides
         .filter((s) => selectedIds.includes(Number(s.id)))
         .map((s) => ({
-          slideId: s.id,
+          slideId: Number(s.id),
           duration: 5,
         }));
 
