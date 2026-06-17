@@ -1,0 +1,28 @@
+{
+  "query": "SELECT * FROM background_images WHERE userId = 1 ORDER BY `order`;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT * FROM background_images WHERE userId = 1 ORDER BY `order`;",
+  "rows": [
+    {
+      "id": "240005",
+      "userId": "1",
+      "carouselSlideId": "300003",
+      "duration": "5",
+      "order": "1",
+      "createdAt": "2026-06-17 10:28:47",
+      "updatedAt": "2026-06-17 10:28:47"
+    },
+    {
+      "id": "240006",
+      "userId": "1",
+      "carouselSlideId": "300004",
+      "duration": "5",
+      "order": "2",
+      "createdAt": "2026-06-17 10:28:47",
+      "updatedAt": "2026-06-17 10:28:47"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\tcarouselSlideId\tduration\torder\tcreatedAt\tupdatedAt\n240005\t1\t300003\t5\t1\t2026-06-17 10:28:47\t2026-06-17 10:28:47\n240006\t1\t300004\t5\t2\t2026-06-17 10:28:47\t2026-06-17 10:28:47\n",
+  "stderr": "",
+  "execution_time_ms": 601
+}
