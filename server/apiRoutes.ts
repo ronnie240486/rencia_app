@@ -924,7 +924,7 @@ export function registerApiRoutes(app: Express) {
         return res.status(500).json({ error: "Erro ao conectar ao banco" });
       }
 
-      // Se tiver MAC, buscar carousel do usuário
+      // Se tiver MAC, buscar carousel do usuário DONO do device
       if (mac) {
         const device = await db
           .select()
@@ -933,7 +933,10 @@ export function registerApiRoutes(app: Express) {
           .limit(1);
 
         if (device.length) {
-          const userId = device[0].ownerId;
+          // Usar o ownerId do device para buscar o carousel
+          const ownerId = device[0].ownerId;
+          console.log(`[API] /api/v4/bg.php - MAC: ${mac}, ownerId: ${ownerId}`);
+          
           const backgrounds = await db
             .select({
               urlMedia: carouselSlides.urlMedia,
@@ -941,8 +944,10 @@ export function registerApiRoutes(app: Express) {
             })
             .from(backgroundImages)
             .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
-            .where(eq(backgroundImages.userId, userId))
+            .where(eq(backgroundImages.userId, ownerId))
             .orderBy(backgroundImages.order);
+
+          console.log(`[API] /api/v4/bg.php - Found ${backgrounds.length} background images for ownerId ${ownerId}`);
 
           if (backgrounds.length > 0) {
             const images = await Promise.all(
@@ -1013,9 +1018,10 @@ export function registerApiRoutes(app: Express) {
         return res.json({ ok: true, backgrounds: [] });
       }
 
-      const userId = device[0].ownerId;
+      const ownerId = device[0].ownerId;
+      console.log(`[API] /api/v4/bg-carousel.php - MAC: ${mac}, ownerId: ${ownerId}`);
 
-      // Buscar backgrounds configurados para este usuário
+      // Buscar backgrounds configurados para este usuário DONO do device
       const backgrounds = await db
         .select({
           slideId: backgroundImages.carouselSlideId,
@@ -1026,8 +1032,10 @@ export function registerApiRoutes(app: Express) {
         })
         .from(backgroundImages)
         .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
-        .where(eq(backgroundImages.userId, userId))
+        .where(eq(backgroundImages.userId, ownerId))
         .orderBy(backgroundImages.order);
+      
+      console.log(`[API] /api/v4/bg-carousel.php - Found ${backgrounds.length} backgrounds for ownerId ${ownerId}`);
 
       // Se não tem backgrounds, retorna vazio
       if (!backgrounds.length) {
@@ -1751,9 +1759,10 @@ export function registerApiRoutes(app: Express) {
         return res.json({ ok: true, backgrounds: [] });
       }
 
-      const userId = device[0].ownerId;
+      const ownerId = device[0].ownerId;
+      console.log(`[API] /api/background/list - MAC: ${mac}, ownerId: ${ownerId}`);
 
-      // Buscar backgrounds configurados para este usuário
+      // Buscar backgrounds configurados para este usuário DONO do device
       const backgrounds = await db
         .select({
           slideId: backgroundImages.carouselSlideId,
@@ -1764,8 +1773,10 @@ export function registerApiRoutes(app: Express) {
         })
         .from(backgroundImages)
         .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
-        .where(eq(backgroundImages.userId, userId))
+        .where(eq(backgroundImages.userId, ownerId))
         .orderBy(backgroundImages.order);
+
+      console.log(`[API] /api/background/list - Found ${backgrounds.length} backgrounds for ownerId ${ownerId}`);
 
       res.json({
         ok: true,

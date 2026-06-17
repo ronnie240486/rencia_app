@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, mac, nomeServer, ownerId FROM devices WHERE ownerId = 1 LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT id, mac, nomeServer, ownerId FROM devices WHERE ownerId = 1 LIMIT 5;",
+  "rows": [
+    {
+      "id": "60001",
+      "mac": "58:04:54:49:77:56",
+      "nomeServer": "Ronnie sala",
+      "ownerId": "1"
+    },
+    {
+      "id": "90001",
+      "mac": "70:2e:8e:96:0a:3c",
+      "nomeServer": "Ronnie celular",
+      "ownerId": "1"
+    },
+    {
+      "id": "120001",
+      "mac": "66:D5:27:5a:Ed:d3",
+      "nomeServer": "Vanilda",
+      "ownerId": "1"
+    },
+    {
+      "id": "150002",
+      "mac": "13:e1:c7:a1:66:f3",
+      "nomeServer": "Ronnie",
+      "ownerId": "1"
+    },
+    {
+      "id": "180001",
+      "mac": "34:c3:d2:3f:32:de",
+      "nomeServer": "Suzete",
+      "ownerId": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tmac\tnomeServer\townerId\n60001\t58:04:54:49:77:56\tRonnie sala\t1\n90001\t70:2e:8e:96:0a:3c\tRonnie celular\t1\n120001\t66:D5:27:5a:Ed:d3\tVanilda\t1\n150002\t13:e1:c7:a1:66:f3\tRonnie\t1\n180001\t34:c3:d2:3f:32:de\tSuzete\t1\n",
+  "stderr": "",
+  "execution_time_ms": 585
+}
