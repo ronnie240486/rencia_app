@@ -908,7 +908,35 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
-   * GET /api/v4/logo.php
+   * GET /api/v4/banner.php
+   * Endpoint usado pelo APK para carregar o banner dinâmico.
+   * Retorna a imagem do banner configurada no painel.
+   */
+  app.get("/api/v4/banner.php", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+      const bannerUrl = cfg.trial_banner_url || "";
+
+      // Resolver URL pública (gera presigned URL se for manus-storage protegido)
+      const resolvedUrl = bannerUrl ? await resolvePublicImageUrl(bannerUrl) : "";
+      const targetUrl = (resolvedUrl && resolvedUrl.startsWith("http") && !resolvedUrl.includes(","))
+        ? resolvedUrl
+        : "";
+
+      if (!targetUrl) {
+        return res.status(204).end();
+      }
+
+      // Usar redirect para que o Glide faça cache da URL final do S3
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.redirect(302, targetUrl);
+    } catch (error) {
+      console.error("[API] /api/v4/banner.php error:", error);
+      res.status(204).end();
+    }
+  });
+
+  /**
    * Endpoint usado pela classe Logo.java do APK para carregar o logo dinâmico.
    * Retorna a imagem do logo configurada no painel, ou o logo padrão OURO REVENDA.
    * Suporta: redirect para URL externa ou proxy da imagem.
