@@ -283,7 +283,7 @@ export default function BackgroundImagesSettings() {
         <Button
           onClick={handleSave}
           disabled={loading || selectedIds.length < 2}
-          className="w-full bg-primary text-white hover:bg-primary/90 font-bold py-6"
+          className="w-full bg-green-600 text-white hover:bg-green-700 font-bold py-6"
         >
           {loading ? "Salvando..." : "Salvar Configurações"}
         </Button>
