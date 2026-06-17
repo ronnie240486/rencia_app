@@ -203,6 +203,13 @@
 - [ ] Configurações: corrigir botão "Atualizar Aplicativo" (endpoint /api/v4/update.php retornando link correto)
 - [ ] Heartbeat: investigar e corrigir exibição do canal assistido no painel (coluna ASSISTINDO)
 
+## Correção Carousel (17/06/2026)
+- [x] Carousel não aparecia em todos os devices - corrigido para usar ownerId do device (usuário dono)
+- [x] Endpoint /api/v4/bg.php: busca carousel pelo ownerId, não MAC específico
+- [x] Endpoint /api/v4/bg-carousel.php: mesma correção
+- [x] Endpoint /api/background/list/:mac: mesma correção
+- [x] Testes: verificar que todos os devices do mesmo usuário recebem o mesmo carousel
+
 ## Novas funcionalidades (21/05/2026)
 - [ ] Perfil: seção de alterar senha e alterar login (email)
 - [ ] DNS: botão excluir DNS cadastradas na página DNS

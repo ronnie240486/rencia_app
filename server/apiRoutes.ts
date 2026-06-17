@@ -98,6 +98,12 @@ const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890
  */
 async function resolvePublicImageUrl(storedUrl: string): Promise<string> {
   if (!storedUrl) return "";
+  
+  // Se a URL já começa com o domínio do site, retornar diretamente
+  if (storedUrl.startsWith("https://renciaapp")) {
+    return storedUrl;
+  }
+  
   // URL do manus-storage precisa de URL pré-assinada
   const manusStorageMatch = storedUrl.match(/\/manus-storage\/(.+)$/);
   if (manusStorageMatch) {
@@ -108,6 +114,23 @@ async function resolvePublicImageUrl(storedUrl: string): Promise<string> {
       return storedUrl; // fallback
     }
   }
+  
+  // Se for URL de domínio externo (yyue5q6u5o...), converter para o domínio do site
+  if (storedUrl.includes("yyue5q6u5o") || storedUrl.includes("a.run.app")) {
+    try {
+      const urlObj = new URL(storedUrl);
+      const pathParts = urlObj.pathname.split("/");
+      // Extrair a chave do storage (ex: carousel/carousel_1781692121673_1001154532_7bc7a942.jpg)
+      const storageKey = pathParts.slice(2).join("/"); // Remove os 2 primeiros elementos
+      if (storageKey) {
+        const signedUrl = await storageGetSignedUrl(storageKey);
+        return signedUrl;
+      }
+    } catch (error) {
+      console.error("[API] Erro ao converter URL externa:", error);
+    }
+  }
+  
   // URL externa: retornar diretamente
   return storedUrl;
 }
@@ -911,6 +934,64 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
+   * GET /api/v4/bg-debug.php
+   * Endpoint de debug para verificar o carousel
+   */
+  app.get("/api/v4/bg-debug.php", async (req: Request, res: Response) => {
+    try {
+      const { mac } = req.query;
+      const db = await getDb();
+      if (!db) {
+        return res.status(500).json({ error: "Erro ao conectar ao banco" });
+      }
+
+      if (!mac) {
+        return res.json({ error: "MAC não fornecido", ok: false });
+      }
+
+      // Buscar device
+      const device = await db
+        .select()
+        .from(devices)
+        .where(eq(devices.mac, mac as string))
+        .limit(1);
+
+      if (!device.length) {
+        return res.json({ error: "Device não encontrado", mac, ok: false });
+      }
+
+      const ownerId = device[0].ownerId;
+      console.log(`[DEBUG] MAC: ${mac}, ownerId: ${ownerId}`);
+
+      // Buscar backgrounds
+      const backgrounds = await db
+        .select({
+          urlMedia: carouselSlides.urlMedia,
+          duration: backgroundImages.duration,
+          titulo: carouselSlides.titulo,
+        })
+        .from(backgroundImages)
+        .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
+        .where(eq(backgroundImages.userId, ownerId))
+        .orderBy(backgroundImages.order);
+
+      return res.json({
+        ok: true,
+        device: { mac, ownerId, nomeServer: device[0].nomeServer },
+        carouselCount: backgrounds.length,
+        backgrounds: backgrounds.map((bg) => ({
+          titulo: bg.titulo,
+          urlMedia: bg.urlMedia,
+          duration: bg.duration,
+        })),
+      });
+    } catch (error) {
+      console.error("[DEBUG] Error:", error);
+      res.json({ error: String(error), ok: false });
+    }
+  });
+
+  /**
    * GET /api/v4/bg.php
    * Retorna carousel de imagens de fundo em JSON.
    * Se tiver carousel configurado: retorna lista de URLs com duração
@@ -956,9 +1037,12 @@ export function registerApiRoutes(app: Express) {
                 duration: bg.duration,
               }))
             );
+            // Adicionar versão do carousel para forçar atualização no APK
+            const carouselVersion = `v${Date.now()}`;
             return res.json({
               ok: true,
               isCarousel: backgrounds.length > 1,
+              version: carouselVersion,
               images,
             });
           }

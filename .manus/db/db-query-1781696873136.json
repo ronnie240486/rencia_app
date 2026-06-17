@@ -1,0 +1,22 @@
+{
+  "query": "SELECT cs.id, cs.titulo, cs.urlMedia, LENGTH(cs.urlMedia) as url_length FROM carousel_slides cs LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT cs.id, cs.titulo, cs.urlMedia, LENGTH(cs.urlMedia) as url_length FROM carousel_slides cs LIMIT 5;",
+  "rows": [
+    {
+      "id": "300003",
+      "titulo": "1001154532.jpg",
+      "urlMedia": "https://yyue5q6u5o-emofl2keyq-ue.a.run.app/manus-storage/carousel/carousel_1781692121673_1001154532_7bc7a942.jpg",
+      "url_length": "112"
+    },
+    {
+      "id": "300004",
+      "titulo": "1001154508.jpg",
+      "urlMedia": "https://yyue5q6u5o-emofl2keyq-ue.a.run.app/manus-storage/carousel/carousel_1781692121971_1001154508_3c01abd4.jpg",
+      "url_length": "112"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitulo\turlMedia\turl_length\n300003\t1001154532.jpg\thttps://yyue5q6u5o-emofl2keyq-ue.a.run.app/manus-storage/carousel/carousel_1781692121673_1001154532_7bc7a942.jpg\t112\n300004\t1001154508.jpg\thttps://yyue5q6u5o-emofl2keyq-ue.a.run.app/manus-storage/carousel/carousel_1781692121971_1001154508_3c01abd4.jpg\t112\n",
+  "stderr": "",
+  "execution_time_ms": 588
+}
