@@ -920,7 +920,7 @@ export default function Settings() {
 
         {dirty && (
           <div className="fixed bottom-6 right-6">
-            <Button onClick={handleSave} disabled={updateMany.isPending} size="lg" className="gap-2 shadow-lg">
+            <Button onClick={handleSave} disabled={updateMany.isPending} size="lg" className="gap-2 shadow-lg bg-green-600 hover:bg-green-700 text-white">
               {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               Salvar Alterações
             </Button>
