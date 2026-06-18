@@ -123,10 +123,15 @@ function UploadButton({ field, uploadingField, onUpload }: { field: string; uplo
         ref={inputRef}
         type="file"
         accept="image/*"
+        multiple={field === "trial_background_url"}
         className="hidden"
         onChange={e => {
-          const file = e.target.files?.[0];
-          if (file) onUpload(field, file);
+          const files = e.target.files;
+          if (files) {
+            for (let i = 0; i < Math.min(files.length, 8); i++) {
+              onUpload(field, files[i]);
+            }
+          }
           e.target.value = "";
         }}
       />
@@ -168,9 +173,22 @@ export default function Settings() {
       }
 
       const { url } = await resp.json() as { url: string };
-      handleChange(field, url);
-      await updateMany.mutateAsync({ ...form, [field]: url });
-      toast.success("✅ Imagem enviada e salva!");
+      
+      if (field === "trial_background_url") {
+        const currentUrls = form[field] ? form[field].split(',').map(u => u.trim()).filter(u => u) : [];
+        if (currentUrls.length < 8) {
+          const newUrls = [...currentUrls, url].join(', ');
+          handleChange(field, newUrls);
+          await updateMany.mutateAsync({ ...form, [field]: newUrls });
+          toast.success(`✅ Imagem ${currentUrls.length + 1}/8 adicionada!`);
+        } else {
+          toast.error("Máximo de 8 imagens atingido");
+        }
+      } else {
+        handleChange(field, url);
+        await updateMany.mutateAsync({ ...form, [field]: url });
+        toast.success("✅ Imagem enviada e salva!");
+      }
       refetch();
     } catch (e: any) {
       toast.error("Erro ao enviar imagem: " + (e.message ?? "erro desconhecido"));
