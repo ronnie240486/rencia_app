@@ -42,9 +42,9 @@ const navItems: NavItem[] = [
   { label: "Chatbot de Avisos", href: "/chatbot", icon: <MessageCircle size={18} />, ownerOnly: true },
   { label: "DNS", href: "/dns", icon: <Server size={18} /> },
   { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} />, ownerOnly: true },
-  { label: "Carousel do App", href: "/carousel", icon: <Film size={18} />, ownerOnly: true },
   { label: "Sugestões", href: "/sugestoes", icon: <MessageSquare size={18} /> },
   { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true },
+  { label: "Funções do Painel", href: "/panel-functions", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Configurações do App", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];
