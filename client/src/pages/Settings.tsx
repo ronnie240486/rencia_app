@@ -362,7 +362,7 @@ export default function Settings() {
                   <p className="text-xs text-muted-foreground">
                     Selecione multiplas imagens para criar um carousel automatico na tela inicial do APK.
                   </p>
-                  <p className="text-xs text-amber-600 mt-2">⚠️ Configure no aba "Fundo" abaixo</p>
+                  <BackgroundImagesSettings />
                 </div>
 
                 {/* Logo da Sidebar do Painel */}
@@ -920,7 +920,7 @@ export default function Settings() {
 
         {dirty && (
           <div className="fixed bottom-6 right-6">
-            <Button onClick={handleSave} disabled={updateMany.isPending} size="lg" className="gap-2 shadow-lg bg-green-600 hover:bg-green-700 text-white">
+            <Button onClick={handleSave} disabled={updateMany.isPending} size="lg" className="gap-2 shadow-lg">
               {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               Salvar Alterações
             </Button>

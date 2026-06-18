@@ -1,9 +1,0 @@
-{
-  "query": "INSERT INTO devices (ownerId, mac, nomeServer, tipo, modoSelecao, app, urlM3u8, urlEpg, valor, status, dataExpiracao, telefone) \nVALUES (1, 'AA:BB:CC:DD:EE:FF', 'Teste Carousel', 'Revenda', 'M3U8', 'OuroPro', 'http://teste.m3u8', 'http://teste.epg', 0, 'Liberado', DATE_ADD(NOW(), INTERVAL 30 DAY), '55359999999');",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute INSERT INTO devices (ownerId, mac, nomeServer, tipo, modoSelecao, app, urlM3u8, urlEpg, valor, status, dataExpiracao, telefone) \nVALUES (1, 'AA:BB:CC:DD:EE:FF', 'Teste Carousel', 'Revenda', 'M3U8', 'OuroPro', 'http://teste.m3u8', 'http://teste.epg', 0, 'Liberado', DATE_ADD(NOW(), INTERVAL 30 DAY), '55359999999');",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 585
-}

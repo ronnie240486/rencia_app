@@ -98,12 +98,6 @@ const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890
  */
 async function resolvePublicImageUrl(storedUrl: string): Promise<string> {
   if (!storedUrl) return "";
-  
-  // Se a URL já começa com o domínio do site, retornar diretamente
-  if (storedUrl.startsWith("https://renciaapp")) {
-    return storedUrl;
-  }
-  
   // URL do manus-storage precisa de URL pré-assinada
   const manusStorageMatch = storedUrl.match(/\/manus-storage\/(.+)$/);
   if (manusStorageMatch) {
@@ -114,23 +108,6 @@ async function resolvePublicImageUrl(storedUrl: string): Promise<string> {
       return storedUrl; // fallback
     }
   }
-  
-  // Se for URL de domínio externo (yyue5q6u5o...), converter para o domínio do site
-  if (storedUrl.includes("yyue5q6u5o") || storedUrl.includes("a.run.app")) {
-    try {
-      const urlObj = new URL(storedUrl);
-      const pathParts = urlObj.pathname.split("/");
-      // Extrair a chave do storage (ex: carousel/carousel_1781692121673_1001154532_7bc7a942.jpg)
-      const storageKey = pathParts.slice(2).join("/"); // Remove os 2 primeiros elementos
-      if (storageKey) {
-        const signedUrl = await storageGetSignedUrl(storageKey);
-        return signedUrl;
-      }
-    } catch (error) {
-      console.error("[API] Erro ao converter URL externa:", error);
-    }
-  }
-  
   // URL externa: retornar diretamente
   return storedUrl;
 }
@@ -934,64 +911,6 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
-   * GET /api/v4/bg-debug.php
-   * Endpoint de debug para verificar o carousel
-   */
-  app.get("/api/v4/bg-debug.php", async (req: Request, res: Response) => {
-    try {
-      const { mac } = req.query;
-      const db = await getDb();
-      if (!db) {
-        return res.status(500).json({ error: "Erro ao conectar ao banco" });
-      }
-
-      if (!mac) {
-        return res.json({ error: "MAC não fornecido", ok: false });
-      }
-
-      // Buscar device
-      const device = await db
-        .select()
-        .from(devices)
-        .where(eq(devices.mac, mac as string))
-        .limit(1);
-
-      if (!device.length) {
-        return res.json({ error: "Device não encontrado", mac, ok: false });
-      }
-
-      const ownerId = device[0].ownerId;
-      console.log(`[DEBUG] MAC: ${mac}, ownerId: ${ownerId}`);
-
-      // Buscar backgrounds
-      const backgrounds = await db
-        .select({
-          urlMedia: carouselSlides.urlMedia,
-          duration: backgroundImages.duration,
-          titulo: carouselSlides.titulo,
-        })
-        .from(backgroundImages)
-        .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
-        .where(eq(backgroundImages.userId, ownerId))
-        .orderBy(backgroundImages.order);
-
-      return res.json({
-        ok: true,
-        device: { mac, ownerId, nomeServer: device[0].nomeServer },
-        carouselCount: backgrounds.length,
-        backgrounds: backgrounds.map((bg) => ({
-          titulo: bg.titulo,
-          urlMedia: bg.urlMedia,
-          duration: bg.duration,
-        })),
-      });
-    } catch (error) {
-      console.error("[DEBUG] Error:", error);
-      res.json({ error: String(error), ok: false });
-    }
-  });
-
-  /**
    * GET /api/v4/bg.php
    * Retorna carousel de imagens de fundo em JSON.
    * Se tiver carousel configurado: retorna lista de URLs com duração
@@ -1005,7 +924,7 @@ export function registerApiRoutes(app: Express) {
         return res.status(500).json({ error: "Erro ao conectar ao banco" });
       }
 
-      // Se tiver MAC, buscar carousel do usuário DONO do device
+      // Se tiver MAC, buscar carousel do usuário
       if (mac) {
         const device = await db
           .select()
@@ -1014,10 +933,7 @@ export function registerApiRoutes(app: Express) {
           .limit(1);
 
         if (device.length) {
-          // Usar o ownerId do device para buscar o carousel
-          const ownerId = device[0].ownerId;
-          console.log(`[API] /api/v4/bg.php - MAC: ${mac}, ownerId: ${ownerId}`);
-          
+          const userId = device[0].ownerId;
           const backgrounds = await db
             .select({
               urlMedia: carouselSlides.urlMedia,
@@ -1025,10 +941,8 @@ export function registerApiRoutes(app: Express) {
             })
             .from(backgroundImages)
             .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
-            .where(eq(backgroundImages.userId, ownerId))
+            .where(eq(backgroundImages.userId, userId))
             .orderBy(backgroundImages.order);
-
-          console.log(`[API] /api/v4/bg.php - Found ${backgrounds.length} background images for ownerId ${ownerId}`);
 
           if (backgrounds.length > 0) {
             const images = await Promise.all(
@@ -1037,12 +951,9 @@ export function registerApiRoutes(app: Express) {
                 duration: bg.duration,
               }))
             );
-            // Adicionar versão do carousel para forçar atualização no APK
-            const carouselVersion = `v${Date.now()}`;
             return res.json({
               ok: true,
               isCarousel: backgrounds.length > 1,
-              version: carouselVersion,
               images,
             });
           }
@@ -1102,10 +1013,9 @@ export function registerApiRoutes(app: Express) {
         return res.json({ ok: true, backgrounds: [] });
       }
 
-      const ownerId = device[0].ownerId;
-      console.log(`[API] /api/v4/bg-carousel.php - MAC: ${mac}, ownerId: ${ownerId}`);
+      const userId = device[0].ownerId;
 
-      // Buscar backgrounds configurados para este usuário DONO do device
+      // Buscar backgrounds configurados para este usuário
       const backgrounds = await db
         .select({
           slideId: backgroundImages.carouselSlideId,
@@ -1116,10 +1026,8 @@ export function registerApiRoutes(app: Express) {
         })
         .from(backgroundImages)
         .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
-        .where(eq(backgroundImages.userId, ownerId))
+        .where(eq(backgroundImages.userId, userId))
         .orderBy(backgroundImages.order);
-      
-      console.log(`[API] /api/v4/bg-carousel.php - Found ${backgrounds.length} backgrounds for ownerId ${ownerId}`);
 
       // Se não tem backgrounds, retorna vazio
       if (!backgrounds.length) {
@@ -1646,67 +1554,49 @@ export function registerApiRoutes(app: Express) {
     },
   });
 
-  app.post("/api/carousel/upload", uploadCarousel.array("files", 10), async (req: Request, res: Response) => {
+  app.post("/api/carousel/upload", uploadCarousel.single("file"), async (req: Request, res: Response) => {
     try {
-      if (!req.files || req.files.length === 0) {
+      if (!req.file) {
         return res.status(400).json({ error: "Nenhum arquivo foi enviado" });
       }
 
+      const { duration = 5, type = "image" } = req.body;
+      const fileName = `carousel_${Date.now()}_${req.file.originalname}`;
+      const mimeType = req.file.mimetype;
+
+      // Upload para S3
+      const { url, key } = await storagePut(
+        `carousel/${fileName}`,
+        req.file.buffer,
+        mimeType
+      );
+
+      // Construir URL completa se for relativa
+      const fullUrl = url.startsWith('http') ? url : `${req.protocol}://${req.get('host')}${url}`;
+
+      // Salvar no banco de dados
       const db = await getDb();
-      if (!db) {
-        return res.status(500).json({ error: "Erro ao conectar ao banco" });
+      if (db) {
+        const result = await db.insert(carouselSlides).values({
+          titulo: req.body.titulo || fileName,
+          tipo: type as any,
+          urlMedia: fullUrl,
+          ativo: true,
+          ordem: 0,
+        });
+
+        res.json({
+          ok: true,
+          id: (result as any).lastID || (result as any).insertId,
+          url: fullUrl,
+          key,
+          fileName,
+          titulo: req.body.titulo || fileName,
+          type,
+        });
+      } else {
+        res.status(500).json({ error: "Erro ao conectar ao banco" });
       }
-
-      const slides = [];
-      for (const file of req.files as Express.Multer.File[]) {
-        try {
-          const { duration = 5, type = "image" } = req.body;
-          const fileName = `carousel_${Date.now()}_${file.originalname}`;
-          const mimeType = file.mimetype;
-
-          // Upload para S3
-          const { url, key } = await storagePut(
-            `carousel/${fileName}`,
-            file.buffer,
-            mimeType
-          );
-
-          // Construir URL completa se for relativa
-          const fullUrl = url.startsWith('http') ? url : `${req.protocol}://${req.get('host')}${url}`;
-
-          // Salvar no banco de dados
-          console.log("[API] Inserindo slide:", { titulo: file.originalname, tipo: type, urlMedia: fullUrl });
-          const result = await db.insert(carouselSlides).values({
-            titulo: file.originalname,
-            tipo: type as any,
-            urlMedia: fullUrl,
-            ativo: true,
-            ordem: 0,
-          });
-          console.log("[API] Insert result:", result);
-
-          slides.push({
-            ok: true,
-            url: fullUrl,
-            key,
-            fileName,
-            titulo: file.originalname,
-            type,
-          });
-        } catch (fileError) {
-          console.error("[API] Erro ao fazer upload de arquivo individual:", fileError);
-          slides.push({
-            ok: false,
-            error: "Erro ao fazer upload deste arquivo",
-          });
-        }
-      }
-
-      res.json({
-        ok: true,
-        slides,
-        count: slides.filter((s: any) => s.ok).length,
-      })
     } catch (error) {
       console.error("[API] /api/carousel/upload error:", error);
       res.status(500).json({ error: "Erro ao fazer upload do arquivo" });
@@ -1765,7 +1655,6 @@ export function registerApiRoutes(app: Express) {
   app.post("/api/background/save", async (req: Request, res: Response) => {
     try {
       const { userId, selectedSlides } = req.body;
-      console.log("[API] /api/background/save - userId:", userId, "selectedSlides:", selectedSlides);
       const db = await getDb();
       if (!db) {
         return res.status(500).json({ error: "Erro ao conectar ao banco" });
@@ -1843,10 +1732,9 @@ export function registerApiRoutes(app: Express) {
         return res.json({ ok: true, backgrounds: [] });
       }
 
-      const ownerId = device[0].ownerId;
-      console.log(`[API] /api/background/list - MAC: ${mac}, ownerId: ${ownerId}`);
+      const userId = device[0].ownerId;
 
-      // Buscar backgrounds configurados para este usuário DONO do device
+      // Buscar backgrounds configurados para este usuário
       const backgrounds = await db
         .select({
           slideId: backgroundImages.carouselSlideId,
@@ -1857,10 +1745,8 @@ export function registerApiRoutes(app: Express) {
         })
         .from(backgroundImages)
         .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
-        .where(eq(backgroundImages.userId, ownerId))
+        .where(eq(backgroundImages.userId, userId))
         .orderBy(backgroundImages.order);
-
-      console.log(`[API] /api/background/list - Found ${backgrounds.length} backgrounds for ownerId ${ownerId}`);
 
       res.json({
         ok: true,

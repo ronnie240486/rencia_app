@@ -203,13 +203,6 @@
 - [ ] Configurações: corrigir botão "Atualizar Aplicativo" (endpoint /api/v4/update.php retornando link correto)
 - [ ] Heartbeat: investigar e corrigir exibição do canal assistido no painel (coluna ASSISTINDO)
 
-## Correção Carousel (17/06/2026)
-- [x] Carousel não aparecia em todos os devices - corrigido para usar ownerId do device (usuário dono)
-- [x] Endpoint /api/v4/bg.php: busca carousel pelo ownerId, não MAC específico
-- [x] Endpoint /api/v4/bg-carousel.php: mesma correção
-- [x] Endpoint /api/background/list/:mac: mesma correção
-- [x] Testes: verificar que todos os devices do mesmo usuário recebem o mesmo carousel
-
 ## Novas funcionalidades (21/05/2026)
 - [ ] Perfil: seção de alterar senha e alterar login (email)
 - [ ] DNS: botão excluir DNS cadastradas na página DNS
@@ -266,10 +259,3 @@
 - [x] Implementar modal de avisos na abertura do painel
 - [x] Usar logo OuroPro fornecido e melhorar design geral
 - [x] Melhorar design do painel com mais fluidez
-
-
-## Correções Finais - Carousel (16/06/2026)
-- [ ] Ativar imagem de fundo principal (Banner > Imagem de fundo principal)
-- [ ] Corrigir contraste: fundo preto = letras brancas, fundo branco = letras pretas
-- [ ] Fazer carousel salvo aparecer como "Imagem de fundo principal" no APK
-- [ ] Testar carousel no APK com imagens salvas
