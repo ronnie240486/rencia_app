@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Image, Upload, Palette, MessageCircle, Smartphone, LayoutGrid } from "lucide-react";
+import { Loader2, Save, Image, Upload, Palette, MessageCircle, Smartphone, LayoutGrid, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 
 const DEFAULT_VALUES: Record<string, string> = {
@@ -70,6 +70,195 @@ const COLOR_PRESETS = [
   { name: "Vermelho", value: "#EF4444" },
   { name: "Ciano", value: "#06B6D4" },
 ];
+
+// Componente de Carousel
+function CarouselSection() {
+  const [carouselItems, setCarouselItems] = useState<Array<{ id: string; url: string; type: 'image' | 'video' }>>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-play carousel a cada 5 segundos
+  useEffect(() => {
+    if (carouselItems.length > 1) {
+      autoPlayRef.current = setInterval(() => {
+        setCurrentIndex(prev => (prev + 1) % carouselItems.length);
+      }, 5000);
+    }
+    return () => {
+      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    };
+  }, [carouselItems.length]);
+
+  const handleFileUpload = (file: File) => {
+    const isVideo = file.type.startsWith('video/');
+    const isImage = file.type.startsWith('image/');
+    
+    if (!isVideo && !isImage) {
+      toast.error('Apenas imagens e vídeos são permitidos');
+      return;
+    }
+
+    if (carouselItems.length >= 8) {
+      toast.error('Máximo de 8 itens no carousel');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const url = e.target?.result as string;
+      setCarouselItems([...carouselItems, {
+        id: Date.now().toString(),
+        url,
+        type: isVideo ? 'video' : 'image'
+      }]);
+      toast.success('Arquivo adicionado ao carousel!');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeItem = (id: string) => {
+    setCarouselItems(carouselItems.filter(item => item.id !== id));
+    if (currentIndex >= carouselItems.length - 1) {
+      setCurrentIndex(Math.max(0, carouselItems.length - 2));
+    }
+  };
+
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % carouselItems.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + carouselItems.length) % carouselItems.length);
+  };
+
+  return (
+    <div className="space-y-4 border-t pt-4">
+      <div className="flex items-center justify-between">
+        <Label className="font-semibold">Carousel de Imagens/Vídeos (até 8)</Label>
+        <span className="text-xs text-muted-foreground">{carouselItems.length}/8</span>
+      </div>
+
+      {/* Botão de adicionar */}
+      <div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*,video/*"
+          className="hidden"
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) handleFileUpload(file);
+            e.target.value = "";
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          className="gap-2"
+          onClick={() => inputRef.current?.click()}
+          disabled={carouselItems.length >= 8}
+        >
+          <Plus size={16} />
+          Adicionar Imagem/Vídeo
+        </Button>
+      </div>
+
+      {/* Carousel Preview */}
+      {carouselItems.length > 0 && (
+        <div className="space-y-3">
+          <div className="relative bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center">
+            {carouselItems[currentIndex].type === 'image' ? (
+              <img
+                src={carouselItems[currentIndex].url}
+                alt={`Slide ${currentIndex + 1}`}
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <video
+                src={carouselItems[currentIndex].url}
+                className="w-full h-full object-contain"
+                controls
+              />
+            )}
+
+            {/* Controles */}
+            {carouselItems.length > 1 && (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70"
+                  onClick={prevSlide}
+                >
+                  <ChevronLeft size={20} className="text-white" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70"
+                  onClick={nextSlide}
+                >
+                  <ChevronRight size={20} className="text-white" />
+                </Button>
+              </>
+            )}
+
+            {/* Indicadores */}
+            {carouselItems.length > 1 && (
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                {carouselItems.map((_, idx) => (
+                  <button
+                    key={idx}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      idx === currentIndex ? 'bg-white w-4' : 'bg-white/50'
+                    }`}
+                    onClick={() => setCurrentIndex(idx)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Lista de itens */}
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">Itens no carousel (alternando a cada 5 segundos):</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {carouselItems.map((item, idx) => (
+                <div key={item.id} className="relative group">
+                  <div className={`relative bg-muted rounded overflow-hidden aspect-square border-2 ${
+                    idx === currentIndex ? 'border-primary' : 'border-transparent'
+                  }`}>
+                    {item.type === 'image' ? (
+                      <img
+                        src={item.url}
+                        alt={`Thumb ${idx}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-black flex items-center justify-center">
+                        <span className="text-xs text-white">Vídeo</span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.id)}
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={12} className="text-white" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Componente reutilizável para botão de upload
 function UploadButton({ field, uploadingField, onUpload }: { field: string; uploadingField: string | null; onUpload: (field: string, file: File) => void }) {
@@ -327,7 +516,7 @@ export default function Settings() {
                   )}
                 </div>
 
-                {/* Fundo principal */}
+                {/* Fundo principal com Carousel */}
                 <div className="space-y-2">
                   <Label className="font-semibold">Imagem de fundo principal (960×540px)</Label>
                   <div className="flex gap-2">
@@ -350,6 +539,9 @@ export default function Settings() {
                     />
                   )}
                 </div>
+
+                {/* Carousel de Imagens/Vídeos */}
+                <CarouselSection />
 
                 {/* Logo da Sidebar do Painel */}
                 <div className="space-y-2">
