@@ -15,6 +15,7 @@ const DEFAULT_VALUES: Record<string, string> = {
   trial_banner_url: "",
   trial_logo_url: "",
   trial_background_url: "",
+  trial_background_carousel: "",
   sidebar_logo_url: "",
   // Contato
   contact_website: "",
@@ -70,6 +71,48 @@ const COLOR_PRESETS = [
   { name: "Vermelho", value: "#EF4444" },
   { name: "Ciano", value: "#06B6D4" },
 ];
+
+// Componente para carousel de fundo
+function BackgroundCarousel({ urls }: { urls: string[] }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (urls.length > 1) {
+      autoPlayRef.current = setInterval(() => {
+        setCurrentIndex(prev => (prev + 1) % urls.length);
+      }, 5000);
+    }
+    return () => {
+      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    };
+  }, [urls.length]);
+
+  if (urls.length === 0) return null;
+
+  return (
+    <div className="mt-2 rounded border overflow-hidden max-h-32 relative bg-black">
+      <img
+        src={urls[currentIndex]}
+        alt={`Fundo ${currentIndex + 1}`}
+        className="w-full h-full object-contain"
+        onError={e => (e.currentTarget.style.display = "none")}
+      />
+      {urls.length > 1 && (
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
+          {urls.map((_, idx) => (
+            <div
+              key={idx}
+              className={`w-2 h-2 rounded-full ${
+                idx === currentIndex ? 'bg-white' : 'bg-white/50'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Componente reutilizável para botão de upload
 function UploadButton({ field, uploadingField, onUpload }: { field: string; uploadingField: string | null; onUpload: (field: string, file: File) => void }) {
@@ -327,9 +370,9 @@ export default function Settings() {
                   )}
                 </div>
 
-                {/* Fundo principal */}
+                {/* Fundo principal com Carousel */}
                 <div className="space-y-2">
-                  <Label className="font-semibold">Imagem de fundo principal (960×540px)</Label>
+                  <Label className="font-semibold">Imagem de fundo principal (960×540px) - Carousel até 8 imagens</Label>
                   <div className="flex gap-2">
                     <Input
                       value={form.trial_background_url}
@@ -339,15 +382,10 @@ export default function Settings() {
                     <UploadButton field="trial_background_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Servida via <code>/api/v4/bg.php</code> — o APK buscará ao reiniciar.
+                    Servida via <code>/api/v4/bg.php</code> — o APK buscará ao reiniciar. Separe múltiplas URLs por vírgula para criar um carousel que alterna a cada 5 segundos.
                   </p>
                   {form.trial_background_url && (
-                    <img
-                      src={form.trial_background_url}
-                      alt="Preview fundo"
-                      className="mt-2 rounded border max-h-32 object-contain"
-                      onError={e => (e.currentTarget.style.display = "none")}
-                    />
+                    <BackgroundCarousel urls={form.trial_background_url.split(',').map(u => u.trim()).filter(u => u)} />
                   )}
                 </div>
 
