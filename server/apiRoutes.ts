@@ -921,21 +921,53 @@ export function registerApiRoutes(app: Express) {
       const cfg = await getSettings();
       const bgUrl = cfg.trial_background_url || "";
 
-      // Validar URL: rejeitar URLs com vírgula ou caracteres inválidos
-      const isValidUrl = bgUrl && bgUrl.startsWith("http") && !bgUrl.includes(",") && !bgUrl.includes(" ");
+      // Se houver múltiplas URLs (carousel), retornar a primeira
+      let urlToUse = bgUrl;
+      if (bgUrl.includes(",")) {
+        const urls = bgUrl.split(",").map(u => u.trim()).filter(u => u);
+        urlToUse = urls[0] || "";
+      }
+
+      // Validar URL
+      const isValidUrl = urlToUse && urlToUse.startsWith("http");
       if (!isValidUrl) {
         res.status(204).end();
         return;
       }
 
-      // Resolver URL pública (gera presigned URL se for manus-storage protegido)
-      const resolvedUrl = await resolvePublicImageUrl(bgUrl);
+      // Resolver URL pública
+      const resolvedUrl = await resolvePublicImageUrl(urlToUse);
 
-      // Usar redirect para que o Glide faça cache da URL final do S3
+      // Usar redirect para que o Glide faça cache
       res.setHeader("Cache-Control", "public, max-age=3600");
       res.redirect(302, resolvedUrl);
     } catch (error) {
       console.error("[API] /api/v4/bg.php error:", error);
+      res.status(204).end();
+    }
+  });
+
+  /**
+   * GET /api/v4/bg-carousel.php
+   * Retorna todas as imagens do carousel para o APK alternar
+   */
+  app.get("/api/v4/bg-carousel.php", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+      const bgUrl = cfg.trial_background_url || "";
+
+      if (!bgUrl.includes(",")) {
+        // Se não for carousel, retornar apenas uma imagem
+        res.json({ urls: [bgUrl], interval: 5000 });
+        return;
+      }
+
+      const urls = bgUrl.split(",").map(u => u.trim()).filter(u => u && u.startsWith("http"));
+      const resolvedUrls = await Promise.all(urls.map(u => resolvePublicImageUrl(u)));
+
+      res.json({ urls: resolvedUrls, interval: 5000 });
+    } catch (error) {
+      console.error("[API] /api/v4/bg-carousel.php error:", error);
       res.status(204).end();
     }
   });
