@@ -808,24 +808,6 @@ export const appRouter = router({
       const result = await db.select().from(suggestions).where(where).orderBy(desc(suggestions.criadoEm));
       return result;
     }),
-
-    delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        
-        // Verificar se a sugestão pertence ao usuário ou se é admin
-        const suggestion = await db.select().from(suggestions).where(eq(suggestions.id, input.id)).limit(1);
-        if (!suggestion.length) throw new TRPCError({ code: "NOT_FOUND", message: "Sugestão não encontrada" });
-        
-        if (suggestion[0].userId !== ctx.user.id && ctx.user.role !== "admin") {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Você não pode deletar esta sugestão" });
-        }
-        
-        await db.delete(suggestions).where(eq(suggestions.id, input.id));
-        return { success: true };
-      }),
   }),
 
   notices: router({

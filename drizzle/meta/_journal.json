@@ -71,13 +71,6 @@
       "when": 1781493383553,
       "tag": "0009_icy_elektra",
       "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "5",
-      "when": 1781617945858,
-      "tag": "0010_dusty_winter_soldier",
-      "breakpoints": true
     }
   ]
 }
