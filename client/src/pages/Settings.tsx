@@ -73,7 +73,7 @@ const COLOR_PRESETS = [
 ];
 
 // Componente para carousel de fundo
-function BackgroundCarousel({ urls }: { urls: string[] }) {
+function BackgroundCarousel({ urls, onRemove }: { urls: string[]; onRemove?: (index: number) => void }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -90,8 +90,14 @@ function BackgroundCarousel({ urls }: { urls: string[] }) {
 
   if (urls.length === 0) return null;
 
+  const handleRemove = () => {
+    if (onRemove) {
+      onRemove(currentIndex);
+    }
+  };
+
   return (
-    <div className="mt-2 rounded border overflow-hidden max-h-32 relative bg-black">
+    <div className="mt-2 rounded border overflow-hidden max-h-32 relative bg-black group">
       <img
         src={urls[currentIndex]}
         alt={`Fundo ${currentIndex + 1}`}
@@ -109,6 +115,15 @@ function BackgroundCarousel({ urls }: { urls: string[] }) {
             />
           ))}
         </div>
+      )}
+      {onRemove && (
+        <button
+          onClick={handleRemove}
+          className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Remover esta imagem"
+        >
+          ✕
+        </button>
       )}
     </div>
   );
@@ -403,7 +418,17 @@ export default function Settings() {
                     Servida via <code>/api/v4/bg.php</code> — o APK buscará ao reiniciar. Separe múltiplas URLs por vírgula para criar um carousel que alterna a cada 5 segundos.
                   </p>
                   {form.trial_background_url && (
-                    <BackgroundCarousel urls={form.trial_background_url.split(',').map(u => u.trim()).filter(u => u)} />
+                    <BackgroundCarousel 
+                      urls={form.trial_background_url.split(',').map(u => u.trim()).filter(u => u)}
+                      onRemove={(index) => {
+                        const urls = form.trial_background_url.split(',').map(u => u.trim()).filter(u => u);
+                        urls.splice(index, 1);
+                        const newValue = urls.join(', ');
+                        handleChange('trial_background_url', newValue);
+                        updateMany.mutateAsync({ ...form, trial_background_url: newValue });
+                        toast.success('✅ Imagem removida!');
+                      }}
+                    />
                   )}
                 </div>
 
