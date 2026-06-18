@@ -78,10 +78,16 @@ function BackgroundCarousel({ urls, onRemove }: { urls: string[]; onRemove?: (in
   const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    setCurrentIndex(0); // Resetar índice quando URLs mudam
+  }, [urls.length]);
+
+  useEffect(() => {
     if (urls.length > 1) {
       autoPlayRef.current = setInterval(() => {
         setCurrentIndex(prev => (prev + 1) % urls.length);
       }, 5000);
+    } else {
+      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     }
     return () => {
       if (autoPlayRef.current) clearInterval(autoPlayRef.current);
@@ -119,11 +125,16 @@ function BackgroundCarousel({ urls, onRemove }: { urls: string[]; onRemove?: (in
       {onRemove && (
         <button
           onClick={handleRemove}
-          className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
           title="Remover esta imagem"
         >
           ✕
         </button>
+      )}
+      {urls.length > 1 && (
+        <div className="absolute top-1 left-1 text-white text-xs bg-black/50 px-2 py-1 rounded">
+          {currentIndex + 1}/{urls.length}
+        </div>
       )}
     </div>
   );
