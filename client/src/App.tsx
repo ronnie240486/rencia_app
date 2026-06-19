@@ -32,6 +32,7 @@ function updateButtonColors(colors: Record<string, string>) {
   root.style.setProperty('--action-button-color', colors.action_button_color || '#22C55E');
   root.style.setProperty('--danger-button-color', colors.danger_button_color || '#EF4444');
   root.style.setProperty('--search-button-color', colors.search_button_color || '#06B6D4');
+  root.style.setProperty('--secondary-button-color', colors.secondary_button_color || '#EF4444');
 }
 
 function Router() {

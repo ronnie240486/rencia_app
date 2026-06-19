@@ -171,14 +171,14 @@ export default function Revendas() {
               key={s}
               size="sm"
               variant={filterStatus === s ? "default" : "outline"}
-              className="h-8 px-3 text-xs"
+              className={`h-8 px-3 text-xs ${s === "all" ? "btn-secondary" : ""}`}
               onClick={() => setFilterStatus(s)}
             >
               {s === "all" ? "Todos" : s === "active" ? "Ativos" : "Bloqueados"}
             </Button>
           ))}
         </div>
-        <Button size="sm" onClick={openCreate} className="gap-2 ml-auto">
+        <Button size="sm" onClick={openCreate} className="gap-2 ml-auto btn-secondary">
           <Plus size={15} />
           Nova Revenda
         </Button>
@@ -335,7 +335,7 @@ export default function Revendas() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setShowDialog(false)} className="btn-secondary">Cancelar</Button>
             <Button onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>
               {(createMut.isPending || updateMut.isPending) && <Loader2 size={14} className="mr-2 animate-spin" />}
               {editId ? "Salvar" : "Criar"}
@@ -365,7 +365,7 @@ export default function Revendas() {
             <p className="text-xs text-muted-foreground">Esta ação não pode ser desfeita.</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setDeleteId(null)} className="btn-secondary">Cancelar</Button>
             <Button variant="destructive" onClick={() => deleteId && deleteMut.mutate({ id: deleteId })} disabled={deleteMut.isPending}>
               {deleteMut.isPending && <Loader2 size={14} className="mr-2 animate-spin" />}
               Bloquear e Remover

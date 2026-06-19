@@ -31,6 +31,7 @@ const DEFAULT_VALUES: Record<string, string> = {
   action_button_color: "#22C55E",
   danger_button_color: "#EF4444",
   search_button_color: "#06B6D4",
+  secondary_button_color: "#EF4444",
   // Ícones
   icon_reload_url: "",
   icon_exit_url: "",
@@ -346,7 +347,7 @@ export default function Settings() {
           <p className="text-muted-foreground text-sm">
             Personalize imagens, cores e mensagens automáticas do seu painel.
           </p>
-          <Button onClick={handleSave} disabled={!dirty || updateMany.isPending} className="gap-2">
+          <Button onClick={handleSave} disabled={!dirty || updateMany.isPending} className="gap-2 btn-secondary">
             {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Salvar Tudo
           </Button>
@@ -1077,6 +1078,22 @@ export default function Settings() {
                       />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label className="font-semibold">Cor Secundária (Cadastrar, Adicionar)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={form.secondary_button_color || "#EF4444"}
+                        onChange={e => handleChange("secondary_button_color", e.target.value)}
+                        className="w-12 h-10 cursor-pointer"
+                      />
+                      <Input
+                        value={form.secondary_button_color || "#EF4444"}
+                        onChange={e => handleChange("secondary_button_color", e.target.value)}
+                        placeholder="#EF4444"
+                      />
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1086,7 +1103,7 @@ export default function Settings() {
 
         {dirty && (
           <div className="fixed bottom-6 right-6">
-            <Button onClick={handleSave} disabled={updateMany.isPending} size="lg" className="gap-2 shadow-lg btn-action">
+            <Button onClick={handleSave} disabled={updateMany.isPending} size="lg" className="gap-2 shadow-lg btn-secondary">
               {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               Salvar Alterações
             </Button>
