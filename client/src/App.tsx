@@ -22,6 +22,17 @@ import CarouselManager from "./pages/CarouselManager";
 import Suggestions from "./pages/Suggestions";
 import Notices from "./pages/Notices";
 import { PanelFunctions } from "./pages/PanelFunctions";
+import { useEffect } from "react";
+import { trpc } from "./lib/trpc";
+
+// Função para atualizar cores dos botões
+function updateButtonColors(colors: Record<string, string>) {
+  const root = document.documentElement;
+  root.style.setProperty('--button-color', colors.button_color || '#3B82F6');
+  root.style.setProperty('--action-button-color', colors.action_button_color || '#22C55E');
+  root.style.setProperty('--danger-button-color', colors.danger_button_color || '#EF4444');
+  root.style.setProperty('--search-button-color', colors.search_button_color || '#06B6D4');
+}
 
 function Router() {
   return (
@@ -51,6 +62,14 @@ function Router() {
 }
 
 function App() {
+  const { data: settings } = trpc.settings.getPublic.useQuery();
+
+  useEffect(() => {
+    if (settings) {
+      updateButtonColors(settings);
+    }
+  }, [settings]);
+
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">

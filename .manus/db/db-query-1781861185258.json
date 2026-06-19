@@ -1,0 +1,18 @@
+{
+  "query": "SELECT `key`, `value` FROM app_settings WHERE `key` LIKE '%background%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT `key`, `value` FROM app_settings WHERE `key` LIKE '%background%';",
+  "rows": [
+    {
+      "key": "trial_background_url",
+      "value": "https://renciaapp.manus.space/manus-storage/app-images/trial_background_url_1779633461574_8ba215fa.jpg, https://renciaapp.manus.space/manus-storage/app-images/trial_background_url_1781860609939_4d8b7d45.jpg"
+    },
+    {
+      "key": "trial_background_carousel",
+      "value": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "key\tvalue\ntrial_background_url\thttps://renciaapp.manus.space/manus-storage/app-images/trial_background_url_1779633461574_8ba215fa.jpg, https://renciaapp.manus.space/manus-storage/app-images/trial_background_url_1781860609939_4d8b7d45.jpg\ntrial_background_carousel\t\n",
+  "stderr": "",
+  "execution_time_ms": 580
+}

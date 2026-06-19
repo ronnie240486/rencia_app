@@ -44,6 +44,11 @@
 }
 
 :root {
+  /* ── Cores dos Botões do Painel ── */
+  --button-color: #3B82F6;
+  --action-button-color: #22C55E;
+  --danger-button-color: #EF4444;
+  --search-button-color: #06B6D4;
   /* ── Dourado OuroPro ── */
   --primary: oklch(0.72 0.18 55);
   --primary-foreground: oklch(0.12 0.02 55);
@@ -184,4 +189,73 @@
       max-width: 1280px; /* Standard content width */
     }
   }
+}
+
+/* ─── Estilos dos Botões com Cores Dinâmicas ─── */
+.btn-default {
+  background-color: var(--button-color);
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-default:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-action {
+  background-color: var(--action-button-color);
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-action:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-danger {
+  background-color: var(--danger-button-color);
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-search {
+  background-color: var(--search-button-color);
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-search:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
