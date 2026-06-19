@@ -174,7 +174,7 @@ export default function Users() {
           <h1 className="text-xl font-bold text-foreground">Lista de Usuários</h1>
           <div className="flex gap-2 flex-wrap">
             <Link href="/users/create">
-              <Button size="sm" className="h-8 text-xs gap-1">
+              <Button size="sm" className="h-8 text-xs gap-1 btn-action">
                 <Plus className="w-3 h-3" />
                 Cadastrar Novo
               </Button>
@@ -182,7 +182,7 @@ export default function Users() {
             <Button
               size="sm"
               variant="destructive"
-              className="h-8 text-xs gap-1"
+              className="h-8 text-xs gap-1 btn-danger"
               onClick={() => setDeleteExpiredOpen(true)}
             >
               <Trash2 className="w-3 h-3" />
