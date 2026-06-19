@@ -26,11 +26,6 @@ const DEFAULT_VALUES: Record<string, string> = {
   primary_color: "#D4AF37",
   sidebar_color: "",
   text_color: "",
-  // Cores dos Botões do Painel
-  button_color: "#3B82F6",
-  button_text_color: "#FFFFFF",
-  action_button_color: "#22C55E",
-  danger_button_color: "#EF4444",
   // Ícones
   icon_reload_url: "",
   icon_exit_url: "",
@@ -348,15 +343,12 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="banner">
-          <TabsList className="grid grid-cols-6 w-full">
+          <TabsList className="grid grid-cols-5 w-full">
             <TabsTrigger value="banner" className="gap-1 text-xs">
               <Image size={13} /> Banner
             </TabsTrigger>
             <TabsTrigger value="tema" className="gap-1 text-xs">
               <Palette size={13} /> Tema
-            </TabsTrigger>
-            <TabsTrigger value="painel" className="gap-1 text-xs">
-              <LayoutGrid size={13} /> Painel
             </TabsTrigger>
             <TabsTrigger value="chatbot" className="gap-1 text-xs">
               <MessageCircle size={13} /> Chatbot
@@ -995,90 +987,7 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          {/* ─── Aba Painel ─────────────────────────────────────────────── */}
-          <TabsContent value="painel" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <LayoutGrid size={16} /> Cores dos Botões do Painel
-                </CardTitle>
-                <CardDescription>
-                  Personalize as cores dos botões e textos do painel. Os botões se adaptam automaticamente ao tema escuro/claro.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="font-semibold">Cor dos Botões (Padrão)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={form.button_color || "#3B82F6"}
-                        onChange={e => handleChange("button_color", e.target.value)}
-                        className="w-12 h-10 cursor-pointer"
-                      />
-                      <Input
-                        value={form.button_color || "#3B82F6"}
-                        onChange={e => handleChange("button_color", e.target.value)}
-                        placeholder="#3B82F6"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-semibold">Cor do Texto (Padrão)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={form.button_text_color || "#FFFFFF"}
-                        onChange={e => handleChange("button_text_color", e.target.value)}
-                        className="w-12 h-10 cursor-pointer"
-                      />
-                      <Input
-                        value={form.button_text_color || "#FFFFFF"}
-                        onChange={e => handleChange("button_text_color", e.target.value)}
-                        placeholder="#FFFFFF"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-semibold">Cor dos Botões de Ação (Salvar, Excluir)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={form.action_button_color || "#22C55E"}
-                        onChange={e => handleChange("action_button_color", e.target.value)}
-                        className="w-12 h-10 cursor-pointer"
-                      />
-                      <Input
-                        value={form.action_button_color || "#22C55E"}
-                        onChange={e => handleChange("action_button_color", e.target.value)}
-                        placeholder="#22C55E"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-semibold">Cor dos Botões de Perigo (Remover)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={form.danger_button_color || "#EF4444"}
-                        onChange={e => handleChange("danger_button_color", e.target.value)}
-                        className="w-12 h-10 cursor-pointer"
-                      />
-                      <Input
-                        value={form.danger_button_color || "#EF4444"}
-                        onChange={e => handleChange("danger_button_color", e.target.value)}
-                        placeholder="#EF4444"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 p-3 text-xs text-blue-800 dark:text-blue-200">
-                  <strong>Dica:</strong> Os botões se adaptam automaticamente ao tema escuro/claro. Em tema escuro, o texto fica branco. Em tema claro, fica preto.
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+
 
         </Tabs>
 
