@@ -298,7 +298,12 @@ export default function Settings() {
   };
 
   const handleSave = () => {
-    updateMany.mutate(form);
+    updateMany.mutate(form, {
+      onSuccess: () => {
+        // Recarregar as configurações públicas para atualizar as cores
+        trpc.useUtils().settings.getPublic.invalidate();
+      },
+    });
     setDirty(false);
   };
 
