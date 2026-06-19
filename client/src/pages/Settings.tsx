@@ -26,6 +26,11 @@ const DEFAULT_VALUES: Record<string, string> = {
   primary_color: "#D4AF37",
   sidebar_color: "",
   text_color: "",
+  // Cores dos Botões do Painel
+  button_color: "#3B82F6",
+  action_button_color: "#22C55E",
+  danger_button_color: "#EF4444",
+  search_button_color: "#06B6D4",
   // Ícones
   icon_reload_url: "",
   icon_exit_url: "",
@@ -343,9 +348,12 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="banner">
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="grid grid-cols-6 w-full">
             <TabsTrigger value="banner" className="gap-1 text-xs">
               <Image size={13} /> Banner
+            </TabsTrigger>
+            <TabsTrigger value="painel" className="gap-1 text-xs">
+              <LayoutGrid size={13} /> Painel
             </TabsTrigger>
             <TabsTrigger value="tema" className="gap-1 text-xs">
               <Palette size={13} /> Tema
@@ -987,7 +995,87 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-
+          {/* ─── Aba Painel ─────────────────────────────────────────────── */}
+          <TabsContent value="painel" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <LayoutGrid size={16} /> Cores dos Botões do Painel
+                </CardTitle>
+                <CardDescription>
+                  Personalize as cores dos botões. Em tema escuro: texto branco. Em tema claro: texto preto.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="font-semibold">Cor dos Botões (Padrão)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={form.button_color || "#3B82F6"}
+                        onChange={e => handleChange("button_color", e.target.value)}
+                        className="w-12 h-10 cursor-pointer"
+                      />
+                      <Input
+                        value={form.button_color || "#3B82F6"}
+                        onChange={e => handleChange("button_color", e.target.value)}
+                        placeholder="#3B82F6"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-semibold">Cor de Ação (Salvar, Excluir)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={form.action_button_color || "#22C55E"}
+                        onChange={e => handleChange("action_button_color", e.target.value)}
+                        className="w-12 h-10 cursor-pointer"
+                      />
+                      <Input
+                        value={form.action_button_color || "#22C55E"}
+                        onChange={e => handleChange("action_button_color", e.target.value)}
+                        placeholder="#22C55E"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-semibold">Cor de Perigo (Remover)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={form.danger_button_color || "#EF4444"}
+                        onChange={e => handleChange("danger_button_color", e.target.value)}
+                        className="w-12 h-10 cursor-pointer"
+                      />
+                      <Input
+                        value={form.danger_button_color || "#EF4444"}
+                        onChange={e => handleChange("danger_button_color", e.target.value)}
+                        placeholder="#EF4444"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-semibold">Cor de Busca (Lupa)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={form.search_button_color || "#06B6D4"}
+                        onChange={e => handleChange("search_button_color", e.target.value)}
+                        className="w-12 h-10 cursor-pointer"
+                      />
+                      <Input
+                        value={form.search_button_color || "#06B6D4"}
+                        onChange={e => handleChange("search_button_color", e.target.value)}
+                        placeholder="#06B6D4"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
         </Tabs>
 
