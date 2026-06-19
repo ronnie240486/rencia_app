@@ -921,29 +921,26 @@ export function registerApiRoutes(app: Express) {
       const cfg = await getSettings();
       const bgUrl = cfg.trial_background_url || "";
 
-      // Se houver múltiplas URLs (carousel), retornar a primeira
-      let urlToUse = bgUrl;
+      // Se houver múltiplas URLs (carousel), retornar todas em JSON
       if (bgUrl.includes(",")) {
-        const urls = bgUrl.split(",").map(u => u.trim()).filter(u => u);
-        urlToUse = urls[0] || "";
-      }
-
-      // Validar URL
-      const isValidUrl = urlToUse && urlToUse.startsWith("http");
-      if (!isValidUrl) {
-        res.status(204).end();
+        const urls = bgUrl.split(",").map(u => u.trim()).filter(u => u && u.startsWith("http"));
+        const resolvedUrls = await Promise.all(urls.map(u => resolvePublicImageUrl(u)));
+        res.json({ urls: resolvedUrls, interval: 5000 });
         return;
       }
 
-      // Resolver URL pública
-      const resolvedUrl = await resolvePublicImageUrl(urlToUse);
+      // Se for apenas uma URL, retornar como carousel com uma imagem
+      if (bgUrl && bgUrl.startsWith("http")) {
+        const resolvedUrl = await resolvePublicImageUrl(bgUrl);
+        res.json({ urls: [resolvedUrl], interval: 5000 });
+        return;
+      }
 
-      // Usar redirect para que o Glide faça cache
-      res.setHeader("Cache-Control", "public, max-age=3600");
-      res.redirect(302, resolvedUrl);
+      // Se não houver URL, retornar vazio
+      res.json({ urls: [], interval: 5000 });
     } catch (error) {
       console.error("[API] /api/v4/bg.php error:", error);
-      res.status(204).end();
+      res.json({ urls: [], interval: 5000 });
     }
   });
 
