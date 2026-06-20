@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2, Save, Image, Upload, Palette, MessageCircle, Smartphone, LayoutGrid } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
-
+import BackgroundImagesSettings from "@/components/BackgroundImagesSettings";
 
 const DEFAULT_VALUES: Record<string, string> = {
   // Imagens
@@ -262,7 +262,9 @@ export default function Settings() {
               <Image size={13} /> Banner
             </TabsTrigger>
 
-
+            <TabsTrigger value="background" className="gap-1 text-xs">
+              <Image size={13} /> Fundo
+            </TabsTrigger>
             <TabsTrigger value="tema" className="gap-1 text-xs">
               <Palette size={13} /> Tema
             </TabsTrigger>
@@ -354,7 +356,14 @@ export default function Settings() {
                   )}
                 </div>
 
-
+                {/* Carousel de Fundo */}
+                <div className="space-y-2 border-t pt-4">
+                  <Label className="font-semibold">Carousel de Fundo (Selecione 2+ imagens)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione multiplas imagens para criar um carousel automatico na tela inicial do APK.
+                  </p>
+                  <BackgroundImagesSettings />
+                </div>
 
                 {/* Logo da Sidebar do Painel */}
                 <div className="space-y-2">
@@ -902,7 +911,10 @@ export default function Settings() {
 
 
 
-
+          {/* ─── Aba Imagens de Fundo ────────────────────────────────────────── */}
+          <TabsContent value="background" className="space-y-4 mt-4">
+            <BackgroundImagesSettings />
+          </TabsContent>
 
         </Tabs>
 

@@ -945,16 +945,13 @@ export function registerApiRoutes(app: Express) {
             .orderBy(backgroundImages.order);
 
           if (backgrounds.length > 0) {
-            const images = await Promise.all(
-              backgrounds.map(async (bg) => ({
-                url: await resolvePublicImageUrl(bg.urlMedia),
-                duration: bg.duration,
-              }))
-            );
             return res.json({
               ok: true,
               isCarousel: backgrounds.length > 1,
-              images,
+              images: backgrounds.map((bg) => ({
+                url: bg.urlMedia,
+                duration: bg.duration,
+              })),
             });
           }
         }
@@ -1554,67 +1551,34 @@ export function registerApiRoutes(app: Express) {
     },
   });
 
-  app.post("/api/carousel/upload", uploadCarousel.array("files", 10), async (req: Request, res: Response) => {
+  app.post("/api/carousel/upload", uploadCarousel.single("file"), async (req: Request, res: Response) => {
     try {
-      if (!req.files || req.files.length === 0) {
+      if (!req.file) {
         return res.status(400).json({ error: "Nenhum arquivo foi enviado" });
       }
 
-      const db = await getDb();
-      if (!db) {
-        return res.status(500).json({ error: "Erro ao conectar ao banco" });
-      }
+      const { duration = 5, type = "image" } = req.body;
+      const fileName = `carousel_${Date.now()}_${req.file.originalname}`;
+      const mimeType = req.file.mimetype;
 
-      const slides = [];
-      for (const file of req.files as Express.Multer.File[]) {
-        try {
-          const { duration = 5, type = "image" } = req.body;
-          const fileName = `carousel_${Date.now()}_${file.originalname}`;
-          const mimeType = file.mimetype;
+      // Upload para S3
+      const { url, key } = await storagePut(
+        `carousel/${fileName}`,
+        req.file.buffer,
+        mimeType
+      );
 
-          // Upload para S3
-          const { url, key } = await storagePut(
-            `carousel/${fileName}`,
-            file.buffer,
-            mimeType
-          );
-
-          // Construir URL completa se for relativa
-          const fullUrl = url.startsWith('http') ? url : `${req.protocol}://${req.get('host')}${url}`;
-
-          // Salvar no banco de dados
-          console.log("[API] Inserindo slide:", { titulo: file.originalname, tipo: type, urlMedia: fullUrl });
-          const result = await db.insert(carouselSlides).values({
-            titulo: file.originalname,
-            tipo: type as any,
-            urlMedia: fullUrl,
-            ativo: true,
-            ordem: 0,
-          });
-          console.log("[API] Insert result:", result);
-
-          slides.push({
-            ok: true,
-            url: fullUrl,
-            key,
-            fileName,
-            titulo: file.originalname,
-            type,
-          });
-        } catch (fileError) {
-          console.error("[API] Erro ao fazer upload de arquivo individual:", fileError);
-          slides.push({
-            ok: false,
-            error: "Erro ao fazer upload deste arquivo",
-          });
-        }
-      }
+      // Construir URL completa se for relativa
+      const fullUrl = url.startsWith('http') ? url : `${req.protocol}://${req.get('host')}${url}`;
 
       res.json({
         ok: true,
-        slides,
-        count: slides.filter((s: any) => s.ok).length,
-      })
+        url: fullUrl,
+        key,
+        fileName,
+        duration: parseInt(duration) || 5,
+        type,
+      });
     } catch (error) {
       console.error("[API] /api/carousel/upload error:", error);
       res.status(500).json({ error: "Erro ao fazer upload do arquivo" });
@@ -1673,7 +1637,6 @@ export function registerApiRoutes(app: Express) {
   app.post("/api/background/save", async (req: Request, res: Response) => {
     try {
       const { userId, selectedSlides } = req.body;
-      console.log("[API] /api/background/save - userId:", userId, "selectedSlides:", selectedSlides);
       const db = await getDb();
       if (!db) {
         return res.status(500).json({ error: "Erro ao conectar ao banco" });
