@@ -32,6 +32,7 @@ const DEFAULT_VALUES: Record<string, string> = {
   danger_button_color: "#EF4444",
   search_button_color: "#06B6D4",
   secondary_button_color: "#EF4444",
+  selected_button_color: "#EF4444",
   // Ícones
   icon_reload_url: "",
   icon_exit_url: "",
@@ -1090,6 +1091,22 @@ export default function Settings() {
                       <Input
                         value={form.secondary_button_color || "#EF4444"}
                         onChange={e => handleChange("secondary_button_color", e.target.value)}
+                        placeholder="#EF4444"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-semibold">Cor de Botões Selecionados</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={form.selected_button_color || "#EF4444"}
+                        onChange={e => handleChange("selected_button_color", e.target.value)}
+                        className="w-12 h-10 cursor-pointer"
+                      />
+                      <Input
+                        value={form.selected_button_color || "#EF4444"}
+                        onChange={e => handleChange("selected_button_color", e.target.value)}
                         placeholder="#EF4444"
                       />
                     </div>

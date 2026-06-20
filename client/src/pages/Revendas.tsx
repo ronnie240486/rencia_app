@@ -171,7 +171,7 @@ export default function Revendas() {
               key={s}
               size="sm"
               variant={filterStatus === s ? "default" : "outline"}
-              className={`h-8 px-3 text-xs ${s === "all" ? "btn-secondary" : ""}`}
+              className={`h-8 px-3 text-xs ${filterStatus === s ? "btn-selected" : ""}`}
               onClick={() => setFilterStatus(s)}
             >
               {s === "all" ? "Todos" : s === "active" ? "Ativos" : "Bloqueados"}

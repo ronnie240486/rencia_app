@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Send, Trash2, AlertCircle, ArrowLeft, Moon, Sun } from "lucide-react";
+import { Send, Trash2, AlertCircle, Moon, Sun, Menu } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function Notices() {
@@ -74,34 +74,34 @@ export default function Notices() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header com botões no topo esquerdo */}
+      {/* Header com menu */}
       <div className="bg-background border-b border-border sticky top-0 z-50">
-        <div className="flex items-center gap-2 p-4 max-w-7xl mx-auto">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation("/dashboard")}
-            title="Voltar"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            title={isDark ? "Modo claro" : "Modo escuro"}
-          >
-            {isDark ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-          </Button>
-
-          <div className="flex-1" />
-
+        <div className="flex items-center justify-between p-4 max-w-7xl mx-auto">
           <h1 className="text-2xl font-bold">Avisos Importantes</h1>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              title={isDark ? "Modo claro" : "Modo escuro"}
+            >
+              {isDark ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setLocation("/dashboard")}
+              title="Menu"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -157,7 +157,7 @@ export default function Notices() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full btn-secondary"
                 disabled={createNoticeMutation.isPending}
               >
                 <Send className="w-4 h-4 mr-2" />

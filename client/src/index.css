@@ -50,6 +50,7 @@
   --danger-button-color: #EF4444;
   --search-button-color: #06B6D4;
   --secondary-button-color: #EF4444;
+  --selected-button-color: #EF4444;
   /* ── Dourado OuroPro ── */
   --primary: oklch(0.72 0.18 55);
   --primary-foreground: oklch(0.12 0.02 55);
@@ -274,6 +275,23 @@
 }
 
 .btn-secondary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-selected {
+  background-color: var(--selected-button-color) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 0.5rem !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-selected:hover {
   opacity: 0.9;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
