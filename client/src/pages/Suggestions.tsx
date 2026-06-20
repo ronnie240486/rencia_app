@@ -18,6 +18,7 @@ export default function Suggestions() {
   const [isDark, setIsDark] = useState(
     document.documentElement.classList.contains("dark")
   );
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const createSuggestionMutation = trpc.suggestions.create.useMutation();
   const { data: suggestionsList } = trpc.suggestions.list.useQuery();
@@ -76,14 +77,39 @@ export default function Suggestions() {
               )}
             </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setLocation("/dashboard")}
-              title="Menu"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMenuOpen(!menuOpen)}
+                title="Menu"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-background border border-border rounded-lg shadow-lg z-50">
+                  <button
+                    onClick={() => { setLocation("/dashboard"); setMenuOpen(false); }}
+                    className="w-full text-left px-4 py-2 hover:bg-accent rounded-t-lg"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => { setLocation("/"); setMenuOpen(false); }}
+                    className="w-full text-left px-4 py-2 hover:bg-accent"
+                  >
+                    Home
+                  </button>
+                  <button
+                    onClick={() => { setLocation("/notices"); setMenuOpen(false); }}
+                    className="w-full text-left px-4 py-2 hover:bg-accent rounded-b-lg"
+                  >
+                    Avisos
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
