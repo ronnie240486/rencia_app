@@ -9,13 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2, Save, Image, Upload, Palette, MessageCircle, Smartphone, LayoutGrid } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
+import BackgroundImagesSettings from "@/components/BackgroundImagesSettings";
 
 const DEFAULT_VALUES: Record<string, string> = {
   // Imagens
   trial_banner_url: "",
   trial_logo_url: "",
   trial_background_url: "",
-  trial_background_carousel: "",
   sidebar_logo_url: "",
   // Contato
   contact_website: "",
@@ -26,13 +26,6 @@ const DEFAULT_VALUES: Record<string, string> = {
   primary_color: "#D4AF37",
   sidebar_color: "",
   text_color: "",
-  // Cores dos Botões do Painel
-  button_color: "#3B82F6",
-  action_button_color: "#22C55E",
-  danger_button_color: "#EF4444",
-  search_button_color: "#06B6D4",
-  secondary_button_color: "#EF4444",
-  selected_button_color: "#EF4444",
   // Ícones
   icon_reload_url: "",
   icon_exit_url: "",
@@ -79,74 +72,6 @@ const COLOR_PRESETS = [
   { name: "Ciano", value: "#06B6D4" },
 ];
 
-// Componente para carousel de fundo
-function BackgroundCarousel({ urls, onRemove }: { urls: string[]; onRemove?: (index: number) => void }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    setCurrentIndex(0); // Resetar índice quando URLs mudam
-  }, [urls.length]);
-
-  useEffect(() => {
-    if (urls.length > 1) {
-      autoPlayRef.current = setInterval(() => {
-        setCurrentIndex(prev => (prev + 1) % urls.length);
-      }, 5000);
-    } else {
-      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
-    }
-    return () => {
-      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
-    };
-  }, [urls.length]);
-
-  if (urls.length === 0) return null;
-
-  const handleRemove = () => {
-    if (onRemove) {
-      onRemove(currentIndex);
-    }
-  };
-
-  return (
-    <div className="mt-2 rounded border overflow-hidden max-h-32 relative bg-black group">
-      <img
-        src={urls[currentIndex]}
-        alt={`Fundo ${currentIndex + 1}`}
-        className="w-full h-full object-contain"
-        onError={e => (e.currentTarget.style.display = "none")}
-      />
-      {urls.length > 1 && (
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
-          {urls.map((_, idx) => (
-            <div
-              key={idx}
-              className={`w-2 h-2 rounded-full ${
-                idx === currentIndex ? 'bg-white' : 'bg-white/50'
-              }`}
-            />
-          ))}
-        </div>
-      )}
-      {onRemove && (
-        <button
-          onClick={handleRemove}
-          className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
-          title="Remover esta imagem"
-        >
-          ✕
-        </button>
-      )}
-      {urls.length > 1 && (
-        <div className="absolute top-1 left-1 text-white text-xs bg-black/50 px-2 py-1 rounded">
-          {currentIndex + 1}/{urls.length}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // Componente reutilizável para botão de upload
 function UploadButton({ field, uploadingField, onUpload }: { field: string; uploadingField: string | null; onUpload: (field: string, file: File) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -156,15 +81,10 @@ function UploadButton({ field, uploadingField, onUpload }: { field: string; uplo
         ref={inputRef}
         type="file"
         accept="image/*"
-        multiple={field === "trial_background_url"}
         className="hidden"
         onChange={e => {
-          const files = e.target.files;
-          if (files) {
-            for (let i = 0; i < Math.min(files.length, 8); i++) {
-              onUpload(field, files[i]);
-            }
-          }
+          const file = e.target.files?.[0];
+          if (file) onUpload(field, file);
           e.target.value = "";
         }}
       />
@@ -206,22 +126,9 @@ export default function Settings() {
       }
 
       const { url } = await resp.json() as { url: string };
-      
-      if (field === "trial_background_url") {
-        const currentUrls = form[field] ? form[field].split(',').map(u => u.trim()).filter(u => u) : [];
-        if (currentUrls.length < 8) {
-          const newUrls = [...currentUrls, url].join(', ');
-          handleChange(field, newUrls);
-          await updateMany.mutateAsync({ ...form, [field]: newUrls });
-          toast.success(`✅ Imagem ${currentUrls.length + 1}/8 adicionada!`);
-        } else {
-          toast.error("Máximo de 8 imagens atingido");
-        }
-      } else {
-        handleChange(field, url);
-        await updateMany.mutateAsync({ ...form, [field]: url });
-        toast.success("✅ Imagem enviada e salva!");
-      }
+      handleChange(field, url);
+      await updateMany.mutateAsync({ ...form, [field]: url });
+      toast.success("✅ Imagem enviada e salva!");
       refetch();
     } catch (e: any) {
       toast.error("Erro ao enviar imagem: " + (e.message ?? "erro desconhecido"));
@@ -294,20 +201,13 @@ export default function Settings() {
     }
   }, [form.primary_color]);
 
-  const utils = trpc.useUtils();
-
   const handleChange = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
     setDirty(true);
   };
 
   const handleSave = () => {
-    updateMany.mutate(form, {
-      onSuccess: () => {
-        // Recarregar as configurações públicas para atualizar as cores
-        utils.settings.getPublic.invalidate();
-      },
-    });
+    updateMany.mutate(form);
     setDirty(false);
   };
 
@@ -350,7 +250,7 @@ export default function Settings() {
           <p className="text-muted-foreground text-sm">
             Personalize imagens, cores e mensagens automáticas do seu painel.
           </p>
-          <Button onClick={handleSave} disabled={!dirty || updateMany.isPending} className="gap-2 btn-secondary">
+          <Button onClick={handleSave} disabled={!dirty || updateMany.isPending} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
             {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Salvar Tudo
           </Button>
@@ -361,8 +261,9 @@ export default function Settings() {
             <TabsTrigger value="banner" className="gap-1 text-xs">
               <Image size={13} /> Banner
             </TabsTrigger>
-            <TabsTrigger value="painel" className="gap-1 text-xs">
-              <LayoutGrid size={13} /> Painel
+
+            <TabsTrigger value="background" className="gap-1 text-xs">
+              <Image size={13} /> Fundo
             </TabsTrigger>
             <TabsTrigger value="tema" className="gap-1 text-xs">
               <Palette size={13} /> Tema
@@ -431,9 +332,9 @@ export default function Settings() {
                   )}
                 </div>
 
-                {/* Fundo principal com Carousel */}
+                {/* Fundo principal */}
                 <div className="space-y-2">
-                  <Label className="font-semibold">Imagem de fundo principal (960×540px) - Carousel até 8 imagens</Label>
+                  <Label className="font-semibold">Imagem de fundo principal (960×540px)</Label>
                   <div className="flex gap-2">
                     <Input
                       value={form.trial_background_url}
@@ -443,21 +344,25 @@ export default function Settings() {
                     <UploadButton field="trial_background_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Servida via <code>/api/v4/bg.php</code> — o APK buscará ao reiniciar. Separe múltiplas URLs por vírgula para criar um carousel que alterna a cada 5 segundos.
+                    Servida via <code>/api/v4/bg.php</code> — o APK buscará ao reiniciar.
                   </p>
                   {form.trial_background_url && (
-                    <BackgroundCarousel 
-                      urls={form.trial_background_url.split(',').map(u => u.trim()).filter(u => u)}
-                      onRemove={(index) => {
-                        const urls = form.trial_background_url.split(',').map(u => u.trim()).filter(u => u);
-                        urls.splice(index, 1);
-                        const newValue = urls.join(', ');
-                        handleChange('trial_background_url', newValue);
-                        updateMany.mutateAsync({ ...form, trial_background_url: newValue });
-                        toast.success('✅ Imagem removida!');
-                      }}
+                    <img
+                      src={form.trial_background_url}
+                      alt="Preview fundo"
+                      className="mt-2 rounded border max-h-32 object-contain"
+                      onError={e => (e.currentTarget.style.display = "none")}
                     />
                   )}
+                </div>
+
+                {/* Carousel de Fundo */}
+                <div className="space-y-2 border-t pt-4">
+                  <Label className="font-semibold">Carousel de Fundo (Selecione 2+ imagens)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione multiplas imagens para criar um carousel automatico na tela inicial do APK.
+                  </p>
+                  <p className="text-xs text-amber-600 mt-2">⚠️ Configure no aba "Fundo" abaixo</p>
                 </div>
 
                 {/* Logo da Sidebar do Painel */}
@@ -1004,125 +909,18 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          {/* ─── Aba Painel ─────────────────────────────────────────────── */}
-          <TabsContent value="painel" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <LayoutGrid size={16} /> Cores dos Botões do Painel
-                </CardTitle>
-                <CardDescription>
-                  Personalize as cores dos botões. Em tema escuro: texto branco. Em tema claro: texto preto.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="font-semibold">Cor dos Botões (Padrão)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={form.button_color || "#3B82F6"}
-                        onChange={e => handleChange("button_color", e.target.value)}
-                        className="w-12 h-10 cursor-pointer"
-                      />
-                      <Input
-                        value={form.button_color || "#3B82F6"}
-                        onChange={e => handleChange("button_color", e.target.value)}
-                        placeholder="#3B82F6"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-semibold">Cor de Ação (Salvar, Excluir)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={form.action_button_color || "#22C55E"}
-                        onChange={e => handleChange("action_button_color", e.target.value)}
-                        className="w-12 h-10 cursor-pointer"
-                      />
-                      <Input
-                        value={form.action_button_color || "#22C55E"}
-                        onChange={e => handleChange("action_button_color", e.target.value)}
-                        placeholder="#22C55E"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-semibold">Cor de Perigo (Remover)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={form.danger_button_color || "#EF4444"}
-                        onChange={e => handleChange("danger_button_color", e.target.value)}
-                        className="w-12 h-10 cursor-pointer"
-                      />
-                      <Input
-                        value={form.danger_button_color || "#EF4444"}
-                        onChange={e => handleChange("danger_button_color", e.target.value)}
-                        placeholder="#EF4444"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-semibold">Cor de Busca (Lupa)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={form.search_button_color || "#06B6D4"}
-                        onChange={e => handleChange("search_button_color", e.target.value)}
-                        className="w-12 h-10 cursor-pointer"
-                      />
-                      <Input
-                        value={form.search_button_color || "#06B6D4"}
-                        onChange={e => handleChange("search_button_color", e.target.value)}
-                        placeholder="#06B6D4"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-semibold">Cor Secundária (Cadastrar, Adicionar)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={form.secondary_button_color || "#EF4444"}
-                        onChange={e => handleChange("secondary_button_color", e.target.value)}
-                        className="w-12 h-10 cursor-pointer"
-                      />
-                      <Input
-                        value={form.secondary_button_color || "#EF4444"}
-                        onChange={e => handleChange("secondary_button_color", e.target.value)}
-                        placeholder="#EF4444"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-semibold">Cor de Botões Selecionados</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={form.selected_button_color || "#EF4444"}
-                        onChange={e => handleChange("selected_button_color", e.target.value)}
-                        className="w-12 h-10 cursor-pointer"
-                      />
-                      <Input
-                        value={form.selected_button_color || "#EF4444"}
-                        onChange={e => handleChange("selected_button_color", e.target.value)}
-                        placeholder="#EF4444"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+
+
+          {/* ─── Aba Imagens de Fundo ────────────────────────────────────────── */}
+          <TabsContent value="background" className="space-y-4 mt-4">
+            <BackgroundImagesSettings />
           </TabsContent>
 
         </Tabs>
 
         {dirty && (
           <div className="fixed bottom-6 right-6">
-            <Button onClick={handleSave} disabled={updateMany.isPending} size="lg" className="gap-2 shadow-lg btn-secondary">
+            <Button onClick={handleSave} disabled={updateMany.isPending} size="lg" className="gap-2 shadow-lg">
               {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               Salvar Alterações
             </Button>

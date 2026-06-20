@@ -229,7 +229,7 @@ export default function UserCreate() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1 text-xs btn-secondary"
+                className="h-8 gap-1 text-xs"
                 onClick={() => setListas(ls => [...ls, newLista(false)])}
               >
                 <Plus className="w-3 h-3" /> Adicionar Lista
@@ -359,9 +359,9 @@ export default function UserCreate() {
           {/* Submit */}
           <div className="flex justify-end gap-2 pt-2">
             <Link href="/users">
-              <Button type="button" variant="outline" className="btn-secondary">Cancelar</Button>
+              <Button type="button" variant="outline">Cancelar</Button>
             </Link>
-            <Button type="submit" disabled={createMutation.isPending} className="gap-2 btn-secondary">
+            <Button type="submit" disabled={createMutation.isPending} className="gap-2">
               <Save className="w-4 h-4" />
               {createMutation.isPending ? "Enviando..." : "Cadastrar Usuário"}
             </Button>

@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO background_images (userId, carouselSlideId, duration, `order`) VALUES (1, 240001, 5, 1), (1, 240002, 5, 2)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute INSERT INTO background_images (userId, carouselSlideId, duration, `order`) VALUES (1, 240001, 5, 1), (1, 240002, 5, 2)",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1452 (23000) at line 1: Cannot add or update a child row: a foreign key constraint fails (`ldyffp73fnnpjitdoaxnfa`.`background_images`, CONSTRAINT `fk_2` FOREIGN KEY (`carouselSlideId`) REFERENCES `carousel_slides` (`id`) ON DELETE CASCADE)"
+  ]
+}

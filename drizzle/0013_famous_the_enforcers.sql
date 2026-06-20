@@ -1,1 +1,0 @@
-DROP TABLE `panel_button_colors`;

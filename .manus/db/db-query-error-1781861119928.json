@@ -1,8 +1,0 @@
-{
-  "query": "SELECT id, user_id, urls, created_at FROM background_images WHERE user_id = 1 LIMIT 1;",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT id, user_id, urls, created_at FROM background_images WHERE user_id = 1 LIMIT 1;",
-  "returncode": 1,
-  "logs": [
-    "ERROR 1054 (42S22) at line 1: Unknown column 'user_id' in 'where clause'"
-  ]
-}

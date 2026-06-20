@@ -166,3 +166,16 @@ export const notices = mysqlTable("notices", {
 
 export type Notice = typeof notices.$inferSelect;
 export type InsertNotice = typeof notices.$inferInsert;
+
+// Configurações de imagens de fundo do carousel por usuário
+export const backgroundImages = mysqlTable("background_images", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  carouselSlideId: int("carouselSlideId").notNull(),
+  duration: int("duration").default(5).notNull(), // duração em segundos
+  order: int("order").notNull(), // ordem de exibição
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type BackgroundImage = typeof backgroundImages.$inferSelect;
+export type InsertBackgroundImage = typeof backgroundImages.$inferInsert;
