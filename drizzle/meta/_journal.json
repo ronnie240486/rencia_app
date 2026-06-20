@@ -78,6 +78,34 @@
       "when": 1781617945858,
       "tag": "0010_dusty_winter_soldier",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1781782563615,
+      "tag": "0011_military_omega_flight",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1781783122191,
+      "tag": "0012_sticky_power_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1781783329856,
+      "tag": "0013_famous_the_enforcers",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "5",
+      "when": 1781926800987,
+      "tag": "0014_rich_human_torch",
+      "breakpoints": true
     }
   ]
 }
