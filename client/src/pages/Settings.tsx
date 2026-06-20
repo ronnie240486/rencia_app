@@ -294,6 +294,8 @@ export default function Settings() {
     }
   }, [form.primary_color]);
 
+  const utils = trpc.useUtils();
+
   const handleChange = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
     setDirty(true);
@@ -303,7 +305,7 @@ export default function Settings() {
     updateMany.mutate(form, {
       onSuccess: () => {
         // Recarregar as configurações públicas para atualizar as cores
-        trpc.useUtils().settings.getPublic.invalidate();
+        utils.settings.getPublic.invalidate();
       },
     });
     setDirty(false);
