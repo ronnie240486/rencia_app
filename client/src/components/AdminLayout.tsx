@@ -44,6 +44,7 @@ const navItems: NavItem[] = [
   { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} />, ownerOnly: true },
   { label: "Sugestões", href: "/sugestoes", icon: <MessageSquare size={18} /> },
   { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true },
+  { label: "Funções do Painel", href: "/panel-functions", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Configurações do App", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];

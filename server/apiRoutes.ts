@@ -20,7 +20,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides, backgroundImages } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides } from "../drizzle/schema";
 import { eq, or } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
@@ -912,149 +912,31 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * GET /api/v4/bg.php
-   * Retorna carousel de imagens de fundo em JSON.
-   * Se tiver carousel configurado: retorna lista de URLs com duração
-   * Se não tiver: retorna imagem estática do banner
+   * Endpoint usado pela classe Back.java do APK para carregar o fundo dinâmico.
+   * O APK só aceita HTTP 200 com bytes da imagem — NÃO aceita redirect 302.
+   * Por isso fazemos proxy da imagem: baixamos do S3 e servimos diretamente.
    */
-  app.get("/api/v4/bg.php", async (req: Request, res: Response) => {
+  app.get("/api/v4/bg.php", async (_req: Request, res: Response) => {
     try {
-      const { mac } = req.query;
-      const db = await getDb();
-      if (!db) {
-        return res.status(500).json({ error: "Erro ao conectar ao banco" });
-      }
-
-      // Se tiver MAC, buscar carousel do usuário
-      if (mac) {
-        const device = await db
-          .select()
-          .from(devices)
-          .where(eq(devices.mac, mac as string))
-          .limit(1);
-
-        if (device.length) {
-          const userId = device[0].ownerId;
-          const backgrounds = await db
-            .select({
-              urlMedia: carouselSlides.urlMedia,
-              duration: backgroundImages.duration,
-            })
-            .from(backgroundImages)
-            .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
-            .where(eq(backgroundImages.userId, userId))
-            .orderBy(backgroundImages.order);
-
-          if (backgrounds.length > 0) {
-            return res.json({
-              ok: true,
-              isCarousel: backgrounds.length > 1,
-              images: backgrounds.map((bg) => ({
-                url: bg.urlMedia,
-                duration: bg.duration,
-              })),
-            });
-          }
-        }
-      }
-
-      // Se não tiver carousel, retorna imagem estática do banner
       const cfg = await getSettings();
       const bgUrl = cfg.trial_background_url || "";
 
-      // Validar URL
+      // Validar URL: rejeitar URLs com vírgula ou caracteres inválidos
       const isValidUrl = bgUrl && bgUrl.startsWith("http") && !bgUrl.includes(",") && !bgUrl.includes(" ");
       if (!isValidUrl) {
-        return res.json({ ok: true, isCarousel: false, images: [] });
+        res.status(204).end();
+        return;
       }
 
-      // Resolver URL pública
+      // Resolver URL pública (gera presigned URL se for manus-storage protegido)
       const resolvedUrl = await resolvePublicImageUrl(bgUrl);
 
-      res.json({
-        ok: true,
-        isCarousel: false,
-        images: [{ url: resolvedUrl, duration: 5 }],
-      });
+      // Usar redirect para que o Glide faça cache da URL final do S3
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.redirect(302, resolvedUrl);
     } catch (error) {
       console.error("[API] /api/v4/bg.php error:", error);
-      res.json({ ok: false, error: "Erro ao buscar background" });
-    }
-  });
-
-  /**
-   * GET /api/v4/bg-carousel.php
-   * Retorna carousel de imagens de fundo configuradas pelo usuário.
-   * Se 1 imagem: retorna como fundo estático
-   * Se 2+: retorna como carousel com duração de cada
-   */
-  app.get("/api/v4/bg-carousel.php", async (req: Request, res: Response) => {
-    try {
-      const { mac } = req.query;
-      if (!mac) {
-        return res.status(400).json({ error: "MAC não fornecido" });
-      }
-
-      const db = await getDb();
-      if (!db) {
-        return res.status(500).json({ error: "Erro ao conectar ao banco" });
-      }
-
-      // Buscar device pelo MAC
-      const device = await db
-        .select()
-        .from(devices)
-        .where(eq(devices.mac, mac as string))
-        .limit(1);
-
-      if (!device.length) {
-        return res.json({ ok: true, backgrounds: [] });
-      }
-
-      const userId = device[0].ownerId;
-
-      // Buscar backgrounds configurados para este usuário
-      const backgrounds = await db
-        .select({
-          slideId: backgroundImages.carouselSlideId,
-          duration: backgroundImages.duration,
-          titulo: carouselSlides.titulo,
-          urlMedia: carouselSlides.urlMedia,
-          tipo: carouselSlides.tipo,
-        })
-        .from(backgroundImages)
-        .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
-        .where(eq(backgroundImages.userId, userId))
-        .orderBy(backgroundImages.order);
-
-      // Se não tem backgrounds, retorna vazio
-      if (!backgrounds.length) {
-        return res.json({ ok: true, backgrounds: [], isCarousel: false });
-      }
-
-      // Se tem 1 imagem: retorna como estático
-      if (backgrounds.length === 1) {
-        return res.json({
-          ok: true,
-          isCarousel: false,
-          backgrounds: [{
-            url: backgrounds[0].urlMedia,
-            duration: backgrounds[0].duration,
-          }],
-        });
-      }
-
-      // Se tem 2+: retorna como carousel
-      res.json({
-        ok: true,
-        isCarousel: true,
-        backgrounds: backgrounds.map((bg) => ({
-          url: bg.urlMedia,
-          duration: bg.duration,
-        })),
-      });
-    } catch (error) {
-      console.error("[API] /api/v4/bg-carousel.php error:", error);
-      res.status(500).json({ error: "Erro ao buscar backgrounds" });
+      res.status(204).end();
     }
   });
 
@@ -1630,113 +1512,6 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error("[API] /api/carousel/list error:", error);
       res.status(500).json({ error: "Erro ao buscar slides" });
-    }
-  });
-
-  // POST /api/background/save - Salvar configurações de background
-  app.post("/api/background/save", async (req: Request, res: Response) => {
-    try {
-      const { userId, selectedSlides } = req.body;
-      const db = await getDb();
-      if (!db) {
-        return res.status(500).json({ error: "Erro ao conectar ao banco" });
-      }
-      
-      // Deletar configurações antigas
-      await db.delete(backgroundImages).where(eq(backgroundImages.userId, userId));
-      
-      // Inserir novas configurações
-      for (let i = 0; i < selectedSlides.length; i++) {
-        const { slideId, duration } = selectedSlides[i];
-        await db.insert(backgroundImages).values({
-          userId,
-          carouselSlideId: slideId,
-          duration: duration || 5,
-          order: i + 1,
-        });
-      }
-      
-      res.json({ ok: true, message: "Configurações salvas com sucesso" });
-    } catch (error) {
-      console.error("[API] /api/background/save error:", error);
-      res.status(500).json({ error: "Erro ao salvar configurações" });
-    }
-  });
-
-  // GET /api/background/get/:userId - Buscar configurações de background para o painel
-  app.get("/api/background/get/:userId", async (req: Request, res: Response) => {
-    try {
-      const { userId } = req.params;
-      const db = await getDb();
-      if (!db) {
-        return res.status(500).json({ error: "Erro ao conectar ao banco" });
-      }
-
-      const backgrounds = await db
-        .select({
-          slideId: backgroundImages.carouselSlideId,
-          duration: backgroundImages.duration,
-          titulo: carouselSlides.titulo,
-          urlMedia: carouselSlides.urlMedia,
-        })
-        .from(backgroundImages)
-        .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
-        .where(eq(backgroundImages.userId, parseInt(userId)))
-        .orderBy(backgroundImages.order);
-
-      res.json({
-        ok: true,
-        backgrounds,
-      });
-    } catch (error) {
-      console.error("[API] /api/background/get error:", error);
-      res.status(500).json({ error: "Erro ao buscar configurações" });
-    }
-  });
-
-  // GET /api/background/list/:mac - Buscar carousel de background para o APK
-  app.get("/api/background/list/:mac", async (req: Request, res: Response) => {
-    try {
-      const { mac } = req.params;
-      const db = await getDb();
-      if (!db) {
-        return res.status(500).json({ error: "Erro ao conectar ao banco" });
-      }
-
-      // Buscar device pelo MAC
-      const device = await db
-        .select()
-        .from(devices)
-        .where(eq(devices.mac, mac))
-        .limit(1);
-
-      if (!device.length) {
-        return res.json({ ok: true, backgrounds: [] });
-      }
-
-      const userId = device[0].ownerId;
-
-      // Buscar backgrounds configurados para este usuário
-      const backgrounds = await db
-        .select({
-          slideId: backgroundImages.carouselSlideId,
-          duration: backgroundImages.duration,
-          titulo: carouselSlides.titulo,
-          urlMedia: carouselSlides.urlMedia,
-          tipo: carouselSlides.tipo,
-        })
-        .from(backgroundImages)
-        .innerJoin(carouselSlides, eq(backgroundImages.carouselSlideId, carouselSlides.id))
-        .where(eq(backgroundImages.userId, userId))
-        .orderBy(backgroundImages.order);
-
-      res.json({
-        ok: true,
-        backgrounds,
-      });
-    } catch (error) {
-      console.error("[API] /api/background/list error:", error);
-      res.status(500).json({ error: "Erro ao buscar backgrounds" });
     }
   });
 }

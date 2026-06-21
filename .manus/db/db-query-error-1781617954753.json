@@ -1,8 +1,0 @@
-{
-  "query": "CREATE TABLE `background_images` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`carouselSlideId` int NOT NULL,\n\t`duration` int NOT NULL DEFAULT 5,\n\t`order` int NOT NULL,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `background_images_id` PRIMARY KEY(`id`)\n);",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute CREATE TABLE `background_images` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`carouselSlideId` int NOT NULL,\n\t`duration` int NOT NULL DEFAULT 5,\n\t`order` int NOT NULL,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `background_images_id` PRIMARY KEY(`id`)\n);",
-  "returncode": 1,
-  "logs": [
-    "ERROR 1050 (42S01) at line 1: Table 'LDyffp73FNnPjitdoAxnFa.background_images' already exists"
-  ]
-}

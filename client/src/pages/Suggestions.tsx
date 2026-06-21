@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Send, CheckCircle, ArrowLeft, Moon, Sun, Trash2 } from "lucide-react";
+import { Send, CheckCircle, ArrowLeft, Moon, Sun } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function Suggestions() {
@@ -20,8 +20,7 @@ export default function Suggestions() {
   );
 
   const createSuggestionMutation = trpc.suggestions.create.useMutation();
-  const deleteSuggestionMutation = trpc.suggestions.delete.useMutation();
-  const { data: suggestionsList, refetch } = trpc.suggestions.list.useQuery();
+  const { data: suggestionsList } = trpc.suggestions.list.useQuery();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,22 +35,10 @@ export default function Suggestions() {
 
       setSubmitted(true);
       setFormData({ nome: "", telefone: "", email: "", sugestao: "" });
-      refetch();
 
       setTimeout(() => setSubmitted(false), 3000);
     } catch (error) {
       console.error("Erro ao enviar sugestão:", error);
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm("Tem certeza que deseja deletar esta sugestão?")) return;
-
-    try {
-      await deleteSuggestionMutation.mutateAsync({ id });
-      refetch();
-    } catch (error) {
-      console.error("Erro ao deletar sugestão:", error);
     }
   };
 
@@ -201,27 +188,18 @@ export default function Suggestions() {
                   className="p-4 border rounded-lg hover:bg-accent transition-colors"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
+                    <div>
                       <h3 className="font-semibold">{suggestion.nome}</h3>
                       <p className="text-sm text-muted-foreground">
                         {suggestion.telefone && `📱 ${suggestion.telefone}`}
                         {suggestion.email && ` • 📧 ${suggestion.email}`}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(suggestion.criadoEm).toLocaleDateString(
-                          "pt-BR"
-                        )}
-                      </span>
-                      <button
-                        onClick={() => handleDelete(suggestion.id)}
-                        className="p-2 hover:bg-red-100 dark:hover:bg-red-950 rounded-lg transition"
-                        title="Deletar sugestão"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
-                      </button>
-                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(suggestion.criadoEm).toLocaleDateString(
+                        "pt-BR"
+                      )}
+                    </span>
                   </div>
                   <p className="text-foreground">{suggestion.sugestao}</p>
                 </div>

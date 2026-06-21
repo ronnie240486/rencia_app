@@ -21,6 +21,7 @@ import DNS from "./pages/DNS";
 import CarouselManager from "./pages/CarouselManager";
 import Suggestions from "./pages/Suggestions";
 import Notices from "./pages/Notices";
+import { PanelFunctions } from "./pages/PanelFunctions";
 
 function Router() {
   return (
@@ -40,6 +41,7 @@ function Router() {
       <Route path={"/chatbot"} component={Chatbot} />
       <Route path={"/loja"} component={Loja} />
       <Route path={"/carousel"} component={CarouselManager} />
+      <Route path={"/panel-functions"} component={PanelFunctions} />
       <Route path={"/sugestoes"} component={Suggestions} />
       <Route path={"/avisos"} component={Notices} />
       <Route path={"/configuracoes"} component={Settings} />
