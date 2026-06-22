@@ -227,9 +227,8 @@ export default function UserCreate() {
               <p className="text-sm font-bold text-foreground">Listas de Conteúdo</p>
               <Button
                 type="button"
-                variant="outline"
                 size="sm"
-                className="h-8 gap-1 text-xs"
+                className="h-8 gap-1 text-xs btn-add-user"
                 onClick={() => setListas(ls => [...ls, newLista(false)])}
               >
                 <Plus className="w-3 h-3" /> Adicionar Lista
@@ -361,7 +360,7 @@ export default function UserCreate() {
             <Link href="/users">
               <Button type="button" variant="outline">Cancelar</Button>
             </Link>
-            <Button type="submit" disabled={createMutation.isPending} className="gap-2">
+            <Button type="submit" disabled={createMutation.isPending} className="gap-2 btn-add-user-bottom">
               <Save className="w-4 h-4" />
               {createMutation.isPending ? "Enviando..." : "Cadastrar Usuário"}
             </Button>

@@ -47,6 +47,15 @@ const DEFAULT_VALUES: Record<string, string> = {
   apk_version: "",
   // Frase legal
   legal_notice: "OuroPro is a media player application. The app does not provide or include any media or content.",
+  // Cores dos botões do painel
+  panel_search_button_color: "#EF4444",
+  panel_add_user_color: "#EF4444",
+  panel_add_user_bottom_color: "#EF4444",
+  panel_new_resale_color: "#EF4444",
+  panel_active_color: "#EF4444",
+  panel_all_color: "#EF4444",
+  panel_selected_color: "#EF4444",
+  panel_save_color: "#EF4444",
 };
 
 const SIDEBAR_PRESETS = [
@@ -249,16 +258,19 @@ export default function Settings() {
           <p className="text-muted-foreground text-sm">
             Personalize imagens, cores e mensagens automáticas do seu painel.
           </p>
-          <Button onClick={handleSave} disabled={!dirty || updateMany.isPending} className="gap-2">
+          <Button onClick={handleSave} disabled={!dirty || updateMany.isPending} className="gap-2 btn-save">
             {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Salvar Tudo
           </Button>
         </div>
 
         <Tabs defaultValue="banner">
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="grid grid-cols-6 w-full">
             <TabsTrigger value="banner" className="gap-1 text-xs">
               <Image size={13} /> Banner
+            </TabsTrigger>
+            <TabsTrigger value="painel" className="gap-1 text-xs">
+              🎨 Painel
             </TabsTrigger>
             <TabsTrigger value="tema" className="gap-1 text-xs">
               <Palette size={13} /> Tema
@@ -274,7 +286,58 @@ export default function Settings() {
             </TabsTrigger>
           </TabsList>
 
-          {/* ─── Aba Banner / Logo ─────────────────────────────────────────── */}
+           {/* ─── Aba Painel (Cores dos Botões) ──────────────────────────────── */}
+          <TabsContent value="painel" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">🎨 Cores dos Botões do Painel</CardTitle>
+                <CardDescription>
+                  Personalize as cores de todos os botões. As cores são salvas e aplicadas automaticamente.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { key: "panel_search_button_color", label: "Botão Busca (Lupa)" },
+                  { key: "panel_add_user_color", label: "Botão Cadastrar Novo Usuário" },
+                  { key: "panel_add_user_bottom_color", label: "Botão Cadastrar Usuário (Rodapé)" },
+                  { key: "panel_new_resale_color", label: "Botão Nova Revenda" },
+                  { key: "panel_active_color", label: "Botão Ativos (Filtro)" },
+                  { key: "panel_all_color", label: "Botão Todos (Filtro)" },
+                  { key: "panel_selected_color", label: "Botão Selecionado (Ativo)" },
+                  { key: "panel_save_color", label: "Botões Salvar / Confirmar" },
+                ].map(({ key, label }) => (
+                  <div key={key} className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium">{label}</Label>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="color"
+                        value={form[key] || "#EF4444"}
+                        onChange={e => handleChange(key, e.target.value)}
+                        className="w-10 h-10 rounded cursor-pointer border border-border"
+                      />
+                      <Input
+                        type="text"
+                        value={form[key] || "#EF4444"}
+                        onChange={e => handleChange(key, e.target.value)}
+                        className="w-28 text-xs"
+                        placeholder="#EF4444"
+                      />
+                      <div
+                        className="px-3 py-1 rounded text-xs font-bold text-white"
+                        style={{ backgroundColor: form[key] || "#EF4444" }}
+                      >
+                        Preview
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ─── Aba Banner / Logo ────────────────────────────────────────── */}
           <TabsContent value="banner" className="space-y-4 mt-4">
             <Card>
               <CardHeader>
@@ -901,7 +964,7 @@ export default function Settings() {
 
         {dirty && (
           <div className="fixed bottom-6 right-6">
-            <Button onClick={handleSave} disabled={updateMany.isPending} size="lg" className="gap-2 shadow-lg">
+            <Button onClick={handleSave} disabled={updateMany.isPending} size="lg" className="gap-2 shadow-lg btn-save">
               {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               Salvar Alterações
             </Button>

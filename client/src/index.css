@@ -44,6 +44,16 @@
 }
 
 :root {
+  /* ── Cores dos Botões do Painel (padrão vermelho) ── */
+  --btn-search-color: #EF4444;
+  --btn-add-user-color: #EF4444;
+  --btn-add-user-bottom-color: #EF4444;
+  --btn-new-resale-color: #EF4444;
+  --btn-active-color: #EF4444;
+  --btn-all-color: #EF4444;
+  --btn-selected-color: #EF4444;
+  --btn-save-color: #EF4444;
+
   /* ── Dourado OuroPro ── */
   --primary: oklch(0.72 0.18 55);
   --primary-foreground: oklch(0.12 0.02 55);
@@ -144,6 +154,59 @@
 }
 
 @layer components {
+  /* ── Botões do Painel com cor dinâmica ── */
+  .btn-search {
+    background-color: var(--btn-search-color) !important;
+    color: #ffffff !important;
+    border-color: var(--btn-search-color) !important;
+  }
+  .btn-add-user {
+    background-color: var(--btn-add-user-color) !important;
+    color: #ffffff !important;
+    border-color: var(--btn-add-user-color) !important;
+  }
+  .btn-add-user-bottom {
+    background-color: var(--btn-add-user-bottom-color) !important;
+    color: #ffffff !important;
+    border-color: var(--btn-add-user-bottom-color) !important;
+  }
+  .btn-new-resale {
+    background-color: var(--btn-new-resale-color) !important;
+    color: #ffffff !important;
+    border-color: var(--btn-new-resale-color) !important;
+  }
+  .btn-active {
+    background-color: var(--btn-active-color) !important;
+    color: #ffffff !important;
+    border-color: var(--btn-active-color) !important;
+  }
+  .btn-all {
+    background-color: var(--btn-all-color) !important;
+    color: #ffffff !important;
+    border-color: var(--btn-all-color) !important;
+  }
+  .btn-selected {
+    background-color: var(--btn-selected-color) !important;
+    color: #ffffff !important;
+    border-color: var(--btn-selected-color) !important;
+  }
+  .btn-save {
+    background-color: var(--btn-save-color) !important;
+    color: #ffffff !important;
+    border-color: var(--btn-save-color) !important;
+  }
+  /* No tema escuro, garantir texto branco em todos os botões de painel */
+  .dark .btn-search,
+  .dark .btn-add-user,
+  .dark .btn-add-user-bottom,
+  .dark .btn-new-resale,
+  .dark .btn-active,
+  .dark .btn-all,
+  .dark .btn-selected,
+  .dark .btn-save {
+    color: #ffffff !important;
+  }
+
   /**
    * Custom container utility that centers content and adds responsive padding.
    *

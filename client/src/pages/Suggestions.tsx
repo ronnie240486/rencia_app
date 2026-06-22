@@ -164,7 +164,7 @@ export default function Suggestions() {
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full btn-save"
               disabled={createSuggestionMutation.isPending}
             >
               <Send className="w-4 h-4 mr-2" />

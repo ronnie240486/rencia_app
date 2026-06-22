@@ -174,7 +174,7 @@ export default function Users() {
           <h1 className="text-xl font-bold text-foreground">Lista de Usuários</h1>
           <div className="flex gap-2 flex-wrap">
             <Link href="/users/create">
-              <Button size="sm" className="h-8 text-xs gap-1">
+              <Button size="sm" className="h-8 text-xs gap-1 btn-add-user">
                 <Plus className="w-3 h-3" />
                 Cadastrar Novo
               </Button>
@@ -200,7 +200,7 @@ export default function Users() {
             onKeyDown={e => e.key === "Enter" && handleSearch()}
             className="h-8 text-sm max-w-xs"
           />
-          <Button size="sm" variant="default" className="h-8 px-3 text-xs" onClick={handleSearch}>
+          <Button size="sm" className="h-8 px-3 text-xs btn-search" onClick={handleSearch}>
             <Search className="w-3 h-3 mr-1" />
             Buscar
           </Button>

@@ -170,15 +170,16 @@ export default function Revendas() {
             <Button
               key={s}
               size="sm"
-              variant={filterStatus === s ? "default" : "outline"}
-              className="h-8 px-3 text-xs"
+              className={`h-8 px-3 text-xs ${
+                filterStatus === s ? "btn-selected" : "btn-all"
+              }`}
               onClick={() => setFilterStatus(s)}
             >
               {s === "all" ? "Todos" : s === "active" ? "Ativos" : "Bloqueados"}
             </Button>
           ))}
         </div>
-        <Button size="sm" onClick={openCreate} className="gap-2 ml-auto">
+        <Button size="sm" onClick={openCreate} className="gap-2 ml-auto btn-new-resale">
           <Plus size={15} />
           Nova Revenda
         </Button>
@@ -336,7 +337,7 @@ export default function Revendas() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>
+            <Button className="btn-save" onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>
               {(createMut.isPending || updateMut.isPending) && <Loader2 size={14} className="mr-2 animate-spin" />}
               {editId ? "Salvar" : "Criar"}
             </Button>

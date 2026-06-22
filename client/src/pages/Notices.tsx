@@ -157,7 +157,7 @@ export default function Notices() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full btn-save"
                 disabled={createNoticeMutation.isPending}
               >
                 <Send className="w-4 h-4 mr-2" />

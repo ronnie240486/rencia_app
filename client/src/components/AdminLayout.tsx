@@ -44,7 +44,6 @@ const navItems: NavItem[] = [
   { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} />, ownerOnly: true },
   { label: "Sugestões", href: "/sugestoes", icon: <MessageSquare size={18} /> },
   { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true },
-  { label: "Funções do Painel", href: "/panel-functions", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Configurações do App", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];
@@ -133,6 +132,27 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       document.documentElement.style.removeProperty("--foreground");
       document.documentElement.style.removeProperty("--card-foreground");
       document.documentElement.style.removeProperty("--popover-foreground");
+    }
+
+    // Cores dos botões do painel
+    const s = settings as Record<string, string>;
+    const btnKeys: Record<string, string> = {
+      panel_search_button_color: "--btn-search-color",
+      panel_add_user_color: "--btn-add-user-color",
+      panel_add_user_bottom_color: "--btn-add-user-bottom-color",
+      panel_new_resale_color: "--btn-new-resale-color",
+      panel_active_color: "--btn-active-color",
+      panel_all_color: "--btn-all-color",
+      panel_selected_color: "--btn-selected-color",
+      panel_save_color: "--btn-save-color",
+    };
+    for (const [settingKey, cssVar] of Object.entries(btnKeys)) {
+      const val = s[settingKey];
+      if (val && val.startsWith("#")) {
+        document.documentElement.style.setProperty(cssVar, val);
+      } else {
+        document.documentElement.style.setProperty(cssVar, "#EF4444");
+      }
     }
   }, [settings]);
 
