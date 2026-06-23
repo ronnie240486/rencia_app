@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Send, Trash2, AlertCircle, ArrowLeft, Moon, Sun } from "lucide-react";
-import { useLocation } from "wouter";
+import { Send, Trash2, AlertCircle } from "lucide-react";
+import AdminLayout from "@/components/AdminLayout";
 
 export default function Notices() {
   const { data: user } = trpc.auth.me.useQuery();
@@ -13,10 +13,6 @@ export default function Notices() {
     conteudo: "",
   });
   const [submitted, setSubmitted] = useState(false);
-  const [, setLocation] = useLocation();
-  const [isDark, setIsDark] = useState(
-    document.documentElement.classList.contains("dark")
-  );
 
   const createNoticeMutation = trpc.notices.create.useMutation();
   const deleteNoticeMutation = trpc.notices.delete.useMutation();
@@ -59,54 +55,9 @@ export default function Notices() {
     }
   };
 
-  const toggleTheme = () => {
-    const html = document.documentElement;
-    if (html.classList.contains("dark")) {
-      html.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-      setIsDark(false);
-    } else {
-      html.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-      setIsDark(true);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header com botões no topo esquerdo */}
-      <div className="bg-background border-b border-border sticky top-0 z-50">
-        <div className="flex items-center gap-2 p-4 max-w-7xl mx-auto">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation("/dashboard")}
-            title="Voltar"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            title={isDark ? "Modo claro" : "Modo escuro"}
-          >
-            {isDark ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-          </Button>
-
-          <div className="flex-1" />
-
-          <h1 className="text-2xl font-bold">Avisos Importantes</h1>
-        </div>
-      </div>
-
-      {/* Conteúdo principal */}
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <AdminLayout title="Avisos Importantes">
+      <div className="max-w-4xl mx-auto space-y-6">
         {/* Formulário de aviso (apenas para admin) */}
         {isAdmin && (
           <Card className="p-6 border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-950">
@@ -215,6 +166,6 @@ export default function Notices() {
           </Card>
         )}
       </div>
-    </div>
+    </AdminLayout>
   );
 }
