@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch, useLocation } from "wouter";
+import { Route, Switch } from "wouter";
 import Loja from "@/pages/Loja";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -13,6 +13,7 @@ import Users from "./pages/Users";
 import UserCreate from "./pages/UserCreate";
 import UserEdit from "./pages/UserEdit";
 import Settings from "./pages/Settings";
+import SettingsPainel from "./pages/SettingsPainel";
 import Revendas from "./pages/Revendas";
 import DeviceLists from "./pages/DeviceLists";
 import DnsMassa from "./pages/DnsMassa";
@@ -34,6 +35,7 @@ function Router() {
       <Route path={"/users/:id/edit"} component={UserEdit} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/settings"} component={Settings} />
+      <Route path={"/settings-painel"} component={SettingsPainel} />
       <Route path={"/revendas"} component={Revendas} />
       <Route path={"/users/:id/lists"} component={DeviceLists} />
       <Route path={"/dns-massa"} component={DnsMassa} />
@@ -44,7 +46,6 @@ function Router() {
       <Route path={"/panel-functions"} component={PanelFunctions} />
       <Route path={"/sugestoes"} component={Suggestions} />
       <Route path={"/avisos"} component={Notices} />
-      <Route path={"/configuracoes"} component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
