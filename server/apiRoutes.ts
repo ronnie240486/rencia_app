@@ -929,7 +929,12 @@ export function registerApiRoutes(app: Express) {
       }
 
       // Resolver URL pública (gera presigned URL se for manus-storage protegido)
-      const resolvedUrl = await resolvePublicImageUrl(bgUrl);
+      let resolvedUrl = await resolvePublicImageUrl(bgUrl);
+
+      // Adicionar cache busting (timestamp) para forçar Glide a invalidar cache
+      // Glide faz cache agressivo, então precisamos de um query param único
+      const separator = resolvedUrl.includes("?") ? "&" : "?";
+      resolvedUrl = `${resolvedUrl}${separator}v=${Date.now()}`;
 
       // Usar redirect para que o Glide faça cache da URL final do S3
       res.setHeader("Cache-Control", "public, max-age=3600");
@@ -1410,7 +1415,12 @@ export function registerApiRoutes(app: Express) {
       }
 
       // Resolver URL pública (gera presigned URL se for manus-storage protegido)
-      const iconUrl = await resolvePublicImageUrl(rawIconUrl);
+      let iconUrl = await resolvePublicImageUrl(rawIconUrl);
+
+      // Adicionar cache busting (timestamp) para forçar Glide a invalidar cache
+      // Glide faz cache agressivo, então precisamos de um query param único
+      const separator = iconUrl.includes("?") ? "&" : "?";
+      iconUrl = `${iconUrl}${separator}v=${Date.now()}`;
 
       // Redirect para URL final — Glide segue redirect e faz cache da URL do S3
       res.setHeader("Cache-Control", "public, max-age=3600");

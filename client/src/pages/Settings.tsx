@@ -264,12 +264,119 @@ export default function Settings() {
           </Button>
         </div>
 
-        <Tabs defaultValue="icones">
-          <TabsList className="grid grid-cols-1 w-full max-w-xs">
+        <Tabs defaultValue="banner">
+          <TabsList className="grid grid-cols-2 w-full max-w-xs">
+            <TabsTrigger value="banner" className="gap-1 text-xs">
+              <Image size={13} /> Banner
+            </TabsTrigger>
             <TabsTrigger value="icones" className="gap-1 text-xs">
               🖼️ Ícones
             </TabsTrigger>
           </TabsList>
+          {/* ─── Aba Banner ──────────────────────────────────────────────── */}
+          <TabsContent value="banner" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Imagens do Painel e APK</CardTitle>
+                <CardDescription>
+                  Clique em <Upload size={12} className="inline" /> para enviar uma imagem. A URL é gerada automaticamente.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+
+                {/* Banner do APK */}
+                <div className="space-y-2">
+                  <Label className="font-semibold">Banner do APK (320×180px)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.trial_banner_url}
+                      onChange={e => handleChange("trial_banner_url", e.target.value)}
+                      placeholder="https://exemplo.com/banner.png"
+                    />
+                    <UploadButton field="trial_banner_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
+                  </div>
+                  {form.trial_banner_url && (
+                    <img
+                      src={form.trial_banner_url}
+                      alt="Preview banner"
+                      className="mt-2 rounded border max-h-28 object-contain"
+                      onError={e => (e.currentTarget.style.display = "none")}
+                    />
+                  )}
+                </div>
+
+                {/* Logo do APK */}
+                <div className="space-y-2">
+                  <Label className="font-semibold">Logo do APK (home_logo)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.trial_logo_url}
+                      onChange={e => handleChange("trial_logo_url", e.target.value)}
+                      placeholder="https://exemplo.com/logo.png"
+                    />
+                    <UploadButton field="trial_logo_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
+                  </div>
+                  {form.trial_logo_url && (
+                    <img
+                      src={form.trial_logo_url}
+                      alt="Preview logo"
+                      className="mt-2 rounded border max-h-16 object-contain"
+                      onError={e => (e.currentTarget.style.display = "none")}
+                    />
+                  )}
+                </div>
+
+                {/* Fundo principal */}
+                <div className="space-y-2">
+                  <Label className="font-semibold">Imagem de fundo principal (960×540px)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.trial_background_url}
+                      onChange={e => handleChange("trial_background_url", e.target.value)}
+                      placeholder="https://exemplo.com/background.png"
+                    />
+                    <UploadButton field="trial_background_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Servida via <code>/api/v4/bg.php</code> — o APK buscará ao reiniciar.
+                  </p>
+                  {form.trial_background_url && (
+                    <img
+                      src={form.trial_background_url}
+                      alt="Preview fundo"
+                      className="mt-2 rounded border max-h-32 object-contain"
+                      onError={e => (e.currentTarget.style.display = "none")}
+                    />
+                  )}
+                </div>
+
+                {/* Logo da Sidebar do Painel */}
+                <div className="space-y-2">
+                  <Label className="font-semibold">Logo da Sidebar do Painel</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.sidebar_logo_url}
+                      onChange={e => handleChange("sidebar_logo_url", e.target.value)}
+                      placeholder="https://exemplo.com/sidebar-logo.png"
+                    />
+                    <UploadButton field="sidebar_logo_url" uploadingField={uploadingField} onUpload={handleFileUpload} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Logo exibida na barra lateral do painel (substitui o logo padrão OuroPro).
+                  </p>
+                  {form.sidebar_logo_url && (
+                    <img
+                      src={form.sidebar_logo_url}
+                      alt="Preview sidebar logo"
+                      className="mt-2 rounded border max-h-16 object-contain"
+                      onError={e => (e.currentTarget.style.display = "none")}
+                    />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          {/* ─── Aba Ícones ──────────────────────────────────────────────── */}
           <TabsContent value="icones" className="space-y-4 mt-4">
             <Card>
               <CardHeader>
