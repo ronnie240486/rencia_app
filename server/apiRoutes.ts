@@ -667,7 +667,46 @@ export function registerApiRoutes(app: Express) {
       if (result.length === 0) {
         const wordsNf = buildWords(cfg);
         const languagesNf = [{ code: "pt", id: "1", name: "Português", words: wordsNf }, { code: "en", id: "2", name: "English", words: wordsNf }];
-        res.json({ mac_registered: false, mac_address: mac, urls: [], is_trial: 1, lock: 1, languages: languagesNf, words: wordsNf, apk_link: cfg.apk_download_url || "", app_version: cfg.apk_version || "5.0", banner_url: cfg.trial_banner_url || "", logo_url: cfg.trial_logo_url || "", impact_phrase: wordsNf.impact_phrase, legal_notice: wordsNf.legal_notice, app_name: wordsNf.app_name, lock_title: cfg.lock_title || "OuroPro", lock_message: cfg.lock_message || "OuroPro is a media player application.", lock_button_text: cfg.lock_button_text || "Renovar Agora", lock_button_url: cfg.lock_button_url || "" });
+        
+        // Resolver URLs de ícones mesmo para MAC não registrado
+        const [resolvedLogoUrlNf, resolvedBannerUrlNf, resolvedIconReloadNf, resolvedIconExitNf, resolvedIconSettingsNf, resolvedIconLiveTvNf, resolvedIconMoviesNf, resolvedIconSeriesNf] = await Promise.all([
+          resolvePublicImageUrl(cfg.trial_logo_url || ""),
+          resolvePublicImageUrl(cfg.trial_banner_url || ""),
+          resolvePublicImageUrl(cfg.icon_reload_url || ""),
+          resolvePublicImageUrl(cfg.icon_exit_url || ""),
+          resolvePublicImageUrl(cfg.icon_settings_url || ""),
+          resolvePublicImageUrl(cfg.icon_live_tv_url || ""),
+          resolvePublicImageUrl(cfg.icon_movies_url || ""),
+          resolvePublicImageUrl(cfg.icon_series_url || ""),
+        ]);
+        
+        res.json({ 
+          mac_registered: false, 
+          mac_address: mac, 
+          urls: [], 
+          is_trial: 1, 
+          lock: 1, 
+          languages: languagesNf, 
+          words: wordsNf, 
+          apk_link: cfg.apk_download_url || "", 
+          app_version: cfg.apk_version || "5.0", 
+          banner_url: resolvedBannerUrlNf, 
+          logo_url: resolvedLogoUrlNf, 
+          impact_phrase: wordsNf.impact_phrase, 
+          legal_notice: wordsNf.legal_notice, 
+          app_name: wordsNf.app_name, 
+          lock_title: cfg.lock_title || "OuroPro", 
+          lock_message: cfg.lock_message || "OuroPro is a media player application. The app does not provide or include any media or content.", 
+          lock_button_text: cfg.lock_button_text || "Renovar Agora", 
+          lock_button_url: cfg.lock_button_url || "",
+          // Ícones personalizados dos botões
+          icon_reload: resolvedIconReloadNf,
+          icon_exit: resolvedIconExitNf,
+          icon_settings: resolvedIconSettingsNf,
+          icon_live_tv: resolvedIconLiveTvNf,
+          icon_movies: resolvedIconMoviesNf,
+          icon_series: resolvedIconSeriesNf,
+        });
         return;
       }
 
