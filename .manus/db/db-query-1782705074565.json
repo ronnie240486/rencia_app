@@ -1,0 +1,42 @@
+{
+  "query": "SELECT `key`, `value` FROM app_settings WHERE `key` LIKE 'icon_%' ORDER BY `key`;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT `key`, `value` FROM app_settings WHERE `key` LIKE 'icon_%' ORDER BY `key`;",
+  "rows": [
+    {
+      "key": "icon_account_url",
+      "value": ""
+    },
+    {
+      "key": "icon_change_playlist_url",
+      "value": ""
+    },
+    {
+      "key": "icon_exit_url",
+      "value": ""
+    },
+    {
+      "key": "icon_live_tv_url",
+      "value": "https://renciaapp.manus.space/manus-storage/app-images/icon_live_tv_url_1782704949199_02489aff.jpg"
+    },
+    {
+      "key": "icon_movies_url",
+      "value": "https://renciaapp.manus.space/manus-storage/app-images/icon_movies_url_1778993484894_6ae306b6.webp"
+    },
+    {
+      "key": "icon_reload_url",
+      "value": ""
+    },
+    {
+      "key": "icon_series_url",
+      "value": ""
+    },
+    {
+      "key": "icon_settings_url",
+      "value": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "key\tvalue\nicon_account_url\t\nicon_change_playlist_url\t\nicon_exit_url\t\nicon_live_tv_url\thttps://renciaapp.manus.space/manus-storage/app-images/icon_live_tv_url_1782704949199_02489aff.jpg\nicon_movies_url\thttps://renciaapp.manus.space/manus-storage/app-images/icon_movies_url_1778993484894_6ae306b6.webp\nicon_reload_url\t\nicon_series_url\t\nicon_settings_url\t\n",
+  "stderr": "",
+  "execution_time_ms": 590
+}

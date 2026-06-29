@@ -99,6 +99,7 @@ const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890
 async function resolvePublicImageUrl(storedUrl: string): Promise<string> {
   if (!storedUrl) return "";
   // URL do manus-storage precisa de URL pré-assinada
+  // Suporta tanto /manus-storage/... quanto https://renciaapp.manus.space/manus-storage/...
   const manusStorageMatch = storedUrl.match(/\/manus-storage\/(.+)$/);
   if (manusStorageMatch) {
     try {
