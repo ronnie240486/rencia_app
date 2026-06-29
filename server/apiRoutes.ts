@@ -564,16 +564,19 @@ export function registerApiRoutes(app: Express) {
       const words = buildWords(cfg);
 
       // Resolver URLs de imagens para URLs públicas (presigned S3)
-      const [postResolvedLogoUrl, postResolvedBannerUrl, postResolvedIconReload, postResolvedIconExit, postResolvedIconSettings, postResolvedIconLiveTv, postResolvedIconMovies, postResolvedIconSeries] = await Promise.all([
+      const [postResolvedLogoUrl, postResolvedBannerUrl] = await Promise.all([
         resolvePublicImageUrl(cfg.trial_logo_url || ""),
         resolvePublicImageUrl(cfg.trial_banner_url || ""),
-        resolvePublicImageUrl(cfg.icon_reload_url || ""),
-        resolvePublicImageUrl(cfg.icon_exit_url || ""),
-        resolvePublicImageUrl(cfg.icon_settings_url || ""),
-        resolvePublicImageUrl(cfg.icon_live_tv_url || ""),
-        resolvePublicImageUrl(cfg.icon_movies_url || ""),
-        resolvePublicImageUrl(cfg.icon_series_url || ""),
       ]);
+      // Para ícones: usar os endpoints /api/v4/icon/:name que servem HTTP 200 direto
+      // Isso garante que o APK sempre busca a versão mais recente sem cache
+      const iconBase = "https://renciaapp.manus.space/api/v4/icon";
+      const postResolvedIconReload = `${iconBase}/reload`;
+      const postResolvedIconExit = `${iconBase}/exit`;
+      const postResolvedIconSettings = `${iconBase}/settings`;
+      const postResolvedIconLiveTv = `${iconBase}/live_tv`;
+      const postResolvedIconMovies = `${iconBase}/movies`;
+      const postResolvedIconSeries = `${iconBase}/series`;
 
       // O APK BoxV3 busca impact_phrase, contact, trial_ended, etc. dentro de
       // languages[].words (LanguageModel → WordModels via Gson).
