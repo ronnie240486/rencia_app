@@ -133,32 +133,29 @@ function decodeFromApk(encoded: string): Record<string, unknown> | null {
     let s = encoded.replace(/\s/g, "");
     if (s.length < 3) return null;
 
-    // Remover padding do Base64 (==, =) primeiro
-    const padding = s.match(/=+$/);
-    const paddingStr = padding ? padding[0] : "";
-    s = s.replace(/=+$/, "");
-
-    // Pegar penúltimo char = posição da key (p2)
-    const p2Char = s[s.length - 2];
+    // Formato: base64_com_lixo + padding(opcional) + p2char + p1char
+    // Os 2 últimos chars são os marcadores (DEPOIS do padding)
+    const p2Char = s[s.length - 2]; // penúltimo = posição
+    const p1Char = s[s.length - 1]; // último = tamanho
     const p2 = ALPHABET.indexOf(p2Char);
-
-    // Pegar último char = tamanho da key (p1)
-    const p1Char = s[s.length - 1];
     const p1 = ALPHABET.indexOf(p1Char);
 
     if (p2 < 0 || p1 < 0) return null;
 
-    // Remover os 2 últimos chars
-    let clean = s.slice(0, -2);
+    // Remover os 2 últimos chars (marcadores), depois remover o padding
+    let clean = s.slice(0, -2); // remove p2char + p1char
+    clean = clean.replace(/=+$/, ""); // remove padding
 
     // Remover p1 chars a partir da posição p2
     clean = clean.slice(0, p2) + clean.slice(p2 + p1);
 
-    // Adicionar padding de volta e decodificar Base64
-    clean = clean + paddingStr;
+    // Recalcular padding e decodificar Base64
+    const padNeeded = (4 - (clean.length % 4)) % 4;
+    clean += "=".repeat(padNeeded);
     const decoded = Buffer.from(clean, "base64").toString("utf-8").trim();
     return JSON.parse(decoded);
-  } catch {
+  } catch (e) {
+    console.log("[decodeFromApk] ERROR:", e, "encoded:", encoded.slice(0, 60));
     return null;
   }
 }
@@ -187,19 +184,19 @@ function encodeForApk(jsonStr: string): string {
   const paddingStr = padding ? padding[0] : "";
   b64 = b64.replace(/=+$/, "");
 
-  // Usar posições aleatórias válidas
-  // pos1 deve estar entre 0 e b64.length-1 (para poder inserir lixo)
-  // pos2 deve estar entre 1 e 10 (tamanho do lixo)
-  const maxPos1 = Math.max(1, Math.min(10, b64.length - 2));
-  const pos1 = Math.floor(Math.random() * maxPos1);
-  const pos2 = Math.floor(Math.random() * 5) + 1; // 1-5 chars de lixo
+  // p2 = posição onde inserir o lixo (penultimo char no final)
+  // p1 = tamanho do lixo (ultimo char no final)
+  // decodeFromApk lê: penultimo = p2 (posição), ultimo = p1 (tamanho)
+  // remove: clean.slice(0, p2) + clean.slice(p2 + p1)
+  const p2 = Math.max(1, Math.min(b64.length - 2, Math.floor(Math.random() * Math.min(10, b64.length - 1)) + 1));
+  const p1 = Math.floor(Math.random() * 5) + 1; // 1-5 chars de lixo
 
-  // Insere pos2 chars de lixo na posição pos1
-  const junk = "X".repeat(pos2);
-  const obfuscated = b64.slice(0, pos1) + junk + b64.slice(pos1);
+  // Insere p1 chars de lixo na posição p2
+  const junk = "X".repeat(p1);
+  const obfuscated = b64.slice(0, p2) + junk + b64.slice(p2);
 
-  // Adiciona os 2 chars de posição no final, depois o padding
-  return obfuscated + ALPHABET[pos1] + ALPHABET[pos2] + paddingStr;
+  // Adiciona: ALPHABET[p2] (penultimo = posição) + ALPHABET[p1] (ultimo = tamanho) + padding
+  return obfuscated + paddingStr + ALPHABET[p2] + ALPHABET[p1];
 }
 
 /**
@@ -340,10 +337,13 @@ export function registerApiRoutes(app: Express) {
       // LOG para diagnóstico do body enviado pelo APK
       console.log("[APK-BODY] Raw body keys:", body ? Object.keys(body) : "null");
       if (body && body.data) {
+        const rawStr = String(body.data);
+        console.log("[APK-BODY] Raw data (first 100):", rawStr.slice(0, 100));
+        console.log("[APK-BODY] Last 6 chars:", rawStr.slice(-6));
         try {
-          const rawDecoded = decodeFromApk(String(body.data));
+          const rawDecoded = decodeFromApk(rawStr);
           console.log("[APK-BODY] Decoded payload:", JSON.stringify(rawDecoded));
-        } catch { /* ignora */ }
+        } catch (e) { console.log("[APK-BODY] Decode error:", e); }
       }
 
       if (body && body.data) {
@@ -1554,3 +1554,4 @@ export function registerApiRoutes(app: Express) {
     }
   });
 }
+// force reload Mon Jun 29 00:07:36 EDT 2026
