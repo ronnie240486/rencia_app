@@ -942,16 +942,22 @@ export function registerApiRoutes(app: Express) {
       }
 
       // Resolver URL pública (gera presigned URL se for manus-storage protegido)
-      let resolvedUrl = await resolvePublicImageUrl(bgUrl);
+      const resolvedUrl = await resolvePublicImageUrl(bgUrl);
 
-      // Adicionar cache busting (timestamp) para forçar Glide a invalidar cache
-      // Glide faz cache agressivo, então precisamos de um query param único
-      const separator = resolvedUrl.includes("?") ? "&" : "?";
-      resolvedUrl = `${resolvedUrl}${separator}v=${Date.now()}`;
-
-      // Usar redirect para que o Glide faça cache da URL final do S3
-      res.setHeader("Cache-Control", "public, max-age=3600");
-      res.redirect(302, resolvedUrl);
+      // O APK só aceita HTTP 200 com bytes da imagem — NÃO aceita redirect 302.
+      // Fazer proxy: baixar a imagem do S3 e servir diretamente.
+      const fetch = (await import("node-fetch")).default;
+      const imgResp = await fetch(resolvedUrl);
+      if (!imgResp.ok) {
+        res.status(204).end();
+        return;
+      }
+      const contentType = imgResp.headers.get("content-type") || "image/jpeg";
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      imgResp.body?.pipe(res);
     } catch (error) {
       console.error("[API] /api/v4/bg.php error:", error);
       res.status(204).end();
@@ -1428,16 +1434,22 @@ export function registerApiRoutes(app: Express) {
       }
 
       // Resolver URL pública (gera presigned URL se for manus-storage protegido)
-      let iconUrl = await resolvePublicImageUrl(rawIconUrl);
+      const iconUrl = await resolvePublicImageUrl(rawIconUrl);
 
-      // Adicionar cache busting (timestamp) para forçar Glide a invalidar cache
-      // Glide faz cache agressivo, então precisamos de um query param único
-      const separator = iconUrl.includes("?") ? "&" : "?";
-      iconUrl = `${iconUrl}${separator}v=${Date.now()}`;
-
-      // Redirect para URL final — Glide segue redirect e faz cache da URL do S3
-      res.setHeader("Cache-Control", "public, max-age=3600");
-      res.redirect(302, iconUrl);
+      // O APK só aceita HTTP 200 com bytes da imagem — NÃO aceita redirect 302.
+      // Fazer proxy: baixar a imagem e servir diretamente.
+      const fetchIcon = (await import("node-fetch")).default;
+      const iconResp = await fetchIcon(iconUrl);
+      if (!iconResp.ok) {
+        res.status(404).json({ error: "Icon not available" });
+        return;
+      }
+      const iconContentType = iconResp.headers.get("content-type") || "image/png";
+      res.setHeader("Content-Type", iconContentType);
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      iconResp.body?.pipe(res);
     } catch (error) {
       console.error("[API] /api/v4/icon error:", error);
       res.status(500).json({ error: "Erro interno" });
