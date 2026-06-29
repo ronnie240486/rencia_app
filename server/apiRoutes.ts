@@ -129,8 +129,13 @@ async function resolvePublicImageUrl(storedUrl: string): Promise<string> {
  */
 function decodeFromApk(encoded: string): Record<string, unknown> | null {
   try {
-    const s = encoded.replace(/\s/g, "");
+    let s = encoded.replace(/\s/g, "");
     if (s.length < 3) return null;
+
+    // Remover padding do Base64 (==, =) primeiro
+    const padding = s.match(/=+$/);
+    const paddingStr = padding ? padding[0] : "";
+    s = s.replace(/=+$/, "");
 
     // Pegar penúltimo char = posição da key (p2)
     const p2Char = s[s.length - 2];
@@ -148,7 +153,8 @@ function decodeFromApk(encoded: string): Record<string, unknown> | null {
     // Remover p1 chars a partir da posição p2
     clean = clean.slice(0, p2) + clean.slice(p2 + p1);
 
-    // Decodificar Base64
+    // Adicionar padding de volta e decodificar Base64
+    clean = clean + paddingStr;
     const decoded = Buffer.from(clean, "base64").toString("utf-8").trim();
     return JSON.parse(decoded);
   } catch {
@@ -173,19 +179,26 @@ function decodeFromApk(encoded: string): Record<string, unknown> | null {
  */
 function encodeForApk(jsonStr: string): string {
   // Codifica em Base64
-  const b64 = Buffer.from(jsonStr, "utf-8").toString("base64");
+  let b64 = Buffer.from(jsonStr, "utf-8").toString("base64");
 
-  // Posições fixas: pos1=5 ('f'), pos2=3 ('d')
-  // Garante que pos1 < b64.length para não quebrar
-  const pos1 = Math.min(5, b64.length - 1);
-  const pos2 = 3;
+  // Remover padding do Base64 (==, =) para nao interferir com os chars de posicao
+  const padding = b64.match(/=+$/);
+  const paddingStr = padding ? padding[0] : "";
+  b64 = b64.replace(/=+$/, "");
+
+  // Usar posições aleatórias válidas
+  // pos1 deve estar entre 0 e b64.length-1 (para poder inserir lixo)
+  // pos2 deve estar entre 1 e 10 (tamanho do lixo)
+  const maxPos1 = Math.max(1, Math.min(10, b64.length - 2));
+  const pos1 = Math.floor(Math.random() * maxPos1);
+  const pos2 = Math.floor(Math.random() * 5) + 1; // 1-5 chars de lixo
 
   // Insere pos2 chars de lixo na posição pos1
   const junk = "X".repeat(pos2);
   const obfuscated = b64.slice(0, pos1) + junk + b64.slice(pos1);
 
-  // Adiciona os 2 chars de posição no final
-  return obfuscated + ALPHABET[pos1] + ALPHABET[pos2];
+  // Adiciona os 2 chars de posição no final, depois o padding
+  return obfuscated + ALPHABET[pos1] + ALPHABET[pos2] + paddingStr;
 }
 
 /**
