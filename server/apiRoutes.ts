@@ -89,7 +89,8 @@ async function getSettings(): Promise<Record<string, string>> {
   }
 }
 
-const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+// ALPHABET deve ser idêntico ao Security.java do APK BoxV3 (maiúsculas primeiro)
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 /**
  * Resolve uma URL de imagem do banco para uma URL pública acessível.

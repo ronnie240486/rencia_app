@@ -1,0 +1,19 @@
+{
+  "query": "SELECT COUNT(*) as total_com_valor FROM devices WHERE valor IS NOT NULL AND valor > 0;\nSELECT COALESCE(SUM(valor), 0) as receita_total FROM devices WHERE dataCadastro >= DATE_FORMAT(NOW(), '%Y-%m-01');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT COUNT(*) as total_com_valor FROM devices WHERE valor IS NOT NULL AND valor > 0;\nSELECT COALESCE(SUM(valor), 0) as receita_total FROM devices WHERE dataCadastro >= DATE_FORMAT(NOW(), '%Y-%m-01');",
+  "rows": [
+    {
+      "total_com_valor": "4"
+    },
+    {
+      "total_com_valor": "receita_total"
+    },
+    {
+      "total_com_valor": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_com_valor\n4\nreceita_total\n0\n",
+  "stderr": "",
+  "execution_time_ms": 636
+}

@@ -1,0 +1,45 @@
+{
+  "query": "SELECT id, mac, tipo, valor, dataCadastro FROM devices ORDER BY dataCadastro DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT id, mac, tipo, valor, dataCadastro FROM devices ORDER BY dataCadastro DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "630001",
+      "mac": "84:83:5D:80:94:86",
+      "tipo": "Usuario",
+      "valor": "NULL",
+      "dataCadastro": "2026-06-25 22:30:01"
+    },
+    {
+      "id": "600001",
+      "mac": "A4:7d:9f:61:05:f6",
+      "tipo": "Usuario",
+      "valor": "NULL",
+      "dataCadastro": "2026-06-20 20:39:06"
+    },
+    {
+      "id": "570001",
+      "mac": "84:ea:97:cb:8d:8c",
+      "tipo": "Usuario",
+      "valor": "NULL",
+      "dataCadastro": "2026-06-18 23:32:40"
+    },
+    {
+      "id": "510001",
+      "mac": "Fe:FD:FC:4c:01:12",
+      "tipo": "Usuario",
+      "valor": "NULL",
+      "dataCadastro": "2026-06-16 19:29:41"
+    },
+    {
+      "id": "450001",
+      "mac": "7c:94:9f:6e:17:8e",
+      "tipo": "Usuario",
+      "valor": "NULL",
+      "dataCadastro": "2026-06-08 00:37:50"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tmac\ttipo\tvalor\tdataCadastro\n630001\t84:83:5D:80:94:86\tUsuario\tNULL\t2026-06-25 22:30:01\n600001\tA4:7d:9f:61:05:f6\tUsuario\tNULL\t2026-06-20 20:39:06\n570001\t84:ea:97:cb:8d:8c\tUsuario\tNULL\t2026-06-18 23:32:40\n510001\tFe:FD:FC:4c:01:12\tUsuario\tNULL\t2026-06-16 19:29:41\n450001\t7c:94:9f:6e:17:8e\tUsuario\tNULL\t2026-06-08 00:37:50\n",
+  "stderr": "",
+  "execution_time_ms": 673
+}
