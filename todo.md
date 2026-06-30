@@ -293,3 +293,13 @@
 - [x] Criar logo do APK customizado
 - [x] Mover "Logo Animado" para dentro de "Interactive" como aba
 - [x] Gerar novo logo do APK colorido e interativo (não dourado)
+
+## Aplicativo InteractivePro (30/06/2026)
+- [x] Criar página InteractiveApp.tsx que consome dados do painel
+- [x] Implementar carousel de banners com navegação
+- [x] Adicionar suporte a intro animada com som
+- [x] Adicionar controle de volume/mute
+- [x] Gerar ícone animado com fundo preto
+- [x] Adicionar rota /interactive-app no App.tsx
+- [ ] Criar APK InteractivePro baseado em TV_da_Sala.apk
+- [ ] Testar app web em diferentes resoluções

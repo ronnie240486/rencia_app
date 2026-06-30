@@ -26,6 +26,7 @@ import Interactive from "./pages/Interactive";
 import ContentSuggestions from "./pages/ContentSuggestions";
 import AppIntro from "./pages/AppIntro";
 import Splash from "./pages/Splash";
+import InteractiveApp from "./pages/InteractiveApp";
 
 function Router() {
   return (
@@ -33,6 +34,7 @@ function Router() {
       <Route path={"/"} component={Login} />
       <Route path={"/login"} component={Login} />
       <Route path={"/splash"} component={Splash} />
+      <Route path={"/interactive-app"} component={InteractiveApp} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/users"} component={Users} />
       <Route path={"/users/create"} component={UserCreate} />
