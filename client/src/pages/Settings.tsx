@@ -243,7 +243,7 @@ export default function Settings() {
 
   if (isLoading) {
     return (
-      <AdminLayout title="Configurações do App">
+      <AdminLayout title="OuroPro">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="animate-spin text-muted-foreground" size={32} />
         </div>
@@ -252,7 +252,7 @@ export default function Settings() {
   }
 
   return (
-    <AdminLayout title="Configurações do App">
+    <AdminLayout title="OuroPro">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-muted-foreground text-sm">
