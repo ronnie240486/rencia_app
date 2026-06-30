@@ -34,6 +34,7 @@ function Router() {
       <Route path={"/users/:id/edit"} component={UserEdit} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/settings"} component={Settings} />
+      <Route path={"/app-settings"} component={Settings} />
       <Route path={"/revendas"} component={Revendas} />
       <Route path={"/users/:id/lists"} component={DeviceLists} />
       <Route path={"/dns-massa"} component={DnsMassa} />

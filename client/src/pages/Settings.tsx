@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2, Save, Image, Upload, Palette, MessageCircle, Smartphone, LayoutGrid } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
+import { useLocation } from "wouter";
 
 const DEFAULT_VALUES: Record<string, string> = {
   // Imagens
@@ -111,9 +112,12 @@ function UploadButton({ field, uploadingField, onUpload }: { field: string; uplo
 }
 
 export default function Settings() {
+  const [location] = useLocation();
   const { data: settings, isLoading, refetch } = trpc.settings.getAll.useQuery();
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [sendingTest, setSendingTest] = useState(false);
+  const isAppSettings = location === "/app-settings";
+  const isOuroPro = location === "/settings" || location === "/configuracoes";
 
   const handleFileUpload = async (field: string, file: File) => {
     try {
@@ -266,6 +270,7 @@ export default function Settings() {
 
         <div className="space-y-6">
           {/* ═══ SEÇÃO 1: OuroPro (Banner + Ícones) ═══ */}
+          {isOuroPro && (
           <Card>
             <CardHeader>
               <CardTitle>OuroPro</CardTitle>
@@ -543,10 +548,11 @@ export default function Settings() {
                   </Card>
                 </TabsContent>
               </Tabs>
-            </CardContent>
+             </CardContent>
           </Card>
-
+          )}
           {/* ═══ SEÇÃO 2: Configurações do App (Painel + Tema + Chatbot + APK) ═══ */}
+          {isAppSettings && (
           <Card>
             <CardHeader>
               <CardTitle>Configurações do App</CardTitle>
@@ -832,6 +838,7 @@ export default function Settings() {
               </Tabs>
             </CardContent>
           </Card>
+          )}
         </div>
       </div>
     </AdminLayout>
