@@ -395,8 +395,8 @@ export default function Interactive() {
                   <Label className="block text-sm font-medium mb-2">URL do Logo Animado</Label>
                   <Input
                     placeholder="https://exemplo.com/logo.gif"
-                    value={introConfig?.logoUrl || ""}
-                    onChange={(e) => setForm({ ...form, appLogo: e.target.value })}
+                    value={introConfig?.logoUrl || "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/interactive-pro-icon-black-bg-UpRyNZr5jniotiDTrU6eFB.png"}
+                    onChange={(e) => updateIntroMutation.mutate({ logoUrl: e.target.value })}
                   />
                   <p className="text-xs text-gray-500 mt-1">Aceita GIF, PNG ou vídeo MP4</p>
                 </div>

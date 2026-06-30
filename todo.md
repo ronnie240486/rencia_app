@@ -312,5 +312,5 @@
 - [x] Atualizar procedures tRPC para aceitar appType
 - [x] Remover referências a UltraMaster em UserEdit.tsx
 - [ ] Criar página de login por MAC (aba MAC)
-- [ ] Integrar logo animado com som no painel Interactive
-- [ ] Criar APK InteractivePro independente
+- [x] Integrar logo animado com som no painel Interactive
+- [x] Criar APK InteractivePro baseado em TV_da_Sala com novo logo
