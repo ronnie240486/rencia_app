@@ -199,3 +199,40 @@ export const interactiveBanners = mysqlTable("interactive_banners", {
 
 export type InteractiveBanner = typeof interactiveBanners.$inferSelect;
 export type InsertInteractiveBanner = typeof interactiveBanners.$inferInsert;
+
+// Sugestões de Conteúdo para InteractivePro
+export const contentSuggestions = mysqlTable("content_suggestions", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  tipo: mysqlEnum("tipo", ["filme", "serie", "novela", "desenho"]).notNull(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  descricao: text("descricao"),
+  urlCapa: text("urlCapa"), // URL da imagem de capa
+  urlTrailer: text("urlTrailer"), // URL do trailer
+  genero: varchar("genero", { length: 128 }),
+  ano: int("ano"),
+  classificacao: varchar("classificacao", { length: 32 }), // Ex: 12+, 16+, 18+
+  duracao: int("duracao"), // Em minutos
+  ativo: boolean("ativo").default(true).notNull(),
+  ordem: int("ordem").default(0).notNull(), // Para ordenação na exibição
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ContentSuggestion = typeof contentSuggestions.$inferSelect;
+export type InsertContentSuggestion = typeof contentSuggestions.$inferInsert;
+
+// Logo animado com som para introdução
+export const appIntroConfig = mysqlTable("app_intro_config", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  logoUrl: text("logoUrl"), // URL do logo animado
+  soundUrl: text("soundUrl"), // URL do som
+  duracao: int("duracao").default(3000).notNull(), // Duração em ms
+  habilitado: boolean("habilitado").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AppIntroConfig = typeof appIntroConfig.$inferSelect;
+export type InsertAppIntroConfig = typeof appIntroConfig.$inferInsert;

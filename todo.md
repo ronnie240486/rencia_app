@@ -277,3 +277,17 @@
 - [ ] Criar endpoints para APK consumir (/api/interactive/config, /api/interactive/banners)
 - [ ] Compilar novo APK InteractivePro com branding customizado
 - [ ] Testar carousel de banners no APK
+
+## Sugestões de Conteúdo e Logo Animado (30/06/2026)
+- [x] Criar schema para content_suggestions (filme, série, novela, desenho)
+- [x] Criar schema para app_intro_config (logo animado com som)
+- [x] Criar migration SQL para tabelas
+- [x] Implementar procedures tRPC para sugestões de conteúdo
+- [x] Implementar procedures tRPC para configuração de intro
+- [x] Criar página ContentSuggestions.tsx com abas por tipo
+- [x] Criar página AppIntro.tsx com preview
+- [x] Adicionar rotas /content-suggestions e /app-intro no App.tsx
+- [x] Adicionar itens no menu lateral (AdminLayout)
+- [ ] Gerar logo animado com som (via media_generation)
+- [ ] Criar página de splash com logo animado
+- [ ] Criar logo do APK customizado

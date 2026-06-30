@@ -951,6 +951,107 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  contentSuggestions: router({
+    list: protectedProcedure
+      .input(z.object({
+        tipo: z.enum(["filme", "serie", "novela", "desenho"]).optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const schema = await import("../drizzle/schema");
+        const contentSuggestions = (schema as any).contentSuggestions;
+        const results = await db.select().from(contentSuggestions)
+          .where(and(eq(contentSuggestions.ownerId, ctx.user.id), eq(contentSuggestions.ativo, true)))
+          .orderBy(asc(contentSuggestions.ordem));
+        return results;
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        tipo: z.enum(["filme", "serie", "novela", "desenho"]),
+        titulo: z.string().min(1),
+        descricao: z.string().optional(),
+        urlCapa: z.string().url().optional(),
+        urlTrailer: z.string().url().optional(),
+        genero: z.string().optional(),
+        ano: z.number().optional(),
+        classificacao: z.string().optional(),
+        duracao: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const schema = await import("../drizzle/schema");
+        const contentSuggestions = (schema as any).contentSuggestions;
+        await db.insert(contentSuggestions).values({
+          ownerId: ctx.user.id,
+          ...input,
+        });
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const schema = await import("../drizzle/schema");
+        const contentSuggestions = (schema as any).contentSuggestions;
+        await db.delete(contentSuggestions)
+          .where(and(eq(contentSuggestions.id, input.id), eq(contentSuggestions.ownerId, ctx.user.id)));
+        return { success: true };
+      }),
+  }),
+
+  appIntro: router({
+    getConfig: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const schema = await import("../drizzle/schema");
+      const appIntroConfig = (schema as any).appIntroConfig;
+      const configs = await db.select().from(appIntroConfig)
+        .where(eq(appIntroConfig.ownerId, ctx.user.id)).limit(1);
+      return configs[0] || { ownerId: ctx.user.id, duracao: 3000, habilitado: true };
+    }),
+
+    updateConfig: protectedProcedure
+      .input(z.object({
+        logoUrl: z.string().optional(),
+        soundUrl: z.string().optional(),
+        duracao: z.number().optional(),
+        habilitado: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const schema = await import("../drizzle/schema");
+        const appIntroConfig = (schema as any).appIntroConfig;
+        const existings = await db.select().from(appIntroConfig)
+          .where(eq(appIntroConfig.ownerId, ctx.user.id)).limit(1);
+        const existing = existings[0];
+        if (existing) {
+          const updateData: Record<string, unknown> = {};
+          if (input.logoUrl !== undefined) updateData.logoUrl = input.logoUrl;
+          if (input.soundUrl !== undefined) updateData.soundUrl = input.soundUrl;
+          if (input.duracao !== undefined) updateData.duracao = input.duracao;
+          if (input.habilitado !== undefined) updateData.habilitado = input.habilitado;
+          if (Object.keys(updateData).length > 0) {
+            await db.update(appIntroConfig).set(updateData).where(eq(appIntroConfig.ownerId, ctx.user.id));
+          }
+        } else {
+          await db.insert(appIntroConfig).values({
+            ownerId: ctx.user.id,
+            logoUrl: input.logoUrl,
+            soundUrl: input.soundUrl,
+            duracao: input.duracao || 3000,
+            habilitado: input.habilitado !== false,
+          });
+        }
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

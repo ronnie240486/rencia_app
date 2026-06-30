@@ -120,6 +120,13 @@
       "when": 1782796561626,
       "tag": "0016_previous_exiles",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1782829799621,
+      "tag": "0017_quick_arclight",
+      "breakpoints": true
     }
   ]
 }

@@ -23,6 +23,8 @@ import Suggestions from "./pages/Suggestions";
 import Notices from "./pages/Notices";
 import { PanelFunctions } from "./pages/PanelFunctions";
 import Interactive from "./pages/Interactive";
+import ContentSuggestions from "./pages/ContentSuggestions";
+import AppIntro from "./pages/AppIntro";
 
 function Router() {
   return (
@@ -37,6 +39,8 @@ function Router() {
       <Route path={"/settings"} component={Settings} />
       <Route path={"/app-settings"} component={Settings} />
       <Route path={"/interactive"} component={Interactive} />
+      <Route path={"/content-suggestions"} component={ContentSuggestions} />
+      <Route path={"/app-intro"} component={AppIntro} />
       <Route path={"/revendas"} component={Revendas} />
       <Route path={"/users/:id/lists"} component={DeviceLists} />
       <Route path={"/dns-massa"} component={DnsMassa} />
