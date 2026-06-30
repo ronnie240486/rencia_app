@@ -127,6 +127,13 @@
       "when": 1782829799621,
       "tag": "0017_quick_arclight",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1782831675410,
+      "tag": "0018_charming_stingray",
+      "breakpoints": true
     }
   ]
 }

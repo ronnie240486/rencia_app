@@ -301,5 +301,16 @@
 - [x] Adicionar controle de volume/mute
 - [x] Gerar ícone animado com fundo preto
 - [x] Adicionar rota /interactive-app no App.tsx
-- [ ] Criar APK InteractivePro baseado em TV_da_Sala.apk
-- [ ] Testar app web em diferentes resoluções
+- [x] Criar APK InteractivePro baseado em TV_da_Sala.apk
+- [x] Substituir ícones do APK com novo design colorido
+
+## Desacoplamento e Novas Funcionalidades (30/06/2026)
+- [x] Adicionar campo appType (OuroPro/InteractivePro) na tabela devices
+- [x] Remover UltraMaster do enum tipo
+- [x] Adicionar MAC como unique constraint
+- [x] Adicionar seleção de appType no cadastro de usuários (UserCreate.tsx)
+- [x] Atualizar procedures tRPC para aceitar appType
+- [x] Remover referências a UltraMaster em UserEdit.tsx
+- [ ] Criar página de login por MAC (aba MAC)
+- [ ] Integrar logo animado com som no painel Interactive
+- [ ] Criar APK InteractivePro independente
