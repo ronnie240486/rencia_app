@@ -1054,6 +1054,89 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // ─── Ads/Banners para APK ──────────────────────────────────────────
+  ads: router({
+    adsOne: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return new Response("Database not available", { status: 500 });
+      
+      const banners = await db.select().from(carouselSlides).limit(15);
+      const config = await db.select().from(carouselConfig).limit(1);
+      
+      const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filmes Sugeridos</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { width: 100%; height: 100vh; overflow: hidden; background: #000; }
+    #slider-container { width: 100%; height: 100%; position: relative; }
+    .slide {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+    }
+    .slide.active { opacity: 1; }
+    .logo { width: 50%; height: auto; position: absolute; top: 50%; left: 25%; transform: translateY(-50%); }
+    .footer-banner {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 60px;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div id="slider-container">
+    <div id="slide1" class="slide active"></div>
+    <div id="slide2" class="slide"></div>
+  </div>
+  <div class="footer-banner">FILMES SUGERIDOS</div>
+  <script>
+    const banners = ${JSON.stringify(banners)};
+    const interval = ${config[0]?.autoplayInterval || 8000};
+    let currentIndex = 0;
+    
+    function updateSlide() {
+      if (banners.length === 0) return;
+      const banner = banners[currentIndex];
+      const nextSlide = document.getElementById('slide' + (currentIndex % 2 === 0 ? 2 : 1));
+      if (banner.imageUrl) {
+        nextSlide.style.backgroundImage = 'url(' + banner.imageUrl + ')';
+      }
+      nextSlide.classList.add('active');
+      setTimeout(() => {
+        document.getElementById('slide' + ((currentIndex + 1) % 2 === 0 ? 2 : 1)).classList.remove('active');
+      }, 1000);
+      currentIndex = (currentIndex + 1) % banners.length;
+    }
+    
+    updateSlide();
+    setInterval(updateSlide, interval);
+  </script>
+</body>
+</html>
+      `;
+      return new Response(html, { headers: { "Content-Type": "text/html" } });
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
