@@ -32,12 +32,11 @@ export type InsertUser = typeof users.$inferInsert;
 export const devices = mysqlTable("devices", {
   id: int("id").autoincrement().primaryKey(),
   ownerId: int("ownerId").notNull(),
-  mac: varchar("mac", { length: 64 }).notNull().unique(),
+  mac: varchar("mac", { length: 64 }).notNull(),
   nomeServer: varchar("nomeServer", { length: 255 }).notNull(),
-  tipo: mysqlEnum("tipo", ["Usuario", "Revenda", "Master"]).default("Usuario").notNull(),
+  tipo: mysqlEnum("tipo", ["Usuario", "Revenda", "UltraMaster", "Master"]).default("Usuario").notNull(),
   modoSelecao: mysqlEnum("modoSelecao", ["XTeamCode", "M3U8"]).default("XTeamCode").notNull(),
   app: varchar("app", { length: 128 }),
-  appType: mysqlEnum("appType", ["OuroPro", "InteractivePro"]).default("OuroPro").notNull(),
   urlM3u8: text("urlM3u8"),
   urlEpg: text("urlEpg"),
   valor: decimal("valor", { precision: 10, scale: 2 }),
@@ -167,73 +166,3 @@ export const notices = mysqlTable("notices", {
 
 export type Notice = typeof notices.$inferSelect;
 export type InsertNotice = typeof notices.$inferInsert;
-
-// Configurações do InteractivePro (app alternativo com banners dinâmicos)
-export const interactiveConfig = mysqlTable("interactive_config", {
-  id: int("id").autoincrement().primaryKey(),
-  ownerId: int("ownerId").notNull(),
-  backgroundUrl: text("backgroundUrl"), // Imagem de fundo personalizável
-  appName: varchar("appName", { length: 128 }).default("InteractivePro").notNull(),
-  appLogo: text("appLogo"), // Logo customizado
-  autoplayInterval: int("autoplayInterval").default(5000).notNull(), // Intervalo de carousel em ms
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type InteractiveConfig = typeof interactiveConfig.$inferSelect;
-export type InsertInteractiveConfig = typeof interactiveConfig.$inferInsert;
-
-// Banners do carousel para InteractivePro
-export const interactiveBanners = mysqlTable("interactive_banners", {
-  id: int("id").autoincrement().primaryKey(),
-  ownerId: int("ownerId").notNull(),
-  titulo: varchar("titulo", { length: 255 }).notNull(),
-  descricao: text("descricao"),
-  tipo: mysqlEnum("tipo", ["image", "video"]).default("image").notNull(),
-  urlMedia: text("urlMedia").notNull(), // URL da imagem ou vídeo
-  duracao: int("duracao").default(5).notNull(), // Duração em segundos (para vídeos)
-  ordem: int("ordem").default(0).notNull(),
-  ativo: boolean("ativo").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type InteractiveBanner = typeof interactiveBanners.$inferSelect;
-export type InsertInteractiveBanner = typeof interactiveBanners.$inferInsert;
-
-// Sugestões de Conteúdo para InteractivePro
-export const contentSuggestions = mysqlTable("content_suggestions", {
-  id: int("id").autoincrement().primaryKey(),
-  ownerId: int("ownerId").notNull(),
-  tipo: mysqlEnum("tipo", ["filme", "serie", "novela", "desenho"]).notNull(),
-  titulo: varchar("titulo", { length: 255 }).notNull(),
-  descricao: text("descricao"),
-  urlCapa: text("urlCapa"), // URL da imagem de capa
-  urlTrailer: text("urlTrailer"), // URL do trailer
-  genero: varchar("genero", { length: 128 }),
-  ano: int("ano"),
-  classificacao: varchar("classificacao", { length: 32 }), // Ex: 12+, 16+, 18+
-  duracao: int("duracao"), // Em minutos
-  ativo: boolean("ativo").default(true).notNull(),
-  ordem: int("ordem").default(0).notNull(), // Para ordenação na exibição
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type ContentSuggestion = typeof contentSuggestions.$inferSelect;
-export type InsertContentSuggestion = typeof contentSuggestions.$inferInsert;
-
-// Logo animado com som para introdução
-export const appIntroConfig = mysqlTable("app_intro_config", {
-  id: int("id").autoincrement().primaryKey(),
-  ownerId: int("ownerId").notNull(),
-  logoUrl: text("logoUrl"), // URL do logo animado
-  soundUrl: text("soundUrl"), // URL do som
-  duracao: int("duracao").default(3000).notNull(), // Duração em ms
-  habilitado: boolean("habilitado").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type AppIntroConfig = typeof appIntroConfig.$inferSelect;
-export type InsertAppIntroConfig = typeof appIntroConfig.$inferInsert;

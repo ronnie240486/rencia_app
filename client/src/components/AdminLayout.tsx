@@ -22,8 +22,6 @@ import {
   AlertCircle,
   Moon,
   Sun,
-  Clapperboard,
-  Sparkles,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -48,9 +46,6 @@ const navItems: NavItem[] = [
   { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true },
   { label: "OuroPro", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Configurações do App", href: "/app-settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
-  { label: "Interactive", href: "/interactive", icon: <Film size={18} />, ownerOnly: true },
-  { label: "Sugestões de Conteúdo", href: "/content-suggestions", icon: <Clapperboard size={18} />, ownerOnly: true },
-  { label: "Logo Animado", href: "/app-intro", icon: <Sparkles size={18} />, ownerOnly: true },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];
 

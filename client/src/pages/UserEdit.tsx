@@ -62,7 +62,7 @@ export default function UserEdit() {
     urlEpg: "",
     valor: "",
     dataExpiracao: "",
-    tipo: "Usuario" as "Usuario" | "Revenda" | "Master",
+    tipo: "Usuario" as "Usuario" | "Revenda" | "UltraMaster" | "Master",
     status: "Liberado" as "Liberado" | "Bloqueado" | "Expirado",
     telefone: "",
   });
@@ -97,7 +97,7 @@ export default function UserEdit() {
         dataExpiracao: device.dataExpiracao
           ? new Date(device.dataExpiracao).toISOString().split("T")[0]
           : "",
-        tipo: (device.tipo as "Usuario" | "Revenda" | "Master") ?? "Usuario",
+        tipo: (device.tipo as "Usuario" | "Revenda" | "UltraMaster" | "Master") ?? "Usuario",
         status: (device.status as "Liberado" | "Bloqueado" | "Expirado") ?? "Liberado",
         telefone: device.telefone ? device.telefone.replace(/^\+55/, "") : "",
       });

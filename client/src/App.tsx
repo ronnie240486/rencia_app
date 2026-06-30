@@ -22,19 +22,12 @@ import CarouselManager from "./pages/CarouselManager";
 import Suggestions from "./pages/Suggestions";
 import Notices from "./pages/Notices";
 import { PanelFunctions } from "./pages/PanelFunctions";
-import Interactive from "./pages/Interactive";
-import ContentSuggestions from "./pages/ContentSuggestions";
-import AppIntro from "./pages/AppIntro";
-import Splash from "./pages/Splash";
-import InteractiveApp from "./pages/InteractiveApp";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Login} />
       <Route path={"/login"} component={Login} />
-      <Route path={"/splash"} component={Splash} />
-      <Route path={"/interactive-app"} component={InteractiveApp} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/users"} component={Users} />
       <Route path={"/users/create"} component={UserCreate} />
@@ -42,9 +35,6 @@ function Router() {
       <Route path={"/profile"} component={Profile} />
       <Route path={"/settings"} component={Settings} />
       <Route path={"/app-settings"} component={Settings} />
-      <Route path={"/interactive"} component={Interactive} />
-      <Route path={"/content-suggestions"} component={ContentSuggestions} />
-      <Route path={"/app-intro"} component={AppIntro} />
       <Route path={"/revendas"} component={Revendas} />
       <Route path={"/users/:id/lists"} component={DeviceLists} />
       <Route path={"/dns-massa"} component={DnsMassa} />

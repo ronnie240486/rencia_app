@@ -1,9 +1,0 @@
-{
-  "query": "UPDATE `devices` SET `tipo` = 'Master' WHERE `tipo` = 'UltraMaster';",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute UPDATE `devices` SET `tipo` = 'Master' WHERE `tipo` = 'UltraMaster';",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 605
-}

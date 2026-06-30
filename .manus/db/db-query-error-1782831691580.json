@@ -1,8 +1,0 @@
-{
-  "query": "ALTER TABLE `devices` MODIFY COLUMN `tipo` enum('Usuario','Revenda','Master') NOT NULL DEFAULT 'Usuario';\nALTER TABLE `devices` ADD `appType` enum('OuroPro','InteractivePro') DEFAULT 'OuroPro' NOT NULL;\nALTER TABLE `devices` ADD CONSTRAINT `devices_mac_unique` UNIQUE(`mac`);",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute ALTER TABLE `devices` MODIFY COLUMN `tipo` enum('Usuario','Revenda','Master') NOT NULL DEFAULT 'Usuario';\nALTER TABLE `devices` ADD `appType` enum('OuroPro','InteractivePro') DEFAULT 'OuroPro' NOT NULL;\nALTER TABLE `devices` ADD CONSTRAINT `devices_mac_unique` UNIQUE(`mac`);",
-  "returncode": 1,
-  "logs": [
-    "ERROR 1265 (01000) at line 1: Data truncated for column 'tipo', value is 'UltraMaster'"
-  ]
-}

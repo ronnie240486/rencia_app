@@ -50,10 +50,9 @@ export default function UserCreate() {
     mac: "",
     nomeServer: "",
     app: "OuroPro",
-    appType: "OuroPro" as "OuroPro" | "InteractivePro",
     valor: "",
     dataExpiracao: "",
-    tipo: "Usuario" as "Usuario" | "Revenda" | "Master",
+    tipo: "Usuario" as "Usuario" | "Revenda" | "UltraMaster" | "Master",
     telefone: "",
   });
 
@@ -122,7 +121,6 @@ export default function UserCreate() {
       modoSelecao: principal.modo,
       tipo: form.tipo,
       app: "OuroPro",
-      appType: form.appType,
       urlM3u8: urlM3u8 || undefined,
       urlEpg: principal.urlEpg || undefined,
       valor: form.valor || undefined,
@@ -176,16 +174,10 @@ export default function UserCreate() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">TIPO DE APP:</Label>
-              <Select value={form.appType} onValueChange={(value) => setForm(f => ({ ...f, appType: value as "OuroPro" | "InteractivePro" }))}>
-                <SelectTrigger className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="OuroPro">OuroPro</SelectItem>
-                  <SelectItem value="InteractivePro">InteractivePro</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP DO CLIENTE:</Label>
+              <div className="h-10 flex items-center px-3 rounded-md border bg-muted text-sm font-medium text-muted-foreground">
+                OuroPro
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -113,27 +113,6 @@
       "when": 1782011337697,
       "tag": "0015_dark_iron_lad",
       "breakpoints": true
-    },
-    {
-      "idx": 16,
-      "version": "5",
-      "when": 1782796561626,
-      "tag": "0016_previous_exiles",
-      "breakpoints": true
-    },
-    {
-      "idx": 17,
-      "version": "5",
-      "when": 1782829799621,
-      "tag": "0017_quick_arclight",
-      "breakpoints": true
-    },
-    {
-      "idx": 18,
-      "version": "5",
-      "when": 1782831675410,
-      "tag": "0018_charming_stingray",
-      "breakpoints": true
     }
   ]
 }

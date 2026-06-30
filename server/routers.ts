@@ -12,7 +12,7 @@ import {
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
   getConnectedDevices, updateUserProfile,
 } from "./db";
-import { eq, and, inArray, sql, desc, asc } from "drizzle-orm";
+import { eq, and, inArray, sql, desc } from "drizzle-orm";
 import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -73,10 +73,9 @@ export const appRouter = router({
       .input(z.object({
         mac: z.string().min(1),
         nomeServer: z.string().min(1),
-        tipo: z.enum(["Usuario", "Revenda", "Master"]).optional().default("Usuario"),
+        tipo: z.enum(["Usuario", "Revenda", "UltraMaster", "Master"]).optional().default("Usuario"),
         modoSelecao: z.enum(["XTeamCode", "M3U8"]).optional().default("XTeamCode"),
         app: z.string().optional(),
-        appType: z.enum(["OuroPro", "InteractivePro"]).optional().default("OuroPro"),
         urlM3u8: z.string().optional(),
         urlEpg: z.string().optional(),
         valor: z.string().optional(),
@@ -99,10 +98,9 @@ export const appRouter = router({
         id: z.number(),
         mac: z.string().optional(),
         nomeServer: z.string().optional(),
-        tipo: z.enum(["Usuario", "Revenda", "Master"]).optional(),
+        tipo: z.enum(["Usuario", "Revenda", "UltraMaster", "Master"]).optional(),
         modoSelecao: z.enum(["XTeamCode", "M3U8"]).optional(),
         app: z.string().optional(),
-        appType: z.enum(["OuroPro", "InteractivePro"]).optional(),
         urlM3u8: z.string().optional(),
         urlEpg: z.string().optional(),
         valor: z.string().optional(),
@@ -843,299 +841,6 @@ export const appRouter = router({
         await db.delete(notices).where(eq(notices.id, input.id));
         return { success: true };
       }),
-  }),
-
-  interactive: router({
-    getConfig: protectedProcedure.query(async ({ ctx }) => {
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const schema = await import("../drizzle/schema");
-      const interactiveConfig = (schema as any).interactiveConfig;
-      const configs = await db.select().from(interactiveConfig).where(eq(interactiveConfig.ownerId, ctx.user.id)).limit(1);
-      const config = configs[0];
-      return config || { ownerId: ctx.user.id, appName: "InteractivePro", autoplayInterval: 5000 };
-    }),
-
-    updateConfig: protectedProcedure
-      .input(z.object({
-        backgroundUrl: z.string().optional(),
-        appName: z.string().optional(),
-        appLogo: z.string().optional(),
-        autoplayInterval: z.number().optional(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        const schema = await import("../drizzle/schema");
-        const interactiveConfig = (schema as any).interactiveConfig;
-        const existings = await db.select().from(interactiveConfig).where(eq(interactiveConfig.ownerId, ctx.user.id)).limit(1);
-        const existing = existings[0];
-        if (existing) {
-          const updateData: Record<string, unknown> = {};
-          if (input.backgroundUrl !== undefined) updateData.backgroundUrl = input.backgroundUrl;
-          if (input.appName !== undefined) updateData.appName = input.appName;
-          if (input.appLogo !== undefined) updateData.appLogo = input.appLogo;
-          if (input.autoplayInterval !== undefined) updateData.autoplayInterval = input.autoplayInterval;
-          if (Object.keys(updateData).length > 0) {
-            await db.update(interactiveConfig).set(updateData).where(eq(interactiveConfig.ownerId, ctx.user.id));
-          }
-        } else {
-          await db.insert(interactiveConfig).values({
-            ownerId: ctx.user.id,
-            backgroundUrl: input.backgroundUrl,
-            appName: input.appName || "InteractivePro",
-            appLogo: input.appLogo,
-            autoplayInterval: input.autoplayInterval || 5000,
-          });
-        }
-        return { success: true };
-      }),
-
-    getBanners: protectedProcedure.query(async ({ ctx }) => {
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const schema = await import("../drizzle/schema");
-      const interactiveBanners = (schema as any).interactiveBanners;
-      return db.select().from(interactiveBanners)
-        .where(and(eq(interactiveBanners.ownerId, ctx.user.id), eq(interactiveBanners.ativo, true)))
-        .orderBy(asc(interactiveBanners.ordem));
-    }),
-
-    createBanner: protectedProcedure
-      .input(z.object({
-        titulo: z.string().min(1),
-        descricao: z.string().optional(),
-        tipo: z.enum(["image", "video"]),
-        urlMedia: z.string().url(),
-        duracao: z.number().optional(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        const schema = await import("../drizzle/schema");
-        const interactiveBanners = (schema as any).interactiveBanners;
-        await db.insert(interactiveBanners).values({
-          ownerId: ctx.user.id,
-          titulo: input.titulo,
-          descricao: input.descricao,
-          tipo: input.tipo,
-          urlMedia: input.urlMedia,
-          duracao: input.duracao || 5,
-          ordem: 0,
-          ativo: true,
-        });
-        return { success: true };
-      }),
-
-    updateBanner: protectedProcedure
-      .input(z.object({
-        id: z.number(),
-        titulo: z.string().optional(),
-        descricao: z.string().optional(),
-        tipo: z.enum(["image", "video"]).optional(),
-        urlMedia: z.string().url().optional(),
-        duracao: z.number().optional(),
-        ativo: z.boolean().optional(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        return { success: true };
-      }),
-
-    deleteBanner: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        const schema = await import("../drizzle/schema");
-        const interactiveBanners = (schema as any).interactiveBanners;
-        await db.delete(interactiveBanners)
-          .where(and(eq(interactiveBanners.id, input.id), eq(interactiveBanners.ownerId, ctx.user.id)));
-        return { success: true };
-      }),
-  }),
-
-  contentSuggestions: router({
-    list: protectedProcedure
-      .input(z.object({
-        tipo: z.enum(["filme", "serie", "novela", "desenho"]).optional(),
-      }))
-      .query(async ({ ctx, input }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        const schema = await import("../drizzle/schema");
-        const contentSuggestions = (schema as any).contentSuggestions;
-        const results = await db.select().from(contentSuggestions)
-          .where(and(eq(contentSuggestions.ownerId, ctx.user.id), eq(contentSuggestions.ativo, true)))
-          .orderBy(asc(contentSuggestions.ordem));
-        return results;
-      }),
-
-    create: protectedProcedure
-      .input(z.object({
-        tipo: z.enum(["filme", "serie", "novela", "desenho"]),
-        titulo: z.string().min(1),
-        descricao: z.string().optional(),
-        urlCapa: z.string().url().optional(),
-        urlTrailer: z.string().url().optional(),
-        genero: z.string().optional(),
-        ano: z.number().optional(),
-        classificacao: z.string().optional(),
-        duracao: z.number().optional(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        const schema = await import("../drizzle/schema");
-        const contentSuggestions = (schema as any).contentSuggestions;
-        await db.insert(contentSuggestions).values({
-          ownerId: ctx.user.id,
-          ...input,
-        });
-        return { success: true };
-      }),
-
-    delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        const schema = await import("../drizzle/schema");
-        const contentSuggestions = (schema as any).contentSuggestions;
-        await db.delete(contentSuggestions)
-          .where(and(eq(contentSuggestions.id, input.id), eq(contentSuggestions.ownerId, ctx.user.id)));
-        return { success: true };
-      }),
-  }),
-
-  appIntro: router({
-    getConfig: protectedProcedure.query(async ({ ctx }) => {
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const schema = await import("../drizzle/schema");
-      const appIntroConfig = (schema as any).appIntroConfig;
-      const configs = await db.select().from(appIntroConfig)
-        .where(eq(appIntroConfig.ownerId, ctx.user.id)).limit(1);
-      return configs[0] || { ownerId: ctx.user.id, duracao: 3000, habilitado: true };
-    }),
-
-    updateConfig: protectedProcedure
-      .input(z.object({
-        logoUrl: z.string().optional(),
-        soundUrl: z.string().optional(),
-        duracao: z.number().optional(),
-        habilitado: z.boolean().optional(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        const schema = await import("../drizzle/schema");
-        const appIntroConfig = (schema as any).appIntroConfig;
-        const existings = await db.select().from(appIntroConfig)
-          .where(eq(appIntroConfig.ownerId, ctx.user.id)).limit(1);
-        const existing = existings[0];
-        if (existing) {
-          const updateData: Record<string, unknown> = {};
-          if (input.logoUrl !== undefined) updateData.logoUrl = input.logoUrl;
-          if (input.soundUrl !== undefined) updateData.soundUrl = input.soundUrl;
-          if (input.duracao !== undefined) updateData.duracao = input.duracao;
-          if (input.habilitado !== undefined) updateData.habilitado = input.habilitado;
-          if (Object.keys(updateData).length > 0) {
-            await db.update(appIntroConfig).set(updateData).where(eq(appIntroConfig.ownerId, ctx.user.id));
-          }
-        } else {
-          await db.insert(appIntroConfig).values({
-            ownerId: ctx.user.id,
-            logoUrl: input.logoUrl,
-            soundUrl: input.soundUrl,
-            duracao: input.duracao || 3000,
-            habilitado: input.habilitado !== false,
-          });
-        }
-        return { success: true };
-      }),
-  }),
-
-  // ─── Ads/Banners para APK ──────────────────────────────────────────
-  ads: router({
-    adsOne: publicProcedure.query(async () => {
-      const db = await getDb();
-      if (!db) return new Response("Database not available", { status: 500 });
-      
-      const banners = await db.select().from(carouselSlides).limit(15);
-      const config = await db.select().from(carouselConfig).limit(1);
-      
-      const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Filmes Sugeridos</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { width: 100%; height: 100vh; overflow: hidden; background: #000; }
-    #slider-container { width: 100%; height: 100%; position: relative; }
-    .slide {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      background-size: cover;
-      background-position: center;
-      opacity: 0;
-      transition: opacity 1s ease-in-out;
-    }
-    .slide.active { opacity: 1; }
-    .logo { width: 50%; height: auto; position: absolute; top: 50%; left: 25%; transform: translateY(-50%); }
-    .footer-banner {
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-      height: 60px;
-      background: rgba(0, 0, 0, 0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      font-weight: bold;
-      color: #fff;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-  </style>
-</head>
-<body>
-  <div id="slider-container">
-    <div id="slide1" class="slide active"></div>
-    <div id="slide2" class="slide"></div>
-  </div>
-  <div class="footer-banner">FILMES SUGERIDOS</div>
-  <script>
-    const banners = ${JSON.stringify(banners)};
-    const interval = ${config[0]?.autoplayInterval || 8000};
-    let currentIndex = 0;
-    
-    function updateSlide() {
-      if (banners.length === 0) return;
-      const banner = banners[currentIndex];
-      const nextSlide = document.getElementById('slide' + (currentIndex % 2 === 0 ? 2 : 1));
-      if (banner.imageUrl) {
-        nextSlide.style.backgroundImage = 'url(' + banner.imageUrl + ')';
-      }
-      nextSlide.classList.add('active');
-      setTimeout(() => {
-        document.getElementById('slide' + ((currentIndex + 1) % 2 === 0 ? 2 : 1)).classList.remove('active');
-      }, 1000);
-      currentIndex = (currentIndex + 1) % banners.length;
-    }
-    
-    updateSlide();
-    setInterval(updateSlide, interval);
-  </script>
-</body>
-</html>
-      `;
-      return new Response(html, { headers: { "Content-Type": "text/html" } });
-    }),
   }),
 });
 
