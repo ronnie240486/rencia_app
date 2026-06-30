@@ -89,8 +89,7 @@ async function getSettings(): Promise<Record<string, string>> {
   }
 }
 
-// ALPHABET deve ser idêntico ao Security.java do APK BoxV3 (maiúsculas primeiro)
-const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
 /**
  * Resolve uma URL de imagem do banco para uma URL pública acessível.
@@ -100,7 +99,6 @@ const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
 async function resolvePublicImageUrl(storedUrl: string): Promise<string> {
   if (!storedUrl) return "";
   // URL do manus-storage precisa de URL pré-assinada
-  // Suporta tanto /manus-storage/... quanto https://renciaapp.manus.space/manus-storage/...
   const manusStorageMatch = storedUrl.match(/\/manus-storage\/(.+)$/);
   if (manusStorageMatch) {
     try {
@@ -131,32 +129,29 @@ async function resolvePublicImageUrl(storedUrl: string): Promise<string> {
  */
 function decodeFromApk(encoded: string): Record<string, unknown> | null {
   try {
-    let s = encoded.replace(/\s/g, "");
+    const s = encoded.replace(/\s/g, "");
     if (s.length < 3) return null;
 
-    // Formato: base64_com_lixo + padding(opcional) + p2char + p1char
-    // Os 2 últimos chars são os marcadores (DEPOIS do padding)
-    const p2Char = s[s.length - 2]; // penúltimo = posição
-    const p1Char = s[s.length - 1]; // último = tamanho
+    // Pegar penúltimo char = posição da key (p2)
+    const p2Char = s[s.length - 2];
     const p2 = ALPHABET.indexOf(p2Char);
+
+    // Pegar último char = tamanho da key (p1)
+    const p1Char = s[s.length - 1];
     const p1 = ALPHABET.indexOf(p1Char);
 
     if (p2 < 0 || p1 < 0) return null;
 
-    // Remover os 2 últimos chars (marcadores), depois remover o padding
-    let clean = s.slice(0, -2); // remove p2char + p1char
-    clean = clean.replace(/=+$/, ""); // remove padding
+    // Remover os 2 últimos chars
+    let clean = s.slice(0, -2);
 
     // Remover p1 chars a partir da posição p2
     clean = clean.slice(0, p2) + clean.slice(p2 + p1);
 
-    // Recalcular padding e decodificar Base64
-    const padNeeded = (4 - (clean.length % 4)) % 4;
-    clean += "=".repeat(padNeeded);
+    // Decodificar Base64
     const decoded = Buffer.from(clean, "base64").toString("utf-8").trim();
     return JSON.parse(decoded);
-  } catch (e) {
-    console.log("[decodeFromApk] ERROR:", e, "encoded:", encoded.slice(0, 60));
+  } catch {
     return null;
   }
 }
@@ -178,26 +173,19 @@ function decodeFromApk(encoded: string): Record<string, unknown> | null {
  */
 function encodeForApk(jsonStr: string): string {
   // Codifica em Base64
-  let b64 = Buffer.from(jsonStr, "utf-8").toString("base64");
+  const b64 = Buffer.from(jsonStr, "utf-8").toString("base64");
 
-  // Remover padding do Base64 (==, =) para nao interferir com os chars de posicao
-  const padding = b64.match(/=+$/);
-  const paddingStr = padding ? padding[0] : "";
-  b64 = b64.replace(/=+$/, "");
+  // Posições fixas: pos1=5 ('f'), pos2=3 ('d')
+  // Garante que pos1 < b64.length para não quebrar
+  const pos1 = Math.min(5, b64.length - 1);
+  const pos2 = 3;
 
-  // p2 = posição onde inserir o lixo (penultimo char no final)
-  // p1 = tamanho do lixo (ultimo char no final)
-  // decodeFromApk lê: penultimo = p2 (posição), ultimo = p1 (tamanho)
-  // remove: clean.slice(0, p2) + clean.slice(p2 + p1)
-  const p2 = Math.max(1, Math.min(b64.length - 2, Math.floor(Math.random() * Math.min(10, b64.length - 1)) + 1));
-  const p1 = Math.floor(Math.random() * 5) + 1; // 1-5 chars de lixo
+  // Insere pos2 chars de lixo na posição pos1
+  const junk = "X".repeat(pos2);
+  const obfuscated = b64.slice(0, pos1) + junk + b64.slice(pos1);
 
-  // Insere p1 chars de lixo na posição p2
-  const junk = "X".repeat(p1);
-  const obfuscated = b64.slice(0, p2) + junk + b64.slice(p2);
-
-  // Adiciona: ALPHABET[p2] (penultimo = posição) + ALPHABET[p1] (ultimo = tamanho) + padding
-  return obfuscated + paddingStr + ALPHABET[p2] + ALPHABET[p1];
+  // Adiciona os 2 chars de posição no final
+  return obfuscated + ALPHABET[pos1] + ALPHABET[pos2];
 }
 
 /**
@@ -338,13 +326,10 @@ export function registerApiRoutes(app: Express) {
       // LOG para diagnóstico do body enviado pelo APK
       console.log("[APK-BODY] Raw body keys:", body ? Object.keys(body) : "null");
       if (body && body.data) {
-        const rawStr = String(body.data);
-        console.log("[APK-BODY] Raw data (first 100):", rawStr.slice(0, 100));
-        console.log("[APK-BODY] Last 6 chars:", rawStr.slice(-6));
         try {
-          const rawDecoded = decodeFromApk(rawStr);
+          const rawDecoded = decodeFromApk(String(body.data));
           console.log("[APK-BODY] Decoded payload:", JSON.stringify(rawDecoded));
-        } catch (e) { console.log("[APK-BODY] Decode error:", e); }
+        } catch { /* ignora */ }
       }
 
       if (body && body.data) {
@@ -566,19 +551,16 @@ export function registerApiRoutes(app: Express) {
       const words = buildWords(cfg);
 
       // Resolver URLs de imagens para URLs públicas (presigned S3)
-      const [postResolvedLogoUrl, postResolvedBannerUrl] = await Promise.all([
+      const [postResolvedLogoUrl, postResolvedBannerUrl, postResolvedIconReload, postResolvedIconExit, postResolvedIconSettings, postResolvedIconLiveTv, postResolvedIconMovies, postResolvedIconSeries] = await Promise.all([
         resolvePublicImageUrl(cfg.trial_logo_url || ""),
         resolvePublicImageUrl(cfg.trial_banner_url || ""),
+        resolvePublicImageUrl(cfg.icon_reload_url || ""),
+        resolvePublicImageUrl(cfg.icon_exit_url || ""),
+        resolvePublicImageUrl(cfg.icon_settings_url || ""),
+        resolvePublicImageUrl(cfg.icon_live_tv_url || ""),
+        resolvePublicImageUrl(cfg.icon_movies_url || ""),
+        resolvePublicImageUrl(cfg.icon_series_url || ""),
       ]);
-      // Para ícones: usar os endpoints /api/v4/icon/:name que servem HTTP 200 direto
-      // Isso garante que o APK sempre busca a versão mais recente sem cache
-      const iconBase = "https://renciaapp.manus.space/api/v4/icon";
-      const postResolvedIconReload = `${iconBase}/reload`;
-      const postResolvedIconExit = `${iconBase}/exit`;
-      const postResolvedIconSettings = `${iconBase}/settings`;
-      const postResolvedIconLiveTv = `${iconBase}/live_tv`;
-      const postResolvedIconMovies = `${iconBase}/movies`;
-      const postResolvedIconSeries = `${iconBase}/series`;
 
       // O APK BoxV3 busca impact_phrase, contact, trial_ended, etc. dentro de
       // languages[].words (LanguageModel → WordModels via Gson).
@@ -685,7 +667,7 @@ export function registerApiRoutes(app: Express) {
       if (result.length === 0) {
         const wordsNf = buildWords(cfg);
         const languagesNf = [{ code: "pt", id: "1", name: "Português", words: wordsNf }, { code: "en", id: "2", name: "English", words: wordsNf }];
-        res.json({ mac_registered: false, mac_address: mac, urls: [], is_trial: 1, lock: 1, languages: languagesNf, words: wordsNf, apk_link: cfg.apk_download_url || "", app_version: cfg.apk_version || "5.0", banner_url: cfg.trial_banner_url || "", logo_url: cfg.trial_logo_url || "", impact_phrase: wordsNf.impact_phrase, legal_notice: wordsNf.legal_notice, app_name: wordsNf.app_name, lock_title: cfg.lock_title || "OuroPro", lock_message: cfg.lock_message || "OuroPro is a media player application. The app does not provide or include any media or content.", lock_button_text: cfg.lock_button_text || "Renovar Agora", lock_button_url: cfg.lock_button_url || "" });
+        res.json({ mac_registered: false, mac_address: mac, urls: [], is_trial: 1, lock: 1, languages: languagesNf, words: wordsNf, apk_link: cfg.apk_download_url || "", app_version: cfg.apk_version || "5.0", banner_url: cfg.trial_banner_url || "", logo_url: cfg.trial_logo_url || "", impact_phrase: wordsNf.impact_phrase, legal_notice: wordsNf.legal_notice, app_name: wordsNf.app_name, lock_title: cfg.lock_title || "OuroPro", lock_message: cfg.lock_message || "OuroPro is a media player application.", lock_button_text: cfg.lock_button_text || "Renovar Agora", lock_button_url: cfg.lock_button_url || "" });
         return;
       }
 
@@ -949,20 +931,9 @@ export function registerApiRoutes(app: Express) {
       // Resolver URL pública (gera presigned URL se for manus-storage protegido)
       const resolvedUrl = await resolvePublicImageUrl(bgUrl);
 
-      // O APK só aceita HTTP 200 com bytes da imagem — NÃO aceita redirect 302.
-      // Fazer proxy: baixar a imagem do S3 e servir diretamente.
-      const fetch = (await import("node-fetch")).default;
-      const imgResp = await fetch(resolvedUrl);
-      if (!imgResp.ok) {
-        res.status(204).end();
-        return;
-      }
-      const contentType = imgResp.headers.get("content-type") || "image/jpeg";
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.setHeader("Pragma", "no-cache");
-      res.setHeader("Expires", "0");
-      imgResp.body?.pipe(res);
+      // Usar redirect para que o Glide faça cache da URL final do S3
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.redirect(302, resolvedUrl);
     } catch (error) {
       console.error("[API] /api/v4/bg.php error:", error);
       res.status(204).end();
@@ -1441,20 +1412,9 @@ export function registerApiRoutes(app: Express) {
       // Resolver URL pública (gera presigned URL se for manus-storage protegido)
       const iconUrl = await resolvePublicImageUrl(rawIconUrl);
 
-      // O APK só aceita HTTP 200 com bytes da imagem — NÃO aceita redirect 302.
-      // Fazer proxy: baixar a imagem e servir diretamente.
-      const fetchIcon = (await import("node-fetch")).default;
-      const iconResp = await fetchIcon(iconUrl);
-      if (!iconResp.ok) {
-        res.status(404).json({ error: "Icon not available" });
-        return;
-      }
-      const iconContentType = iconResp.headers.get("content-type") || "image/png";
-      res.setHeader("Content-Type", iconContentType);
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.setHeader("Pragma", "no-cache");
-      res.setHeader("Expires", "0");
-      iconResp.body?.pipe(res);
+      // Redirect para URL final — Glide segue redirect e faz cache da URL do S3
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.redirect(302, iconUrl);
     } catch (error) {
       console.error("[API] /api/v4/icon error:", error);
       res.status(500).json({ error: "Erro interno" });
@@ -1555,4 +1515,3 @@ export function registerApiRoutes(app: Express) {
     }
   });
 }
-// force reload Mon Jun 29 00:07:36 EDT 2026

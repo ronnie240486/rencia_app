@@ -198,7 +198,7 @@ export async function getDeviceStats(ownerId: number) {
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "Revenda"))),
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "UltraMaster"))),
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "Master"))),
-    db.select({ total: sql<string>`COALESCE(SUM(valor), 0)` }).from(devices).where(eq(devices.ownerId, ownerId)),
+    db.select({ total: sql<string>`COALESCE(SUM(valor), 0)` }).from(devices).where(and(eq(devices.ownerId, ownerId), gte(devices.dataCadastro, sql`DATE_FORMAT(NOW(), '%Y-%m-01')`))),
   ]);
 
   return {
