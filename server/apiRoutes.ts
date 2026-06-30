@@ -66,7 +66,34 @@ const UPLOAD_FIELD_KEYS: Record<string, string> = {
 // Cache de configurações para evitar query no banco a cada request
 let settingsCache: Record<string, string> = {};
 let settingsCacheTime = 0;
-const SETTINGS_CACHE_TTL = 60_000; // 60 segundos
+const SETTINGS_CACHE_TTL = 5_000; // 5 segundos (para ícones atualizarem rápido no APK)
+
+// Cache de timestamps dos ícones para cache-busting no Glide
+let iconTimestampsCache: Record<string, number> = {};
+let iconTimestampsCacheTime = 0;
+
+async function getIconTimestamps(): Promise<Record<string, number>> {
+  const now = Date.now();
+  if (now - iconTimestampsCacheTime < SETTINGS_CACHE_TTL && Object.keys(iconTimestampsCache).length > 0) {
+    return iconTimestampsCache;
+  }
+  try {
+    const db = await getDb();
+    if (!db) return iconTimestampsCache;
+    const rows = await db.select().from(appSettings).where(
+      (await import('drizzle-orm')).like(appSettings.key, 'icon_%')
+    );
+    const result: Record<string, number> = {};
+    for (const row of rows) {
+      result[row.key] = row.updatedAt ? new Date(row.updatedAt).getTime() : Date.now();
+    }
+    iconTimestampsCache = result;
+    iconTimestampsCacheTime = now;
+    return result;
+  } catch {
+    return iconTimestampsCache;
+  }
+}
 
 async function getSettings(): Promise<Record<string, string>> {
   const now = Date.now();
@@ -352,7 +379,8 @@ export function registerApiRoutes(app: Express) {
         // Usar decodeFromApk para remover a key antes de decodificar
         const parsed = decodeFromApk(String(body.data));
         if (parsed) {
-          const rawDeviceId = (parsed.app_device_id as string) ?? null;
+          // O APK v34 envia 'mac' diretamente; versões mais antigas usam 'app_device_id'
+          const rawDeviceId = (parsed.mac as string) ?? (parsed.app_device_id as string) ?? null;
           if (rawDeviceId) {
             // Verificar se já é um MAC no formato XX:XX:XX:XX:XX:XX (sem Base64)
             const isMacFormat = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(rawDeviceId.trim());
@@ -570,15 +598,22 @@ export function registerApiRoutes(app: Express) {
         resolvePublicImageUrl(cfg.trial_logo_url || ""),
         resolvePublicImageUrl(cfg.trial_banner_url || ""),
       ]);
-      // Para ícones: usar os endpoints /api/v4/icon/:name que servem HTTP 200 direto
-      // Isso garante que o APK sempre busca a versão mais recente sem cache
+      // Para ícones: usar os endpoints /api/v4/icon/:name com versão para invalidar cache do Glide
+      // Quando o ícone é trocado no painel, o timestamp muda e o Glide não usa o cache antigo
       const iconBase = "https://renciaapp.manus.space/api/v4/icon";
-      const postResolvedIconReload = `${iconBase}/reload`;
-      const postResolvedIconExit = `${iconBase}/exit`;
-      const postResolvedIconSettings = `${iconBase}/settings`;
-      const postResolvedIconLiveTv = `${iconBase}/live_tv`;
-      const postResolvedIconMovies = `${iconBase}/movies`;
-      const postResolvedIconSeries = `${iconBase}/series`;
+      const iconTs = await getIconTimestamps();
+      const tsReload = iconTs['icon_reload_url'] || Date.now();
+      const tsExit = iconTs['icon_exit_url'] || Date.now();
+      const tsSettings = iconTs['icon_settings_url'] || Date.now();
+      const tsLiveTv = iconTs['icon_live_tv_url'] || Date.now();
+      const tsMovies = iconTs['icon_movies_url'] || Date.now();
+      const tsSeries = iconTs['icon_series_url'] || Date.now();
+      const postResolvedIconReload = `${iconBase}/reload?v=${tsReload}`;
+      const postResolvedIconExit = `${iconBase}/exit?v=${tsExit}`;
+      const postResolvedIconSettings = `${iconBase}/settings?v=${tsSettings}`;
+      const postResolvedIconLiveTv = `${iconBase}/live_tv?v=${tsLiveTv}`;
+      const postResolvedIconMovies = `${iconBase}/movies?v=${tsMovies}`;
+      const postResolvedIconSeries = `${iconBase}/series?v=${tsSeries}`;
 
       // O APK BoxV3 busca impact_phrase, contact, trial_ended, etc. dentro de
       // languages[].words (LanguageModel → WordModels via Gson).
@@ -884,8 +919,9 @@ export function registerApiRoutes(app: Express) {
         } else {
           await db.insert(appSettings).values({ key: field, value: absoluteUrl });
         }
-        // Invalidar cache de configurações
+        // Invalidar cache de configurações e timestamps
         settingsCacheTime = 0;
+        iconTimestampsCacheTime = 0;
       }
 
       res.json({ success: true, url: absoluteUrl, field });
