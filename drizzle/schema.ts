@@ -166,3 +166,36 @@ export const notices = mysqlTable("notices", {
 
 export type Notice = typeof notices.$inferSelect;
 export type InsertNotice = typeof notices.$inferInsert;
+
+// Configurações do InteractivePro (app alternativo com banners dinâmicos)
+export const interactiveConfig = mysqlTable("interactive_config", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  backgroundUrl: text("backgroundUrl"), // Imagem de fundo personalizável
+  appName: varchar("appName", { length: 128 }).default("InteractivePro").notNull(),
+  appLogo: text("appLogo"), // Logo customizado
+  autoplayInterval: int("autoplayInterval").default(5000).notNull(), // Intervalo de carousel em ms
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type InteractiveConfig = typeof interactiveConfig.$inferSelect;
+export type InsertInteractiveConfig = typeof interactiveConfig.$inferInsert;
+
+// Banners do carousel para InteractivePro
+export const interactiveBanners = mysqlTable("interactive_banners", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  descricao: text("descricao"),
+  tipo: mysqlEnum("tipo", ["image", "video"]).default("image").notNull(),
+  urlMedia: text("urlMedia").notNull(), // URL da imagem ou vídeo
+  duracao: int("duracao").default(5).notNull(), // Duração em segundos (para vídeos)
+  ordem: int("ordem").default(0).notNull(),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type InteractiveBanner = typeof interactiveBanners.$inferSelect;
+export type InsertInteractiveBanner = typeof interactiveBanners.$inferInsert;

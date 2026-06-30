@@ -12,7 +12,7 @@ import {
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
   getConnectedDevices, updateUserProfile,
 } from "./db";
-import { eq, and, inArray, sql, desc } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, asc } from "drizzle-orm";
 import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -839,6 +839,115 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         await db.delete(notices).where(eq(notices.id, input.id));
+        return { success: true };
+      }),
+  }),
+
+  interactive: router({
+    getConfig: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const schema = await import("../drizzle/schema");
+      const interactiveConfig = (schema as any).interactiveConfig;
+      const configs = await db.select().from(interactiveConfig).where(eq(interactiveConfig.ownerId, ctx.user.id)).limit(1);
+      const config = configs[0];
+      return config || { ownerId: ctx.user.id, appName: "InteractivePro", autoplayInterval: 5000 };
+    }),
+
+    updateConfig: protectedProcedure
+      .input(z.object({
+        backgroundUrl: z.string().optional(),
+        appName: z.string().optional(),
+        appLogo: z.string().optional(),
+        autoplayInterval: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const schema = await import("../drizzle/schema");
+        const interactiveConfig = (schema as any).interactiveConfig;
+        const existings = await db.select().from(interactiveConfig).where(eq(interactiveConfig.ownerId, ctx.user.id)).limit(1);
+        const existing = existings[0];
+        if (existing) {
+          const updateData: Record<string, unknown> = {};
+          if (input.backgroundUrl !== undefined) updateData.backgroundUrl = input.backgroundUrl;
+          if (input.appName !== undefined) updateData.appName = input.appName;
+          if (input.appLogo !== undefined) updateData.appLogo = input.appLogo;
+          if (input.autoplayInterval !== undefined) updateData.autoplayInterval = input.autoplayInterval;
+          if (Object.keys(updateData).length > 0) {
+            await db.update(interactiveConfig).set(updateData).where(eq(interactiveConfig.ownerId, ctx.user.id));
+          }
+        } else {
+          await db.insert(interactiveConfig).values({
+            ownerId: ctx.user.id,
+            backgroundUrl: input.backgroundUrl,
+            appName: input.appName || "InteractivePro",
+            appLogo: input.appLogo,
+            autoplayInterval: input.autoplayInterval || 5000,
+          });
+        }
+        return { success: true };
+      }),
+
+    getBanners: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const schema = await import("../drizzle/schema");
+      const interactiveBanners = (schema as any).interactiveBanners;
+      return db.select().from(interactiveBanners)
+        .where(and(eq(interactiveBanners.ownerId, ctx.user.id), eq(interactiveBanners.ativo, true)))
+        .orderBy(asc(interactiveBanners.ordem));
+    }),
+
+    createBanner: protectedProcedure
+      .input(z.object({
+        titulo: z.string().min(1),
+        descricao: z.string().optional(),
+        tipo: z.enum(["image", "video"]),
+        urlMedia: z.string().url(),
+        duracao: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const schema = await import("../drizzle/schema");
+        const interactiveBanners = (schema as any).interactiveBanners;
+        await db.insert(interactiveBanners).values({
+          ownerId: ctx.user.id,
+          titulo: input.titulo,
+          descricao: input.descricao,
+          tipo: input.tipo,
+          urlMedia: input.urlMedia,
+          duracao: input.duracao || 5,
+          ordem: 0,
+          ativo: true,
+        });
+        return { success: true };
+      }),
+
+    updateBanner: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        titulo: z.string().optional(),
+        descricao: z.string().optional(),
+        tipo: z.enum(["image", "video"]).optional(),
+        urlMedia: z.string().url().optional(),
+        duracao: z.number().optional(),
+        ativo: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return { success: true };
+      }),
+
+    deleteBanner: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const schema = await import("../drizzle/schema");
+        const interactiveBanners = (schema as any).interactiveBanners;
+        await db.delete(interactiveBanners)
+          .where(and(eq(interactiveBanners.id, input.id), eq(interactiveBanners.ownerId, ctx.user.id)));
         return { success: true };
       }),
   }),

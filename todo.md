@@ -265,3 +265,15 @@
 - [x] Criar novo item "Configurações do App" (Painel + Tema + Chatbot + APK) em /app-settings
 - [x] Adicionar rota /app-settings no App.tsx
 - [x] Adicionar item "Configurações do App" no menu lateral (AdminLayout)
+
+## InteractivePro - Novo APK (30/06/2026)
+- [x] Criar schema para InteractiveConfig (fundo, logo, nome, intervalo)
+- [x] Criar schema para InteractiveBanners (carousel dinâmico)
+- [x] Criar migration SQL para tabelas
+- [x] Implementar procedures tRPC para Interactive
+- [x] Criar página Interactive.tsx no painel
+- [ ] Adicionar item "Interactive" no menu lateral (AdminLayout)
+- [ ] Testar página Interactive no navegador
+- [ ] Criar endpoints para APK consumir (/api/interactive/config, /api/interactive/banners)
+- [ ] Compilar novo APK InteractivePro com branding customizado
+- [ ] Testar carousel de banners no APK
