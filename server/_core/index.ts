@@ -41,12 +41,6 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerApiRoutes(app);
-
-  // Keep-alive endpoint — chamado pelo cron a cada 5 minutos para manter o servidor ativo
-  app.post("/api/scheduled/keepalive", (_req, res) => {
-    res.json({ ok: true, ts: Date.now() });
-  });
-
   // tRPC API
   app.use(
     "/api/trpc",

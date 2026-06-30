@@ -1,8 +1,0 @@
-{
-  "query": "SELECT id, mac, nome, status, tipo FROM devices WHERE mac LIKE '%70%2e%8e%96%0a%3c%' OR mac = '70:2e:8e:96:0a:3c' OR mac = '70:2E:8E:96:0A:3C' LIMIT 5;",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT id, mac, nome, status, tipo FROM devices WHERE mac LIKE '%70%2e%8e%96%0a%3c%' OR mac = '70:2e:8e:96:0a:3c' OR mac = '70:2E:8E:96:0A:3C' LIMIT 5;",
-  "returncode": 1,
-  "logs": [
-    "ERROR 1054 (42S22) at line 1: Unknown column 'nome' in 'field list'"
-  ]
-}
