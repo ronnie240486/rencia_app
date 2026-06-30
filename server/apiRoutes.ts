@@ -1074,20 +1074,30 @@ export function registerApiRoutes(app: Express) {
    * Retorna informações da última versão do APK para atualização automática.
    * O APK consome este endpoint ao clicar em "Atualizar Aplicativo".
    */
-  app.get("/api/v4/update.php", async (_req: Request, res: Response) => {
+  app.get("/api/v4/update.php", async (req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
       // Preferir link encurtado se configurado e ativado
       const useShort = cfg.apk_use_short_url === "true";
       const shortUrl = cfg.apk_short_url ?? "";
       const fullUrl = cfg.apk_download_url ?? "";
-      const apkUrl = (useShort && shortUrl) ? shortUrl : fullUrl;
+      let apkUrl = (useShort && shortUrl) ? shortUrl : fullUrl;
       const version = cfg.apk_version ?? "5.5";
 
       if (!apkUrl) {
         res.status(404).json({ error: "Nenhum APK configurado", update_available: false });
         return;
       }
+
+      // Garantir URL absoluta para que o APK consiga baixar
+      if (apkUrl.startsWith("/")) {
+        const origin = `${req.protocol}://${req.get("host")}`;
+        apkUrl = `${origin}${apkUrl}`;
+      }
+
+      // Comparar versão: só marcar update_available se versão do servidor > versão do APK
+      const clientVersion = req.query.version as string | undefined;
+      const updateAvailable = clientVersion ? clientVersion !== version : false;
 
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.setHeader("Pragma", "no-cache");
@@ -1096,7 +1106,7 @@ export function registerApiRoutes(app: Express) {
         url: apkUrl,
         apk_link: apkUrl,
         force_update: false,
-        update_available: true,
+        update_available: updateAvailable,
         release_notes: `Versão ${version} disponível. Toque para atualizar o OuroPro.`,
       });
     } catch (error) {
