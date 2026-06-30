@@ -272,7 +272,7 @@
 - [x] Criar migration SQL para tabelas
 - [x] Implementar procedures tRPC para Interactive
 - [x] Criar página Interactive.tsx no painel
-- [ ] Adicionar item "Interactive" no menu lateral (AdminLayout)
+- [x] Adicionar item "Interactive" no menu lateral (AdminLayout)
 - [ ] Testar página Interactive no navegador
 - [ ] Criar endpoints para APK consumir (/api/interactive/config, /api/interactive/banners)
 - [ ] Compilar novo APK InteractivePro com branding customizado

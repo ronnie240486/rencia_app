@@ -22,6 +22,7 @@ import CarouselManager from "./pages/CarouselManager";
 import Suggestions from "./pages/Suggestions";
 import Notices from "./pages/Notices";
 import { PanelFunctions } from "./pages/PanelFunctions";
+import Interactive from "./pages/Interactive";
 
 function Router() {
   return (
@@ -35,6 +36,7 @@ function Router() {
       <Route path={"/profile"} component={Profile} />
       <Route path={"/settings"} component={Settings} />
       <Route path={"/app-settings"} component={Settings} />
+      <Route path={"/interactive"} component={Interactive} />
       <Route path={"/revendas"} component={Revendas} />
       <Route path={"/users/:id/lists"} component={DeviceLists} />
       <Route path={"/dns-massa"} component={DnsMassa} />
