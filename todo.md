@@ -291,3 +291,5 @@
 - [x] Gerar logo animado com som (via media_generation)
 - [x] Criar página de splash com logo animado
 - [x] Criar logo do APK customizado
+- [x] Mover "Logo Animado" para dentro de "Interactive" como aba
+- [x] Gerar novo logo do APK colorido e interativo (não dourado)

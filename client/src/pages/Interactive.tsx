@@ -7,12 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Upload, Image, Trash2, Plus, GripVertical } from "lucide-react";
+import { Loader2, Save, Upload, Image, Trash2, Plus, GripVertical, Sparkles, Play } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import AdminLayout from "@/components/AdminLayout";
 
 export default function Interactive() {
   const { data: config, isLoading: loadingConfig, refetch: refetchConfig } = trpc.interactive.getConfig.useQuery();
   const { data: banners, isLoading: loadingBanners, refetch: refetchBanners } = trpc.interactive.getBanners.useQuery();
+  const { data: introConfig } = trpc.appIntro.getConfig.useQuery();
+  const updateIntroMutation = trpc.appIntro.updateConfig.useMutation();
   
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -143,16 +146,19 @@ export default function Interactive() {
         </div>
 
         <Tabs defaultValue="config" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="config" className="gap-1">
+          <TabsList className="grid w-full grid-cols-3 gap-2">
+            <TabsTrigger value="config" className="flex gap-2">
               <Image size={16} /> Configurações
             </TabsTrigger>
-            <TabsTrigger value="banners" className="gap-1">
+            <TabsTrigger value="banners" className="flex gap-2">
               <Plus size={16} /> Banners
+            </TabsTrigger>
+            <TabsTrigger value="intro" className="flex gap-2">
+              <Sparkles size={16} /> Logo Animado
             </TabsTrigger>
           </TabsList>
 
-          {/* ─── Aba Configurações ──────────────────────────────────────────────── */}
+          {/* ─── Aba Configurações ─────────────────────────────────────────────────────────────── */}
           <TabsContent value="config" className="space-y-4 mt-4">
             <Card>
               <CardHeader>
@@ -375,6 +381,128 @@ export default function Interactive() {
                 </Card>
               )}
             </div>
+          </TabsContent>
+
+          {/* ─── Aba Logo Animado ──────────────────────────────────────────────────────────────── */}
+          <TabsContent value="intro" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Logo Animado com Som</CardTitle>
+                <CardDescription>Configure o logo e som que aparecem na introdução do InteractivePro</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="block text-sm font-medium mb-2">URL do Logo Animado</Label>
+                  <Input
+                    placeholder="https://exemplo.com/logo.gif"
+                    value={introConfig?.logoUrl || ""}
+                    onChange={(e) => setForm({ ...form, appLogo: e.target.value })}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Aceita GIF, PNG ou vídeo MP4</p>
+                </div>
+
+                <div>
+                  <Label className="block text-sm font-medium mb-2">URL do Som</Label>
+                  <Input
+                    placeholder="https://exemplo.com/som.mp3"
+                    value={introConfig?.soundUrl || ""}
+                    onChange={(e) => updateIntroMutation.mutate({ soundUrl: e.target.value })}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Aceita MP3, WAV ou OGG</p>
+                </div>
+
+                <div>
+                  <Label className="block text-sm font-medium mb-2">Duração (ms)</Label>
+                  <Input
+                    type="number"
+                    min="1000"
+                    max="10000"
+                    step="100"
+                    value={introConfig?.duracao || 3000}
+                    onChange={(e) => updateIntroMutation.mutate({ duracao: parseInt(e.target.value) })}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Tempo de exibição em milissegundos</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="habilitado"
+                    checked={introConfig?.habilitado !== false}
+                    onCheckedChange={(checked) =>
+                      updateIntroMutation.mutate({ habilitado: checked as boolean })
+                    }
+                  />
+                  <Label htmlFor="habilitado" className="text-sm font-medium cursor-pointer">
+                    Habilitar introdução animada
+                  </Label>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() =>
+                      updateIntroMutation.mutate({
+                        logoUrl: introConfig?.logoUrl,
+                        soundUrl: introConfig?.soundUrl,
+                        duracao: introConfig?.duracao,
+                      })
+                    }
+                    disabled={updateIntroMutation.isPending}
+                    className="flex-1"
+                  >
+                    Salvar Configurações
+                  </Button>
+                  {introConfig?.soundUrl && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const audio = new Audio(introConfig.soundUrl);
+                        audio.play().catch(() => toast.error("Erro ao reproduzir som"));
+                      }}
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Testar Som
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Preview */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Preview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {introConfig?.habilitado ? (
+                  <div className="bg-black rounded-lg p-8 flex items-center justify-center min-h-64">
+                    {introConfig?.logoUrl ? (
+                      <div className="text-center">
+                        <img
+                          src={introConfig.logoUrl}
+                          alt="Logo Preview"
+                          className="max-w-48 max-h-48 mx-auto rounded"
+                          onError={() => (
+                            <div className="text-gray-400">Logo não carregou</div>
+                          )}
+                        />
+                        <p className="text-white text-sm mt-4">
+                          Duração: {introConfig.duracao}ms
+                          {introConfig.soundUrl && " + Som"}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-gray-400 text-center">
+                        <p>Adicione a URL do logo para ver o preview</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 flex items-center justify-center min-h-64">
+                    <p className="text-gray-500 dark:text-gray-400">Introdução desabilitada</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
