@@ -25,12 +25,14 @@ import { PanelFunctions } from "./pages/PanelFunctions";
 import Interactive from "./pages/Interactive";
 import ContentSuggestions from "./pages/ContentSuggestions";
 import AppIntro from "./pages/AppIntro";
+import Splash from "./pages/Splash";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Login} />
       <Route path={"/login"} component={Login} />
+      <Route path={"/splash"} component={Splash} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/users"} component={Users} />
       <Route path={"/users/create"} component={UserCreate} />

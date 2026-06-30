@@ -288,6 +288,6 @@
 - [x] Criar página AppIntro.tsx com preview
 - [x] Adicionar rotas /content-suggestions e /app-intro no App.tsx
 - [x] Adicionar itens no menu lateral (AdminLayout)
-- [ ] Gerar logo animado com som (via media_generation)
-- [ ] Criar página de splash com logo animado
-- [ ] Criar logo do APK customizado
+- [x] Gerar logo animado com som (via media_generation)
+- [x] Criar página de splash com logo animado
+- [x] Criar logo do APK customizado
