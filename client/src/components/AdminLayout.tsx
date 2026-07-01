@@ -279,7 +279,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   );
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-background">
       {/* Desktop Sidebar */}
       <aside
         className="hidden lg:flex flex-col w-64 flex-shrink-0 fixed left-0 top-0 h-full z-30"
@@ -312,9 +312,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <main className="flex-1 lg:ml-64 flex flex-col min-h-screen w-full">
         {/* Top bar */}
-        <header className="sticky top-0 z-20 flex items-center gap-4 px-6 py-4 bg-background/80 backdrop-blur-md border-b border-border">
+        <header className="sticky top-0 z-20 flex items-center gap-4 px-4 md:px-6 py-3 md:py-4 bg-background/80 backdrop-blur-md border-b border-border min-h-[56px] md:min-h-[64px]">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors"
@@ -342,7 +342,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-4 md:p-6 overflow-auto">
           {children}
         </div>
       </main>
