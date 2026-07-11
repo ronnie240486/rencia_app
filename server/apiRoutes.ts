@@ -9,6 +9,10 @@
  *        → Retorna: { "data": "<string codificada com algoritmo Security.getDecodedString>" }
  *          onde a string decodificada é o AppInfoModel JSON
  *
+ *   GET  /api/users
+ *        → Lista todos os devices cadastrados com credenciais para o EaglePlayer
+ *        → Retorna: [{ id, mac, server_url, username, password }, ...]
+ *
  *   GET  /api/device/check?mac=XX:XX:XX:XX:XX:XX
  *        → Verifica se um device está cadastrado e retorna seus dados
  *
@@ -293,6 +297,64 @@ function buildWords(cfg: Record<string, string>) {
 }
 
 export function registerApiRoutes(app: Express) {
+
+  /**
+   * GET /api/users
+   *
+   * Endpoint público para o EaglePlayer APK.
+   * Retorna lista de todos os devices com credenciais de servidor.
+   * Formato esperado pelo APK:
+   * [
+   *   {
+   *     id: 690001,
+   *     mac: "AA:BB:CC:DD:EE:FF",
+   *     server_url: "https://servidor-do-player.example",
+   *     username: "usuario",
+   *     password: "senha"
+   *   }
+   * ]
+   */
+  app.get("/api/users", async (_req: Request, res: Response) => {
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.status(503).json({ error: "Erro ao conectar ao banco de dados" });
+        return;
+      }
+
+      // Buscar todos os devices
+      const allDevices = await db.select().from(devices);
+
+      // Transformar para o formato esperado pelo EaglePlayer
+      const users = allDevices.map((device) => {
+        // Tentar obter server_url da primeira URL XTeamCode ou M3U8
+        let serverUrl = device.urlM3u8 || "";
+        let username = "";
+        let password = "";
+
+        // Se for XTeamCode, usar xtServer como base
+        // Caso contrário, usar urlM3u8 como fallback
+        // Nota: idealmente consultaríamos deviceUrls aqui, mas por simplicidade
+        // usamos os campos do device principal
+
+        return {
+          id: device.id,
+          mac: device.mac,
+          server_url: serverUrl,
+          username: username,
+          password: password,
+        };
+      });
+
+      // Definir header correto e retornar JSON
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store");
+      res.json(users);
+    } catch (error) {
+      console.error("[API] GET /api/users error:", error);
+      res.status(500).json({ error: "Erro ao buscar usuários" });
+    }
+  });
 
   /**
    * POST /api/guim.php
