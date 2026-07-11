@@ -1035,14 +1035,12 @@ export function registerApiRoutes(app: Express) {
   app.get("/api/v4/update.php", async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
-      // Preferir link encurtado se configurado e ativado
-      const useShort = cfg.apk_use_short_url === "true";
-      const shortUrl = cfg.apk_short_url ?? "";
+      // SEMPRE usar URL completa (não encurtada) para evitar problemas com o OuroPro
+      // Links encurtados causam erro de conexão no aplicativo
       const fullUrl = cfg.apk_download_url ?? "";
-      const apkUrl = (useShort && shortUrl) ? shortUrl : fullUrl;
       const version = cfg.apk_version ?? "5.5";
 
-      if (!apkUrl) {
+      if (!fullUrl) {
         res.status(404).json({ error: "Nenhum APK configurado", update_available: false });
         return;
       }
@@ -1051,8 +1049,8 @@ export function registerApiRoutes(app: Express) {
       res.setHeader("Pragma", "no-cache");
       res.json({
         version,
-        url: apkUrl,
-        apk_link: apkUrl,
+        url: fullUrl,
+        apk_link: fullUrl,
         force_update: false,
         update_available: true,
         release_notes: `Versão ${version} disponível. Toque para atualizar o OuroPro.`,
