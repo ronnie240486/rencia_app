@@ -1,18 +1,42 @@
-import { getLoginUrl } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { ChevronRight, Shield, Users, BarChart3, Lock } from "lucide-react";
+import { ChevronRight, Shield, Users, BarChart3, Lock, Mail } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 export default function Login() {
   const { isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const loginMutation = trpc.auth.loginLocal.useMutation();
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, loading, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast.error("Preencha email e senha");
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      await loginMutation.mutateAsync({ email, password });
+      toast.success("Login realizado com sucesso!");
+      navigate("/dashboard", { replace: true });
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao fazer login");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -90,14 +114,45 @@ export default function Login() {
               <span>{"Bem-vindo de volta"}</span>
             </h2>
             <p className="text-sm text-muted-foreground">
-              <span>{"Faça login para acessar o painel administrativo."}</span>
+              <span>{"Faça login com suas credenciais para acessar o painel."}</span>
             </p>
           </div>
 
-          <div className="space-y-4">
-            <a
-              href={getLoginUrl()}
-              className="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-150 hover:opacity-90 active:scale-[0.98]"
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Email</label>
+              <div className="relative">
+                <Mail size={16} className="absolute left-3 top-3 text-muted-foreground" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Senha</label>
+              <div className="relative">
+                <Lock size={16} className="absolute left-3 top-3 text-muted-foreground" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Sua senha"
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-150 hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
               style={{
                 background: "linear-gradient(135deg, oklch(0.28 0.07 255) 0%, oklch(0.38 0.12 265) 100%)",
                 color: "oklch(0.98 0.003 240)",
@@ -105,14 +160,14 @@ export default function Login() {
               }}
             >
               <Shield size={16} />
-              <span>{"Entrar com Manus OAuth"}</span>
+              <span>{isLoading ? "Entrando..." : "Entrar"}</span>
               <ChevronRight size={15} className="ml-auto" />
-            </a>
-          </div>
+            </button>
+          </form>
 
           <div className="mt-8 p-4 rounded-xl border border-border bg-muted/40">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Acesso seguro:</strong> Utilizamos OAuth para garantir que apenas usuários autorizados possam acessar o painel.
+              <strong className="text-foreground">Acesso seguro:</strong> Utilize suas credenciais de email e senha para acessar o painel administrativo.
             </p>
           </div>
         </div>

@@ -868,6 +868,83 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // ─── Credenciais Locais (email/senha para revendas) ───────────────────────
+  credentials: router({
+    create: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        email: z.string().email(),
+        password: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        const crypto = await import('crypto');
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database connection failed' });
+        
+        // Verificar se o usuário existe
+        const user = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+        if (!user.length) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado.' });
+        }
+        
+        // Verificar se já existe credencial para este usuário
+        const existing = await db.select().from(localCredentials).where(eq(localCredentials.userId, input.userId)).limit(1);
+        if (existing.length) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Este usuário já possui credenciais locais.' });
+        }
+        
+        // Gerar hash da senha
+        const hashPassword = crypto.createHash('sha256').update(input.password).digest('hex');
+        
+        // Inserir credenciais
+        await db.insert(localCredentials).values({
+          userId: input.userId,
+          email: input.email,
+          passwordHash: hashPassword,
+        });
+        
+        return { success: true, message: 'Credenciais criadas com sucesso!' };
+      }),
+
+    update: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        email: z.string().email().optional(),
+        password: z.string().min(6).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const crypto = await import('crypto');
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database connection failed' });
+        
+        // Verificar se a credencial existe
+        const existing = await db.select().from(localCredentials).where(eq(localCredentials.userId, input.userId)).limit(1);
+        if (!existing.length) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Credenciais não encontradas.' });
+        }
+        
+        const updateData: any = {};
+        if (input.email) updateData.email = input.email;
+        if (input.password) updateData.passwordHash = crypto.createHash('sha256').update(input.password).digest('hex');
+        
+        await db.update(localCredentials)
+          .set(updateData)
+          .where(eq(localCredentials.userId, input.userId));
+        
+        return { success: true, message: 'Credenciais atualizadas com sucesso!' };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database connection failed' });
+        
+        await db.delete(localCredentials).where(eq(localCredentials.userId, input.userId));
+        return { success: true, message: 'Credenciais removidas com sucesso!' };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
