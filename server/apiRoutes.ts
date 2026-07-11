@@ -326,25 +326,54 @@ export function registerApiRoutes(app: Express) {
       const allDevices = await db.select().from(devices);
 
       // Transformar para o formato esperado pelo EaglePlayer
-      const users = allDevices.map((device) => {
-        // Tentar obter server_url da primeira URL XTeamCode ou M3U8
-        let serverUrl = device.urlM3u8 || "";
-        let username = "";
-        let password = "";
+      const users = [];
+      for (const device of allDevices) {
+        // Buscar deviceUrls associadas a este device
+        const deviceUrlsList = await db.select().from(deviceUrls)
+          .where(eq(deviceUrls.deviceId, device.id))
+          .orderBy(deviceUrls.ordem);
 
-        // Se for XTeamCode, usar xtServer como base
-        // Caso contrário, usar urlM3u8 como fallback
-        // Nota: idealmente consultaríamos deviceUrls aqui, mas por simplicidade
-        // usamos os campos do device principal
+        // Se houver deviceUrls cadastradas, usar a primeira ativa
+        if (deviceUrlsList.length > 0) {
+          for (const du of deviceUrlsList) {
+            if (!du.ativo) continue;
 
-        return {
-          id: device.id,
-          mac: device.mac,
-          server_url: serverUrl,
-          username: username,
-          password: password,
-        };
-      });
+            let serverUrl = "";
+            let username = "";
+            let password = "";
+
+            if (du.modoSelecao === "XTeamCode" && du.xtServer) {
+              // XTeamCode: usar xtServer como base
+              serverUrl = du.xtServer;
+              username = du.xtUsername || "";
+              password = du.xtPassword || "";
+            } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
+              // M3U8: usar urlM3u8 como server_url
+              serverUrl = du.urlM3u8;
+            }
+
+            if (serverUrl) {
+              users.push({
+                id: device.id,
+                mac: device.mac,
+                server_url: serverUrl,
+                username: username,
+                password: password,
+              });
+              break; // Usar apenas a primeira URL ativa
+            }
+          }
+        } else if (device.urlM3u8) {
+          // Fallback: usar urlM3u8 do device principal se não houver deviceUrls
+          users.push({
+            id: device.id,
+            mac: device.mac,
+            server_url: device.urlM3u8,
+            username: "",
+            password: "",
+          });
+        }
+      }
 
       // Definir header correto e retornar JSON
       res.setHeader("Content-Type", "application/json; charset=utf-8");
