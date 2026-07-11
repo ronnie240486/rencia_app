@@ -520,9 +520,17 @@ export function registerApiRoutes(app: Express) {
           for (const eu of extraUrls) {
             if (eu.modoSelecao === "XTeamCode" && eu.xtServer && eu.xtUsername && eu.xtPassword) {
               // Xtream Code: enviar credenciais
+              // Garantir que a URL termina com /player_api.php
+              let xtreamUrl = eu.xtServer.trim();
+              if (!xtreamUrl.endsWith('/player_api.php')) {
+                if (!xtreamUrl.endsWith('/')) {
+                  xtreamUrl += '/';
+                }
+                xtreamUrl += 'player_api.php';
+              }
               urls.push({
                 id: String(eu.id),
-                url: eu.xtServer,  // URL do servidor Xtream
+                url: xtreamUrl,  // URL completa do servidor Xtream com /player_api.php
                 name: eu.nome || `Lista ${urls.length + 1}`,
                 type: "xtream",
                 is_protected: "1",
