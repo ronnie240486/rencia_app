@@ -637,7 +637,9 @@ export function registerApiRoutes(app: Express) {
         words,
       };
 
-      res.json({ data: encodeForApk(JSON.stringify(responsePayload)) });
+      // Enviar apk_link sem codificação (fora do encodeForApk) para evitar problemas de decodificação
+      const encodedData = encodeForApk(JSON.stringify(responsePayload));
+      res.json({ data: encodedData, apk_link: cfg.apk_download_url || "" });
 
     } catch (error) {
       console.error("[API] /api/guim.php error:", error);
