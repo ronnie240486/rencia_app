@@ -502,7 +502,7 @@ export function registerApiRoutes(app: Express) {
 
       // Montar lista de URLs para o APK
       // IMPORTANTE: o campo 'id' deve ser != '0' para o APK liberar a lista
-      const urls: Array<{ id: string; url: string; name: string; type: string; is_protected: string }> = [];
+      const urls: Array<{ id: string; url: string; name: string; type: string; is_protected: string; username?: string; password?: string }> = [];
       if (device.urlM3u8 && isAllowed) {
         urls.push({
           id: String(device.id),  // id != '0' para o APK liberar
@@ -518,13 +518,25 @@ export function registerApiRoutes(app: Express) {
         try {
           const extraUrls = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, device.id));
           for (const eu of extraUrls) {
-            if (eu.urlM3u8) {
+            if (eu.modoSelecao === "XTeamCode" && eu.xtServer && eu.xtUsername && eu.xtPassword) {
+              // Xtream Code: enviar credenciais
+              urls.push({
+                id: String(eu.id),
+                url: eu.xtServer,  // URL do servidor Xtream
+                name: eu.nome || `Lista ${urls.length + 1}`,
+                type: "xtream",
+                is_protected: "1",
+                username: eu.xtUsername,
+                password: eu.xtPassword,
+              });
+            } else if (eu.modoSelecao === "M3U8" && eu.urlM3u8) {
+              // M3U Playlist
               urls.push({
                 id: String(eu.id),
                 url: eu.urlM3u8,
                 name: eu.nome || `Lista ${urls.length + 1}`,
-                type: eu.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
-                is_protected: "1",  // Protegido: APK mostra "Protegido" no lugar da URL
+                type: "m3u_plus",
+                is_protected: "1",
               });
             }
           }
