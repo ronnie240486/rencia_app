@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -33,6 +33,32 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    loginLocal: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const crypto = await import('crypto');
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database connection failed' });
+        
+        const hashInput = crypto.createHash('sha256').update(input.password).digest('hex');
+        const cred = await db.select().from(localCredentials).where(eq(localCredentials.email, input.email)).limit(1);
+        
+        if (!cred.length || cred[0].passwordHash !== hashInput) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Email ou senha inválidos.' });
+        }
+        
+        const user = await db.select().from(users).where(eq(users.id, cred[0].userId)).limit(1);
+        if (!user.length) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado.' });
+        }
+        
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, JSON.stringify({ userId: user[0].id, email: user[0].email }), cookieOptions);
+        return { success: true, user: user[0] };
+      }),
   }),
 
   // ─── Devices (Usuários do painel) ──────────────────────────────────────────

@@ -141,6 +141,13 @@
       "when": 1782845999797,
       "tag": "0019_square_korath",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1783746386739,
+      "tag": "0020_heavy_goliath",
+      "breakpoints": true
     }
   ]
 }

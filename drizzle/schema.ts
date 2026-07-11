@@ -153,6 +153,19 @@ export const suggestions = mysqlTable("suggestions", {
 export type Suggestion = typeof suggestions.$inferSelect;
 export type InsertSuggestion = typeof suggestions.$inferInsert;
 
+// Credenciais locais para login com email/senha (sem OAuth)
+export const localCredentials = mysqlTable("local_credentials", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type LocalCredential = typeof localCredentials.$inferSelect;
+export type InsertLocalCredential = typeof localCredentials.$inferInsert;
+
 // Avisos do ultra master para todos os master/revenda
 export const notices = mysqlTable("notices", {
   id: int("id").autoincrement().primaryKey(),

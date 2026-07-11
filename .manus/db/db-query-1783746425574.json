@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO users (openId, name, email, loginMethod, role, createdAt, updatedAt, lastSignedIn, lastLoginDate, isActive, plano, limiteDevices) \nVALUES ('ronnie_admin_local', 'Ronnie', 'ronnie240486@gmail.com', 'local', 'admin', NOW(), NOW(), NOW(), CURDATE(), true, 'Admin', 999);\n\nINSERT INTO local_credentials (userId, email, passwordHash, createdAt, updatedAt)\nVALUES (LAST_INSERT_ID(), 'ronnie240486@gmail.com', 'ef97d2a80e67384730289d3878b552d3f9f39f6f32f3fe5f0d5d7de841490188', NOW(), NOW());",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute INSERT INTO users (openId, name, email, loginMethod, role, createdAt, updatedAt, lastSignedIn, lastLoginDate, isActive, plano, limiteDevices) \nVALUES ('ronnie_admin_local', 'Ronnie', 'ronnie240486@gmail.com', 'local', 'admin', NOW(), NOW(), NOW(), CURDATE(), true, 'Admin', 999);\n\nINSERT INTO local_credentials (userId, email, passwordHash, createdAt, updatedAt)\nVALUES (LAST_INSERT_ID(), 'ronnie240486@gmail.com', 'ef97d2a80e67384730289d3878b552d3f9f39f6f32f3fe5f0d5d7de841490188', NOW(), NOW());",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 632
+}
