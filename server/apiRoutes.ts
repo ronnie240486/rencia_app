@@ -827,7 +827,7 @@ export function registerApiRoutes(app: Express) {
    * Suporte a GET para compatibilidade com alguns clientes
    */
   app.get("/api/guim.php", async (req: Request, res: Response) => {
-    const mac = typeof req.query.mac === "string" ? req.query.mac.trim().toUpperCase() : null;
+    const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : null;
 
     if (!mac) {
       res.status(400).json({ mac_registered: false, error: "Parâmetro 'mac' é obrigatório." });
@@ -837,98 +837,99 @@ export function registerApiRoutes(app: Express) {
     try {
       const db = await getDb();
       if (!db) {
-        const cfgErr = await getSettings().catch(() => ({} as Record<string, string>));
-        const wordsErr = buildWords(cfgErr);
-        res.status(503).json({ mac_registered: false, mac_address: mac, urls: [], is_trial: 1, lock: 1, languages: [{ code: "pt", id: "1", name: "Português", words: wordsErr }], words: wordsErr });
+        res.status(503).json({ error: "Erro ao conectar ao banco de dados" });
         return;
       }
 
-      const cfg = await getSettings().catch(() => ({} as Record<string, string>));
-      const result = await db.select().from(devices).where(eq(devices.mac, mac)).limit(1);
+      // Buscar dispositivo ignorando case
+      const result = await db.select().from(devices).where(or(eq(devices.mac, mac.toLowerCase()), eq(devices.mac, mac.toUpperCase()))).limit(1);
 
       if (result.length === 0) {
-        const wordsNf = buildWords(cfg);
-        const languagesNf = [{ code: "pt", id: "1", name: "Português", words: wordsNf }, { code: "en", id: "2", name: "English", words: wordsNf }];
-        res.json({ mac_registered: false, mac_address: mac, urls: [], is_trial: 1, lock: 1, languages: languagesNf, words: wordsNf, apk_link: cfg.apk_download_url || "", app_version: cfg.apk_version || "5.0", banner_url: cfg.trial_banner_url || "", logo_url: cfg.trial_logo_url || "", impact_phrase: wordsNf.impact_phrase, legal_notice: wordsNf.legal_notice, app_name: wordsNf.app_name, lock_title: cfg.lock_title || "OuroPro", lock_message: cfg.lock_message || "OuroPro is a media player application.", lock_button_text: cfg.lock_button_text || "Renovar Agora", lock_button_url: cfg.lock_button_url || "" });
+        res.json({ data: [] });
         return;
       }
 
       const device = result[0];
       const isAllowed = device.status === "Liberado";
 
-      // Verificar expiração
-      let expireDate: string | null = null;
-      if (device.dataExpiracao) {
-        try { expireDate = new Date(device.dataExpiracao).toISOString().split("T")[0]; } catch {}
+      if (!isAllowed) {
+        res.json({ data: [] });
+        return;
       }
 
-      const urls: Array<{ url: string; username: string; password: string; type: string }> = [];
-      if (isAllowed && device.urlM3u8) urls.push({ url: device.urlM3u8, username: "", password: "", type: "m3u_plus" });
+      // Buscar deviceUrls associadas
+      const deviceUrlsList = await db.select().from(deviceUrls)
+        .where(eq(deviceUrls.deviceId, device.id))
+        .orderBy(deviceUrls.ordem);
 
-      // Resolver URLs de imagens para URLs públicas (presigned S3)
-      const [resolvedLogoUrl, resolvedBannerUrl, resolvedIconReload, resolvedIconExit, resolvedIconSettings, resolvedIconLiveTv, resolvedIconMovies, resolvedIconSeries] = await Promise.all([
-        resolvePublicImageUrl(cfg.trial_logo_url || ""),
-        resolvePublicImageUrl(cfg.trial_banner_url || ""),
-        resolvePublicImageUrl(cfg.icon_reload_url || ""),
-        resolvePublicImageUrl(cfg.icon_exit_url || ""),
-        resolvePublicImageUrl(cfg.icon_settings_url || ""),
-        resolvePublicImageUrl(cfg.icon_live_tv_url || ""),
-        resolvePublicImageUrl(cfg.icon_movies_url || ""),
-        resolvePublicImageUrl(cfg.icon_series_url || ""),
-      ]);
+      const responseData = [];
 
-      const words = buildWords(cfg);
-      const languagesPayload = [
-        { code: "pt", id: "1", name: "Português", words },
-        { code: "en", id: "2", name: "English", words },
-      ];
+      if (deviceUrlsList.length > 0) {
+        for (const du of deviceUrlsList) {
+          if (!du.ativo) continue;
 
-      res.json({
-        mac_registered: isAllowed,
-        mac_address: device.mac,
-        expire_date: expireDate,
-        urls,
-        is_trial: 0,
-        lock: isAllowed ? 0 : 1,
-        plan_id: device.tipo ?? "Usuario",
-        device_key: String(device.id),
-        status: device.status,
-        nome_server: device.nomeServer,
-        app: device.app ?? "",
-        languages: languagesPayload,
-        apk_link: cfg.apk_download_url || "",
-        app_version: cfg.apk_version || "5.0",
-        trial_ended: words.trial_ended,
-        via_website: words.to_continue,
-        str_trial_description: words.str_trial_description,
-        str_link: words.str_link,
-        str_whatsapp: words.str_whatsapp,
-        live_label: cfg.app_channels_label || "Canais",
-        movie_label: cfg.app_movies_label || "Filmes",
-        series_label: cfg.app_series_label || "Séries",
-        banner_url: resolvedBannerUrl,
-        logo_url: resolvedLogoUrl,
-        contact: words.contact,
-        contact_whatsapp: words.str_whatsapp,
-        contact_website: words.str_link,
-        impact_phrase: words.impact_phrase,
-        legal_notice: words.legal_notice,
-        app_name: words.app_name,
-        lock_title: cfg.lock_title || "OuroPro",
-        lock_message: cfg.lock_message || "OuroPro is a media player application. The app does not provide or include any media or content.",
-        lock_button_text: cfg.lock_button_text || "Renovar Agora",
-        lock_button_url: words.lock_button_url,
-        icon_reload: resolvedIconReload,
-        icon_exit: resolvedIconExit,
-        icon_settings: resolvedIconSettings,
-        icon_live_tv: resolvedIconLiveTv,
-        icon_movies: resolvedIconMovies,
-        icon_series: resolvedIconSeries,
-        words,
-      });
+          let serverUrl = "";
+          let username = "";
+          let password = "";
+          let type = du.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus";
+
+          if (du.modoSelecao === "XTeamCode" && du.xtServer) {
+            serverUrl = du.xtServer;
+            username = du.xtUsername || "";
+            password = du.xtPassword || "";
+          } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
+            serverUrl = du.urlM3u8;
+            try {
+              const urlObj = new URL(serverUrl);
+              username = urlObj.searchParams.get("username") || "";
+              password = urlObj.searchParams.get("password") || "";
+            } catch (e) {}
+          }
+
+          if (serverUrl) {
+            // Limpar URL para deixar apenas o host
+            let cleanUrl = serverUrl;
+            try {
+              const urlObj = new URL(serverUrl);
+              cleanUrl = `${urlObj.protocol}//${urlObj.host}`;
+            } catch (e) {}
+
+            responseData.push({
+              id: du.id,
+              mac: device.mac.toUpperCase(),
+              url: cleanUrl,
+              username: username,
+              password: password,
+              type: type
+            });
+          }
+        }
+      } else if (device.urlM3u8) {
+        // Fallback para o device principal
+        let fUrl = device.urlM3u8;
+        let fUser = "";
+        let fPass = "";
+        try {
+          const urlObj = new URL(fUrl);
+          fUser = urlObj.searchParams.get("username") || "";
+          fPass = urlObj.searchParams.get("password") || "";
+          fUrl = `${urlObj.protocol}//${urlObj.host}`;
+        } catch (e) {}
+
+        responseData.push({
+          id: device.id,
+          mac: device.mac.toUpperCase(),
+          url: fUrl,
+          username: fUser,
+          password: fPass,
+          type: "m3u_plus"
+        });
+      }
+
+      res.json({ data: responseData });
     } catch (error) {
       console.error("[API] GET /api/guim.php error:", error);
-      res.status(500).json({ mac_registered: false, error: "Erro interno do servidor." });
+      res.status(500).json({ error: "Erro interno do servidor." });
     }
   });
 
