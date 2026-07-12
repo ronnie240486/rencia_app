@@ -375,8 +375,9 @@ export function registerApiRoutes(app: Express) {
 
               users.push({
                 id: device.id,
-                mac: device.mac,
+                mac: (device.mac || "").toUpperCase(),
                 server_url: cleanServerUrl,
+                url: cleanServerUrl, // Duplicar campo para compatibilidade
                 username: username,
                 password: password,
               });
@@ -403,8 +404,9 @@ export function registerApiRoutes(app: Express) {
 
           users.push({
             id: device.id,
-            mac: device.mac,
+            mac: (device.mac || "").toUpperCase(),
             server_url: cleanFUrl,
+            url: cleanFUrl, // Duplicar campo para compatibilidade
             username: fUser,
             password: fPass,
           });
