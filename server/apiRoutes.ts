@@ -350,6 +350,18 @@ export function registerApiRoutes(app: Express) {
             } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
               // M3U8: usar urlM3u8 como server_url
               serverUrl = du.urlM3u8;
+              
+              // Tentar extrair username/password da URL se estiverem lá (comum em links M3U)
+              if (!username || !password) {
+                try {
+                  const urlObj = new URL(serverUrl);
+                  username = urlObj.searchParams.get("username") || username;
+                  password = urlObj.searchParams.get("password") || password;
+                  
+                  // Se extraiu, limpar a URL para deixar apenas a base (opcional, mas o Eagle costuma preferir a base)
+                  // No entanto, para não quebrar outros APKs, vamos manter a URL mas garantir que user/pass estejam preenchidos
+                } catch (e) { /* ignorar erro de parsing de URL */ }
+              }
             }
 
             if (serverUrl) {
@@ -365,12 +377,22 @@ export function registerApiRoutes(app: Express) {
           }
         } else if (device.urlM3u8) {
           // Fallback: usar urlM3u8 do device principal se não houver deviceUrls
+          let fUrl = device.urlM3u8;
+          let fUser = "";
+          let fPass = "";
+          
+          try {
+            const urlObj = new URL(fUrl);
+            fUser = urlObj.searchParams.get("username") || "";
+            fPass = urlObj.searchParams.get("password") || "";
+          } catch (e) {}
+
           users.push({
             id: device.id,
             mac: device.mac,
-            server_url: device.urlM3u8,
-            username: "",
-            password: "",
+            server_url: fUrl,
+            username: fUser,
+            password: fPass,
           });
         }
       }
