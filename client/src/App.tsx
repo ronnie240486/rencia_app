@@ -22,6 +22,7 @@ import CarouselManager from "./pages/CarouselManager";
 import Suggestions from "./pages/Suggestions";
 import Notices from "./pages/Notices";
 import { PanelFunctions } from "./pages/PanelFunctions";
+import Player from "./pages/Player";
 
 function Router() {
   return (
@@ -46,6 +47,7 @@ function Router() {
       <Route path={"/sugestoes"} component={Suggestions} />
       <Route path={"/avisos"} component={Notices} />
       <Route path={"/configuracoes"} component={Settings} />
+      <Route path={"/player"} component={Player} />
       <Route component={NotFound} />
     </Switch>
   );
