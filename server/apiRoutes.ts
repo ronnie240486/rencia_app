@@ -314,7 +314,8 @@ export function registerApiRoutes(app: Express) {
    *   }
    * ]
    */
-  app.get("/api/users", async (_req: Request, res: Response) => {
+  app.get("/api/users", async (req: Request, res: Response) => {
+    console.log(`[API-USERS] Request from ${req.ip} - User-Agent: ${req.get('user-agent')}`);
     try {
       const db = await getDb();
       if (!db) {
@@ -366,22 +367,37 @@ export function registerApiRoutes(app: Express) {
 
             if (serverUrl) {
               // Limpar serverUrl para deixar apenas o host (protocolo + dominio + porta)
-              // O EaglePlayer concatena /player_api.php por conta própria
               let cleanServerUrl = serverUrl;
               try {
                 const urlObj = new URL(serverUrl);
                 cleanServerUrl = `${urlObj.protocol}//${urlObj.host}`;
               } catch (e) {}
 
+              const baseMac = (device.mac || "").toUpperCase();
+              const cleanMac = baseMac.replace(/[^A-Z0-9]/g, ""); // MAC sem separadores
+
+              // Adicionar versão com dois pontos
               users.push({
                 id: device.id,
-                mac: (device.mac || "").toUpperCase(),
+                mac: baseMac,
                 server_url: cleanServerUrl,
-                url: cleanServerUrl, // Duplicar campo para compatibilidade
+                url: cleanServerUrl,
                 username: username,
                 password: password,
               });
-              break; // Usar apenas a primeira URL ativa
+
+              // Adicionar versão sem dois pontos (alguns APKs normalizam internamente)
+              if (cleanMac !== baseMac) {
+                users.push({
+                  id: device.id + 1000000, // ID único para evitar conflito
+                  mac: cleanMac,
+                  server_url: cleanServerUrl,
+                  url: cleanServerUrl,
+                  username: username,
+                  password: password,
+                });
+              }
+              break; 
             }
           }
         } else if (device.urlM3u8) {
@@ -402,14 +418,28 @@ export function registerApiRoutes(app: Express) {
             cleanFUrl = `${urlObj.protocol}//${urlObj.host}`;
           } catch (e) {}
 
+          const baseMacF = (device.mac || "").toUpperCase();
+          const cleanMacF = baseMacF.replace(/[^A-Z0-9]/g, "");
+
           users.push({
             id: device.id,
-            mac: (device.mac || "").toUpperCase(),
+            mac: baseMacF,
             server_url: cleanFUrl,
-            url: cleanFUrl, // Duplicar campo para compatibilidade
+            url: cleanFUrl,
             username: fUser,
             password: fPass,
           });
+
+          if (cleanMacF !== baseMacF) {
+            users.push({
+              id: device.id + 2000000,
+              mac: cleanMacF,
+              server_url: cleanFUrl,
+              url: cleanFUrl,
+              username: fUser,
+              password: fPass,
+            });
+          }
         }
       }
 
