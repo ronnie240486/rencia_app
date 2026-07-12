@@ -365,10 +365,18 @@ export function registerApiRoutes(app: Express) {
             }
 
             if (serverUrl) {
+              // Limpar serverUrl para deixar apenas o host (protocolo + dominio + porta)
+              // O EaglePlayer concatena /player_api.php por conta própria
+              let cleanServerUrl = serverUrl;
+              try {
+                const urlObj = new URL(serverUrl);
+                cleanServerUrl = `${urlObj.protocol}//${urlObj.host}`;
+              } catch (e) {}
+
               users.push({
                 id: device.id,
                 mac: device.mac,
-                server_url: serverUrl,
+                server_url: cleanServerUrl,
                 username: username,
                 password: password,
               });
@@ -387,10 +395,16 @@ export function registerApiRoutes(app: Express) {
             fPass = urlObj.searchParams.get("password") || "";
           } catch (e) {}
 
+          let cleanFUrl = fUrl;
+          try {
+            const urlObj = new URL(fUrl);
+            cleanFUrl = `${urlObj.protocol}//${urlObj.host}`;
+          } catch (e) {}
+
           users.push({
             id: device.id,
             mac: device.mac,
-            server_url: fUrl,
+            server_url: cleanFUrl,
             username: fUser,
             password: fPass,
           });
