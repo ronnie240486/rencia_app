@@ -24,7 +24,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries } from "../drizzle/schema";
 import { eq, or } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
@@ -1695,4 +1695,637 @@ export function registerApiRoutes(app: Express) {
       res.status(500).json({ error: "Erro ao buscar slides" });
     }
   });
+
+  // ─── GPCPRO API v5 (Flutter) ─────────────────────────────────────────────
+
+  /**
+   * GET /api/v5/check_mac.php?mac=XX:XX:XX:XX:XX:XX
+   * Endpoint usado pelo GPCPRO (Flutter) para verificar e autenticar um MAC.
+   * Retorna dados do dispositivo e playlist para loginByMac.
+   */
+  app.get("/api/v5/check_mac.php", async (req: Request, res: Response) => {
+    try {
+      const mac = req.query.mac ? String(req.query.mac).trim() : null;
+      if (!mac) {
+        res.json({ error: "mac required", success: false });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.json({ error: "server unavailable", success: false });
+        return;
+      }
+
+      // Normalizar MAC
+      const macNormalized = mac.replace(/[^A-Fa-f0-9]/g, "").toUpperCase();
+      const macWithColons = macNormalized.length === 12
+        ? macNormalized.match(/.{2}/g)!.join(":")
+        : mac.toUpperCase();
+
+      const result = await db
+        .select()
+        .from(devices)
+        .where(or(
+          eq(devices.mac, macWithColons),
+          eq(devices.mac, macNormalized),
+          eq(devices.mac, mac),
+        ))
+        .limit(1);
+
+      if (result.length === 0) {
+        res.json({
+          success: false,
+          error: "Device not found",
+          mac: macWithColons,
+          registered: false,
+        });
+        return;
+      }
+
+      const device = result[0];
+      const now = new Date();
+      const expired = device.dataExpiracao != null && new Date(device.dataExpiracao) < now;
+
+      // Atualizar status se expirado
+      if (expired && device.status !== "Expirado") {
+        await db.update(devices).set({ status: "Expirado" }).where(eq(devices.id, device.id));
+        device.status = "Expirado";
+      }
+
+      // Atualizar lastSeen
+      await db.update(devices).set({ lastSeen: now }).where(eq(devices.id, device.id));
+
+      const isAllowed = device.status === "Liberado";
+
+      if (!isAllowed) {
+        res.json({
+          success: false,
+          error: "Device blocked",
+          status: device.status,
+          mac: device.mac,
+          expire_date: device.dataExpiracao ? new Date(device.dataExpiracao).toISOString().split("T")[0] : null,
+          registered: true,
+        });
+        return;
+      }
+
+      // Buscar deviceUrls
+      const deviceUrlsList = await db.select().from(deviceUrls)
+        .where(eq(deviceUrls.deviceId, device.id))
+        .orderBy(deviceUrls.ordem);
+
+      const playlists: Array<{ name: string; url: string; type: string }> = [];
+
+      // Playlist principal do device
+      if (device.urlM3u8) {
+        playlists.push({
+          name: device.nomeServer || "Lista 1",
+          url: device.urlM3u8,
+          type: "m3u_plus",
+        });
+      }
+
+      // Playlists extras
+      for (const du of deviceUrlsList) {
+        if (!du.ativo) continue;
+        if (du.modoSelecao === "XTeamCode" && du.xtServer && du.xtUsername && du.xtPassword) {
+          let xtreamUrl = du.xtServer.trim();
+          if (!xtreamUrl.endsWith("/player_api.php")) {
+            xtreamUrl = xtreamUrl.replace(/\/+$/, "") + "/player_api.php";
+          }
+          const sep = xtreamUrl.includes("?") ? "&" : "?";
+          xtreamUrl += `${sep}username=${encodeURIComponent(du.xtUsername)}&password=${encodeURIComponent(du.xtPassword)}`;
+          playlists.push({
+            name: du.nome || `Lista ${playlists.length + 1}`,
+            url: xtreamUrl,
+            type: "xtream",
+          });
+        } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
+          playlists.push({
+            name: du.nome || `Lista ${playlists.length + 1}`,
+            url: du.urlM3u8,
+            type: "m3u_plus",
+          });
+        }
+      }
+
+      // Formatar data de expiração
+      let expireDate: string;
+      if (device.dataExpiracao) {
+        expireDate = new Date(device.dataExpiracao).toISOString().split("T")[0];
+      } else {
+        const oneYear = new Date();
+        oneYear.setFullYear(oneYear.getFullYear() + 1);
+        expireDate = oneYear.toISOString().split("T")[0];
+      }
+
+      const cfg = await getSettings();
+
+      // Resolver URLs de imagens
+      const resolvedLogo = cfg.trial_logo_url ? await resolvePublicImageUrl(cfg.trial_logo_url) : "";
+      const resolvedBanner = cfg.trial_banner_url ? await resolvePublicImageUrl(cfg.trial_banner_url) : "";
+      const resolvedBg = cfg.trial_background_url ? await resolvePublicImageUrl(cfg.trial_background_url) : "";
+
+      res.json({
+        success: true,
+        registered: true,
+        mac: device.mac,
+        status: device.status,
+        expire_date: expireDate,
+        playlists,
+        dns_url: cfg.server_url || cfg.contact_website || "",
+        logo_url: resolvedLogo || resolvedBanner,
+        bg_url: resolvedBg,
+        banner_url: resolvedBanner,
+        app_name: cfg.app_name || "GPCPRO",
+        whatsapp_url: (cfg.contact_whatsapp || "").replace(/\D/g, "") ? `https://wa.me/${(cfg.contact_whatsapp || "").replace(/\D/g, "")}` : "",
+        reseller_contact: cfg.reseller_contact_name || cfg.contact_info || "",
+        reseller_whatsapp: cfg.reseller_whatsapp || cfg.contact_whatsapp || "",
+        version: cfg.apk_version || "1.0",
+      });
+
+    } catch (error) {
+      console.error("[API] /api/v5/check_mac.php error:", error);
+      res.status(500).json({ success: false, error: "Internal error" });
+    }
+  });
+
+  /**
+   * GET /api/v5/mac_exists?mac=XX:XX:XX:XX:XX:XX
+   * Endpoint do GPCPRO para verificar se um MAC está cadastrado no sistema.
+   */
+  app.get("/api/v5/mac_exists", async (req: Request, res: Response) => {
+    try {
+      const mac = req.query.mac ? String(req.query.mac).trim() : null;
+      if (!mac) {
+        res.json({ exists: false, error: "mac required" });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.json({ exists: false, error: "server unavailable" });
+        return;
+      }
+
+      // Normalizar MAC
+      const macNormalized = mac.replace(/[^A-Fa-f0-9]/g, "").toUpperCase();
+      const macWithColons = macNormalized.length === 12
+        ? macNormalized.match(/.{2}/g)!.join(":")
+        : mac.toUpperCase();
+
+      const result = await db
+        .select()
+        .from(devices)
+        .where(or(
+          eq(devices.mac, macWithColons),
+          eq(devices.mac, macNormalized),
+          eq(devices.mac, mac),
+        ))
+        .limit(1);
+
+      if (result.length === 0) {
+        res.json({
+          exists: false,
+          mac: macWithColons,
+          registered: false,
+        });
+        return;
+      }
+
+      const device = result[0];
+      const now = new Date();
+      const expired = device.dataExpiracao != null && new Date(device.dataExpiracao) < now;
+      const isAllowed = device.status === "Liberado" && !expired;
+
+      // Formatar data
+      let expireDate: string | null = null;
+      if (device.dataExpiracao) {
+        expireDate = new Date(device.dataExpiracao).toISOString().split("T")[0];
+      }
+
+      res.json({
+        exists: true,
+        registered: isAllowed,
+        mac: device.mac,
+        status: device.status,
+        expire_date: expireDate,
+        nome: device.nomeServer || "",
+      });
+
+    } catch (error) {
+      console.error("[API] /api/v5/mac_exists error:", error);
+      res.status(500).json({ exists: false, error: "Internal error" });
+    }
+  });
+
+  /**
+   * GET /api/v5/check_expire.php?mac=XX:XX:XX:XX:XX:XX
+   * Verifica se a conta do MAC está expirada.
+   */
+  app.get("/api/v5/check_expire.php", async (req: Request, res: Response) => {
+    try {
+      const mac = req.query.mac ? String(req.query.mac).trim() : null;
+      if (!mac) {
+        res.json({ expired: true, error: "mac required" });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.json({ expired: true, error: "server unavailable" });
+        return;
+      }
+
+      const macNormalized = mac.replace(/[^A-Fa-f0-9]/g, "").toUpperCase();
+      const macWithColons = macNormalized.length === 12
+        ? macNormalized.match(/.{2}/g)!.join(":")
+        : mac.toUpperCase();
+
+      const result = await db
+        .select()
+        .from(devices)
+        .where(or(
+          eq(devices.mac, macWithColons),
+          eq(devices.mac, macNormalized),
+          eq(devices.mac, mac),
+        ))
+        .limit(1);
+
+      if (result.length === 0) {
+        res.json({ expired: true, mac: macWithColons, registered: false });
+        return;
+      }
+
+      const device = result[0];
+      const now = new Date();
+      const expired = device.dataExpiracao != null && new Date(device.dataExpiracao) < now;
+
+      let expireDate: string | null = null;
+      if (device.dataExpiracao) {
+        expireDate = new Date(device.dataExpiracao).toISOString().split("T")[0];
+      }
+
+      res.json({
+        expired,
+        mac: device.mac,
+        status: device.status,
+        expire_date: expireDate,
+        registered: true,
+      });
+
+    } catch (error) {
+      console.error("[API] /api/v5/check_expire.php error:", error);
+      res.status(500).json({ expired: true, error: "Internal error" });
+    }
+  });
+
+  /**
+   * GET /api/v5/getdns_list
+   * Retorna a lista de DNS/servidores cadastrados no painel.
+   */
+  app.get("/api/v5/getdns_list", async (_req: Request, res: Response) => {
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.json({ dns: [], error: "server unavailable" });
+        return;
+      }
+
+      // Buscar DNS entries ativas do revendedor principal (ownerId mais antigo = admin)
+      const allDns = await db.select().from(dnsEntries).where(eq(dnsEntries.ativo, true));
+
+      const dnsList = allDns.map((d, i) => ({
+        id: i + 1,
+        title: d.titulo,
+        host: d.host,
+        active: true,
+      }));
+
+      res.json({
+        dns: dnsList,
+        total: dnsList.length,
+      });
+
+    } catch (error) {
+      console.error("[API] /api/v5/getdns_list error:", error);
+      res.status(500).json({ dns: [], error: "Internal error" });
+    }
+  });
+
+  /**
+   * GET /api/v5/get_playlist_roku?mac=XX:XX:XX:XX:XX:XX
+   * Retorna a playlist do MAC para o GPCPRO.
+   */
+  app.get("/api/v5/get_playlist_roku", async (req: Request, res: Response) => {
+    try {
+      const mac = req.query.mac ? String(req.query.mac).trim() : null;
+      if (!mac) {
+        res.json({ playlists: [], error: "mac required" });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.json({ playlists: [], error: "server unavailable" });
+        return;
+      }
+
+      const macNormalized = mac.replace(/[^A-Fa-f0-9]/g, "").toUpperCase();
+      const macWithColons = macNormalized.length === 12
+        ? macNormalized.match(/.{2}/g)!.join(":")
+        : mac.toUpperCase();
+
+      const result = await db
+        .select()
+        .from(devices)
+        .where(or(
+          eq(devices.mac, macWithColons),
+          eq(devices.mac, macNormalized),
+          eq(devices.mac, mac),
+        ))
+        .limit(1);
+
+      if (result.length === 0) {
+        res.json({ playlists: [], mac: macWithColons, registered: false });
+        return;
+      }
+
+      const device = result[0];
+      const now = new Date();
+      const expired = device.dataExpiracao != null && new Date(device.dataExpiracao) < now;
+
+      if (!expired && device.status === "Liberado") {
+        // Atualizar lastSeen
+        await db.update(devices).set({ lastSeen: now }).where(eq(devices.id, device.id));
+      }
+
+      const playlists: Array<{ name: string; url: string; type: string }> = [];
+
+      if (device.urlM3u8) {
+        playlists.push({
+          name: device.nomeServer || "Lista 1",
+          url: device.urlM3u8,
+          type: "m3u_plus",
+        });
+      }
+
+      const deviceUrlsList = await db.select().from(deviceUrls)
+        .where(eq(deviceUrls.deviceId, device.id))
+        .orderBy(deviceUrls.ordem);
+
+      for (const du of deviceUrlsList) {
+        if (!du.ativo) continue;
+        if (du.modoSelecao === "XTeamCode" && du.xtServer && du.xtUsername && du.xtPassword) {
+          let xtreamUrl = du.xtServer.trim();
+          if (!xtreamUrl.endsWith("/player_api.php")) {
+            xtreamUrl = xtreamUrl.replace(/\/+$/, "") + "/player_api.php";
+          }
+          const sep = xtreamUrl.includes("?") ? "&" : "?";
+          xtreamUrl += `${sep}username=${encodeURIComponent(du.xtUsername)}&password=${encodeURIComponent(du.xtPassword)}`;
+          playlists.push({
+            name: du.nome || `Lista ${playlists.length + 1}`,
+            url: xtreamUrl,
+            type: "xtream",
+          });
+        } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
+          playlists.push({
+            name: du.nome || `Lista ${playlists.length + 1}`,
+            url: du.urlM3u8,
+            type: "m3u_plus",
+          });
+        }
+      }
+
+      // Formatar expiração
+      let expireDate: string | null = null;
+      if (device.dataExpiracao) {
+        expireDate = new Date(device.dataExpiracao).toISOString().split("T")[0];
+      }
+
+      res.json({
+        playlists,
+        mac: device.mac,
+        status: device.status,
+        expire_date: expireDate,
+        nome: device.nomeServer || "",
+        total: playlists.length,
+      });
+
+    } catch (error) {
+      console.error("[API] /api/v5/get_playlist_roku error:", error);
+      res.status(500).json({ playlists: [], error: "Internal error" });
+    }
+  });
+
+  /**
+   * GET /api/v5/logo_roku
+   * Retorna o logo para o GPCPRO (Roku/TV).
+   */
+  app.get("/api/v5/logo_roku", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+      const logoUrl = cfg.trial_logo_url || cfg.trial_banner_url || "";
+      const resolvedUrl = logoUrl ? await resolvePublicImageUrl(logoUrl) : "";
+      const targetUrl = resolvedUrl || "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.redirect(302, targetUrl);
+    } catch (error) {
+      console.error("[API] /api/v5/logo_roku error:", error);
+      res.status(204).end();
+    }
+  });
+
+  /**
+   * GET /api/v5/bg_roku
+   * Retorna a imagem de fundo para o GPCPRO (Roku/TV).
+   */
+  app.get("/api/v5/bg_roku", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+      const bgUrl = cfg.trial_background_url || cfg.trial_banner_url || "";
+      if (!bgUrl || !bgUrl.startsWith("http") || bgUrl.includes(",")) {
+        res.status(204).end();
+        return;
+      }
+      const resolvedUrl = await resolvePublicImageUrl(bgUrl);
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.redirect(302, resolvedUrl);
+    } catch (error) {
+      console.error("[API] /api/v5/bg_roku error:", error);
+      res.status(204).end();
+    }
+  });
+
+  /**
+   * GET /api/v5/roku_banners
+   * Retorna banners para a interface do GPCPRO.
+   */
+  app.get("/api/v5/roku_banners", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+      const banners: Array<{ id: number; title: string; image: string; url: string }> = [];
+
+      // Banner principal
+      if (cfg.trial_banner_url) {
+        const resolved = await resolvePublicImageUrl(cfg.trial_banner_url);
+        banners.push({
+          id: 1,
+          title: cfg.impact_phrase || "O melhor IPTV",
+          image: resolved,
+          url: cfg.contact_website || "",
+        });
+      }
+
+      // Logo como banner
+      if (cfg.trial_logo_url) {
+        const resolved = await resolvePublicImageUrl(cfg.trial_logo_url);
+        banners.push({
+          id: 2,
+          title: cfg.app_name || "GPCPRO",
+          image: resolved,
+          url: "",
+        });
+      }
+
+      // Buscar carousel slides ativos como banners
+      try {
+        const db = await getDb();
+        if (db) {
+          const slides = await db.select().from(carouselSlides)
+            .where(eq(carouselSlides.ativo, true))
+            .orderBy(carouselSlides.ordem);
+          slides.forEach((slide, i) => {
+            banners.push({
+              id: 10 + i,
+              title: slide.titulo,
+              image: slide.urlMedia,
+              url: "",
+            });
+          });
+        }
+      } catch { /* ignora */ }
+
+      res.json({ banners });
+
+    } catch (error) {
+      console.error("[API] /api/v5/roku_banners error:", error);
+      res.status(500).json({ banners: [] });
+    }
+  });
+
+  /**
+   * GET /api/v5/reseller_contact
+   * Retorna as informações de contato do revendedor.
+   */
+  app.get("/api/v5/reseller_contact", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+
+      // Limpar número de WhatsApp
+      const whatsappRaw = (cfg.contact_whatsapp || "").replace(/[^\d+]/g, "");
+      const whatsappNumber = whatsappRaw.replace(/\D/g, "");
+
+      res.json({
+        name: cfg.reseller_contact_name || cfg.contact_info || "Revendedor",
+        whatsapp: whatsappNumber ? `https://wa.me/${whatsappNumber}` : "",
+        whatsapp_number: whatsappNumber,
+        website: cfg.contact_website || "",
+        phone: whatsappNumber,
+        email: cfg.reseller_email || "",
+        impact_phrase: cfg.impact_phrase || "",
+        legal_notice: cfg.legal_notice || "GPCPRO is a media player application. The app does not provide or include any media or content.",
+        app_name: cfg.app_name || "GPCPRO",
+      });
+
+    } catch (error) {
+      console.error("[API] /api/v5/reseller_contact error:", error);
+      res.status(500).json({ name: "", whatsapp: "", website: "" });
+    }
+  });
+
+  /**
+   * POST /api/v5/user_register
+   * Registra um usuário/dispositivo no sistema do GPCPRO.
+   * Body: { mac, reseller, dns_url, playlist_url }
+   */
+  app.post("/api/v5/user_register", async (req: Request, res: Response) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      const mac = body && body.mac ? String(body.mac).trim() : null;
+      const reseller = body && body.reseller ? String(body.reseller).trim() : null;
+
+      if (!mac) {
+        res.json({ success: false, error: "mac required" });
+        return;
+      }
+
+      // Verificar se o MAC já existe
+      const db = await getDb();
+      if (!db) {
+        res.json({ success: false, error: "server unavailable" });
+        return;
+      }
+
+      const macNormalized = mac.replace(/[^A-Fa-f0-9]/g, "").toUpperCase();
+      const macWithColons = macNormalized.length === 12
+        ? macNormalized.match(/.{2}/g)!.join(":")
+        : mac.toUpperCase();
+
+      // Verificar se já existe
+      const existing = await db
+        .select()
+        .from(devices)
+        .where(or(
+          eq(devices.mac, macWithColons),
+          eq(devices.mac, macNormalized),
+        ))
+        .limit(1);
+
+      if (existing.length > 0) {
+        // MAC já cadastrado - retornar dados
+        const device = existing[0];
+        const now = new Date();
+        await db.update(devices).set({ lastSeen: now }).where(eq(devices.id, device.id));
+        res.json({
+          success: true,
+          registered: true,
+          mac: device.mac,
+          status: device.status,
+          expire_date: device.dataExpiracao ? new Date(device.dataExpiracao).toISOString().split("T")[0] : null,
+          message: "Device already registered",
+        });
+        return;
+      }
+
+      // MAC não cadastrado - registrar como trial/bloqueado
+      // O admin precisa aprovar no painel
+      const ownerId = 1; // admin/revendedor principal
+      const nomeServer = reseller || "GPCPRO";
+
+      await db.insert(devices).values({
+        ownerId,
+        mac: macWithColons,
+        nomeServer,
+        tipo: "Usuario",
+        modoSelecao: "M3U8",
+        status: "Bloqueado",
+        telefone: (body.telefone as string) || null,
+      });
+
+      res.json({
+        success: true,
+        registered: false,
+        mac: macWithColons,
+        message: "Device registered. Waiting for reseller approval.",
+        status: "Bloqueado",
+      });
+
+    } catch (error) {
+      console.error("[API] /api/v5/user_register error:", error);
+      res.status(500).json({ success: false, error: "Internal error" });
+    }
+  });
+
 }
