@@ -1822,10 +1822,22 @@ export function registerApiRoutes(app: Express) {
 
       const cfg = await getSettings();
 
+      // Usar chaves gpcpro_ com fallback para OuroPro
+      const gpcLogo = cfg.gpcpro_logo_url || cfg.trial_logo_url || "";
+      const gpcBanner = cfg.gpcpro_banner_url || cfg.trial_banner_url || "";
+      const gpcBg = cfg.gpcpro_background_url || cfg.trial_background_url || "";
+      const gpcDnsUrl = cfg.gpcpro_server_url || cfg.server_url || cfg.contact_website || "";
+      const gpcAppName = cfg.gpcpro_app_name || "GPCPRO";
+      const gpcWhatsapp = cfg.gpcpro_contact_whatsapp || cfg.contact_whatsapp || "";
+      const gpcResellerName = cfg.gpcpro_reseller_contact_name || cfg.reseller_contact_name || cfg.contact_info || "";
+      const gpcResellerWhatsapp = cfg.gpcpro_reseller_whatsapp || cfg.reseller_whatsapp || cfg.contact_whatsapp || "";
+      const gpcApkVersion = cfg.gpcpro_apk_version || cfg.apk_version || "1.0";
+      const gpcApkLink = cfg.gpcpro_apk_download_url || cfg.apk_download_url || "";
+
       // Resolver URLs de imagens
-      const resolvedLogo = cfg.trial_logo_url ? await resolvePublicImageUrl(cfg.trial_logo_url) : "";
-      const resolvedBanner = cfg.trial_banner_url ? await resolvePublicImageUrl(cfg.trial_banner_url) : "";
-      const resolvedBg = cfg.trial_background_url ? await resolvePublicImageUrl(cfg.trial_background_url) : "";
+      const resolvedLogo = gpcLogo ? await resolvePublicImageUrl(gpcLogo) : "";
+      const resolvedBanner = gpcBanner ? await resolvePublicImageUrl(gpcBanner) : "";
+      const resolvedBg = gpcBg ? await resolvePublicImageUrl(gpcBg) : "";
 
       res.json({
         success: true,
@@ -1834,15 +1846,16 @@ export function registerApiRoutes(app: Express) {
         status: device.status,
         expire_date: expireDate,
         playlists,
-        dns_url: cfg.server_url || cfg.contact_website || "",
+        dns_url: gpcDnsUrl,
         logo_url: resolvedLogo || resolvedBanner,
         bg_url: resolvedBg,
         banner_url: resolvedBanner,
-        app_name: cfg.app_name || "GPCPRO",
-        whatsapp_url: (cfg.contact_whatsapp || "").replace(/\D/g, "") ? `https://wa.me/${(cfg.contact_whatsapp || "").replace(/\D/g, "")}` : "",
-        reseller_contact: cfg.reseller_contact_name || cfg.contact_info || "",
-        reseller_whatsapp: cfg.reseller_whatsapp || cfg.contact_whatsapp || "",
-        version: cfg.apk_version || "1.0",
+        app_name: gpcAppName,
+        whatsapp_url: gpcWhatsapp.replace(/\D/g, "") ? `https://wa.me/${gpcWhatsapp.replace(/\D/g, "")}` : "",
+        reseller_contact: gpcResellerName,
+        reseller_whatsapp: gpcResellerWhatsapp,
+        version: gpcApkVersion,
+        apk_link: gpcApkLink,
       });
 
     } catch (error) {
@@ -2126,7 +2139,7 @@ export function registerApiRoutes(app: Express) {
   app.get("/api/v5/logo_roku", async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
-      const logoUrl = cfg.trial_logo_url || cfg.trial_banner_url || "";
+      const logoUrl = cfg.gpcpro_logo_url || cfg.trial_logo_url || cfg.trial_banner_url || "";
       const resolvedUrl = logoUrl ? await resolvePublicImageUrl(logoUrl) : "";
       const targetUrl = resolvedUrl || "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
       res.setHeader("Cache-Control", "public, max-age=3600");
@@ -2144,7 +2157,7 @@ export function registerApiRoutes(app: Express) {
   app.get("/api/v5/bg_roku", async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
-      const bgUrl = cfg.trial_background_url || cfg.trial_banner_url || "";
+      const bgUrl = cfg.gpcpro_background_url || cfg.trial_background_url || cfg.trial_banner_url || "";
       if (!bgUrl || !bgUrl.startsWith("http") || bgUrl.includes(",")) {
         res.status(204).end();
         return;
@@ -2167,23 +2180,29 @@ export function registerApiRoutes(app: Express) {
       const cfg = await getSettings();
       const banners: Array<{ id: number; title: string; image: string; url: string }> = [];
 
-      // Banner principal
-      if (cfg.trial_banner_url) {
-        const resolved = await resolvePublicImageUrl(cfg.trial_banner_url);
+      // Banner principal GPCPRO (com fallback OuroPro)
+      const gpcBannerUrl = cfg.gpcpro_banner_url || cfg.trial_banner_url;
+      const gpcImpactPhrase = cfg.gpcpro_impact_phrase || cfg.impact_phrase;
+      const gpcContactWebsite = cfg.gpcpro_contact_website || cfg.contact_website;
+      const gpcAppName = cfg.gpcpro_app_name || cfg.app_name || "GPCPRO";
+      const gpcLogoUrl = cfg.gpcpro_logo_url || cfg.trial_logo_url;
+
+      if (gpcBannerUrl) {
+        const resolved = await resolvePublicImageUrl(gpcBannerUrl);
         banners.push({
           id: 1,
-          title: cfg.impact_phrase || "O melhor IPTV",
+          title: gpcImpactPhrase || "O melhor IPTV",
           image: resolved,
-          url: cfg.contact_website || "",
+          url: gpcContactWebsite || "",
         });
       }
 
       // Logo como banner
-      if (cfg.trial_logo_url) {
-        const resolved = await resolvePublicImageUrl(cfg.trial_logo_url);
+      if (gpcLogoUrl) {
+        const resolved = await resolvePublicImageUrl(gpcLogoUrl);
         banners.push({
           id: 2,
-          title: cfg.app_name || "GPCPRO",
+          title: gpcAppName,
           image: resolved,
           url: "",
         });
@@ -2223,20 +2242,20 @@ export function registerApiRoutes(app: Express) {
     try {
       const cfg = await getSettings();
 
-      // Limpar número de WhatsApp
-      const whatsappRaw = (cfg.contact_whatsapp || "").replace(/[^\d+]/g, "");
+      // Usar chaves gpcpro_ com fallback para OuroPro
+      const whatsappRaw = (cfg.gpcpro_contact_whatsapp || cfg.contact_whatsapp || "").replace(/[^\d+]/g, "");
       const whatsappNumber = whatsappRaw.replace(/\D/g, "");
 
       res.json({
-        name: cfg.reseller_contact_name || cfg.contact_info || "Revendedor",
+        name: cfg.gpcpro_reseller_contact_name || cfg.reseller_contact_name || cfg.contact_info || "Revendedor",
         whatsapp: whatsappNumber ? `https://wa.me/${whatsappNumber}` : "",
         whatsapp_number: whatsappNumber,
-        website: cfg.contact_website || "",
+        website: cfg.gpcpro_contact_website || cfg.contact_website || "",
         phone: whatsappNumber,
-        email: cfg.reseller_email || "",
-        impact_phrase: cfg.impact_phrase || "",
-        legal_notice: cfg.legal_notice || "GPCPRO is a media player application. The app does not provide or include any media or content.",
-        app_name: cfg.app_name || "GPCPRO",
+        email: cfg.gpcpro_reseller_email || cfg.reseller_email || "",
+        impact_phrase: cfg.gpcpro_impact_phrase || cfg.impact_phrase || "",
+        legal_notice: cfg.gpcpro_legal_notice || cfg.legal_notice || "GPCPRO is a media player application. The app does not provide or include any media or content.",
+        app_name: cfg.gpcpro_app_name || cfg.app_name || "GPCPRO",
       });
 
     } catch (error) {

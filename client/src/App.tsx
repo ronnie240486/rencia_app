@@ -13,6 +13,7 @@ import Users from "./pages/Users";
 import UserCreate from "./pages/UserCreate";
 import UserEdit from "./pages/UserEdit";
 import Settings from "./pages/Settings";
+import SettingsGpcpro from "./pages/SettingsGpcpro";
 import Revendas from "./pages/Revendas";
 import DeviceLists from "./pages/DeviceLists";
 import DnsMassa from "./pages/DnsMassa";
@@ -47,6 +48,7 @@ function Router() {
       <Route path={"/sugestoes"} component={Suggestions} />
       <Route path={"/avisos"} component={Notices} />
       <Route path={"/configuracoes"} component={Settings} />
+      <Route path={"/gpcpro"} component={SettingsGpcpro} />
       <Route path={"/player"} component={Player} />
       <Route component={NotFound} />
     </Switch>

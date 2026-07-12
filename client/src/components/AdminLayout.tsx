@@ -45,6 +45,7 @@ const navItems: NavItem[] = [
   { label: "Sugestões", href: "/sugestoes", icon: <MessageSquare size={18} /> },
   { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true },
   { label: "OuroPro", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
+  { label: "GPCPRO", href: "/gpcpro", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Configurações do App", href: "/app-settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];
