@@ -1781,16 +1781,13 @@ export function registerApiRoutes(app: Express) {
         .where(eq(deviceUrls.deviceId, device.id))
         .orderBy(deviceUrls.ordem);
 
-      // O APK GPCPRO espera playlist_url e playlist_name em vez de url/name simples
-      const playlists: Array<{ name: string; url: string; playlist_name: string; playlist_url: string; type: string }> = [];
+      const playlists: Array<{ name: string; url: string; type: string }> = [];
 
       // Playlist principal do device
       if (device.urlM3u8) {
         playlists.push({
           name: device.nomeServer || "Lista 1",
           url: device.urlM3u8,
-          playlist_name: device.nomeServer || "Lista 1",
-          playlist_url: device.urlM3u8,
           type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
         });
       }
@@ -1817,8 +1814,6 @@ export function registerApiRoutes(app: Express) {
             playlists.push({
               name: du.nome || `Lista ${playlists.length + 1}`,
               url: xtreamUrl,
-              playlist_name: du.nome || `Lista ${playlists.length + 1}`,
-              playlist_url: xtreamUrl,
               type: "xtream",
             });
           }
@@ -1826,8 +1821,6 @@ export function registerApiRoutes(app: Express) {
           playlists.push({
             name: du.nome || `Lista ${playlists.length + 1}`,
             url: du.urlM3u8,
-            playlist_name: du.nome || `Lista ${playlists.length + 1}`,
-            playlist_url: du.urlM3u8,
             type: "m3u_plus",
           });
         }
@@ -2448,14 +2441,12 @@ export function registerApiRoutes(app: Express) {
         .where(eq(deviceUrls.deviceId, device.id))
         .orderBy(deviceUrls.ordem);
 
-      const playlists: Array<{ name: string; url: string; playlist_name: string; playlist_url: string; type: string }> = [];
+      const playlists: Array<{ name: string; url: string; type: string }> = [];
 
       if (device.urlM3u8) {
         playlists.push({
           name: device.nomeServer || "Lista 1",
           url: device.urlM3u8,
-          playlist_name: device.nomeServer || "Lista 1",
-          playlist_url: device.urlM3u8,
           type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
         });
       }
@@ -2464,15 +2455,18 @@ export function registerApiRoutes(app: Express) {
         if (!du.ativo) continue;
         if (du.modoSelecao === "XTeamCode") {
           let xtreamUrl = (du.xtServer || "").trim();
+          // Fallback para urlM3u8 se xtServer estiver vazio
           if (!xtreamUrl && du.urlM3u8) {
             xtreamUrl = du.urlM3u8;
           }
 
           if (xtreamUrl) {
+            // Garantir endpoint correto para Xtream
             if (!xtreamUrl.endsWith("/player_api.php") && !xtreamUrl.includes("get.php")) {
               xtreamUrl = xtreamUrl.replace(/\/+$/, "") + "/player_api.php";
             }
             
+            // Adicionar credenciais se disponíveis
             if (du.xtUsername && du.xtPassword) {
               const sep = xtreamUrl.includes("?") ? "&" : "?";
               xtreamUrl += `${sep}username=${encodeURIComponent(du.xtUsername)}&password=${encodeURIComponent(du.xtPassword)}`;
@@ -2481,8 +2475,6 @@ export function registerApiRoutes(app: Express) {
             playlists.push({
               name: du.nome || `Lista ${playlists.length + 1}`,
               url: xtreamUrl,
-              playlist_name: du.nome || `Lista ${playlists.length + 1}`,
-              playlist_url: xtreamUrl,
               type: "xtream",
             });
           }
@@ -2490,8 +2482,6 @@ export function registerApiRoutes(app: Express) {
           playlists.push({
             name: du.nome || `Lista ${playlists.length + 1}`,
             url: du.urlM3u8,
-            playlist_name: du.nome || `Lista ${playlists.length + 1}`,
-            playlist_url: du.urlM3u8,
             type: "m3u_plus",
           });
         }
