@@ -664,11 +664,11 @@ export function registerApiRoutes(app: Express) {
       const urls: Array<{ id: string; url: string; name: string; type: string; is_protected: string; username?: string; password?: string }> = [];
       if (device.urlM3u8 && isAllowed) {
         urls.push({
-          id: String(device.id),  // id != '0' para o APK liberar
+          id: String(device.id),
           url: device.urlM3u8,
           name: device.nomeServer || "Lista",
-          type: "m3u_plus",
-          is_protected: "1",  // Protegido: APK mostra "Protegido" no lugar da URL
+          type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
+          is_protected: "1",
         });
       }
 
@@ -677,28 +677,27 @@ export function registerApiRoutes(app: Express) {
         try {
           const extraUrls = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, device.id));
           for (const eu of extraUrls) {
-            if (eu.modoSelecao === "XTeamCode" && eu.xtServer && eu.xtUsername && eu.xtPassword) {
-              // Xtream Code: enviar credenciais na URL
-              // O OuroPro espera: http://server/player_api.php?username=xxx&password=yyy
-              let xtreamUrl = eu.xtServer.trim();
-              if (!xtreamUrl.endsWith('/player_api.php')) {
-                if (!xtreamUrl.endsWith('/')) {
-                  xtreamUrl += '/';
+            if (eu.modoSelecao === "XTeamCode") {
+              let xtreamUrl = (eu.xtServer || "").trim();
+              if (!xtreamUrl && eu.urlM3u8) xtreamUrl = eu.urlM3u8;
+
+              if (xtreamUrl) {
+                if (!xtreamUrl.endsWith('/player_api.php') && !xtreamUrl.includes('get.php')) {
+                  xtreamUrl = xtreamUrl.replace(/\/+$/, "") + "/player_api.php";
                 }
-                xtreamUrl += 'player_api.php';
+                if (eu.xtUsername && eu.xtPassword) {
+                  const separator = xtreamUrl.includes('?') ? '&' : '?';
+                  xtreamUrl += `${separator}username=${encodeURIComponent(eu.xtUsername)}&password=${encodeURIComponent(eu.xtPassword)}`;
+                }
+                urls.push({
+                  id: String(eu.id),
+                  url: xtreamUrl,
+                  name: eu.nome || `Lista ${urls.length + 1}`,
+                  type: "xtream",
+                  is_protected: "1",
+                });
               }
-              // Adicionar credenciais na URL
-              const separator = xtreamUrl.includes('?') ? '&' : '?';
-              xtreamUrl += `${separator}username=${encodeURIComponent(eu.xtUsername)}&password=${encodeURIComponent(eu.xtPassword)}`;
-              urls.push({
-                id: String(eu.id),
-                url: xtreamUrl,  // URL com credenciais incluídas
-                name: eu.nome || `Lista ${urls.length + 1}`,
-                type: "xtream",
-                is_protected: "1",
-              });
             } else if (eu.modoSelecao === "M3U8" && eu.urlM3u8) {
-              // M3U Playlist
               urls.push({
                 id: String(eu.id),
                 url: eu.urlM3u8,
@@ -1782,36 +1781,53 @@ export function registerApiRoutes(app: Express) {
         .where(eq(deviceUrls.deviceId, device.id))
         .orderBy(deviceUrls.ordem);
 
-      const playlists: Array<{ name: string; url: string; type: string }> = [];
+      // O APK GPCPRO espera playlist_url e playlist_name em vez de url/name simples
+      const playlists: Array<{ name: string; url: string; playlist_name: string; playlist_url: string; type: string }> = [];
 
       // Playlist principal do device
       if (device.urlM3u8) {
         playlists.push({
           name: device.nomeServer || "Lista 1",
           url: device.urlM3u8,
-          type: "m3u_plus",
+          playlist_name: device.nomeServer || "Lista 1",
+          playlist_url: device.urlM3u8,
+          type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
         });
       }
 
       // Playlists extras
       for (const du of deviceUrlsList) {
         if (!du.ativo) continue;
-        if (du.modoSelecao === "XTeamCode" && du.xtServer && du.xtUsername && du.xtPassword) {
-          let xtreamUrl = du.xtServer.trim();
-          if (!xtreamUrl.endsWith("/player_api.php")) {
-            xtreamUrl = xtreamUrl.replace(/\/+$/, "") + "/player_api.php";
+        if (du.modoSelecao === "XTeamCode") {
+          let xtreamUrl = (du.xtServer || "").trim();
+          if (!xtreamUrl && du.urlM3u8) {
+            xtreamUrl = du.urlM3u8;
           }
-          const sep = xtreamUrl.includes("?") ? "&" : "?";
-          xtreamUrl += `${sep}username=${encodeURIComponent(du.xtUsername)}&password=${encodeURIComponent(du.xtPassword)}`;
-          playlists.push({
-            name: du.nome || `Lista ${playlists.length + 1}`,
-            url: xtreamUrl,
-            type: "xtream",
-          });
+
+          if (xtreamUrl) {
+            if (!xtreamUrl.endsWith("/player_api.php") && !xtreamUrl.includes("get.php")) {
+              xtreamUrl = xtreamUrl.replace(/\/+$/, "") + "/player_api.php";
+            }
+            
+            if (du.xtUsername && du.xtPassword) {
+              const sep = xtreamUrl.includes("?") ? "&" : "?";
+              xtreamUrl += `${sep}username=${encodeURIComponent(du.xtUsername)}&password=${encodeURIComponent(du.xtPassword)}`;
+            }
+            
+            playlists.push({
+              name: du.nome || `Lista ${playlists.length + 1}`,
+              url: xtreamUrl,
+              playlist_name: du.nome || `Lista ${playlists.length + 1}`,
+              playlist_url: xtreamUrl,
+              type: "xtream",
+            });
+          }
         } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
           playlists.push({
             name: du.nome || `Lista ${playlists.length + 1}`,
             url: du.urlM3u8,
+            playlist_name: du.nome || `Lista ${playlists.length + 1}`,
+            playlist_url: du.urlM3u8,
             type: "m3u_plus",
           });
         }
@@ -2432,34 +2448,50 @@ export function registerApiRoutes(app: Express) {
         .where(eq(deviceUrls.deviceId, device.id))
         .orderBy(deviceUrls.ordem);
 
-      const playlists: Array<{ name: string; url: string; type: string }> = [];
+      const playlists: Array<{ name: string; url: string; playlist_name: string; playlist_url: string; type: string }> = [];
 
       if (device.urlM3u8) {
         playlists.push({
           name: device.nomeServer || "Lista 1",
           url: device.urlM3u8,
-          type: "m3u_plus",
+          playlist_name: device.nomeServer || "Lista 1",
+          playlist_url: device.urlM3u8,
+          type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
         });
       }
 
       for (const du of deviceUrlsList) {
         if (!du.ativo) continue;
-        if (du.modoSelecao === "XTeamCode" && du.xtServer && du.xtUsername && du.xtPassword) {
-          let xtreamUrl = du.xtServer.trim();
-          if (!xtreamUrl.endsWith("/player_api.php")) {
-            xtreamUrl = xtreamUrl.replace(/\/+$/, "") + "/player_api.php";
+        if (du.modoSelecao === "XTeamCode") {
+          let xtreamUrl = (du.xtServer || "").trim();
+          if (!xtreamUrl && du.urlM3u8) {
+            xtreamUrl = du.urlM3u8;
           }
-          const sep = xtreamUrl.includes("?") ? "&" : "?";
-          xtreamUrl += `${sep}username=${encodeURIComponent(du.xtUsername)}&password=${encodeURIComponent(du.xtPassword)}`;
-          playlists.push({
-            name: du.nome || `Lista ${playlists.length + 1}`,
-            url: xtreamUrl,
-            type: "xtream",
-          });
+
+          if (xtreamUrl) {
+            if (!xtreamUrl.endsWith("/player_api.php") && !xtreamUrl.includes("get.php")) {
+              xtreamUrl = xtreamUrl.replace(/\/+$/, "") + "/player_api.php";
+            }
+            
+            if (du.xtUsername && du.xtPassword) {
+              const sep = xtreamUrl.includes("?") ? "&" : "?";
+              xtreamUrl += `${sep}username=${encodeURIComponent(du.xtUsername)}&password=${encodeURIComponent(du.xtPassword)}`;
+            }
+            
+            playlists.push({
+              name: du.nome || `Lista ${playlists.length + 1}`,
+              url: xtreamUrl,
+              playlist_name: du.nome || `Lista ${playlists.length + 1}`,
+              playlist_url: xtreamUrl,
+              type: "xtream",
+            });
+          }
         } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
           playlists.push({
             name: du.nome || `Lista ${playlists.length + 1}`,
             url: du.urlM3u8,
+            playlist_name: du.nome || `Lista ${playlists.length + 1}`,
+            playlist_url: du.urlM3u8,
             type: "m3u_plus",
           });
         }
@@ -2477,6 +2509,23 @@ export function registerApiRoutes(app: Express) {
       console.error("[API] /api/v5/login POST error:", error);
       res.status(500).json({ success: false, error: "Internal error" });
     }
+  });
+
+  /**
+   * ANY /api/v5/debug_all
+   * Endpoint de debug que captura TODAS as requisições
+   */
+  app.all("/api/v5/debug_all", async (req: Request, res: Response) => {
+    console.log(`[DEBUG-ALL] Method: ${req.method} | Path: ${req.path} | Query: ${JSON.stringify(req.query)} | Body: ${JSON.stringify(req.body)}`);
+    res.json({
+      success: true,
+      message: "Debug endpoint received request",
+      method: req.method,
+      path: req.path,
+      query: req.query,
+      body: req.body,
+      timestamp: new Date().toISOString(),
+    });
   });
 
   /**

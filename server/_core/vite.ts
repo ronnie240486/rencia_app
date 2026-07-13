@@ -20,15 +20,19 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
-  app.use(vite.middlewares);
+  // Registrar Vite APENAS para requisições que NÃO são da API
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api/") || req.path.startsWith("/apk") || req.path.startsWith("/ouropro")) {
+      return next(); // Pula o Vite para requisições da API
+    }
+    // Para outras requisições, usa o Vite
+    vite.middlewares(req, res, next);
+  });
+  
+  // Middleware catch-all para servir index.html (SPA)
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
     
-    // Nao interceptar requisicoes da API
-    if ((req as any).isApiRequest) {
-      return next();
-    }
-
     try {
       const clientTemplate = path.resolve(
         import.meta.dirname,
