@@ -2755,4 +2755,101 @@ export function registerApiRoutes(app: Express) {
       res.status(500).json({ error: "Internal error" });
     }
   });
+
+  /**
+   * GET /api/v5/mac_exists?mac=XX:XX:XX:XX:XX:XX
+   * Verifica se o MAC existe no painel
+   */
+  app.get("/api/v5/mac_exists", async (req: Request, res: Response) => {
+    const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : null;
+
+    if (!mac) {
+      res.json({ exists: false, message: "MAC não informado" });
+      return;
+    }
+
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.json({ exists: false, message: "Banco indisponível" });
+        return;
+      }
+
+      // Normalizar MAC
+      const macWithColons = mac.includes(":") ? mac : `${mac.slice(0, 2)}:${mac.slice(2, 4)}:${mac.slice(4, 6)}:${mac.slice(6, 8)}:${mac.slice(8, 10)}:${mac.slice(10, 12)}`;
+
+      // Buscar device no banco
+      const result = await db.select().from(devices).where(eq(devices.mac, macWithColons)).limit(1);
+
+      console.log(`[API-MAC-EXISTS] MAC: ${macWithColons}, Existe: ${result.length > 0}`);
+
+      res.json({
+        exists: result.length > 0,
+        mac: macWithColons,
+        message: result.length > 0 ? "MAC encontrado" : "MAC não encontrado",
+      });
+    } catch (error) {
+      console.error("[API] /api/v5/mac_exists error:", error);
+      res.json({ exists: false, message: "Erro interno" });
+    }
+  });
+
+  /**
+   * GET /api/v5/check_expire.php?mac=XX:XX:XX:XX:XX:XX
+   * Verifica se o MAC foi liberado no painel
+   */
+  app.get("/api/v5/check_expire.php", async (req: Request, res: Response) => {
+    const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : null;
+
+    if (!mac) {
+      res.json({ success: false, expired: true, message: "MAC não informado" });
+      return;
+    }
+
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.json({ success: false, expired: true, message: "Banco indisponível" });
+        return;
+      }
+
+      // Normalizar MAC
+      const normalizedMac = mac.replace(/[:-]/g, "").toUpperCase();
+      const macWithColons = mac.includes(":") ? mac : `${mac.slice(0, 2)}:${mac.slice(2, 4)}:${mac.slice(4, 6)}:${mac.slice(6, 8)}:${mac.slice(8, 10)}:${mac.slice(10, 12)}`;
+
+      // Buscar device no banco
+      const result = await db.select().from(devices).where(eq(devices.mac, macWithColons)).limit(1);
+
+      if (result.length === 0) {
+        console.log(`[API-CHECK-EXPIRE] MAC não encontrado: ${macWithColons}`);
+        res.json({ success: false, expired: true, message: "MAC não cadastrado" });
+        return;
+      }
+
+      const device = result[0];
+      const now = new Date();
+      const expired = device.dataExpiracao != null && new Date(device.dataExpiracao) < now;
+
+      // Se expirou, atualizar status
+      if (expired && device.status !== "Expirado") {
+        await db.update(devices).set({ status: "Expirado" }).where(eq(devices.id, device.id));
+        device.status = "Expirado";
+      }
+
+      console.log(`[API-CHECK-EXPIRE] MAC: ${macWithColons}, Status: ${device.status}, Expirado: ${expired}`);
+
+      // Retornar resposta
+      res.json({
+        success: true,
+        expired: expired || device.status !== "Liberado",
+        status: device.status,
+        mac: device.mac,
+        expire_date: device.dataExpiracao ? new Date(device.dataExpiracao).toISOString() : null,
+        message: expired ? "MAC expirado" : device.status === "Liberado" ? "MAC liberado" : `MAC com status: ${device.status}`,
+      });
+    } catch (error) {
+      console.error("[API] /api/v5/check_expire.php error:", error);
+      res.json({ success: false, expired: true, message: "Erro interno" });
+    }
+  });
 }
