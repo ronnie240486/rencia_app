@@ -2480,23 +2480,6 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
-   * ANY /api/v5/debug_all
-   * Endpoint de debug que captura TODAS as requisições
-   */
-  app.all("/api/v5/debug_all", async (req: Request, res: Response) => {
-    console.log(`[DEBUG-ALL] Method: ${req.method} | Path: ${req.path} | Query: ${JSON.stringify(req.query)} | Body: ${JSON.stringify(req.body)}`);
-    res.json({
-      success: true,
-      message: "Debug endpoint received request",
-      method: req.method,
-      path: req.path,
-      query: req.query,
-      body: req.body,
-      timestamp: new Date().toISOString(),
-    });
-  });
-
-  /**
    * GET /api/v5/debug_macs
    * Endpoint de debug para listar todos os MACs cadastrados
    */
