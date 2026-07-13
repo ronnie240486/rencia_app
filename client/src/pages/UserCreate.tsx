@@ -71,11 +71,7 @@ export default function UserCreate() {
           await addUrlMutation.mutateAsync({
             deviceId: data.id,
             nome: lista.nome || `Lista ${listas.indexOf(lista) + 1}`,
-            modoSelecao: lista.modo,
-            urlM3u8: lista.modo === "M3U8" ? lista.urlM3u8 : undefined,
-            xtServer: lista.modo === "XTeamCode" ? lista.xtServer : undefined,
-            xtUsername: lista.modo === "XTeamCode" ? lista.xtUsername : undefined,
-            xtPassword: lista.modo === "XTeamCode" ? lista.xtPassword : undefined,
+            urlM3u8: url,
           });
         }
       }
