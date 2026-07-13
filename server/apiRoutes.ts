@@ -2802,6 +2802,64 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
+   * GET /api/v5/get_playlist_roku?mac=XX:XX:XX:XX:XX:XX
+   * Retorna a playlist do MAC para o APK Roku/GPCPRO
+   */
+  app.get("/api/v5/get_playlist_roku", async (req: Request, res: Response) => {
+    const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : null;
+
+    if (!mac) {
+      res.json({ success: false, playlists: [], message: "MAC não informado" });
+      return;
+    }
+
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.json({ success: false, playlists: [], message: "Banco indisponível" });
+        return;
+      }
+
+      // Normalizar MAC
+      const macWithColons = mac.includes(":") ? mac : `${mac.slice(0, 2)}:${mac.slice(2, 4)}:${mac.slice(4, 6)}:${mac.slice(6, 8)}:${mac.slice(8, 10)}:${mac.slice(10, 12)}`;
+
+      // Buscar device
+      const device = await db.select().from(devices).where(eq(devices.mac, macWithColons)).limit(1);
+
+      if (device.length === 0) {
+        res.json({ success: false, playlists: [], message: "MAC não encontrado" });
+        return;
+      }
+
+      const dev = device[0];
+
+      // Buscar playlists do device
+      const playlists = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, dev.id)).orderBy(deviceUrls.ordem);
+
+      // Montar resposta no formato que o APK espera
+      const playlistsFormatted = playlists.map((p) => ({
+        name: p.nome || "Playlist",
+        url: p.urlM3u8 || "",
+        playlist_name: p.nome || "Playlist",
+        playlist_url: p.urlM3u8 || "",
+        type: p.modoSelecao === "M3U8" ? "m3u_plus" : "xteam",
+      }));
+
+      console.log(`[API-GET-PLAYLIST-ROKU] MAC: ${macWithColons}, Playlists: ${playlistsFormatted.length}`);
+
+      res.json({
+        success: true,
+        mac: macWithColons,
+        playlists: playlistsFormatted,
+        message: "Playlists encontradas",
+      });
+    } catch (error) {
+      console.error("[API] /api/v5/get_playlist_roku error:", error);
+      res.json({ success: false, playlists: [], message: "Erro interno" });
+    }
+  });
+
+  /**
    * GET /api/v5/roku_banners
    * Retorna a imagem do banner
    */
