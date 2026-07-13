@@ -35,6 +35,29 @@ async function startServer() {
   // Trust the reverse proxy so req.protocol reflects the original HTTPS scheme
   // This is required for sameSite=none cookies to work correctly behind a proxy
   app.set("trust proxy", 1);
+  
+  // Middleware de logging global para debugar requisicoes
+  app.use((req, res, next) => {
+    const method = req.method;
+    const path = req.path;
+    const query = Object.keys(req.query).length > 0 ? JSON.stringify(req.query) : "";
+    const userAgent = req.get('user-agent') || 'unknown';
+    console.log(`[REQUEST] ${method} ${path} ${query} | UA: ${userAgent}`);
+    next();
+  });
+  
+  // Middleware para capturar 404s
+  app.use((req, res, next) => {
+    const originalSend = res.send;
+    res.send = function(data: any) {
+      if (res.statusCode === 404) {
+        console.log(`[404-NOT-FOUND] ${req.method} ${req.path} - Endpoint nao encontrado`);
+      }
+      return originalSend.call(this, data);
+    };
+    next();
+  });
+  
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));

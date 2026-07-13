@@ -1,0 +1,17 @@
+{
+  "query": "SELECT id, mac, nomeServer, status, dataExpiracao FROM devices WHERE mac = 'A2:E6:89:65:7C:FA' OR mac = 'a2:e6:89:65:7c:fa' OR mac = 'A2E68965 7CFA' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT id, mac, nomeServer, status, dataExpiracao FROM devices WHERE mac = 'A2:E6:89:65:7C:FA' OR mac = 'a2:e6:89:65:7c:fa' OR mac = 'A2E68965 7CFA' LIMIT 5;",
+  "rows": [
+    {
+      "id": "690001",
+      "mac": "A2:E6:89:65:7C:FA",
+      "nomeServer": "Teste",
+      "status": "Liberado",
+      "dataExpiracao": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tmac\tnomeServer\tstatus\tdataExpiracao\n690001\tA2:E6:89:65:7C:FA\tTeste\tLiberado\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 713
+}

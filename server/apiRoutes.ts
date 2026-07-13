@@ -1723,6 +1723,8 @@ export function registerApiRoutes(app: Express) {
         ? macNormalized.match(/.{2}/g)!.join(":")
         : mac.toUpperCase();
 
+      console.log(`[API-V5-CHECK-MAC] Received MAC: "${mac}" | Normalized: "${macNormalized}" | WithColons: "${macWithColons}"`);
+
       const result = await db
         .select()
         .from(devices)
@@ -1732,6 +1734,11 @@ export function registerApiRoutes(app: Express) {
           eq(devices.mac, mac),
         ))
         .limit(1);
+
+      console.log(`[API-V5-CHECK-MAC] Query result: ${result.length} device(s) found`);
+      if (result.length > 0) {
+        console.log(`[API-V5-CHECK-MAC] Device found: MAC=${result[0].mac}, Status=${result[0].status}`);
+      }
 
       if (result.length === 0) {
         res.json({
@@ -2343,6 +2350,162 @@ export function registerApiRoutes(app: Express) {
 
     } catch (error) {
       console.error("[API] /api/v5/user_register error:", error);
+      res.status(500).json({ success: false, error: "Internal error" });
+    }
+  });
+
+  /**
+   * GET /api/v5/test
+   * Endpoint de teste simples para debugar conectividade
+   */
+  app.get("/api/v5/test", async (req: Request, res: Response) => {
+    console.log(`[API-V5-TEST] Test endpoint called | MAC: ${req.query.mac}`);
+    res.json({
+      success: true,
+      message: "Server is reachable",
+      timestamp: new Date().toISOString(),
+      mac: req.query.mac || "no mac provided",
+    });
+  });
+
+  /**
+   * POST /api/v5/login
+   * Endpoint POST para GPCPRO fazer login com MAC
+   */
+  app.post("/api/v5/login", async (req: Request, res: Response) => {
+    try {
+      const mac = req.body?.mac || req.query.mac;
+      console.log(`[API-V5-LOGIN-POST] Received MAC: "${mac}"`);
+      
+      if (!mac) {
+        res.json({ error: "mac required", success: false });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.json({ error: "server unavailable", success: false });
+        return;
+      }
+
+      const macNormalized = String(mac).replace(/[^A-Fa-f0-9]/g, "").toUpperCase();
+      const macWithColons = macNormalized.length === 12
+        ? macNormalized.match(/.{2}/g)!.join(":")
+        : String(mac).toUpperCase();
+
+      const result = await db
+        .select()
+        .from(devices)
+        .where(or(
+          eq(devices.mac, macWithColons),
+          eq(devices.mac, macNormalized),
+          eq(devices.mac, String(mac)),
+        ))
+        .limit(1);
+
+      if (result.length === 0) {
+        res.json({
+          success: false,
+          error: "Device not found",
+          mac: macWithColons,
+          registered: false,
+        });
+        return;
+      }
+
+      const device = result[0];
+      const isAllowed = device.status === "Liberado";
+
+      if (!isAllowed) {
+        res.json({
+          success: false,
+          error: "Device blocked",
+          status: device.status,
+          mac: device.mac,
+          registered: true,
+        });
+        return;
+      }
+
+      // Buscar playlists
+      const deviceUrlsList = await db.select().from(deviceUrls)
+        .where(eq(deviceUrls.deviceId, device.id))
+        .orderBy(deviceUrls.ordem);
+
+      const playlists: Array<{ name: string; url: string; type: string }> = [];
+
+      if (device.urlM3u8) {
+        playlists.push({
+          name: device.nomeServer || "Lista 1",
+          url: device.urlM3u8,
+          type: "m3u_plus",
+        });
+      }
+
+      for (const du of deviceUrlsList) {
+        if (!du.ativo) continue;
+        if (du.modoSelecao === "XTeamCode" && du.xtServer && du.xtUsername && du.xtPassword) {
+          let xtreamUrl = du.xtServer.trim();
+          if (!xtreamUrl.endsWith("/player_api.php")) {
+            xtreamUrl = xtreamUrl.replace(/\/+$/, "") + "/player_api.php";
+          }
+          const sep = xtreamUrl.includes("?") ? "&" : "?";
+          xtreamUrl += `${sep}username=${encodeURIComponent(du.xtUsername)}&password=${encodeURIComponent(du.xtPassword)}`;
+          playlists.push({
+            name: du.nome || `Lista ${playlists.length + 1}`,
+            url: xtreamUrl,
+            type: "xtream",
+          });
+        } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
+          playlists.push({
+            name: du.nome || `Lista ${playlists.length + 1}`,
+            url: du.urlM3u8,
+            type: "m3u_plus",
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        registered: true,
+        mac: device.mac,
+        status: device.status,
+        playlists,
+      });
+
+    } catch (error) {
+      console.error("[API] /api/v5/login POST error:", error);
+      res.status(500).json({ success: false, error: "Internal error" });
+    }
+  });
+
+  /**
+   * GET /api/v5/debug_macs
+   * Endpoint de debug para listar todos os MACs cadastrados
+   */
+  app.get("/api/v5/debug_macs", async (req: Request, res: Response) => {
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.json({ error: "server unavailable" });
+        return;
+      }
+
+      const allDevices = await db.select().from(devices).limit(100);
+      
+      res.json({
+        total: allDevices.length,
+        devices: allDevices.map(d => ({
+          id: d.id,
+          mac: d.mac,
+          nomeServer: d.nomeServer,
+          status: d.status,
+          tipo: d.tipo,
+          dataExpiracao: d.dataExpiracao,
+        })),
+      });
+    } catch (error) {
+      console.error("[API] /api/v5/debug_macs error:", error);
       res.status(500).json({ success: false, error: "Internal error" });
     }
   });

@@ -23,6 +23,11 @@ export async function setupVite(app: Express, server: Server) {
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
+    
+    // Nao interceptar requisicoes da API
+    if ((req as any).isApiRequest) {
+      return next();
+    }
 
     try {
       const clientTemplate = path.resolve(
