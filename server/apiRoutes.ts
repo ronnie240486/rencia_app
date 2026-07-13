@@ -2978,21 +2978,6 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
-   * GET / (raiz)
-   * Redirect para o painel principal
-   * Usado quando APK chama https://rencia.manus.io/
-   */
-  app.get("/", (req: Request, res: Response) => {
-    // Se vier de rencia.manus.io, redireciona para renciaapp.manus.space
-    const host = req.headers.host || "";
-    if (host.includes("rencia")) {
-      res.redirect(301, "https://renciaapp.manus.space/");
-    } else {
-      res.json({ message: "Rencia App API" });
-    }
-  });
-
-  /**
    * GET /config_domain.jso
    * Retorna configuração do domínio
    * Usado quando APK chama https://rencia.manus.io/config_domain.jso
