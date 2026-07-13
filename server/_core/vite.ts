@@ -31,6 +31,11 @@ export async function setupVite(app: Express, server: Server) {
   
   // Middleware catch-all para servir index.html (SPA)
   app.use("*", async (req, res, next) => {
+    // Não interceptar requisições da API - retornar 404 em vez de HTML
+    if (req.path.startsWith("/api/") || req.path.startsWith("/apk") || req.path.startsWith("/ouropro")) {
+      return res.status(404).json({ error: "Endpoint not found", path: req.path });
+    }
+    
     const url = req.originalUrl;
     
     try {

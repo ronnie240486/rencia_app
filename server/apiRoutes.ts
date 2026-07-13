@@ -1846,16 +1846,16 @@ export function registerApiRoutes(app: Express) {
       const cfg = await getSettings();
 
       // Usar chaves gpcpro_ com fallback para OuroPro
-      const gpcLogo = cfg.gpcpro_logo_url || cfg.trial_logo_url || "";
-      const gpcBanner = cfg.gpcpro_banner_url || cfg.trial_banner_url || "";
-      const gpcBg = cfg.gpcpro_background_url || cfg.trial_background_url || "";
-      const gpcDnsUrl = cfg.gpcpro_server_url || cfg.server_url || cfg.contact_website || "";
-      const gpcAppName = cfg.gpcpro_app_name || "GPCPRO";
-      const gpcWhatsapp = cfg.gpcpro_contact_whatsapp || cfg.contact_whatsapp || "";
-      const gpcResellerName = cfg.gpcpro_reseller_contact_name || cfg.reseller_contact_name || cfg.contact_info || "";
-      const gpcResellerWhatsapp = cfg.gpcpro_reseller_whatsapp || cfg.reseller_whatsapp || cfg.contact_whatsapp || "";
-      const gpcApkVersion = cfg.gpcpro_apk_version || cfg.apk_version || "1.0";
-      const gpcApkLink = cfg.gpcpro_apk_download_url || cfg.apk_download_url || "";
+      const gpcLogo = (cfg.gpcpro_logo_url || cfg.trial_logo_url || "").trim();
+      const gpcBanner = (cfg.gpcpro_banner_url || cfg.trial_banner_url || "").trim();
+      const gpcBg = (cfg.gpcpro_background_url || cfg.trial_background_url || "").trim();
+      const gpcDnsUrl = (cfg.gpcpro_server_url || cfg.server_url || cfg.contact_website || "").trim();
+      const gpcAppName = (cfg.gpcpro_app_name || "GPCPRO").trim();
+      const gpcWhatsapp = (cfg.gpcpro_contact_whatsapp || cfg.contact_whatsapp || "").trim();
+      const gpcResellerName = (cfg.gpcpro_reseller_contact_name || cfg.reseller_contact_name || cfg.contact_info || "").trim();
+      const gpcResellerWhatsapp = (cfg.gpcpro_reseller_whatsapp || cfg.reseller_whatsapp || cfg.contact_whatsapp || "").trim();
+      const gpcApkVersion = (cfg.gpcpro_apk_version || cfg.apk_version || "1.0").trim();
+      const gpcApkLink = (cfg.gpcpro_apk_download_url || cfg.apk_download_url || "").trim();
 
       // Resolver URLs de imagens
       const resolvedLogo = gpcLogo ? await resolvePublicImageUrl(gpcLogo) : "";
@@ -2529,6 +2529,120 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
+   * GET /api/v5/get_playlists?mac=XX:XX:XX:XX:XX:XX
+   * Retorna apenas as playlists para o MAC (simples e direto)
+   */
+  app.get("/api/v5/get_playlists", async (req: Request, res: Response) => {
+    try {
+      const mac = req.query.mac ? String(req.query.mac).trim() : null;
+      if (!mac) {
+        res.json({ success: false, error: "mac required" });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.json({ success: false, error: "server unavailable" });
+        return;
+      }
+
+      const macNormalized = mac.replace(/[^A-Fa-f0-9]/g, "").toUpperCase();
+      const macWithColons = macNormalized.length === 12
+        ? macNormalized.match(/.{2}/g)!.join(":")
+        : mac.toUpperCase();
+
+      const result = await db
+        .select()
+        .from(devices)
+        .where(or(
+          eq(devices.mac, macWithColons),
+          eq(devices.mac, macNormalized),
+          eq(devices.mac, mac),
+        ))
+        .limit(1);
+
+      if (result.length === 0) {
+        res.json({
+          success: false,
+          error: "Device not found",
+          mac: macWithColons,
+        });
+        return;
+      }
+
+      const device = result[0];
+      const isAllowed = device.status === "Liberado";
+
+      if (!isAllowed) {
+        res.json({
+          success: false,
+          error: "Device blocked",
+          status: device.status,
+        });
+        return;
+      }
+
+      // Buscar playlists
+      const deviceUrlsList = await db.select().from(deviceUrls)
+        .where(eq(deviceUrls.deviceId, device.id))
+        .orderBy(deviceUrls.ordem);
+
+      const playlists: Array<{ playlist_name: string; playlist_url: string; type: string }> = [];
+
+      if (device.urlM3u8) {
+        playlists.push({
+          playlist_name: device.nomeServer || "Lista 1",
+          playlist_url: device.urlM3u8,
+          type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
+        });
+      }
+
+      for (const du of deviceUrlsList) {
+        if (!du.ativo) continue;
+        if (du.modoSelecao === "XTeamCode") {
+          let xtreamUrl = (du.xtServer || "").trim();
+          if (!xtreamUrl && du.urlM3u8) {
+            xtreamUrl = du.urlM3u8;
+          }
+
+          if (xtreamUrl) {
+            if (!xtreamUrl.endsWith("/player_api.php") && !xtreamUrl.includes("get.php")) {
+              xtreamUrl = xtreamUrl.replace(/\/+$/, "") + "/player_api.php";
+            }
+            
+            if (du.xtUsername && du.xtPassword) {
+              const sep = xtreamUrl.includes("?") ? "&" : "?";
+              xtreamUrl += `${sep}username=${encodeURIComponent(du.xtUsername)}&password=${encodeURIComponent(du.xtPassword)}`;
+            }
+            
+            playlists.push({
+              playlist_name: du.nome || `Lista ${playlists.length + 1}`,
+              playlist_url: xtreamUrl,
+              type: "xtream",
+            });
+          }
+        } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
+          playlists.push({
+            playlist_name: du.nome || `Lista ${playlists.length + 1}`,
+            playlist_url: du.urlM3u8,
+            type: "m3u_plus",
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        mac: device.mac,
+        playlists,
+      });
+
+    } catch (error) {
+      console.error("[API] /api/v5/get_playlists error:", error);
+      res.status(500).json({ success: false, error: "Internal error" });
+    }
+  });
+
+  /**
    * GET /api/v5/debug_macs
    * Endpoint de debug para listar todos os MACs cadastrados
    */
@@ -2539,7 +2653,6 @@ export function registerApiRoutes(app: Express) {
         res.json({ error: "server unavailable" });
         return;
       }
-
       const allDevices = await db.select().from(devices).limit(100);
       
       res.json({
@@ -2559,4 +2672,87 @@ export function registerApiRoutes(app: Express) {
     }
   });
 
+  /**
+   * POST /api/v5/reseller_login
+   * Login para revendedor com código + usuário + senha
+   * Body: { reseller_code, username, password }
+   */
+  app.post("/api/v5/reseller_login", async (req: Request, res: Response) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      const resellerCode = body && body.reseller_code ? String(body.reseller_code).trim() : null;
+      const username = body && body.username ? String(body.username).trim() : null;
+      const password = body && body.password ? String(body.password).trim() : null;
+
+      if (!resellerCode || !username || !password) {
+        res.json({ success: false, error: "Missing reseller_code, username, or password" });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.json({ success: false, error: "server unavailable" });
+        return;
+      }
+
+      // Buscar usuário pelo username
+      const user = await db.select().from(users).where(eq(users.name, username)).limit(1);
+      
+      if (user.length === 0) {
+        res.json({ success: false, error: "Invalid username or password" });
+        return;
+      }
+
+      const userData = user[0];
+      
+      // Verificar se é revendedor
+      if (userData.role !== "admin" && userData.role !== "user") {
+        res.json({ success: false, error: "User is not a reseller" });
+        return;
+      }
+
+      // TODO: Verificar password com hash (por enquanto apenas validar username)
+      // Em produção, usar bcrypt ou similar
+
+      res.json({
+        success: true,
+        user_id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        plan: userData.plano,
+        message: "Reseller login successful",
+      });
+
+    } catch (error) {
+      console.error("[API] /api/v5/reseller_login error:", error);
+      res.status(500).json({ success: false, error: "Internal error" });
+    }
+  });
+
+  /**
+   * GET /config_domain.json
+   * Endpoint de configuração de domínio para o GPCPRO (Flutter)
+   * O APK busca este arquivo para descobrir qual servidor usar
+   */
+  app.get("/config_domain.json", async (_req: Request, res: Response) => {
+    try {
+      const cfg = await getSettings();
+      
+      // Retornar configuração do domínio
+      res.json({
+        domain: "https://renciaapp.manus.space",
+        api_base: "https://renciaapp.manus.space/api",
+        check_mac_url: "https://renciaapp.manus.space/api/v5/check_mac.php",
+        guim_url: "https://renciaapp.manus.space/api/v4/guim.php",
+        heartbeat_url: "https://renciaapp.manus.space/api/v4/heartbeat.php",
+        update_url: "https://renciaapp.manus.space/api/v4/update.php",
+        app_name: cfg.gpcpro_app_name || cfg.app_name || "GPCPRO",
+        version: cfg.gpcpro_apk_version || cfg.apk_version || "1.0",
+      });
+    } catch (error) {
+      console.error("[API] /config_domain.json error:", error);
+      res.status(500).json({ error: "Internal error" });
+    }
+  });
 }
