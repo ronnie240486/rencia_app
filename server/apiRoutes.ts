@@ -301,14 +301,14 @@ function buildWords(cfg: Record<string, string>) {
 
 export function registerApiRoutes(app: Express) {
   /**
-   * Middleware de redirecionamento para renciaapps.top
-   * Redireciona requisições de renciaapps.top para renciaapp.manus.space
+   * Middleware de redirecionamento para renciapanel.io
+   * Redireciona requisições de renciapanel.io para renciaapp.manus.space
    */
   app.use((req: Request, res: Response, next) => {
     const host = req.get('host') || '';
     
-    // Se a requisição vier de renciaapps.top, redirecionar para renciaapp.manus.space
-    if (host.includes('renciaapps.top')) {
+    // Se a requisição vier de renciapanel.io, redirecionar para renciaapp.manus.space
+    if (host.includes('renciapanel.io')) {
       const newUrl = `https://renciaapp.manus.space${req.originalUrl}`;
       console.log(`[REDIRECT] ${host}${req.originalUrl} -> ${newUrl}`);
       return res.redirect(301, newUrl);
@@ -2754,6 +2754,7 @@ export function registerApiRoutes(app: Express) {
    * GET /config_domain.json
    * Endpoint de configuração de domínio para o GPCPRO (Flutter)
    * O APK busca este arquivo para descobrir qual servidor usar
+   * Acessado via renciapanel.io que redireciona para aqui
    */
   app.get("/config_domain.json", async (_req: Request, res: Response) => {
     try {
