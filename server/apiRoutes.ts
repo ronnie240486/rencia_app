@@ -2976,18 +2976,4 @@ export function registerApiRoutes(app: Express) {
       res.json({ success: false, expired: true, message: "Erro interno" });
     }
   });
-
-  /**
-   * GET /config_domain.jso
-   * Retorna configuração do domínio
-   * Usado quando APK chama https://rencia.manus.io/config_domain.jso
-   */
-  app.get("/config_domain.jso", (req: Request, res: Response) => {
-    res.json({
-      primary: "https://renciaapp.manus.space",
-      domain: "https://renciaapp.manus.space",
-      server: "https://renciaapp.manus.space",
-      api_base: "https://renciaapp.manus.space/api",
-    });
-  });
 }
