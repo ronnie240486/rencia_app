@@ -349,7 +349,7 @@ export function registerApiRoutes(app: Express) {
       const allDevices = await db.select().from(devices);
 
       // Transformar para o formato esperado pelo EaglePlayer
-      const users = [];
+      const eagleUsers = [];
       for (const device of allDevices) {
         // Buscar deviceUrls associadas a este device
         const deviceUrlsList = await db.select().from(deviceUrls)
@@ -399,7 +399,7 @@ export function registerApiRoutes(app: Express) {
               const cleanMac = baseMac.replace(/[^A-Z0-9]/g, ""); // MAC sem separadores
 
               // Adicionar versão com dois pontos
-              users.push({
+              eagleUsers.push({
                 id: device.id,
                 mac: baseMac,
                 server_url: cleanServerUrl,
@@ -410,7 +410,7 @@ export function registerApiRoutes(app: Express) {
 
               // Adicionar versão sem dois pontos (alguns APKs normalizam internamente)
               if (cleanMac !== baseMac) {
-                users.push({
+                eagleUsers.push({
                   id: device.id + 1000000, // ID único para evitar conflito
                   mac: cleanMac,
                   server_url: cleanServerUrl,
@@ -443,7 +443,7 @@ export function registerApiRoutes(app: Express) {
           const baseMacF = (device.mac || "").toUpperCase();
           const cleanMacF = baseMacF.replace(/[^A-Z0-9]/g, "");
 
-          users.push({
+          eagleUsers.push({
             id: device.id,
             mac: baseMacF,
             server_url: cleanFUrl,
@@ -453,7 +453,7 @@ export function registerApiRoutes(app: Express) {
           });
 
           if (cleanMacF !== baseMacF) {
-            users.push({
+            eagleUsers.push({
               id: device.id + 2000000,
               mac: cleanMacF,
               server_url: cleanFUrl,
@@ -468,7 +468,7 @@ export function registerApiRoutes(app: Express) {
       // Definir header correto e retornar JSON
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.setHeader("Cache-Control", "no-store");
-      res.json(users);
+      res.json(eagleUsers);
     } catch (error) {
       console.error("[API] GET /api/users error:", error);
       res.status(500).json({ error: "Erro ao buscar usuários" });
