@@ -24,7 +24,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users } from "../drizzle/schema";
 import { eq, or } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
@@ -300,6 +300,23 @@ function buildWords(cfg: Record<string, string>) {
 }
 
 export function registerApiRoutes(app: Express) {
+  /**
+   * Middleware de redirecionamento para renciaapps.top
+   * Redireciona requisições de renciaapps.top para renciaapp.manus.space
+   */
+  app.use((req: Request, res: Response, next) => {
+    const host = req.get('host') || '';
+    
+    // Se a requisição vier de renciaapps.top, redirecionar para renciaapp.manus.space
+    if (host.includes('renciaapps.top')) {
+      const newUrl = `https://renciaapp.manus.space${req.originalUrl}`;
+      console.log(`[REDIRECT] ${host}${req.originalUrl} -> ${newUrl}`);
+      return res.redirect(301, newUrl);
+    }
+    
+    next();
+  });
+
 
   /**
    * GET /api/users
@@ -2699,14 +2716,14 @@ export function registerApiRoutes(app: Express) {
       }
 
       // Buscar usuário pelo username
-      const user = await db.select().from(users).where(eq(users.name, username)).limit(1);
+      const userResult = await db.select().from(users).where(eq(users.name, username)).limit(1);
       
-      if (user.length === 0) {
+      if (userResult.length === 0) {
         res.json({ success: false, error: "Invalid username or password" });
         return;
       }
 
-      const userData = user[0];
+      const userData = userResult[0];
       
       // Verificar se é revendedor
       if (userData.role !== "admin" && userData.role !== "user") {
