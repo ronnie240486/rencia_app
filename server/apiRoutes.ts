@@ -2760,19 +2760,11 @@ export function registerApiRoutes(app: Express) {
    */
   app.get("/config_domain.json", async (_req: Request, res: Response) => {
     try {
-      const cfg = await getSettings();
-      
-      // Retornar configuração do domínio
-      // Retornar direto renciaapp.manus.space (sem encurtador)
+      // O APK GPCPRO (Flutter) espera EXATAMENTE o campo "primary" com a URL base
+      // Formato original do painelfoda.top: {"primary":"https://www.gerenciaapp.top"}
+      // O APK lê este campo e usa como URL base para todas as requisições subsequentes
       res.json({
-        domain: "https://renciaapp.manus.space",
-        api_base: "https://renciaapp.manus.space/api",
-        check_mac_url: "https://renciaapp.manus.space/api/v5/check_mac.php",
-        guim_url: "https://renciaapp.manus.space/api/v4/guim.php",
-        heartbeat_url: "https://renciaapp.manus.space/api/v4/heartbeat.php",
-        update_url: "https://renciaapp.manus.space/api/v4/update.php",
-        app_name: cfg.gpcpro_app_name || cfg.app_name || "GPCPRO",
-        version: cfg.gpcpro_apk_version || cfg.apk_version || "1.0",
+        primary: "https://renciaapp.manus.space",
       });
     } catch (error) {
       console.error("[API] /config_domain.json error:", error);
