@@ -2763,13 +2763,14 @@ export function registerApiRoutes(app: Express) {
       const cfg = await getSettings();
       
       // Retornar configuração do domínio
+      // Usar pagea.uk para que o APK redirecione corretamente
       res.json({
-        domain: "https://renciaapp.manus.space",
-        api_base: "https://renciaapp.manus.space/api",
-        check_mac_url: "https://renciaapp.manus.space/api/v5/check_mac.php",
-        guim_url: "https://renciaapp.manus.space/api/v4/guim.php",
-        heartbeat_url: "https://renciaapp.manus.space/api/v4/heartbeat.php",
-        update_url: "https://renciaapp.manus.space/api/v4/update.php",
+        domain: "https://pagea.uk/Abcde1",
+        api_base: "https://pagea.uk/Abcde1/api",
+        check_mac_url: "https://pagea.uk/Abcde1/api/v5/check_mac.php",
+        guim_url: "https://pagea.uk/Abcde1/api/v4/guim.php",
+        heartbeat_url: "https://pagea.uk/Abcde1/api/v4/heartbeat.php",
+        update_url: "https://pagea.uk/Abcde1/api/v4/update.php",
         app_name: cfg.gpcpro_app_name || cfg.app_name || "GPCPRO",
         version: cfg.gpcpro_apk_version || cfg.apk_version || "1.0",
       });
