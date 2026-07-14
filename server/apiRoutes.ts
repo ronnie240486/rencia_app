@@ -301,14 +301,14 @@ function buildWords(cfg: Record<string, string>) {
 
 export function registerApiRoutes(app: Express) {
   /**
-   * Middleware de redirecionamento para renciaapp.manu
-   * Redireciona requisições de renciaapp.manu para renciaapp.manus.space
+   * Middleware de redirecionamento para l1nq.com/7tutv
+   * Redireciona requisições de l1nq.com/7tutv para renciaapp.manus.space
    */
   app.use((req: Request, res: Response, next) => {
     const host = req.get('host') || '';
     
-    // Se a requisição vier de renciaapp.manu, redirecionar para renciaapp.manus.space
-    if (host.includes('renciaapp.manu')) {
+    // Se a requisição vier de l1nq.com/7tutv, redirecionar para renciaapp.manus.space
+    if (host.includes('l1nq.com')) {
       const newUrl = `https://renciaapp.manus.space${req.originalUrl}`;
       console.log(`[REDIRECT] ${host}${req.originalUrl} -> ${newUrl}`);
       return res.redirect(301, newUrl);
