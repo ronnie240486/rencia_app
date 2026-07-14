@@ -1,0 +1,17 @@
+{
+  "query": "SELECT d.id, d.mac, d.status, d.urlM3u8, COUNT(du.id) as url_count FROM devices d LEFT JOIN device_urls du ON d.id = du.deviceId WHERE d.mac = '7A:CE:AE:5B:D1:3A' GROUP BY d.id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT d.id, d.mac, d.status, d.urlM3u8, COUNT(du.id) as url_count FROM devices d LEFT JOIN device_urls du ON d.id = du.deviceId WHERE d.mac = '7A:CE:AE:5B:D1:3A' GROUP BY d.id;",
+  "rows": [
+    {
+      "id": "780001",
+      "mac": "7A:CE:AE:5B:D1:3A",
+      "status": "Liberado",
+      "urlM3u8": "http://nuvixonix.shop/get.php?username=mariana22&password=708522&type=m3u_plus&output=ts",
+      "url_count": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tmac\tstatus\turlM3u8\turl_count\n780001\t7A:CE:AE:5B:D1:3A\tLiberado\thttp://nuvixonix.shop/get.php?username=mariana22&password=708522&type=m3u_plus&output=ts\t0\n",
+  "stderr": "",
+  "execution_time_ms": 583
+}

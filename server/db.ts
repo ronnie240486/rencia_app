@@ -110,7 +110,7 @@ export async function createDevice(data: {
     mac: data.mac,
     nomeServer: data.nomeServer,
     tipo: data.tipo ?? "Usuario",
-    modoSelecao: data.modoSelecao ?? "XTeamCode",
+    modoSelecao: data.modoSelecao ?? "M3U8",
     app: data.app ?? null,
     urlM3u8: data.urlM3u8 ?? null,
     urlEpg: data.urlEpg ?? null,
