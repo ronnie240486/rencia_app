@@ -2753,11 +2753,23 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
-   * GET /config_domain.json
+   * GET /config_domain.json e /api/config_domain.json
    * Endpoint de configuração de domínio para o GPCPRO (Flutter)
    * O APK busca este arquivo para descobrir qual servidor usar
-   * Acessado via renciapanel.io que redireciona para aqui
+   * Rota /api/* não é interceptada pelo proxy OAuth do Manus
+   * pagea.uk/Abcde → /api/config_domain.json (14 bytes, mesmo tamanho que painelfoda.top)
    */
+  const handleConfigDomain = async (_req: Request, res: Response) => {
+    try {
+      res.json({
+        primary: "https://renciaapp.manus.space",
+      });
+    } catch (error) {
+      console.error("[API] /config_domain.json error:", error);
+      res.status(500).json({ error: "Internal error" });
+    }
+  };
+  app.get("/api/config_domain.json", handleConfigDomain);
   app.get("/config_domain.json", async (_req: Request, res: Response) => {
     try {
       // O APK GPCPRO (Flutter) espera EXATAMENTE o campo "primary" com a URL base
