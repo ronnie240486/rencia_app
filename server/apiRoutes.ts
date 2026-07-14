@@ -301,8 +301,10 @@ function buildWords(cfg: Record<string, string>) {
 
 export function registerApiRoutes(app: Express) {
   /**
-   * Middleware de redirecionamento para pagea.uk/Abcde
+   * Middleware de redirecionamento para pagea.uk (Abcde e Abcde1)
    * Redireciona requisições de pagea.uk para renciaapp.manus.space
+   * - pagea.uk/Abcde → config_domain.json (painelfoda.top)
+   * - pagea.uk/Abcde1 → gerenciamento (gerenciaapp.top)
    */
   app.use((req: Request, res: Response, next) => {
     const host = req.get('host') || '';
