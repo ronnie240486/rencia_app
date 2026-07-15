@@ -2945,7 +2945,7 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * GET /player
-   * Retorna o web player HTML
+   * Retorna o web player HTML idêntico ao gpcpro.com.br
    */
   app.get("/player", async (_req: Request, res: Response) => {
     try {
