@@ -2944,6 +2944,210 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
+   * GET /player
+   * Retorna o web player HTML
+   */
+  app.get("/player", async (_req: Request, res: Response) => {
+    try {
+      const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rencia - Premium Experience</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 60px; padding-top: 40px; }
+        .header h1 { font-size: 48px; font-weight: 300; letter-spacing: 2px; margin-bottom: 10px; }
+        .header p { font-size: 14px; color: #999; letter-spacing: 1px; }
+        .status { text-align: center; margin-bottom: 40px; font-size: 12px; color: #666; }
+        .status .dot { display: inline-block; width: 8px; height: 8px; background: #ff3333; border-radius: 50%; margin-right: 8px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-bottom: 60px; }
+        @media (max-width: 768px) { .main-content { grid-template-columns: 1fr; gap: 40px; } }
+        .section { position: relative; }
+        .section-number { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 2px solid #fff; border-radius: 50%; font-size: 14px; margin-bottom: 20px; }
+        .section-title { font-size: 14px; font-weight: 600; margin-bottom: 20px; letter-spacing: 1px; color: #ccc; }
+        .device-id-box { border: 2px dashed #ff3333; padding: 30px; text-align: center; margin-bottom: 20px; position: relative; }
+        .device-id-label { font-size: 11px; letter-spacing: 2px; color: #999; margin-bottom: 15px; display: block; }
+        .device-id-value { font-size: 24px; font-weight: 600; letter-spacing: 2px; font-family: 'Courier New', monospace; margin-bottom: 20px; }
+        .copy-button { background: transparent; border: 1px solid #ffcc00; color: #ffcc00; padding: 8px 16px; font-size: 11px; cursor: pointer; letter-spacing: 1px; transition: all 0.3s; }
+        .copy-button:hover { background: #ffcc00; color: #000; }
+        .copy-button.copied { background: #ffcc00; color: #000; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 11px; letter-spacing: 1px; color: #999; margin-bottom: 8px; text-transform: uppercase; }
+        .form-input { width: 100%; background: transparent; border: 2px dashed #ffcc00; color: #fff; padding: 12px; font-size: 14px; font-family: inherit; transition: border-color 0.3s; }
+        .form-input::placeholder { color: #666; }
+        .form-input:focus { outline: none; border-color: #ff3333; }
+        .login-button { width: 100%; background: #ffcc00; color: #000; border: none; padding: 16px; font-size: 14px; font-weight: 600; letter-spacing: 2px; cursor: pointer; transition: all 0.3s; text-transform: uppercase; }
+        .login-button:hover { background: #ffdd33; transform: translateY(-2px); }
+        .login-button:active { transform: translateY(0); }
+        .login-button.loading { opacity: 0.7; cursor: not-allowed; }
+        .message { padding: 12px; margin-bottom: 20px; font-size: 12px; border-left: 3px solid #ffcc00; display: none; }
+        .message.success { background: rgba(76, 175, 80, 0.1); border-left-color: #4caf50; color: #4caf50; display: block; }
+        .message.error { background: rgba(255, 51, 51, 0.1); border-left-color: #ff3333; color: #ff3333; display: block; }
+        .message.info { background: rgba(255, 204, 0, 0.1); border-left-color: #ffcc00; color: #ffcc00; display: block; }
+        .player-section { display: none; }
+        .player-section.active { display: block; }
+        .logout-button { width: 100%; background: #ff3333; color: #fff; border: none; padding: 12px; font-size: 12px; font-weight: 600; letter-spacing: 1px; cursor: pointer; margin-top: 30px; text-transform: uppercase; }
+        .logout-button:hover { background: #ff5555; }
+        .footer { text-align: center; padding-top: 40px; border-top: 1px solid #333; font-size: 11px; color: #666; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Rencia</h1>
+            <p>Premium Experience</p>
+        </div>
+        
+        <div class="status">
+            <span class="dot"></span>
+            <span>Verificando ativação automática...</span>
+        </div>
+        
+        <div id="loginSection">
+            <div class="main-content">
+                <div class="section">
+                    <div class="section-number">1</div>
+                    <div class="section-title">Envie o ID do dispositivo para o seu revendedor ativar o acesso automaticamente.</div>
+                    <div class="device-id-box">
+                        <span class="device-id-label">ID DO DISPOSITIVO (MAC)</span>
+                        <div class="device-id-value" id="deviceId">Carregando...</div>
+                        <button class="copy-button" onclick="copyDeviceId()">Toque para copiar</button>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-number">2</div>
+                    <div class="section-title">Ou entre com o código do revendedor.</div>
+                    <div id="message" class="message"></div>
+                    <div class="form-group">
+                        <label class="form-label">CÓDIGO DE REVENDA</label>
+                        <input type="text" class="form-input" id="resellerCode" placeholder="ID de Revendedor">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">USUÁRIO</label>
+                        <input type="text" class="form-input" id="username" placeholder="usuário">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">SENHA</label>
+                        <input type="password" class="form-input" id="password" placeholder="••••••••">
+                    </div>
+                    <button class="login-button" onclick="login()">Entrar</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="playerSection" class="player-section">
+            <div class="section-title">Reprodutor</div>
+            <div style="background: #111; padding: 20px; margin-bottom: 30px; border: 1px solid #333;">
+                <video id="videoPlayer" style="width: 100%; max-height: 500px; background: #000;" controls></video>
+            </div>
+            <div class="section-title">Playlist</div>
+            <div id="playlist" style="background: #111; padding: 20px; border: 1px solid #333; max-height: 400px; overflow-y: auto;"></div>
+            <button class="logout-button" onclick="logout()">Sair</button>
+        </div>
+        
+        <div class="footer">
+            Rencia © 2026 - Todos os direitos reservados
+        </div>
+    </div>
+    
+    <script>
+        const BACKEND_URL = window.location.origin;
+        function generateMac() { return Array.from({length: 6}, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase()).join(':'); }
+        window.addEventListener('load', () => {
+            const mac = localStorage.getItem('deviceMac') || generateMac();
+            localStorage.setItem('deviceMac', mac);
+            document.getElementById('deviceId').textContent = mac;
+            checkMacAutomatic();
+        });
+        async function checkMacAutomatic() {
+            const mac = localStorage.getItem('deviceMac');
+            try {
+                const response = await fetch(\`\${BACKEND_URL}/api/v5/check_mac.php\`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: \`mac=\${mac}\`
+                });
+                const data = await response.json();
+                if (data.mac_registered) {
+                    localStorage.setItem('userLoggedIn', 'true');
+                    showPlayer();
+                    loadPlaylist();
+                }
+            } catch (error) { console.log('MAC não registrado'); }
+        }
+        function copyDeviceId() {
+            const deviceId = document.getElementById('deviceId').textContent;
+            navigator.clipboard.writeText(deviceId).then(() => {
+                const btn = event.target;
+                btn.textContent = 'Copiado!';
+                btn.classList.add('copied');
+                setTimeout(() => { btn.textContent = 'Toque para copiar'; btn.classList.remove('copied'); }, 2000);
+            });
+        }
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const mac = localStorage.getItem('deviceMac');
+            if (!username || !password) { showMessage('Por favor, preencha usuário e senha', 'error'); return; }
+            try {
+                const btn = event.target;
+                btn.classList.add('loading');
+                btn.disabled = true;
+                const response = await fetch(\`\${BACKEND_URL}/api/v5/check_mac.php\`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: \`mac=\${mac}&username=\${username}&password=\${password}\`
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.mac_registered) {
+                        localStorage.setItem('userLoggedIn', 'true');
+                        localStorage.setItem('username', username);
+                        showMessage('Login realizado com sucesso!', 'success');
+                        setTimeout(() => { showPlayer(); loadPlaylist(); }, 1000);
+                    } else { showMessage('MAC não registrado.', 'error'); }
+                } else { showMessage('Falha na autenticação.', 'error'); }
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            } catch (error) { showMessage('Erro ao conectar: ' + error.message, 'error'); event.target.classList.remove('loading'); event.target.disabled = false; }
+        }
+        async function loadPlaylist() {
+            try {
+                const mac = localStorage.getItem('deviceMac');
+                const response = await fetch(\`\${BACKEND_URL}/api/v5/guim.php\`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: \`mac=\${mac}\`
+                });
+                const data = await response.json();
+                if (data.mac_registered) {
+                    const playlistHtml = data.playlist || '<div style="padding: 20px; color: #666;">Nenhum conteúdo disponível</div>';
+                    document.getElementById('playlist').innerHTML = playlistHtml;
+                }
+            } catch (error) { console.error('Erro ao carregar playlist:', error); }
+        }
+        function showPlayer() { document.getElementById('loginSection').style.display = 'none'; document.getElementById('playerSection').classList.add('active'); }
+        function logout() { localStorage.removeItem('userLoggedIn'); localStorage.removeItem('username'); document.getElementById('loginSection').style.display = 'block'; document.getElementById('playerSection').classList.remove('active'); document.getElementById('videoPlayer').src = ''; showMessage('Você foi desconectado', 'info'); }
+        function showMessage(text, type) { const msg = document.getElementById('message'); msg.textContent = text; msg.className = \`message \${type}\`; setTimeout(() => { msg.className = 'message'; }, 5000); }
+        if (localStorage.getItem('userLoggedIn')) { showPlayer(); loadPlaylist(); }
+    </script>
+</body>
+</html>`;
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
+    } catch (error) {
+      console.error("[API] /player error:", error);
+      res.status(500).json({ error: "Internal error" });
+    }
+  });
+
+  /**
    * GET /api/v5/check_expire.php?mac=XX:XX:XX:XX:XX:XX
    * Verifica se o MAC foi liberado no painel
    */
