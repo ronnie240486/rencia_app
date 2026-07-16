@@ -3116,10 +3116,10 @@ export function registerApiRoutes(app: Express) {
         async function loadPlaylist() {
             try {
                 const mac = localStorage.getItem('deviceMac');
-                const response = await fetch(\`\${BACKEND_URL}/api/v5/guim.php\`, {
+                const response = await fetch(`${BACKEND_URL}/api/v5/guim.php`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: \`mac=\${mac}\`
+                    body: `mac=${mac}`
                 });
                 const data = await response.json();
                 if (data.mac_registered) {
