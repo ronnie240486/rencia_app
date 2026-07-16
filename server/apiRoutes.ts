@@ -3068,10 +3068,8 @@ export function registerApiRoutes(app: Express) {
         async function checkMacAutomatic() {
             const mac = localStorage.getItem('deviceMac');
             try {
-                const response = await fetch(\`\${BACKEND_URL}/api/v5/check_mac.php\`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: \`mac=\${mac}\`
+                const response = await fetch(`${BACKEND_URL}/api/v5/check_mac.php?mac=${encodeURIComponent(mac)}`, {
+                    method: 'GET'
                 });
                 const data = await response.json();
                 if (data.mac_registered) {
@@ -3099,10 +3097,8 @@ export function registerApiRoutes(app: Express) {
                 const btn = event.target;
                 btn.classList.add('loading');
                 btn.disabled = true;
-                const response = await fetch(\`\${BACKEND_URL}/api/v5/check_mac.php\`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: \`mac=\${mac}&username=\${username}&password=\${password}\`
+                const response = await fetch(`${BACKEND_URL}/api/v5/check_mac.php?mac=${encodeURIComponent(mac)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+                    method: 'GET'
                 });
                 if (response.ok) {
                     const data = await response.json();

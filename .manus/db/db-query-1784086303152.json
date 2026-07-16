@@ -1,0 +1,33 @@
+{
+  "query": "SELECT * FROM devices WHERE mac = '81:61:3C:A6:60:C3'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute SELECT * FROM devices WHERE mac = '81:61:3C:A6:60:C3'",
+  "rows": [
+    {
+      "id": "840001",
+      "ownerId": "1",
+      "mac": "81:61:3C:A6:60:C3",
+      "nomeServer": "Teate",
+      "tipo": "Usuario",
+      "modoSelecao": "M3U8",
+      "app": "OuroPro",
+      "urlM3u8": "http://nuvixonix.shop/get.php?username=mariana22&password=708522&type=m3u_plus&output=ts",
+      "urlEpg": "NULL",
+      "valor": "NULL",
+      "status": "Liberado",
+      "dataCadastro": "2026-07-14 21:56:23",
+      "dataExpiracao": "NULL",
+      "createdAt": "2026-07-14 21:56:23",
+      "updatedAt": "2026-07-15 03:27:56",
+      "lastSeen": "NULL",
+      "telefone": "NULL",
+      "connectedAt": "NULL",
+      "currentContent": "NULL",
+      "deviceType": "NULL",
+      "appType": "OuroPro"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\townerId\tmac\tnomeServer\ttipo\tmodoSelecao\tapp\turlM3u8\turlEpg\tvalor\tstatus\tdataCadastro\tdataExpiracao\tcreatedAt\tupdatedAt\tlastSeen\ttelefone\tconnectedAt\tcurrentContent\tdeviceType\tappType\n840001\t1\t81:61:3C:A6:60:C3\tTeate\tUsuario\tM3U8\tOuroPro\thttp://nuvixonix.shop/get.php?username=mariana22&password=708522&type=m3u_plus&output=ts\tNULL\tNULL\tLiberado\t2026-07-14 21:56:23\tNULL\t2026-07-14 21:56:23\t2026-07-15 03:27:56\tNULL\tNULL\tNULL\tNULL\tNULL\tOuroPro\n",
+  "stderr": "",
+  "execution_time_ms": 650
+}
