@@ -3073,7 +3073,7 @@ export function registerApiRoutes(app: Express) {
                     method: 'GET'
                 });
                 const data = await response.json();
-                if (data.mac_registered) {
+                if (data.registered) {
                     localStorage.setItem('userLoggedIn', 'true');
                     showPlayer();
                     loadPlaylist();
@@ -3104,7 +3104,7 @@ export function registerApiRoutes(app: Express) {
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.mac_registered) {
+                    if (data.registered) {
                         localStorage.setItem('userLoggedIn', 'true');
                         localStorage.setItem('username', username);
                         showMessage('Login realizado com sucesso!', 'success');
@@ -3125,8 +3125,8 @@ export function registerApiRoutes(app: Express) {
                     body: 'mac=' + mac
                 });
                 const data = await response.json();
-                if (data.mac_registered) {
-                    const playlistHtml = data.playlist || '<div style="padding: 20px; color: #666;">Nenhum conteúdo disponível</div>';
+                if (data.registered) {
+                    const playlistHtml = data.playlists || '<div style="padding: 20px; color: #666;">Nenhum conteúdo disponível</div>';
                     document.getElementById('playlist').innerHTML = playlistHtml;
                 }
             } catch (error) { console.error('Erro ao carregar playlist:', error); }
