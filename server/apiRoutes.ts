@@ -3204,4 +3204,89 @@ export function registerApiRoutes(app: Express) {
       res.json({ success: false, expired: true, message: "Erro interno" });
     }
   });
+
+  /**
+   * POST /api/main.php
+   * Endpoint que valida login/senha no banco de dados local
+   * Retorna os canais/categorias do painel
+   */
+  app.post("/api/main.php", async (req: Request, res: Response) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        res.json({ success: false, error: 'username e password obrigatórios' });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.json({ success: false, error: 'server unavailable' });
+        return;
+      }
+
+      // Buscar dispositivo no banco de dados
+      const result = await db
+        .select()
+        .from(devices)
+        .where(or(
+          eq(devices.nomeServer, username),
+          eq(devices.app, username)
+        ))
+        .limit(1);
+
+      if (!result.length) {
+        res.json({ success: false, error: 'Usuário não encontrado' });
+        return;
+      }
+
+      const device = result[0];
+
+      // Validar status
+      if (device.status !== 'Liberado') {
+        res.json({ success: false, error: 'Dispositivo bloqueado ou expirado', status: device.status });
+        return;
+      }
+
+      // Buscar URLs/playlists do dispositivo
+      const urls = await db
+        .select()
+        .from(deviceUrls)
+        .where(eq(deviceUrls.deviceId, device.id))
+        .orderBy(deviceUrls.ordem);
+
+      // Montar resposta compatível com IPTV player
+      const response_data = {
+        success: true,
+        registered: true,
+        status: device.status,
+        app_name: device.app || 'RENCIA',
+        playlists: urls.map((url: any) => ({
+          name: url.nome,
+          url: url.urlM3u8 || '',
+          type: url.modoSelecao,
+          ativo: url.ativo
+        })),
+        channels: [],
+        categories: []
+      };
+
+      res.json(response_data);
+    } catch (error) {
+      console.error('[API] /api/main.php error:', error);
+      res.json({ success: false, error: 'Erro ao processar requisição' });
+    }
+  });
+
+  // CORS preflight
+  app.options('/api/main.php', (req: Request, res: Response) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.sendStatus(200);
+  });
 }
