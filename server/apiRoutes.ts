@@ -3259,22 +3259,45 @@ export function registerApiRoutes(app: Express) {
         .where(eq(deviceUrls.deviceId, device.id))
         .orderBy(deviceUrls.ordem);
 
-      // Montar resposta compatível com IPTV player
+      // Testar URLs em cascata (fallback automático)
+      let workingUrl = null;
+      for (const url of urls) {
+        if (!url.ativo) continue;
+        try {
+          const testResponse = await fetch(url.urlM3u8 || url.xtServer || '', {
+            method: 'HEAD',
+            timeout: 5000
+          }).catch(() => null);
+          if (testResponse && testResponse.ok) {
+            workingUrl = url;
+            break;
+          }
+        } catch (e) {
+          console.log(`[API] URL ${url.nome} falhou`);
+        }
+      }
+      if (!workingUrl && urls.length > 0) {
+        workingUrl = urls.find((u: any) => u.ativo) || urls[0];
+      }
       const response_data = {
         success: true,
         registered: true,
         status: device.status,
         app_name: device.app || 'RENCIA',
+        playlist_url: workingUrl?.urlM3u8 || workingUrl?.xtServer || '',
+        playlist_name: workingUrl?.nome || 'Lista Principal',
         playlists: urls.map((url: any) => ({
-          name: url.nome,
-          url: url.urlM3u8 || '',
+          playlist_name: url.nome,
+          playlist_url: url.urlM3u8 || url.xtServer || '',
           type: url.modoSelecao,
-          ativo: url.ativo
+          ativo: url.ativo,
+          xtServer: url.xtServer,
+          xtUsername: url.xtUsername,
+          xtPassword: url.xtPassword
         })),
         channels: [],
         categories: []
       };
-
       res.json(response_data);
     } catch (error) {
       console.error('[API] /api/main.php error:', error);
