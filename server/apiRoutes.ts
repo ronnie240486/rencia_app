@@ -964,6 +964,30 @@ export function registerApiRoutes(app: Express) {
     app._router.handle(req, res, next);
   });
 
+  // Alias /api/v5/guim.php → /api/guim.php (compatibilidade com APK/Webview que usa /api/v5/)
+  app.post("/api/v5/guim.php", (req: Request, res: Response, next) => {
+    req.url = "/api/guim.php";
+    app._router.handle(req, res, next);
+  });
+  app.get("/api/v5/guim.php", (req: Request, res: Response, next) => {
+    req.url = "/api/guim.php";
+    app._router.handle(req, res, next);
+  });
+
+  // Alias /api/v5/check_mac.php → /api/device/check
+  app.post("/api/v5/check_mac.php", (req: Request, res: Response, next) => {
+    req.url = "/api/device/check";
+    // Mapear body 'mac' para query 'mac' se necessário
+    if (req.body && req.body.mac) {
+      req.query.mac = req.body.mac;
+    }
+    app._router.handle(req, res, next);
+  });
+  app.get("/api/v5/check_mac.php", (req: Request, res: Response, next) => {
+    req.url = "/api/device/check";
+    app._router.handle(req, res, next);
+  });
+
   /**
    * GET /api/device/check?mac=XX:XX:XX:XX:XX:XX
    * Endpoint simplificado para verificação de device.
@@ -986,7 +1010,12 @@ export function registerApiRoutes(app: Express) {
       const result = await db.select().from(devices).where(eq(devices.mac, mac)).limit(1);
 
       if (result.length === 0) {
-        res.json({ found: false, allowed: false, message: "Device não cadastrado." });
+        res.json({ 
+          found: false, 
+          allowed: false, 
+          mac_registered: false, // Para compatibilidade com v5/check_mac.php
+          message: "Device não cadastrado." 
+        });
         return;
       }
 
@@ -1003,6 +1032,7 @@ export function registerApiRoutes(app: Express) {
         found: true,
         status: device.status,
         allowed: device.status === "Liberado",
+        mac_registered: device.status === "Liberado", // Para compatibilidade com v5/check_mac.php
         mac: device.mac,
         nomeServer: device.nomeServer,
         tipo: device.tipo,
