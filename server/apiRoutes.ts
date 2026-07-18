@@ -976,30 +976,33 @@ export function registerApiRoutes(app: Express) {
     app._router.handle(req, res, next);
   });
 
-  // Alias /api/v5/guim.php → /api/guim.php (compatibilidade com APK/Webview que usa /api/v5/)
-  app.post("/api/v5/guim.php", (req: Request, res: Response, next) => {
-    // Se o APK v5 enviar mac no body mas o guim.php esperar no formato v4 (data), 
-    // o guim.php já tem fallback, mas vamos garantir aqui também.
-    req.url = "/api/guim.php";
-    app._router.handle(req, res, next);
-  });
-  app.get("/api/v5/guim.php", (req: Request, res: Response, next) => {
-    req.url = "/api/guim.php";
-    app._router.handle(req, res, next);
-  });
+  // Aliases para múltiplas versões (v1 até v7) para garantir compatibilidade com qualquer APK
+  const apiVersions = ["v1", "v2", "v3", "v4", "v5", "v6", "v7"];
+  apiVersions.forEach(v => {
+    // Alias /api/vX/guim.php → /api/guim.php
+    app.all(`/api/${v}/guim.php`, (req: Request, res: Response, next) => {
+      req.url = "/api/guim.php";
+      app._router.handle(req, res, next);
+    });
 
-  // Alias /api/v5/check_mac.php → /api/device/check
-  app.post("/api/v5/check_mac.php", (req: Request, res: Response, next) => {
-    req.url = "/api/device/check";
-    // Mapear body 'mac' para query 'mac' se necessário
-    if (req.body && req.body.mac) {
-      req.query.mac = req.body.mac;
+    // Alias /api/vX/check_mac.php → /api/device/check
+    app.all(`/api/${v}/check_mac.php`, (req: Request, res: Response, next) => {
+      req.url = "/api/device/check";
+      if (req.body && req.body.mac) req.query.mac = req.body.mac;
+      app._router.handle(req, res, next);
+    });
+
+    // Alias /api/vX/logo.php → /api/v4/logo.php
+    if (v !== "v4") {
+      app.get(`/api/${v}/logo.php`, (req: Request, res: Response, next) => {
+        req.url = "/api/v4/logo.php";
+        app._router.handle(req, res, next);
+      });
+      app.get(`/api/${v}/bg.php`, (req: Request, res: Response, next) => {
+        req.url = "/api/v4/bg.php";
+        app._router.handle(req, res, next);
+      });
     }
-    app._router.handle(req, res, next);
-  });
-  app.get("/api/v5/check_mac.php", (req: Request, res: Response, next) => {
-    req.url = "/api/device/check";
-    app._router.handle(req, res, next);
   });
 
   /**
@@ -3368,5 +3371,15 @@ export function registerApiRoutes(app: Express) {
     res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
     res.sendStatus(200);
+  });
+
+  // Catch-all para qualquer rota /api/ não encontrada - GARANTE JSON
+  app.use("/api/*", (req: Request, res: Response) => {
+    console.log(`[API-404] Catch-all JSON for: ${req.originalUrl}`);
+    res.status(404).json({ 
+      error: "Endpoint not found", 
+      path: req.originalUrl,
+      message: "Esta rota de API não existe, mas retornamos JSON para evitar crash no APK."
+    });
   });
 }
