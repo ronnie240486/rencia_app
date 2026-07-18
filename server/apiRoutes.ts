@@ -25,7 +25,7 @@ import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
 import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users } from "../drizzle/schema";
-import { eq, or } from "drizzle-orm";
+import { eq, or, and } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
 // Multer: armazena em memória para depois enviar ao S3
@@ -2747,8 +2747,8 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
-      // Buscar usuário pelo username
-      const userResult = await db.select().from(users).where(eq(users.name, username)).limit(1);
+      // Buscar dispositivo pelo nome do servidor (username)
+      const userResult = await db.select().from(devices).where(eq(devices.nomeServer, username)).limit(1);
       
       if (userResult.length === 0) {
         res.json({ success: false, error: "Invalid username or password" });
@@ -3282,6 +3282,32 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
+      // Buscar DNS cadastradas pelo revendedor
+      const dnsEntries = await db
+        .select()
+        .from(dnsEntries)
+        .where(and(eq(dnsEntries.ownerId, device.ownerId), eq(dnsEntries.ativo, true)))
+        .orderBy(dnsEntries.createdAt);
+
+      // Testar DNS em cascata (fallback automático)
+      let workingDns = null;
+      for (const dns of dnsEntries) {
+        try {
+          const testResponse = await fetch(dns.host, {
+            method: 'HEAD'
+          }).catch(() => null);
+          if (testResponse && testResponse.ok) {
+            workingDns = dns;
+            break;
+          }
+        } catch (e) {
+          console.log(`[API] DNS ${dns.titulo} (${dns.host}) falhou`);
+        }
+      }
+      if (!workingDns && dnsEntries.length > 0) {
+        workingDns = dnsEntries[0];
+      }
+
       // Buscar URLs/playlists do dispositivo
       const urls = await db
         .select()
@@ -3289,33 +3315,15 @@ export function registerApiRoutes(app: Express) {
         .where(eq(deviceUrls.deviceId, device.id))
         .orderBy(deviceUrls.ordem);
 
-      // Testar URLs em cascata (fallback automático)
-      let workingUrl = null;
-      for (const url of urls) {
-        if (!url.ativo) continue;
-        try {
-          const testResponse = await fetch(url.urlM3u8 || url.xtServer || '', {
-            method: 'HEAD',
-            timeout: 5000
-          }).catch(() => null);
-          if (testResponse && testResponse.ok) {
-            workingUrl = url;
-            break;
-          }
-        } catch (e) {
-          console.log(`[API] URL ${url.nome} falhou`);
-        }
-      }
-      if (!workingUrl && urls.length > 0) {
-        workingUrl = urls.find((u: any) => u.ativo) || urls[0];
-      }
       const response_data = {
         success: true,
         registered: true,
         status: device.status,
         app_name: device.app || 'RENCIA',
-        playlist_url: workingUrl?.urlM3u8 || workingUrl?.xtServer || '',
-        playlist_name: workingUrl?.nome || 'Lista Principal',
+        dns: workingDns?.host || '',
+        dns_titulo: workingDns?.titulo || 'DNS Principal',
+        playlist_url: urls[0]?.urlM3u8 || urls[0]?.xtServer || '',
+        playlist_name: urls[0]?.nome || 'Lista Principal',
         playlists: urls.map((url: any) => ({
           playlist_name: url.nome,
           playlist_url: url.urlM3u8 || url.xtServer || '',
@@ -3324,6 +3332,11 @@ export function registerApiRoutes(app: Express) {
           xtServer: url.xtServer,
           xtUsername: url.xtUsername,
           xtPassword: url.xtPassword
+        })),
+        dns_list: dnsEntries.map((d: any) => ({
+          titulo: d.titulo,
+          host: d.host,
+          ativo: d.ativo
         })),
         channels: [],
         categories: []
