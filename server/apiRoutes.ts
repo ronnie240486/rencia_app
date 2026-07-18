@@ -557,6 +557,8 @@ export function registerApiRoutes(app: Express) {
         }
       } else if (body && body.app_device_id) {
         macAddress = body.app_device_id;
+      } else if (body && body.mac) {
+        macAddress = body.mac;
       }
 
       if (!macAddress) {
@@ -819,7 +821,17 @@ export function registerApiRoutes(app: Express) {
 
       // Enviar apk_link sem codificação (fora do encodeForApk) para evitar problemas de decodificação
       const encodedData = encodeForApk(JSON.stringify(responsePayload));
-      res.json({ data: encodedData, apk_link: cfg.apk_download_url || "" });
+      
+      // Se a requisição veio via v5, alguns APKs esperam o JSON puro ou campos específicos na raiz
+      if (req.originalUrl.includes("/v5/")) {
+        res.json({ 
+          ...responsePayload, 
+          data: encodedData, 
+          apk_link: cfg.apk_download_url || "" 
+        });
+      } else {
+        res.json({ data: encodedData, apk_link: cfg.apk_download_url || "" });
+      }
 
     } catch (error) {
       console.error("[API] /api/guim.php error:", error);
@@ -966,6 +978,8 @@ export function registerApiRoutes(app: Express) {
 
   // Alias /api/v5/guim.php → /api/guim.php (compatibilidade com APK/Webview que usa /api/v5/)
   app.post("/api/v5/guim.php", (req: Request, res: Response, next) => {
+    // Se o APK v5 enviar mac no body mas o guim.php esperar no formato v4 (data), 
+    // o guim.php já tem fallback, mas vamos garantir aqui também.
     req.url = "/api/guim.php";
     app._router.handle(req, res, next);
   });
