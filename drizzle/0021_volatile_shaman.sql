@@ -1,0 +1,22 @@
+CREATE TABLE `nuvix_config` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`ownerId` int NOT NULL,
+	`dns1_nome` varchar(128),
+	`dns1_url` text,
+	`dns2_nome` varchar(128),
+	`dns2_url` text,
+	`dns3_nome` varchar(128),
+	`dns3_url` text,
+	`dns4_nome` varchar(128),
+	`dns4_url` text,
+	`dns5_nome` varchar(128),
+	`dns5_url` text,
+	`backgroundUrl` text,
+	`iconUrl` text,
+	`appName` varchar(128) DEFAULT 'NUVIX',
+	`buttonColor` varchar(7) DEFAULT '#000000',
+	`ativo` boolean NOT NULL DEFAULT true,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `nuvix_config_id` PRIMARY KEY(`id`)
+);

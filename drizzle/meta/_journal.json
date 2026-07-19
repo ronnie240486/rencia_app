@@ -148,6 +148,13 @@
       "when": 1783746386739,
       "tag": "0020_heavy_goliath",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1784435409069,
+      "tag": "0021_volatile_shaman",
+      "breakpoints": true
     }
   ]
 }

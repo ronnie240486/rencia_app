@@ -24,6 +24,7 @@ import Suggestions from "./pages/Suggestions";
 import Notices from "./pages/Notices";
 import { PanelFunctions } from "./pages/PanelFunctions";
 import Player from "./pages/Player";
+import { NuvixConfig } from "./pages/NuvixConfig";
 
 function Router() {
   return (
@@ -49,6 +50,7 @@ function Router() {
       <Route path={"/avisos"} component={Notices} />
       <Route path={"/configuracoes"} component={Settings} />
       <Route path={"/gpcpro"} component={SettingsGpcpro} />
+      <Route path={"/nuvix-config"} component={NuvixConfig} />
       <Route path={"/player"} component={Player} />
       <Route component={NotFound} />
     </Switch>
