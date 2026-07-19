@@ -1119,6 +1119,39 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
+   * GET /api/dns.php
+   * Endpoint legado para o APK buscar a lista de DNS.
+   * Retorna a lista de DNS no formato RTX_MODE codificado para o APK.
+   */
+  app.get("/api/dns.php", async (_req: Request, res: Response) => {
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.status(503).json({ error: "Banco de dados indisponível." });
+        return;
+      }
+
+      // Buscar todas as DNS ativas
+      const allDns = await db.select().from(dnsEntries).where(eq(dnsEntries.ativo, true));
+      
+      const rtxMode = allDns.map(d => ({
+        DNSName: d.titulo,
+        DNSUrl: d.host
+      }));
+
+      const responseObj = {
+        RTX_MODE: rtxMode
+      };
+
+      const encoded = encodeForApk(JSON.stringify(responseObj));
+      res.send(encoded);
+    } catch (error) {
+      console.error("[API] /api/dns.php error:", error);
+      res.status(500).send("Internal Server Error");
+    }
+  });
+
+  /**
    * GET /api/v4/logo.php
    * Endpoint usado pela classe Logo.java do APK para carregar o logo dinâmico.
    * Retorna a imagem do logo configurada no painel, ou o logo padrão OURO REVENDA.
