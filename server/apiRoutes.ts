@@ -24,7 +24,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig } from "../drizzle/schema";
 import { eq, or, and } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
@@ -3354,5 +3354,53 @@ export function registerApiRoutes(app: Express) {
     res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
     res.sendStatus(200);
+  });
+
+  /**
+   * GET /api/nuvix/config/:ownerId
+   * Retorna as configurações do APK NuvixXC6 (DNS, imagem de fundo, ícones, etc)
+   */
+  app.get('/api/nuvix/config/:ownerId', async (req: Request, res: Response) => {
+    try {
+      const { ownerId } = req.params;
+      const db = await getDb();
+      if (!db) {
+        res.status(500).json({ error: 'Database unavailable' });
+        return;
+      }
+
+      const config = await db.select().from(nuvixConfig).where(eq(nuvixConfig.ownerId, parseInt(ownerId))).limit(1);
+
+      if (!config.length) {
+        res.json({
+          success: false,
+          error: 'Configurações não encontradas',
+          dns: [],
+          appName: 'NUVIX',
+          buttonColor: '#000000'
+        });
+        return;
+      }
+
+      const cfg = config[0];
+      const dns = [];
+      if (cfg.dns1_nome && cfg.dns1_url) dns.push({ nome: cfg.dns1_nome, url: cfg.dns1_url });
+      if (cfg.dns2_nome && cfg.dns2_url) dns.push({ nome: cfg.dns2_nome, url: cfg.dns2_url });
+      if (cfg.dns3_nome && cfg.dns3_url) dns.push({ nome: cfg.dns3_nome, url: cfg.dns3_url });
+      if (cfg.dns4_nome && cfg.dns4_url) dns.push({ nome: cfg.dns4_nome, url: cfg.dns4_url });
+      if (cfg.dns5_nome && cfg.dns5_url) dns.push({ nome: cfg.dns5_nome, url: cfg.dns5_url });
+
+      res.json({
+        success: true,
+        dns,
+        backgroundUrl: cfg.backgroundUrl || '',
+        iconUrl: cfg.iconUrl || '',
+        appName: cfg.appName || 'NUVIX',
+        buttonColor: cfg.buttonColor || '#000000'
+      });
+    } catch (error) {
+      console.error('[API] /api/nuvix/config error:', error);
+      res.status(500).json({ success: false, error: 'Internal error' });
+    }
   });
 }

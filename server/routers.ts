@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -944,7 +944,55 @@ export const appRouter = router({
         await db.delete(localCredentials).where(eq(localCredentials.userId, input.userId));
         return { success: true, message: 'Credenciais removidas com sucesso!' };
       }),
+   }),
+
+  nuvix: router({
+    getConfig: publicProcedure
+      .input(z.object({ ownerId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database connection failed' });
+        
+        const config = await db.select().from(nuvixConfig).where(eq(nuvixConfig.ownerId, input.ownerId)).limit(1);
+        return config[0] || null;
+      }),
+    
+    updateConfig: protectedProcedure
+      .input(z.object({
+        dns1_nome: z.string().optional(),
+        dns1_url: z.string().optional(),
+        dns2_nome: z.string().optional(),
+        dns2_url: z.string().optional(),
+        dns3_nome: z.string().optional(),
+        dns3_url: z.string().optional(),
+        dns4_nome: z.string().optional(),
+        dns4_url: z.string().optional(),
+        dns5_nome: z.string().optional(),
+        dns5_url: z.string().optional(),
+        backgroundUrl: z.string().optional(),
+        iconUrl: z.string().optional(),
+        appName: z.string().optional(),
+        buttonColor: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database connection failed' });
+        
+        const existing = await db.select().from(nuvixConfig).where(eq(nuvixConfig.ownerId, ctx.user.id)).limit(1);
+        
+        if (existing.length) {
+          await db.update(nuvixConfig)
+            .set({ ...input, updatedAt: new Date() })
+            .where(eq(nuvixConfig.ownerId, ctx.user.id));
+        } else {
+          await db.insert(nuvixConfig).values({
+            ownerId: ctx.user.id,
+            ...input,
+          });
+        }
+        
+        return { success: true, message: 'Configurações atualizadas!' };
+      }),
   }),
 });
-
 export type AppRouter = typeof appRouter;

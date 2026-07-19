@@ -179,3 +179,35 @@ export const notices = mysqlTable("notices", {
 
 export type Notice = typeof notices.$inferSelect;
 export type InsertNotice = typeof notices.$inferInsert;
+
+// Tabela de configurações do APK NuvixXC6
+export const nuvixConfig = mysqlTable("nuvix_config", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  // DNS (até 5)
+  dns1_nome: varchar("dns1_nome", { length: 128 }),
+  dns1_url: text("dns1_url"),
+  dns2_nome: varchar("dns2_nome", { length: 128 }),
+  dns2_url: text("dns2_url"),
+  dns3_nome: varchar("dns3_nome", { length: 128 }),
+  dns3_url: text("dns3_url"),
+  dns4_nome: varchar("dns4_nome", { length: 128 }),
+  dns4_url: text("dns4_url"),
+  dns5_nome: varchar("dns5_nome", { length: 128 }),
+  dns5_url: text("dns5_url"),
+  // Imagem de fundo
+  backgroundUrl: text("backgroundUrl"),
+  // Ícone customizado
+  iconUrl: text("iconUrl"),
+  // Nome do app
+  appName: varchar("appName", { length: 128 }).default("NUVIX"),
+  // Cor dos botões (hex)
+  buttonColor: varchar("buttonColor", { length: 7 }).default("#000000"),
+  // Ativo/Inativo
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type NuvixConfig = typeof nuvixConfig.$inferSelect;
+export type InsertNuvixConfig = typeof nuvixConfig.$inferInsert;

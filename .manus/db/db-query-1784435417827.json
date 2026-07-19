@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `nuvix_config` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`ownerId` int NOT NULL,\n\t`dns1_nome` varchar(128),\n\t`dns1_url` text,\n\t`dns2_nome` varchar(128),\n\t`dns2_url` text,\n\t`dns3_nome` varchar(128),\n\t`dns3_url` text,\n\t`dns4_nome` varchar(128),\n\t`dns4_url` text,\n\t`dns5_nome` varchar(128),\n\t`dns5_url` text,\n\t`backgroundUrl` text,\n\t`iconUrl` text,\n\t`appName` varchar(128) DEFAULT 'NUVIX',\n\t`buttonColor` varchar(7) DEFAULT '#000000',\n\t`ativo` boolean NOT NULL DEFAULT true,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `nuvix_config_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user VQ33uv9UCCJC5i3.a43d655f061c --database LDyffp73FNnPjitdoAxnFa --execute CREATE TABLE `nuvix_config` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`ownerId` int NOT NULL,\n\t`dns1_nome` varchar(128),\n\t`dns1_url` text,\n\t`dns2_nome` varchar(128),\n\t`dns2_url` text,\n\t`dns3_nome` varchar(128),\n\t`dns3_url` text,\n\t`dns4_nome` varchar(128),\n\t`dns4_url` text,\n\t`dns5_nome` varchar(128),\n\t`dns5_url` text,\n\t`backgroundUrl` text,\n\t`iconUrl` text,\n\t`appName` varchar(128) DEFAULT 'NUVIX',\n\t`buttonColor` varchar(7) DEFAULT '#000000',\n\t`ativo` boolean NOT NULL DEFAULT true,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `nuvix_config_id` PRIMARY KEY(`id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 749
+}
