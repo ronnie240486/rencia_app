@@ -557,8 +557,6 @@ export function registerApiRoutes(app: Express) {
         }
       } else if (body && body.app_device_id) {
         macAddress = body.app_device_id;
-      } else if (body && body.mac) {
-        macAddress = body.mac;
       }
 
       if (!macAddress) {
@@ -821,17 +819,7 @@ export function registerApiRoutes(app: Express) {
 
       // Enviar apk_link sem codificação (fora do encodeForApk) para evitar problemas de decodificação
       const encodedData = encodeForApk(JSON.stringify(responsePayload));
-      
-      // Se a requisição veio via v5, alguns APKs esperam o JSON puro ou campos específicos na raiz
-      if (req.originalUrl.includes("/v5/")) {
-        res.json({ 
-          ...responsePayload, 
-          data: encodedData, 
-          apk_link: cfg.apk_download_url || "" 
-        });
-      } else {
-        res.json({ data: encodedData, apk_link: cfg.apk_download_url || "" });
-      }
+      res.json({ data: encodedData, apk_link: cfg.apk_download_url || "" });
 
     } catch (error) {
       console.error("[API] /api/guim.php error:", error);
@@ -976,33 +964,28 @@ export function registerApiRoutes(app: Express) {
     app._router.handle(req, res, next);
   });
 
-  // Aliases para múltiplas versões (v1 até v7) para garantir compatibilidade com qualquer APK
-  const apiVersions = ["v1", "v2", "v3", "v4", "v5", "v6", "v7"];
-  apiVersions.forEach(v => {
-    // Alias /api/vX/guim.php → /api/guim.php
-    app.all(`/api/${v}/guim.php`, (req: Request, res: Response, next) => {
-      req.url = "/api/guim.php";
-      app._router.handle(req, res, next);
-    });
+  // Alias /api/v5/guim.php → /api/guim.php (compatibilidade com APK/Webview que usa /api/v5/)
+  app.post("/api/v5/guim.php", (req: Request, res: Response, next) => {
+    req.url = "/api/guim.php";
+    app._router.handle(req, res, next);
+  });
+  app.get("/api/v5/guim.php", (req: Request, res: Response, next) => {
+    req.url = "/api/guim.php";
+    app._router.handle(req, res, next);
+  });
 
-    // Alias /api/vX/check_mac.php → /api/device/check
-    app.all(`/api/${v}/check_mac.php`, (req: Request, res: Response, next) => {
-      req.url = "/api/device/check";
-      if (req.body && req.body.mac) req.query.mac = req.body.mac;
-      app._router.handle(req, res, next);
-    });
-
-    // Alias /api/vX/logo.php → /api/v4/logo.php
-    if (v !== "v4") {
-      app.get(`/api/${v}/logo.php`, (req: Request, res: Response, next) => {
-        req.url = "/api/v4/logo.php";
-        app._router.handle(req, res, next);
-      });
-      app.get(`/api/${v}/bg.php`, (req: Request, res: Response, next) => {
-        req.url = "/api/v4/bg.php";
-        app._router.handle(req, res, next);
-      });
+  // Alias /api/v5/check_mac.php → /api/device/check
+  app.post("/api/v5/check_mac.php", (req: Request, res: Response, next) => {
+    req.url = "/api/device/check";
+    // Mapear body 'mac' para query 'mac' se necessário
+    if (req.body && req.body.mac) {
+      req.query.mac = req.body.mac;
     }
+    app._router.handle(req, res, next);
+  });
+  app.get("/api/v5/check_mac.php", (req: Request, res: Response, next) => {
+    req.url = "/api/device/check";
+    app._router.handle(req, res, next);
   });
 
   /**
@@ -2101,7 +2084,7 @@ export function registerApiRoutes(app: Express) {
       // Buscar DNS entries ativas do revendedor principal (ownerId mais antigo = admin)
       const allDns = await db.select().from(dnsEntries).where(eq(dnsEntries.ativo, true));
 
-      const dnsListFormatted = allDns.map((d, i) => ({
+      const dnsList = allDns.map((d, i) => ({
         id: i + 1,
         title: d.titulo,
         host: d.host,
@@ -2109,8 +2092,8 @@ export function registerApiRoutes(app: Express) {
       }));
 
       res.json({
-        dns: dnsListFormatted,
-        total: dnsListFormatted.length,
+        dns: dnsList,
+        total: dnsList.length,
       });
 
     } catch (error) {
@@ -2774,15 +2757,22 @@ export function registerApiRoutes(app: Express) {
 
       const userData = userResult[0];
       
+      // Verificar se é revendedor
+      if (userData.role !== "admin" && userData.role !== "user") {
+        res.json({ success: false, error: "User is not a reseller" });
+        return;
+      }
+
       // TODO: Verificar password com hash (por enquanto apenas validar username)
       // Em produção, usar bcrypt ou similar
 
       res.json({
         success: true,
         user_id: userData.id,
-        server_name: userData.nomeServer,
-        app: userData.app,
-        tipo: userData.tipo,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        plan: userData.plano,
         message: "Reseller login successful",
       });
 
@@ -3293,7 +3283,7 @@ export function registerApiRoutes(app: Express) {
       }
 
       // Buscar DNS cadastradas pelo revendedor
-      const dnsList = await db
+      const dnsEntries = await db
         .select()
         .from(dnsEntries)
         .where(and(eq(dnsEntries.ownerId, device.ownerId), eq(dnsEntries.ativo, true)))
@@ -3301,7 +3291,7 @@ export function registerApiRoutes(app: Express) {
 
       // Testar DNS em cascata (fallback automático)
       let workingDns = null;
-      for (const dns of dnsList) {
+      for (const dns of dnsEntries) {
         try {
           const testResponse = await fetch(dns.host, {
             method: 'HEAD'
@@ -3314,8 +3304,8 @@ export function registerApiRoutes(app: Express) {
           console.log(`[API] DNS ${dns.titulo} (${dns.host}) falhou`);
         }
       }
-      if (!workingDns && dnsList.length > 0) {
-        workingDns = dnsList[0];
+      if (!workingDns && dnsEntries.length > 0) {
+        workingDns = dnsEntries[0];
       }
 
       // Buscar URLs/playlists do dispositivo
@@ -3343,7 +3333,7 @@ export function registerApiRoutes(app: Express) {
           xtUsername: url.xtUsername,
           xtPassword: url.xtPassword
         })),
-        dns_list: dnsList.map((d: any) => ({
+        dns_list: dnsEntries.map((d: any) => ({
           titulo: d.titulo,
           host: d.host,
           ativo: d.ativo
@@ -3364,15 +3354,5 @@ export function registerApiRoutes(app: Express) {
     res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
     res.sendStatus(200);
-  });
-
-  // Catch-all para qualquer rota /api/ não encontrada - GARANTE JSON
-  app.use("/api/*", (req: Request, res: Response) => {
-    console.log(`[API-404] Catch-all JSON for: ${req.originalUrl}`);
-    res.status(404).json({ 
-      error: "Endpoint not found", 
-      path: req.originalUrl,
-      message: "Esta rota de API não existe, mas retornamos JSON para evitar crash no APK."
-    });
   });
 }

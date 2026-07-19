@@ -84,37 +84,37 @@
 - [ ] APK v26: recompilar com Open Website→Conectar, Ibo Player removido, ic_setting dourado, logo lateral
 
 ## Novas funcionalidades (06/05/2026 - v2)
-- [x] Schema: tabela device_urls (id, device_id, nome, url_m3u8, xt_server, xt_username, xt_password, modo, ordem, ativo)
-- [x] Schema: coluna reseller_id na tabela users (quem criou esse revendedor)
-- [x] Schema: coluna plano_limite_devices e plano_limite_revendas na tabela users
-- [x] Procedure: CRUD de device_urls (adicionar/editar/remover listas de um device)
-- [x] Procedure: guim.php retornar múltiplas URLs
-- [x] Procedure: listar revendas do Ultra Master (users onde reseller_id = meu id)
-- [x] Procedure: criar/editar/deletar revendas
-- [x] Procedure: stats de revendas (total devices dos meus revendedores)
-- [x] Frontend: MAC com formatação automática (inserir : a cada 2 dígitos)
-- [x] Frontend: múltiplas listas no formulário de criação/edição de device
-- [x] Frontend: página de gerenciamento de revendas (/revendas)
-- [x] Frontend: rota /revendas no App.tsx e sidebar
+- [ ] Schema: tabela device_urls (id, device_id, nome, url_m3u8, xt_server, xt_username, xt_password, modo, ordem, ativo)
+- [ ] Schema: coluna reseller_id na tabela users (quem criou esse revendedor)
+- [ ] Schema: coluna plano_limite_devices e plano_limite_revendas na tabela users
+- [ ] Procedure: CRUD de device_urls (adicionar/editar/remover listas de um device)
+- [ ] Procedure: guim.php retornar múltiplas URLs
+- [ ] Procedure: listar revendas do Ultra Master (users onde reseller_id = meu id)
+- [ ] Procedure: criar/editar/deletar revendas
+- [ ] Procedure: stats de revendas (total devices dos meus revendedores)
+- [ ] Frontend: MAC com formatação automática (inserir : a cada 2 dígitos)
+- [ ] Frontend: múltiplas listas no formulário de criação/edição de device
+- [ ] Frontend: página de gerenciamento de revendas (/revendas)
+- [ ] Frontend: rota /revendas no App.tsx e sidebar
 
 ## Novas funcionalidades (07/05/2026)
-- [x] Página pública /m3u8 sem login para trocar DNS (igual gerenciaapp.top)
-- [x] Trocar DNS em massa: seleciona DNS existente → substitui por nova (só afeta quem tinha aquela DNS)
-- [x] Múltiplas listas já no formulário de cadastro de usuário (campo adicionar lista)
-- [x] APK: corrigir ícones de botões (reload, exit, configurações dourado)
-- [x] APK: recompilar v26 com todas as correções
+- [ ] Página pública /m3u8 sem login para trocar DNS (igual gerenciaapp.top)
+- [ ] Trocar DNS em massa: seleciona DNS existente → substitui por nova (só afeta quem tinha aquela DNS)
+- [ ] Múltiplas listas já no formulário de cadastro de usuário (campo adicionar lista)
+- [ ] APK: corrigir ícones de botões (reload, exit, configurações dourado)
+- [ ] APK: recompilar v26 com todas as correções
 
 ## Novas funcionalidades (08/05/2026)
-- [x] Ícone de settings no painel: corrigir endpoint /api/v4/icon/:name para proxy HTTP 200 correto
-- [x] Página de Perfil: foto de perfil no topo + campos editáveis (login, senha, email, telefone)
-- [x] Dashboard: seção "Dispositivos Conectados" mostrando quem está online no OuroPro
-- [x] Botões dourados (golden) em todo o painel
-- [x] "Cadastrar DNS" button na página DNS em Massa
-- [x] APK v26: recompilar com txt_impact/txt_contact visíveis na home screen
+- [ ] Ícone de settings no painel: corrigir endpoint /api/v4/icon/:name para proxy HTTP 200 correto
+- [ ] Página de Perfil: foto de perfil no topo + campos editáveis (login, senha, email, telefone)
+- [ ] Dashboard: seção "Dispositivos Conectados" mostrando quem está online no OuroPro
+- [ ] Botões dourados (golden) em todo o painel
+- [ ] "Cadastrar DNS" button na página DNS em Massa
+- [ ] APK v26: recompilar com txt_impact/txt_contact visíveis na home screen
 
 ## Novas funcionalidades (12/05/2026)
 - [x] Schema: adicionar coluna `telefone` na tabela devices (VARCHAR 20)
-- [x] Schema: adicionar coluna `data_vencimento` na tabela devices (se não existir) - NOTA: Coluna existente como `dataExpiracao`
+- [ ] Schema: adicionar coluna `data_vencimento` na tabela devices (se não existir)
 - [x] Formulário de cadastro: campo telefone (+55 fixo) para clientes novos
 - [x] Formulário de edição: campo telefone para clientes já cadastrados
 - [x] Configurações: aba "Banner" com upload de foto de banner (igual ao logo)
@@ -138,9 +138,9 @@
 - [x] Configurações: paleta de cores para trocar a cor do painel (sidebar background + primary)
 
 ## Correções (12/05/2026 - v4)
-- [x] API /api/guim.php: incluir telefone de contato, frase de impacto e frase legal no response (campos str_whatsapp, impact_phrase, legal_notice)
-- [x] Configurações: garantir campos "Telefone de contato", "Frase de impacto" e "Frase legal (tela de bloqueio)" visíveis e salvando corretamente
-- [x] Frase legal padrão: "OuroPro is a media player application. The app does not provide or include any media or content."
+- [ ] API /api/guim.php: incluir telefone de contato, frase de impacto e frase legal no response (campos str_whatsapp, impact_phrase, legal_notice)
+- [ ] Configurações: garantir campos "Telefone de contato", "Frase de impacto" e "Frase legal (tela de bloqueio)" visíveis e salvando corretamente
+- [ ] Frase legal padrão: "OuroPro is a media player application. The app does not provide or include any media or content."
 
 ## Heartbeat de conteúdo assistido (12/05/2026 - v5)
 - [x] Endpoint POST /api/v4/heartbeat.php — APK envia mac + current_content periodicamente
@@ -199,7 +199,7 @@
 - [x] Troca de DNS em massa: trocar somente o host/DNS (não a URL completa) dos usuários vinculados à DNS selecionada
 
 ## Novas funcionalidades (20/05/2026)
-- [x] Revendas: botão Bloquear/Desbloquear revenda (sem excluir) com bloqueio cascata de devices
+- [ ] Revendas: botão Bloquear/Desbloquear revenda (sem excluir) com bloqueio cascata de devices
 - [ ] Configurações: corrigir botão "Atualizar Aplicativo" (endpoint /api/v4/update.php retornando link correto)
 - [ ] Heartbeat: investigar e corrigir exibição do canal assistido no painel (coluna ASSISTINDO)
 
@@ -247,8 +247,8 @@
 ## Novas Funcionalidades (14/06/2026)
 - [x] Gerar assets com ícone OuroPro para Samsung, LG, Roku e TCL
 - [x] Corrigir carousel de slides - upload de imagens/vídeos com tempo configurável
-- [x] Criar sistema de Sugestões - formulário para master/revenda com nome, telefone, etc
-- [x] Criar sistema de Avisos - ultra master escreve avisos que aparecem na abertura
+- [ ] Criar sistema de Sugestões - formulário para master/revenda com nome, telefone, etc
+- [ ] Criar sistema de Avisos - ultra master escreve avisos que aparecem na abertura
 - [x] Implementar logout automático diário - pedir login/senha ao entrar em novo dia
 
 
