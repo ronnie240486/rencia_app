@@ -2790,22 +2790,14 @@ export function registerApiRoutes(app: Express) {
 
       const userData = userResult[0];
       
-      // Verificar se é revendedor
-      if (userData.role !== "admin" && userData.role !== "user") {
-        res.json({ success: false, error: "User is not a reseller" });
-        return;
-      }
-
       // TODO: Verificar password com hash (por enquanto apenas validar username)
       // Em produção, usar bcrypt ou similar
 
       res.json({
         success: true,
         user_id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role,
-        plan: userData.plano,
+        server_name: userData.nomeServer,
+        mac: userData.mac,
         message: "Reseller login successful",
       });
 
@@ -3316,7 +3308,7 @@ export function registerApiRoutes(app: Express) {
       }
 
       // Buscar DNS cadastradas pelo revendedor
-      const dnsEntries = await db
+      const dnsList = await db
         .select()
         .from(dnsEntries)
         .where(and(eq(dnsEntries.ownerId, device.ownerId), eq(dnsEntries.ativo, true)))
@@ -3324,7 +3316,7 @@ export function registerApiRoutes(app: Express) {
 
       // Testar DNS em cascata (fallback automático)
       let workingDns = null;
-      for (const dns of dnsEntries) {
+      for (const dns of dnsList) {
         try {
           const testResponse = await fetch(dns.host, {
             method: 'HEAD'
@@ -3337,8 +3329,8 @@ export function registerApiRoutes(app: Express) {
           console.log(`[API] DNS ${dns.titulo} (${dns.host}) falhou`);
         }
       }
-      if (!workingDns && dnsEntries.length > 0) {
-        workingDns = dnsEntries[0];
+      if (!workingDns && dnsList.length > 0) {
+        workingDns = dnsList[0];
       }
 
       // Buscar URLs/playlists do dispositivo
@@ -3366,7 +3358,7 @@ export function registerApiRoutes(app: Express) {
           xtUsername: url.xtUsername,
           xtPassword: url.xtPassword
         })),
-        dns_list: dnsEntries.map((d: any) => ({
+        dns_list: dnsList.map((d: any) => ({
           titulo: d.titulo,
           host: d.host,
           ativo: d.ativo
