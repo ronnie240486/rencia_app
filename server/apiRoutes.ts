@@ -3366,17 +3366,6 @@ export function registerApiRoutes(app: Express) {
     res.sendStatus(200);
   });
 
-  // Catch-all para qualquer rota /api/ não encontrada - GARANTE JSON
-  app.use("/api/*", (req: Request, res: Response) => {
-    console.log(`[API-404] Catch-all JSON for: ${req.originalUrl}`);
-    res.status(404).json({ 
-      error: "Endpoint not found", 
-      path: req.originalUrl,
-      message: "Esta rota de API não existe, mas retornamos JSON para evitar crash no APK."
-    });
-  });
-}
-
   /**
    * GET /apps/legacy/api.php?action=get_config
    * Endpoint para o APK NUVIXLEGACY obter as configurações de branding e URL do servidor.
@@ -3414,3 +3403,14 @@ export function registerApiRoutes(app: Express) {
       res.status(500).json({ success: false, error: "Internal error" });
     }
   });
+
+  // Catch-all para qualquer rota /api/ não encontrada - GARANTE JSON
+  app.use("/api/*", (req: Request, res: Response) => {
+    console.log(`[API-404] Catch-all JSON for: ${req.originalUrl}`);
+    res.status(404).json({ 
+      error: "Endpoint not found", 
+      path: req.originalUrl,
+      message: "Esta rota de API não existe, mas retornamos JSON para evitar crash no APK."
+    });
+  });
+}

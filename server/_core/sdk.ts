@@ -40,7 +40,7 @@ class OAuthService {
 
   private decodeState(state: string): { redirectUri: string; returnPath: string } {
     try {
-      const decoded = atob(state);
+      const decoded = Buffer.from(state, 'base64').toString('utf8');
       const parsed = JSON.parse(decoded);
       if (parsed && typeof parsed.redirectUri === "string") {
         return {
@@ -51,7 +51,7 @@ class OAuthService {
       // Fallback: old format was just the redirectUri string
       return { redirectUri: decoded, returnPath: "/dashboard" };
     } catch {
-      return { redirectUri: atob(state), returnPath: "/dashboard" };
+      return { redirectUri: Buffer.from(state, 'base64').toString('utf8'), returnPath: "/dashboard" };
     }
   }
 
@@ -131,7 +131,7 @@ class SDKServer {
    */
   parseReturnPath(state: string): string {
     try {
-      const decoded = atob(state);
+      const decoded = Buffer.from(state, 'base64').toString('utf8');
       const parsed = JSON.parse(decoded);
       if (parsed && typeof parsed.returnPath === "string" && parsed.returnPath.startsWith("/")) {
         return parsed.returnPath;
