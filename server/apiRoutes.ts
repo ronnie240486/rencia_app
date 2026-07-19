@@ -3376,3 +3376,41 @@ export function registerApiRoutes(app: Express) {
     });
   });
 }
+
+  /**
+   * GET /apps/legacy/api.php?action=get_config
+   * Endpoint para o APK NUVIXLEGACY obter as configurações de branding e URL do servidor.
+   */
+  app.get("/apps/legacy/api.php", async (req: Request, res: Response) => {
+    try {
+      const action = req.query.action;
+      if (action !== "get_config") {
+        res.status(400).json({ error: "Invalid action" });
+        return;
+      }
+
+      const cfg = await getSettings();
+      const gpcLogo = (cfg.gpcpro_logo_url || cfg.trial_logo_url || "").trim();
+      const gpcBg = (cfg.gpcpro_background_url || cfg.trial_background_url || "").trim();
+      const gpcAppName = (cfg.gpcpro_app_name || "NUVIX LEGACY").trim();
+      const serverUrl = (cfg.gpcpro_server_url || cfg.server_url || "").trim();
+
+      // Resolver URLs de imagens
+      const resolvedLogo = gpcLogo ? await resolvePublicImageUrl(gpcLogo) : "";
+      const resolvedBg = gpcBg ? await resolvePublicImageUrl(gpcBg) : "";
+
+      res.json({
+        success: true,
+        app_name: gpcAppName,
+        logo_url: resolvedLogo,
+        bg_url: resolvedBg,
+        server_url: serverUrl,
+        api_url: "/player_api.php",
+        contact_whatsapp: cfg.contact_whatsapp || "",
+        message: "Configuração carregada com sucesso"
+      });
+    } catch (error) {
+      console.error("[API] /apps/legacy/api.php error:", error);
+      res.status(500).json({ success: false, error: "Internal error" });
+    }
+  });
