@@ -84,8 +84,10 @@ export default function UserCreate() {
       // Adicionar DNS
       for (const dns of dnsList) {
         if (dns.host.trim()) {
-          // Aqui você pode chamar uma mutation para adicionar DNS ao dispositivo
-          // Por enquanto, apenas salvamos as listas
+          await addDnsMutation.mutateAsync({
+            titulo: dns.titulo || `DNS ${dnsList.indexOf(dns) + 1}`,
+            host: dns.host.trim(),
+          });
         }
       }
       
@@ -96,6 +98,7 @@ export default function UserCreate() {
   });
 
   const addUrlMutation = trpc.deviceUrls.add.useMutation();
+  const addDnsMutation = trpc.dns.create.useMutation();
 
   const handleMacChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 12);

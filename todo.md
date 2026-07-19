@@ -199,7 +199,7 @@
 - [x] Troca de DNS em massa: trocar somente o host/DNS (não a URL completa) dos usuários vinculados à DNS selecionada
 
 ## Novas funcionalidades (20/05/2026)
-- [ ] Revendas: botão Bloquear/Desbloquear revenda (sem excluir) com bloqueio cascata de devices
+- [x] Revendas: botão Bloquear/Desbloquear revenda (sem excluir) com bloqueio cascata de devices
 - [ ] Configurações: corrigir botão "Atualizar Aplicativo" (endpoint /api/v4/update.php retornando link correto)
 - [ ] Heartbeat: investigar e corrigir exibição do canal assistido no painel (coluna ASSISTINDO)
 
@@ -247,8 +247,8 @@
 ## Novas Funcionalidades (14/06/2026)
 - [x] Gerar assets com ícone OuroPro para Samsung, LG, Roku e TCL
 - [x] Corrigir carousel de slides - upload de imagens/vídeos com tempo configurável
-- [ ] Criar sistema de Sugestões - formulário para master/revenda com nome, telefone, etc
-- [ ] Criar sistema de Avisos - ultra master escreve avisos que aparecem na abertura
+- [x] Criar sistema de Sugestões - formulário para master/revenda com nome, telefone, etc
+- [x] Criar sistema de Avisos - ultra master escreve avisos que aparecem na abertura
 - [x] Implementar logout automático diário - pedir login/senha ao entrar em novo dia
 
 
