@@ -57,6 +57,7 @@ export default function UserCreate() {
   });
 
   const [listas, setListas] = useState<ListaItem[]>([newLista(true)]);
+  const [dnsList, setDnsList] = useState<Array<{ id: string; titulo: string; host: string }>>([]);
 
   const createMutation = trpc.devices.create.useMutation({
     onSuccess: async (data) => {
@@ -79,6 +80,15 @@ export default function UserCreate() {
           });
         }
       }
+      
+      // Adicionar DNS
+      for (const dns of dnsList) {
+        if (dns.host.trim()) {
+          // Aqui você pode chamar uma mutation para adicionar DNS ao dispositivo
+          // Por enquanto, apenas salvamos as listas
+        }
+      }
+      
       toast.success("Usuário cadastrado com sucesso!");
       navigate("/users");
     },
@@ -223,6 +233,58 @@ export default function UserCreate() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* DNS */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold text-foreground">DNS (Servidores)</p>
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 gap-1 text-xs btn-add-user"
+                onClick={() => setDnsList(ds => [...ds, { id: Math.random().toString(36).slice(2), titulo: "", host: "" }])}
+              >
+                <Plus className="w-3 h-3" /> Adicionar DNS
+              </Button>
+            </div>
+
+            {dnsList.map((dns, idx) => (
+              <div key={dns.id} className="bg-card rounded-xl border shadow-sm p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    DNS {idx + 1}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                    onClick={() => setDnsList(ds => ds.filter(d => d.id !== dns.id))}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">TÍTULO:</Label>
+                  <Input
+                    placeholder={`DNS ${idx + 1}`}
+                    value={dns.titulo}
+                    onChange={e => setDnsList(ds => ds.map(d => d.id === dns.id ? { ...d, titulo: e.target.value } : d))}
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">HOST/URL:</Label>
+                  <Input
+                    placeholder="http://servidor.com ou http://servidor.com:8080"
+                    value={dns.host}
+                    onChange={e => setDnsList(ds => ds.map(d => d.id === dns.id ? { ...d, host: e.target.value } : d))}
+                    className="h-9 font-mono text-sm"
+                  />
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Listas */}
