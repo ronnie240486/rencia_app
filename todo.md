@@ -101,7 +101,6 @@
 - [x] Página pública /m3u8 sem login para trocar DNS (igual gerenciaapp.top)
 - [x] Trocar DNS em massa: seleciona DNS existente → substitui por nova (só afeta quem tinha aquela DNS)
 - [x] Múltiplas listas já no formulário de cadastro de usuário (campo adicionar lista)
-- [x] Múltiplas DNS já no formulário de cadastro de usuário (salva automaticamente)
 - [x] APK: corrigir ícones de botões (reload, exit, configurações dourado)
 - [x] APK: recompilar v26 com todas as correções
 
