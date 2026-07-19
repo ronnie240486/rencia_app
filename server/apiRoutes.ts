@@ -3365,42 +3365,36 @@ export function registerApiRoutes(app: Express) {
       const { ownerId } = req.params;
       const db = await getDb();
       if (!db) {
-        res.status(500).json({ error: 'Database unavailable' });
+        res.json({ error: 'Database unavailable' });
         return;
       }
 
       const config = await db.select().from(nuvixConfig).where(eq(nuvixConfig.ownerId, parseInt(ownerId))).limit(1);
 
-      if (!config.length) {
-        res.json({
-          success: false,
-          error: 'Configurações não encontradas',
-          dns: [],
-          appName: 'NUVIX',
-          buttonColor: '#000000'
-        });
-        return;
+      const dns = [];
+      if (config.length > 0) {
+        const cfg = config[0];
+        if (cfg.dns1_nome && cfg.dns1_url) dns.push({ nome: cfg.dns1_nome, url: cfg.dns1_url });
+        if (cfg.dns2_nome && cfg.dns2_url) dns.push({ nome: cfg.dns2_nome, url: cfg.dns2_url });
+        if (cfg.dns3_nome && cfg.dns3_url) dns.push({ nome: cfg.dns3_nome, url: cfg.dns3_url });
+        if (cfg.dns4_nome && cfg.dns4_url) dns.push({ nome: cfg.dns4_nome, url: cfg.dns4_url });
+        if (cfg.dns5_nome && cfg.dns5_url) dns.push({ nome: cfg.dns5_nome, url: cfg.dns5_url });
       }
 
-      const cfg = config[0];
-      const dns = [];
-      if (cfg.dns1_nome && cfg.dns1_url) dns.push({ nome: cfg.dns1_nome, url: cfg.dns1_url });
-      if (cfg.dns2_nome && cfg.dns2_url) dns.push({ nome: cfg.dns2_nome, url: cfg.dns2_url });
-      if (cfg.dns3_nome && cfg.dns3_url) dns.push({ nome: cfg.dns3_nome, url: cfg.dns3_url });
-      if (cfg.dns4_nome && cfg.dns4_url) dns.push({ nome: cfg.dns4_nome, url: cfg.dns4_url });
-      if (cfg.dns5_nome && cfg.dns5_url) dns.push({ nome: cfg.dns5_nome, url: cfg.dns5_url });
-
-      res.json({
+      const responseData = {
         success: true,
         dns,
-        backgroundUrl: cfg.backgroundUrl || '',
-        iconUrl: cfg.iconUrl || '',
-        appName: cfg.appName || 'NUVIX',
-        buttonColor: cfg.buttonColor || '#000000'
-      });
+        backgroundUrl: config.length > 0 ? config[0].backgroundUrl || '' : '',
+        iconUrl: config.length > 0 ? config[0].iconUrl || '' : '',
+        appName: config.length > 0 ? config[0].appName || 'NUVIX' : 'NUVIX',
+        buttonColor: config.length > 0 ? config[0].buttonColor || '#000000' : '#000000'
+      };
+
+      // Retornar JSON simples
+      res.json(responseData);
     } catch (error) {
       console.error('[API] /api/nuvix/config error:', error);
-      res.status(500).json({ success: false, error: 'Internal error' });
+      res.json({ success: false, error: 'Internal error' });
     }
   });
 }
