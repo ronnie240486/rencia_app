@@ -1,0 +1,54 @@
+{
+    "endpoint": {
+        "verifyDevice": "https://login.purpletv.app/api/verifyDeviceCode",
+        "playlist": "https://login.purpletv.app/api/playlistByDevice",
+        "mackey": "https://login.purpletv.app/api/playlistByMacKey",
+        "qr_data": "https://login.purpletv.app",
+        "register": "https://cloud.purpletv.app/register",
+        "login": "https://cloud.purpletv.app/login",
+        "create_playlist": "https://cloud.purpletv.app/createplaylist",
+        "create_subprofile": "https://cloud.purpletv.app/subprofile",
+        "create_history": "https://cloud.purpletv.app/createhistory",
+        "create_fav": "https://cloud.purpletv.app/createfavorites",
+        "update_playlist": "https://cloud.purpletv.app/updateplaylist",
+        "get_subprofile": "https://cloud.purpletv.app/getsubprofile",
+        "list_get": "https://cloud.purpletv.app/getList",
+        "list_m3u_update": "https://cloud.purpletv.app/m3u",
+        "deleteurl": "https://cloud.purpletv.app/deleteurl",
+        "list_xstream_update": "https://cloud.purpletv.app/xstream",
+        "app_api_endpoint": "https://renciaapp.manus.space/api/main.php"
+    },
+    "flag": {
+        "login_id_pin": false,
+        "login_activate": false,
+        "login_qr": false,
+        "login_code_universal": false,
+        "login_mac_key": false
+    },
+    "content": {
+        "qr_step": "1) Open https://form.purpletv.app/ in browser2) Add Six digit code in form'3) Add Xtream or M3u details and 'Submit'4) Screen will Refresh and Show your playlist profile",
+        "mackey_step": "1) Register or Login at https://login.purpletv.app/login2) Navigate To Playlist > Add New Playlist and then My Devices > Add New Device. 3) Enter Device Id and Device Key and Choose your playlist and 'Submit'.",
+        "activation_step": "1) Register or Login at https://login.purpletv.app/login2) Click To 'Add New Device' And 'Add New Playlist'3) Assign Devices To Playlist and 'Submit'4) Enter the 'Device Code' in the box below",
+        "ads_txt": "display your ads heresupport@purplesmarttv.com",
+        "legal_msg": "<h3>Purple Player doesn't sell playlist or subscriptions</h3></br>Purple Player is a General Media Player and it doesn't include any content or playlist"
+    },
+    "language": {
+        "defult_language": "PT",
+        "firstime_select_language": "false"
+    },
+    "ads": {
+        "ads_status": "false"
+    },
+    "version": {
+        "version_check": "false",
+        "version_code": "7",
+        "version_name": "7.0",
+        "version_force_update": "false"
+    },
+    "player": {
+        "live_tv": "Vlc Player",
+        "vod": "Vlc Player",
+        "series": "Exo Player",
+        "catch_up": "Exo Player"
+    }
+}
