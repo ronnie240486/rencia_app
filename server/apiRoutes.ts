@@ -120,8 +120,9 @@ function convertUrlsInObject(obj: any): any {
   if (obj !== null && typeof obj === 'object') {
     const result: any = {};
     for (const key in obj) {
-      if (key.includes('url') || key.includes('Url') || key.includes('URL')) {
-        result[key] = convertToHttps(obj[key]);
+      const keyLower = key.toLowerCase();
+      if (keyLower.includes('url') || keyLower.includes('stream') || keyLower.includes('server')) {
+        result[key] = convertToHttps(String(obj[key]));
       } else if (typeof obj[key] === 'object') {
         result[key] = convertUrlsInObject(obj[key]);
       } else {
@@ -3580,20 +3581,21 @@ export function registerApiRoutes(app: Express) {
           name: p.nome || `Stream ${idx + 1}`,
           stream_type: 'live',
           stream_id: `stream_${p.id}`,
-          stream_url: p.xtServer || p.urlM3u8 || 'http://example.com/stream.m3u8',
+          stream_url: p.xtServer || p.urlM3u8 || 'https://example.com/stream.m3u8',
           icon: 'https://via.placeholder.com/100x100?text=Canal',
         }));
         
-        res.json(streams.length > 0 ? streams : [
+        const result = streams.length > 0 ? streams : [
           {
             num: 1,
             name: 'Canal Padrao',
             stream_type: 'live',
             stream_id: 'stream_default',
-            stream_url: 'http://example.com/stream.m3u8',
+            stream_url: 'https://example.com/stream.m3u8',
             icon: 'https://via.placeholder.com/100x100?text=Canal',
           },
-        ]);
+        ];
+        res.json(convertUrlsInObject(result));
         return;
       }
 
