@@ -3583,7 +3583,7 @@ export function registerApiRoutes(app: Express) {
         // Retornar streams de canais ao vivo
         const playlists = await db.select().from(deviceUrls).where(
           eq(deviceUrls.ativo, true)
-        ).limit(10);
+        ).limit(50);
         
         const streams = playlists.map((p, idx) => ({
           num: idx + 1,
