@@ -285,3 +285,5 @@
 - [x] Validar headers CORS no endpoint /player_api.php
 - [x] Endpoint /player_api.php retornando categorias e streams corretamente
 - [x] Interactive Player carregando canais (removida convertUrlsInObject que estava transformando URLs)
+- [x] Auto-registro de MAC addresses no /player_api.php (device registrado automaticamente quando credencial válida é usada)
+- [x] Correção de 'online' no dashboard (device vinculado ao ownerId da credencial usada)
