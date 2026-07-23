@@ -1010,28 +1010,77 @@ export function registerApiRoutes(app: Express) {
     app._router.handle(req, res, next);
   });
 
-  // POST /api/v5/check_mac.php - Usar o mesmo endpoint GET
-  app.post("/api/v5/check_mac.php", async (req: Request, res: Response) => {
-    const mac = req.body?.mac || req.query.mac;
-    if (!mac) {
-      res.json({ error: "mac required", success: false });
-      return;
+  // Alias /api/v5/check_mac.php → /api/device/check
+  app.post("/api/v5/check_mac.php", (req: Request, res: Response, next) => {
+    req.url = "/api/device/check";
+    // Mapear body 'mac' para query 'mac' se necessário
+    if (req.body && req.body.mac) {
+      req.query.mac = req.body.mac;
     }
-    // Redirecionar para GET com o MAC como query parameter
-    req.query.mac = mac;
-    // Chamar o handler GET diretamente
-    const getHandler = app._router.stack.find((layer: any) => 
-      layer.route?.path === "/api/v5/check_mac.php" && layer.route?.methods?.get
-    );
-    if (getHandler) {
-      getHandler.handle(req, res);
-    } else {
-      res.json({ error: "Handler not found", success: false });
-    }
+    app._router.handle(req, res, next);
   });
 
 
-  // Endpoint /api/device/check removido - usar /api/v5/check_mac.php
+  /**
+   * GET /api/device/check?mac=XX:XX:XX:XX:XX:XX
+   * Endpoint simplificado para verificação de device.
+   */
+  app.get("/api/device/check", async (req: Request, res: Response) => {
+    const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : null;
+
+    if (!mac) {
+      res.status(400).json({ error: "Parâmetro 'mac' é obrigatório." });
+      return;
+    }
+
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.status(503).json({ error: "Banco de dados indisponível." });
+        return;
+      }
+
+      const result = await db.select().from(devices).where(eq(devices.mac, mac)).limit(1);
+
+      if (result.length === 0) {
+        res.json({ 
+          found: false, 
+          allowed: false, 
+          mac_registered: false, // Para compatibilidade com v5/check_mac.php
+          message: "Device não cadastrado." 
+        });
+        return;
+      }
+
+      const device = result[0];
+      const now = new Date();
+      const expired = device.dataExpiracao != null && new Date(device.dataExpiracao) < now;
+
+      if (expired && device.status !== "Expirado") {
+        await db.update(devices).set({ status: "Expirado" }).where(eq(devices.id, device.id));
+        device.status = "Expirado";
+      }
+
+      res.json({
+        found: true,
+        status: device.status,
+        allowed: device.status === "Liberado",
+        mac_registered: device.status === "Liberado", // Para compatibilidade com v5/check_mac.php
+        mac: device.mac,
+        nomeServer: device.nomeServer,
+        tipo: device.tipo,
+        app: device.app ?? null,
+        urlM3u8: device.urlM3u8 ?? null,
+        urlEpg: device.urlEpg ?? null,
+        modoSelecao: device.modoSelecao,
+        dataExpiracao: device.dataExpiracao ? new Date(device.dataExpiracao).toISOString() : null,
+        dataCadastro: device.dataCadastro ? new Date(device.dataCadastro).toISOString() : null,
+      });
+    } catch (error) {
+      console.error("[API] /api/device/check error:", error);
+      res.status(500).json({ error: "Erro interno do servidor." });
+    }
+  });
 
   /**
    * POST /api/upload-image
@@ -1776,48 +1825,13 @@ export function registerApiRoutes(app: Express) {
       }
 
       if (result.length === 0) {
-        // Auto-cadastrar novo dispositivo
-        console.log(`[API-V5-CHECK-MAC] Auto-registering new device with MAC: ${macWithColons}`);
-        try {
-          const newDevice = await db.insert(devices).values({
-            mac: macWithColons,
-            nomeServer: `Device ${macWithColons}`,
-            tipo: "Usuario",
-            status: "Liberado",
-            modoSelecao: "XTeamCode",
-            ownerId: 1,
-            lastSeen: new Date(),
-          }).returning();
-          
-          console.log(`[API-V5-CHECK-MAC] Device auto-registered successfully`);
-          
-          res.json({
-            found: true,
-            status: "Liberado",
-            allowed: true,
-            mac_registered: true,
-            mac: macWithColons,
-            nomeServer: newDevice[0].nomeServer,
-            tipo: newDevice[0].tipo,
-            app: newDevice[0].app,
-            urlM3u8: newDevice[0].urlM3u8,
-            urlEpg: newDevice[0].urlEpg,
-            modoSelecao: newDevice[0].modoSelecao,
-            dataExpiracao: newDevice[0].dataExpiracao,
-            dataCadastro: newDevice[0].dataCadastro,
-            auto_registered: true,
-          });
-          return;
-        } catch (error) {
-          console.error(`[API-V5-CHECK-MAC] Error auto-registering device:`, error);
-          res.json({
-            success: false,
-            error: "Device not found and auto-registration failed",
-            mac: macWithColons,
-            registered: false,
-          });
-          return;
-        }
+        res.json({
+          success: false,
+          error: "Device not found",
+          mac: macWithColons,
+          registered: false,
+        });
+        return;
       }
 
       const device = result[0];
