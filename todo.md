@@ -146,6 +146,8 @@
 - [x] Endpoint POST /api/v4/heartbeat.php — APK envia mac + current_content periodicamente
 - [x] Endpoint GET /api/v4/heartbeat.php — APK pode consultar o status atual
 - [x] Dashboard: coluna ASSISTINDO atualiza em tempo real via polling
+- [x] Endpoint GET /api/v5/heartbeat — Novo endpoint para registrar heartbeat do dispositivo (23/07/2026)
+- [x] Dispositivo com MAC 0C:49:70:13:28:86 aparecendo como "online" no dashboard (23/07/2026)
 
 ## Ajustes de UI (13/05/2026)
 - [x] Remover item "Trocar DNS em Massa" do menu lateral (AdminLayout) — Verificar se ainda existe
