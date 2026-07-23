@@ -99,6 +99,41 @@ async function getSettings(): Promise<Record<string, string>> {
 const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
 /**
+ * Converte URLs HTTP para HTTPS (necessário para Android 9+)
+ * Android 9+ bloqueia cleartext HTTP por padrão
+ */
+function convertToHttps(url: string): string {
+  if (!url) return url;
+  return url.replace(/^http:\/\//i, 'https://');
+}
+
+/**
+ * Converte recursivamente todas as URLs HTTP para HTTPS em um objeto
+ */
+function convertUrlsInObject(obj: any): any {
+  if (typeof obj === 'string') {
+    return convertToHttps(obj);
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => convertUrlsInObject(item));
+  }
+  if (obj !== null && typeof obj === 'object') {
+    const result: any = {};
+    for (const key in obj) {
+      if (key.includes('url') || key.includes('Url') || key.includes('URL')) {
+        result[key] = convertToHttps(obj[key]);
+      } else if (typeof obj[key] === 'object') {
+        result[key] = convertUrlsInObject(obj[key]);
+      } else {
+        result[key] = obj[key];
+      }
+    }
+    return result;
+  }
+  return obj;
+}
+
+/**
  * Resolve uma URL de imagem do banco para uma URL pública acessível.
  * Se a URL for do /manus-storage/ (protegido por OAuth), gera uma URL pré-assinada do S3.
  * Se for URL externa (http/https), retorna diretamente.
@@ -115,8 +150,8 @@ async function resolvePublicImageUrl(storedUrl: string): Promise<string> {
       return storedUrl; // fallback
     }
   }
-  // URL externa: retornar diretamente
-  return storedUrl;
+  // URL externa: converter para HTTPS e retornar
+  return convertToHttps(storedUrl);
 }
 
 /**
@@ -367,12 +402,12 @@ export function registerApiRoutes(app: Express) {
 
             if (du.modoSelecao === "XTeamCode" && du.xtServer) {
               // XTeamCode: usar xtServer como base
-              serverUrl = du.xtServer;
+              serverUrl = convertToHttps(du.xtServer);
               username = du.xtUsername || "";
               password = du.xtPassword || "";
             } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
               // M3U8: usar urlM3u8 como server_url
-              serverUrl = du.urlM3u8;
+              serverUrl = convertToHttps(du.urlM3u8);
               
               // Tentar extrair username/password da URL se estiverem lá (comum em links M3U)
               if (!username || !password) {
@@ -895,11 +930,11 @@ export function registerApiRoutes(app: Express) {
           let type = du.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus";
 
           if (du.modoSelecao === "XTeamCode" && du.xtServer) {
-            serverUrl = du.xtServer;
+            serverUrl = convertToHttps(du.xtServer);
             username = du.xtUsername || "";
             password = du.xtPassword || "";
           } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
-            serverUrl = du.urlM3u8;
+            serverUrl = convertToHttps(du.urlM3u8);
             try {
               const urlObj = new URL(serverUrl);
               username = urlObj.searchParams.get("username") || "";
