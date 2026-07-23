@@ -3389,4 +3389,96 @@ export function registerApiRoutes(app: Express) {
       res.json({ success: false, error: 'Internal error' });
     }
   });
+
+  /**
+   * GET /api/v5/list_devices?mac=XX:XX:XX:XX:XX:XX
+   * Lista todos os dispositivos do usuário (para Interactive Player)
+   */
+  app.get('/api/v5/list_devices', async (req: Request, res: Response) => {
+    try {
+      const mac = typeof req.query.mac === 'string' ? req.query.mac.trim() : null;
+      if (!mac) {
+        res.json({ success: false, message: 'MAC não informado' });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.json({ success: false, message: 'Banco indisponível' });
+        return;
+      }
+
+      const macWithColons = mac.includes(':') ? mac : `${mac.slice(0, 2)}:${mac.slice(2, 4)}:${mac.slice(4, 6)}:${mac.slice(6, 8)}:${mac.slice(8, 10)}:${mac.slice(10, 12)}`;
+      const device = await db.select().from(devices).where(eq(devices.mac, macWithColons)).limit(1);
+      if (device.length === 0) {
+        res.json({ success: false, message: 'MAC não encontrado' });
+        return;
+      }
+
+      const dev = device[0];
+      const isOnline = dev.lastSeen ? new Date().getTime() - new Date(dev.lastSeen).getTime() < 5 * 60 * 1000 : false;
+      const playlists = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, dev.id));
+
+      res.json({
+        success: true,
+        device: {
+          id: dev.id,
+          mac: macWithColons,
+          name: dev.nomeServer,
+          type: dev.tipo,
+          status: isOnline ? 'online' : 'offline',
+          lastConnection: dev.lastSeen,
+        },
+        playlists: playlists.map((p) => ({
+          id: p.id,
+          name: p.nome,
+          url: p.urlM3u8 || p.xtServer,
+        })),
+      });
+    } catch (error) {
+      console.error('[API] /api/v5/list_devices error:', error);
+      res.json({ success: false, message: 'Erro interno' });
+    }
+  });
+
+  /**
+   * GET /api/v5/device_status?mac=XX:XX:XX:XX:XX:XX
+   * Retorna o status online do dispositivo
+   */
+  app.get('/api/v5/device_status', async (req: Request, res: Response) => {
+    try {
+      const mac = typeof req.query.mac === 'string' ? req.query.mac.trim() : null;
+      if (!mac) {
+        res.json({ success: false, status: 'offline' });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.json({ success: false, status: 'offline' });
+        return;
+      }
+
+      const macWithColons = mac.includes(':') ? mac : `${mac.slice(0, 2)}:${mac.slice(2, 4)}:${mac.slice(4, 6)}:${mac.slice(6, 8)}:${mac.slice(8, 10)}:${mac.slice(10, 12)}`;
+      const device = await db.select().from(devices).where(eq(devices.mac, macWithColons)).limit(1);
+
+      if (device.length === 0) {
+        res.json({ success: false, status: 'offline' });
+        return;
+      }
+
+      const dev = device[0];
+      const isOnline = dev.lastSeen ? new Date().getTime() - new Date(dev.lastSeen).getTime() < 5 * 60 * 1000 : false;
+
+      res.json({
+        success: true,
+        mac: macWithColons,
+        status: isOnline ? 'online' : 'offline',
+        lastConnection: dev.lastSeen,
+      });
+    } catch (error) {
+      console.error('[API] /api/v5/device_status error:', error);
+      res.json({ success: false, status: 'offline' });
+    }
+  });
 }
