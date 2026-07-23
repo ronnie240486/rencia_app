@@ -149,6 +149,16 @@
 - [x] Endpoint GET /api/v5/heartbeat — Novo endpoint para registrar heartbeat do dispositivo (23/07/2026)
 - [x] Dispositivo com MAC 0C:49:70:13:28:86 aparecendo como "online" no dashboard (23/07/2026)
 
+## Testes e Validação (23/07/2026)
+- [x] Criar testes vitest para protocolo Xtream Codes (server/xtreamcodes.test.ts)
+- [x] Validar autenticação com MAC address
+- [x] Validar retorno de categorias em JSON
+- [x] Validar retorno de streams com URLs HTTPS
+- [x] Validar heartbeat do dispositivo
+- [x] Validar segurança (sem exposição de senhas)
+- [x] Todos os 30 testes passando
+- [x] Criar documento de compatibilidade APK (APK_COMPATIBILITY_TEST.md)
+
 ## Ajustes de UI (13/05/2026)
 - [x] Remover item "Trocar DNS em Massa" do menu lateral (AdminLayout) — Verificar se ainda existe
 - [x] Remover botão de cadastro rápido "Usuário" da tela de Usuários — Verificar se ainda existe
