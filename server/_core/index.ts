@@ -36,6 +36,21 @@ async function startServer() {
   // This is required for sameSite=none cookies to work correctly behind a proxy
   app.set("trust proxy", 1);
   
+  // Middleware global de CORS para permitir requisições de qualquer origem
+  app.use((req, res, next) => {
+    console.log(`[CORS] ${req.method} ${req.path}`);
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Max-Age', '86400');
+    
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(200);
+      return;
+    }
+    next();
+  });
+  
   // Middleware de logging global para debugar requisicoes
   app.use((req, res, next) => {
     const method = req.method;
