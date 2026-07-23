@@ -284,4 +284,4 @@
 - [x] Adicionar middleware global de CORS para permitir requisicoes de qualquer origem
 - [x] Validar headers CORS no endpoint /player_api.php
 - [x] Endpoint /player_api.php retornando categorias e streams corretamente
-- [ ] Interactive Player carregando canais (pendente de teste no app)
+- [x] Interactive Player carregando canais (removida convertUrlsInObject que estava transformando URLs)

@@ -3565,6 +3565,42 @@ export function registerApiRoutes(app: Express) {
 
       const credential = cred[0];
 
+      // Auto-registrar device se não existir (usando o MAC como identificador)
+      const macFromHeader = req.headers['x-device-mac'] as string | undefined;
+      const macFromQuery = req.query.mac as string | undefined;
+      const deviceMac = macFromHeader || macFromQuery || username;
+      
+      if (deviceMac && deviceMac.match(/^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$/)) {
+        // MAC válido - registrar device se não existir
+        const existingDevice = await db.select().from(devices)
+          .where(eq(devices.mac, deviceMac))
+          .limit(1);
+        
+        if (existingDevice.length === 0) {
+          // Device não existe - criar automaticamente
+          try {
+            await db.insert(devices).values({
+              ownerId: credential.ownerId,
+              mac: deviceMac,
+              nomeServer: credential.descricao || 'Player Device',
+              tipo: 'Usuario',
+              modoSelecao: 'M3U8',
+              status: 'Liberado',
+              lastSeen: new Date(),
+            });
+            console.log(`[API] Device auto-registered: MAC=${deviceMac}, ownerId=${credential.ownerId}`);
+          } catch (err) {
+            // Ignorar erro se device já foi criado por outro request simultâneo
+            console.log('[API] Device auto-registration skipped (may already exist)');
+          }
+        } else {
+          // Device existe - atualizar lastSeen
+          await db.update(devices)
+            .set({ lastSeen: new Date() })
+            .where(eq(devices.mac, deviceMac));
+        }
+      }
+
       // Se não houver action, tratar como get_live_categories (padrão para APK)
       const finalAction = action || 'get_live_categories';
       
