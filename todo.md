@@ -277,3 +277,11 @@
 - [x] Criar novo item "Configurações do App" (Painel + Tema + Chatbot + APK) em /app-settings
 - [x] Adicionar rota /app-settings no App.tsx
 - [x] Adicionar item "Configurações do App" no menu lateral (AdminLayout)
+
+## Correcoes APK/Expo Go (23/07/2026 - v2)
+- [x] Cadastrar dispositivo Interactive Player (MAC: 2F:97:6F:BF:8A:00)
+- [x] Criar credenciais para Interactive Player
+- [x] Adicionar middleware global de CORS para permitir requisicoes de qualquer origem
+- [x] Validar headers CORS no endpoint /player_api.php
+- [x] Endpoint /player_api.php retornando categorias e streams corretamente
+- [ ] Interactive Player carregando canais (pendente de teste no app)

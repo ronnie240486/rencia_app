@@ -3524,6 +3524,18 @@ export function registerApiRoutes(app: Express) {
    * Retorna categorias, canais e streams em formato JSON
    */
   app.get('/player_api.php', async (req: Request, res: Response) => {
+    // Adicionar headers CORS para permitir requisições de qualquer origem
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Max-Age', '86400');
+    
+    // Responder a requisições OPTIONS (preflight)
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(200);
+      return;
+    }
+    
     try {
       const username = typeof req.query.user === 'string' ? req.query.user.trim() : (typeof req.query.username === 'string' ? req.query.username.trim() : null);
       const password = typeof req.query.pass === 'string' ? req.query.pass.trim() : (typeof req.query.password === 'string' ? req.query.password.trim() : null);
