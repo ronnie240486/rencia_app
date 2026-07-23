@@ -3647,4 +3647,30 @@ export function registerApiRoutes(app: Express) {
       res.json({ user_info: { status: 'error', message: 'Erro interno' } });
     }
   });
+
+  // Endpoint para registrar heartbeat do dispositivo
+  app.get('/api/v5/heartbeat', async (req, res) => {
+    try {
+      const db = await getDb();
+      const mac = req.query.mac as string;
+      if (!mac) {
+        res.json({ success: false, message: 'MAC nao fornecido' });
+        return;
+      }
+
+      // Atualizar lastSeen do dispositivo
+      if (db) {
+        await db.update(devices).set({
+          lastSeen: new Date(),
+        }).where(eq(devices.mac, mac));
+      }
+
+      res.json({ success: true, mac, timestamp: new Date().toISOString() });
+    } catch (error) {
+      console.error('[API] /api/v5/heartbeat error:', error);
+      res.json({ success: false, message: 'Erro ao registrar heartbeat' });
+    }
+  });
+
+
 }
