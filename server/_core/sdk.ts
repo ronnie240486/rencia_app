@@ -291,7 +291,20 @@ class SDKServer {
     const sessionCookie = cookies.get(COOKIE_NAME);
     const session = await this.verifySession(sessionCookie);
 
+    // Se não houver sessão JWT, tenta ler cookie local
     if (!session) {
+      try {
+        const cookieData = JSON.parse(sessionCookie || '{}');
+        if (cookieData.userId) {
+          // Cookie local - buscar usuário no banco
+          const user = await db.getUserById(cookieData.userId);
+          if (user) {
+            return user;
+          }
+        }
+      } catch (e) {
+        // Ignorar erro de parse
+      }
       throw ForbiddenError("Invalid session cookie");
     }
 
