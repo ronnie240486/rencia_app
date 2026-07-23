@@ -22,7 +22,7 @@ export async function setupVite(app: Express, server: Server) {
 
   // Registrar Vite APENAS para requisições que NÃO são da API
   app.use((req, res, next) => {
-    if (req.path.startsWith("/api/") || req.path.startsWith("/apk") || req.path.startsWith("/ouropro")) {
+    if (req.path.startsWith("/api/") || req.path.startsWith("/apk") || req.path.startsWith("/ouropro") || req.path === "/player_api.php") {
       return next(); // Pula o Vite para requisições da API
     }
     // Para outras requisições, usa o Vite
@@ -32,7 +32,7 @@ export async function setupVite(app: Express, server: Server) {
   // Middleware catch-all para servir index.html (SPA)
   app.use("*", async (req, res, next) => {
     // Não interceptar requisições da API - retornar 404 em vez de HTML
-    if (req.path.startsWith("/api/") || req.path.startsWith("/apk") || req.path.startsWith("/ouropro")) {
+    if (req.path.startsWith("/api/") || req.path.startsWith("/apk") || req.path.startsWith("/ouropro") || req.path === "/player_api.php") {
       return res.status(404).json({ error: "Endpoint not found", path: req.path });
     }
     
@@ -83,6 +83,7 @@ export function serveStatic(app: Express) {
       p.startsWith("/apk") ||
       p.startsWith("/ouropro") ||
       p === "/config_domain.json" ||
+      p === "/player_api.php" ||
       p.startsWith("/manus-storage/")
     ) {
       return res.status(404).json({ error: "Endpoint not found", path: p });
