@@ -3618,31 +3618,25 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
-      // Ação padrão: retornar informações do usuário
-      res.json({
-        user_info: {
-          username: credential.username,
-          password: credential.password,
-          auth: 1,
-          status: 'Active',
-          exp_date: '2099-12-31',
-          is_trial: 0,
-          active_cons: 1,
-          created_at: credential.createdAt?.toISOString() || new Date().toISOString(),
-          max_connections: 1,
-        },
-        server_info: {
-          name: 'Rencia Server',
-          url: 'https://renciaapp.manus.space',
-          port: '443',
-          https_port: '443',
-          server_protocol: 'https',
-          rtmp_port: '1935',
-          timezone: 'America/Sao_Paulo',
-          timestamp_now: Math.floor(Date.now() / 1000),
-          time_now: new Date().toISOString(),
-        },
-      });
+      // Ação padrão: retornar categorias de canais ao vivo (compatível com InteractivePlayer)
+      const playlists = await db.select().from(deviceUrls).where(
+        eq(deviceUrls.ativo, true)
+      ).limit(10);
+      
+      if (playlists.length > 0) {
+        const categories = playlists.map((p, idx) => ({
+          category_id: String(p.id || idx + 1),
+          category_name: p.nome || `Playlist ${idx + 1}`,
+        }));
+        res.json(categories);
+        return;
+      }
+      
+      res.json([
+        { category_id: '1', category_name: 'Canais' },
+        { category_id: '2', category_name: 'Séries' },
+        { category_id: '3', category_name: 'Filmes' },
+      ]);
     } catch (error) {
       console.error('[API] /player_api.php error:', error);
       res.json({ user_info: { status: 'error', message: 'Erro interno' } });
