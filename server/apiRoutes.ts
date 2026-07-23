@@ -24,7 +24,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials } from "../drizzle/schema";
 import { eq, or, and } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
@@ -3514,6 +3514,138 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error('[API] /api/v5/device_status error:', error);
       res.json({ success: false, status: 'offline' });
+    }
+  });
+
+  /**
+   * GET /player_api.php
+   * Endpoint Xtream Codes compatível para o Interactive Player
+   * Retorna categorias, canais e streams em formato JSON
+   */
+  app.get('/player_api.php', async (req: Request, res: Response) => {
+    try {
+      const username = typeof req.query.username === 'string' ? req.query.username.trim() : null;
+      const password = typeof req.query.password === 'string' ? req.query.password.trim() : null;
+      const action = typeof req.query.action === 'string' ? req.query.action.trim() : null;
+
+      if (!username || !password) {
+        res.json({ user_info: { status: 'error', message: 'Credenciais inválidas' } });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.json({ user_info: { status: 'error', message: 'Banco indisponível' } });
+        return;
+      }
+
+      // Buscar as credenciais do player
+      const cred = await db.select().from(playerCredentials).where(
+        and(
+          eq(playerCredentials.username, username),
+          eq(playerCredentials.password, password),
+          eq(playerCredentials.ativo, true)
+        )
+      ).limit(1);
+
+      if (cred.length === 0) {
+        res.json({ user_info: { status: 'error', message: 'Credenciais não encontradas' } });
+        return;
+      }
+
+      const credential = cred[0];
+
+      // Ações diferentes baseadas no parâmetro 'action'
+      if (action === 'get_live_categories') {
+        // Retornar categorias de canais ao vivo
+        res.json([
+          { category_id: '1', category_name: 'Canais' },
+          { category_id: '2', category_name: 'Séries' },
+          { category_id: '3', category_name: 'Filmes' },
+        ]);
+        return;
+      }
+
+      if (action === 'get_live_streams') {
+        // Retornar streams de canais ao vivo
+        const playlists = await db.select().from(deviceUrls).where(
+          eq(deviceUrls.ativo, true)
+        ).limit(10);
+        
+        const streams = playlists.map((p, idx) => ({
+          num: idx + 1,
+          name: p.nome || `Stream ${idx + 1}`,
+          stream_type: 'live',
+          stream_id: `stream_${p.id}`,
+          stream_url: p.xtServer || p.urlM3u8 || 'http://example.com/stream.m3u8',
+          icon: 'https://via.placeholder.com/100x100?text=Canal',
+        }));
+        
+        res.json(streams.length > 0 ? streams : [
+          {
+            num: 1,
+            name: 'Canal Padrao',
+            stream_type: 'live',
+            stream_id: 'stream_default',
+            stream_url: 'http://example.com/stream.m3u8',
+            icon: 'https://via.placeholder.com/100x100?text=Canal',
+          },
+        ]);
+        return;
+      }
+
+      if (action === 'get_vod_categories') {
+        // Retornar categorias de VOD
+        res.json([
+          { category_id: '1', category_name: 'Filmes' },
+          { category_id: '2', category_name: 'Séries' },
+        ]);
+        return;
+      }
+
+      if (action === 'get_vod_streams') {
+        // Retornar streams de VOD
+        res.json([
+          {
+            num: 1,
+            name: 'Filme 1',
+            stream_type: 'movie',
+            stream_id: 'vod_1',
+            stream_url: 'http://example.com/movie.mp4',
+            icon: 'https://via.placeholder.com/100x100?text=Filme+1',
+          },
+        ]);
+        return;
+      }
+
+      // Ação padrão: retornar informações do usuário
+      res.json({
+        user_info: {
+          username: credential.username,
+          password: credential.password,
+          auth: 1,
+          status: 'Active',
+          exp_date: '2099-12-31',
+          is_trial: 0,
+          active_cons: 1,
+          created_at: credential.createdAt?.toISOString() || new Date().toISOString(),
+          max_connections: 1,
+        },
+        server_info: {
+          name: 'Rencia Server',
+          url: 'https://renciaapp.manus.space',
+          port: '443',
+          https_port: '443',
+          server_protocol: 'https',
+          rtmp_port: '1935',
+          timezone: 'America/Sao_Paulo',
+          timestamp_now: Math.floor(Date.now() / 1000),
+          time_now: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error('[API] /player_api.php error:', error);
+      res.json({ user_info: { status: 'error', message: 'Erro interno' } });
     }
   });
 }
