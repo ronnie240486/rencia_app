@@ -36,11 +36,6 @@ async function startServer() {
   // This is required for sameSite=none cookies to work correctly behind a proxy
   app.set("trust proxy", 1);
   
-  // Health check rápido para produção (responde imediatamente)
-  app.get("/health", (_req, res) => {
-    res.status(200).json({ ok: true });
-  });
-
   // Middleware de logging global para debugar requisicoes
   app.use((req, res, next) => {
     const method = req.method;
