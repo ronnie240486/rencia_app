@@ -91,7 +91,7 @@ export default function UserEdit() {
         xtServer,
         xtUsername,
         xtPassword,
-        app: device.app && device.app.trim() !== "" ? device.app : "__none__",
+        app: "OuroPro",
         urlEpg: device.urlEpg ?? "",
         valor: device.valor ? String(device.valor) : "",
         dataExpiracao: device.dataExpiracao
@@ -314,7 +314,7 @@ export default function UserEdit() {
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP DO CLIENTE:</Label>
               <div className="h-10 flex items-center px-3 rounded-md border bg-muted text-sm font-medium text-muted-foreground">
-                OuroPro
+                {form.app === "OuroPro" ? "OuroPro" : "OuroPro (corrigido)"}
               </div>
             </div>
 
