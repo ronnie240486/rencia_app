@@ -3524,8 +3524,8 @@ export function registerApiRoutes(app: Express) {
    */
   app.get('/player_api.php', async (req: Request, res: Response) => {
     try {
-      const username = typeof req.query.username === 'string' ? req.query.username.trim() : null;
-      const password = typeof req.query.password === 'string' ? req.query.password.trim() : null;
+      const username = typeof req.query.user === 'string' ? req.query.user.trim() : (typeof req.query.username === 'string' ? req.query.username.trim() : null);
+      const password = typeof req.query.pass === 'string' ? req.query.pass.trim() : (typeof req.query.password === 'string' ? req.query.password.trim() : null);
       const action = typeof req.query.action === 'string' ? req.query.action.trim() : null;
 
       if (!username || !password) {
