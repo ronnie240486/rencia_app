@@ -3555,8 +3555,11 @@ export function registerApiRoutes(app: Express) {
 
       const credential = cred[0];
 
+      // Se não houver action, tratar como get_live_categories (padrão para APK)
+      const finalAction = action || 'get_live_categories';
+      
       // Ações diferentes baseadas no parâmetro 'action'
-      if (action === 'get_live_categories') {
+      if (finalAction === 'get_live_categories') {
         // Retornar categorias de canais ao vivo
         res.json([
           { category_id: '1', category_name: 'Canais' },
@@ -3566,7 +3569,7 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
-      if (action === 'get_live_streams') {
+      if (finalAction === 'get_live_streams') {
         // Retornar streams de canais ao vivo
         const playlists = await db.select().from(deviceUrls).where(
           eq(deviceUrls.ativo, true)
@@ -3594,7 +3597,7 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
-      if (action === 'get_vod_categories') {
+      if (finalAction === 'get_vod_categories') {
         // Retornar categorias de VOD
         res.json([
           { category_id: '1', category_name: 'Filmes' },
@@ -3603,7 +3606,7 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
-      if (action === 'get_vod_streams') {
+      if (finalAction === 'get_vod_streams') {
         // Retornar streams de VOD
         res.json([
           {
