@@ -211,18 +211,3 @@ export const nuvixConfig = mysqlTable("nuvix_config", {
 
 export type NuvixConfig = typeof nuvixConfig.$inferSelect;
 export type InsertNuvixConfig = typeof nuvixConfig.$inferInsert;
-
-// Credenciais para APKs de player (username/password para autenticação)
-export const playerCredentials = mysqlTable("player_credentials", {
-  id: int("id").autoincrement().primaryKey(),
-  ownerId: int("ownerId").notNull(),
-  username: varchar("username", { length: 128 }).notNull(),
-  password: varchar("password", { length: 128 }).notNull(),
-  descricao: varchar("descricao", { length: 255 }), // Ex: "InteractivePlayer", "OuroPro", etc
-  ativo: boolean("ativo").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type PlayerCredential = typeof playerCredentials.$inferSelect;
-export type InsertPlayerCredential = typeof playerCredentials.$inferInsert;
