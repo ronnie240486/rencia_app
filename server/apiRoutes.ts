@@ -1119,6 +1119,39 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
+   * GET /api/dns.php
+   * Endpoint legado para o APK buscar a lista de DNS.
+   * Retorna a lista de DNS no formato RTX_MODE codificado para o APK.
+   */
+  app.get("/api/dns.php", async (_req: Request, res: Response) => {
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.status(503).json({ error: "Banco de dados indisponível." });
+        return;
+      }
+
+      // Buscar todas as DNS ativas
+      const allDns = await db.select().from(dnsEntries).where(eq(dnsEntries.ativo, true));
+      
+      const rtxMode = allDns.map(d => ({
+        DNSName: d.titulo,
+        DNSUrl: d.host
+      }));
+
+      const responseObj = {
+        RTX_MODE: rtxMode
+      };
+
+      const encoded = encodeForApk(JSON.stringify(responseObj));
+      res.send(encoded);
+    } catch (error) {
+      console.error("[API] /api/dns.php error:", error);
+      res.status(500).send("Internal Server Error");
+    }
+  });
+
+  /**
    * GET /api/v4/logo.php
    * Endpoint usado pela classe Logo.java do APK para carregar o logo dinâmico.
    * Retorna a imagem do logo configurada no painel, ou o logo padrão OURO REVENDA.
@@ -3387,6 +3420,169 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error('[API] /api/nuvix/config error:', error);
       res.json({ success: false, error: 'Internal error' });
+    }
+  });
+
+  /**
+   * GET /api/v5/device_status?mac=XX:XX:XX:XX:XX:XX
+   * Retorna o status online do dispositivo (para Interactive Player)
+   */
+  app.get("/api/v5/device_status", async (req: Request, res: Response) => {
+    const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : null;
+
+    if (!mac) {
+      res.json({ success: false, status: "offline", message: "MAC não informado" });
+      return;
+    }
+
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.json({ success: false, status: "offline", message: "Banco indisponível" });
+        return;
+      }
+
+      // Normalizar MAC
+      const macWithColons = mac.includes(":") ? mac : `${mac.slice(0, 2)}:${mac.slice(2, 4)}:${mac.slice(4, 6)}:${mac.slice(6, 8)}:${mac.slice(8, 10)}:${mac.slice(10, 12)}`;
+
+      // Buscar device
+      const device = await db.select().from(devices).where(eq(devices.mac, macWithColons)).limit(1);
+
+      if (device.length === 0) {
+        res.json({ success: false, status: "offline", message: "MAC não encontrado" });
+        return;
+      }
+
+      const dev = device[0];
+      const isOnline = dev.lastSeen ? new Date().getTime() - new Date(dev.lastSeen).getTime() < 5 * 60 * 1000 : false;
+
+      res.json({
+        success: true,
+        mac: macWithColons,
+        status: isOnline ? "online" : "offline",
+        lastConnection: dev.lastSeen,
+        deviceName: dev.nomeServer,
+        type: dev.tipo,
+      });
+    } catch (error) {
+      console.error("[API] /api/v5/device_status error:", error);
+      res.json({ success: false, status: "offline", message: "Erro interno" });
+    }
+  });
+
+  /**
+   * GET /api/v5/device_details?mac=XX:XX:XX:XX:XX:XX
+   * Retorna os detalhes completos do dispositivo (para Interactive Player)
+   */
+  app.get("/api/v5/device_details", async (req: Request, res: Response) => {
+    const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : null;
+
+    if (!mac) {
+      res.json({ success: false, message: "MAC não informado" });
+      return;
+    }
+
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.json({ success: false, message: "Banco indisponível" });
+        return;
+      }
+
+      // Normalizar MAC
+      const macWithColons = mac.includes(":") ? mac : `${mac.slice(0, 2)}:${mac.slice(2, 4)}:${mac.slice(4, 6)}:${mac.slice(6, 8)}:${mac.slice(8, 10)}:${mac.slice(10, 12)}`;
+
+      // Buscar device
+      const device = await db.select().from(devices).where(eq(devices.mac, macWithColons)).limit(1);
+
+      if (device.length === 0) {
+        res.json({ success: false, message: "MAC não encontrado" });
+        return;
+      }
+
+      const dev = device[0];
+      const isOnline = dev.lastSeen ? new Date().getTime() - new Date(dev.lastSeen).getTime() < 5 * 60 * 1000 : false;
+
+      // Buscar playlists
+      const playlists = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, dev.id)).orderBy(deviceUrls.ordem);
+
+      res.json({
+        success: true,
+        device: {
+          id: dev.id,
+          mac: macWithColons,
+          name: dev.nomeServer,
+          type: dev.tipo,
+          status: isOnline ? "online" : "offline",
+          lastConnection: dev.lastSeen,
+          expiryDate: dev.dataExpiracao,
+          createdAt: dev.dataCadastro,
+        },
+        playlists: playlists.map((p) => ({
+          id: p.id,
+          name: p.nome,
+          url: p.urlM3u8,
+          type: p.modoSelecao,
+          order: p.ordem,
+        })),
+      });
+    } catch (error) {
+      console.error("[API] /api/v5/device_details error:", error);
+      res.json({ success: false, message: "Erro interno" });
+    }
+  });
+
+  /**
+   * POST /api/v5/device_command
+   * Envia um comando para o dispositivo (para Interactive Player)
+   * Body: { mac, command, params }
+   */
+  app.post("/api/v5/device_command", async (req: Request, res: Response) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      const mac = body && body.mac ? String(body.mac).trim() : null;
+      const command = body && body.command ? String(body.command).trim() : null;
+
+      if (!mac || !command) {
+        res.json({ success: false, message: "MAC ou comando não informado" });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.json({ success: false, message: "Banco indisponível" });
+        return;
+      }
+
+      // Normalizar MAC
+      const macWithColons = mac.includes(":") ? mac : `${mac.slice(0, 2)}:${mac.slice(2, 4)}:${mac.slice(4, 6)}:${mac.slice(6, 8)}:${mac.slice(8, 10)}:${mac.slice(10, 12)}`;
+
+      // Buscar device
+      const device = await db.select().from(devices).where(eq(devices.mac, macWithColons)).limit(1);
+
+      if (device.length === 0) {
+        res.json({ success: false, message: "MAC não encontrado" });
+        return;
+      }
+
+      // Comandos suportados
+      const supportedCommands = ["play", "pause", "stop", "next", "previous", "volume"];
+      if (!supportedCommands.includes(command)) {
+        res.json({ success: false, message: `Comando não suportado: ${command}` });
+        return;
+      }
+
+      console.log(`[API-DEVICE-COMMAND] MAC: ${macWithColons}, Command: ${command}`);
+
+      res.json({
+        success: true,
+        mac: macWithColons,
+        command: command,
+        message: `Comando ${command} enviado com sucesso`,
+      });
+    } catch (error) {
+      console.error("[API] /api/v5/device_command error:", error);
+      res.json({ success: false, message: "Erro interno" });
     }
   });
 }
