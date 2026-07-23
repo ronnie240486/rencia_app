@@ -3604,7 +3604,7 @@ export function registerApiRoutes(app: Express) {
             icon: 'https://via.placeholder.com/100x100?text=Canal',
           },
         ];
-        res.json(convertUrlsInObject(result));
+        res.json(result);
         return;
       }
 
