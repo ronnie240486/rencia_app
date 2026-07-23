@@ -1019,10 +1019,7 @@ export function registerApiRoutes(app: Express) {
     }
     app._router.handle(req, res, next);
   });
-  app.get("/api/v5/check_mac.php", (req: Request, res: Response, next) => {
-    req.url = "/api/device/check";
-    app._router.handle(req, res, next);
-  });
+
 
   /**
    * GET /api/device/check?mac=XX:XX:XX:XX:XX:XX
