@@ -21,17 +21,17 @@ const DEFAULT_VALUES: Record<string, string> = {
   gpcpro_impact_phrase: "",
   gpcpro_contact_info: "",
   // Tela de Bloqueio
-  gpcpro_lock_title: "GPCPRO",
-  gpcpro_lock_message: "GPCPRO is a media player application. The app does not provide or include any media or content.",
+  gpcpro_lock_title: "Maximus player",
+  gpcpro_lock_message: "Maximus player is a media player application. The app does not provide or include any media or content.",
   gpcpro_lock_button_text: "Renovar Agora",
   gpcpro_lock_button_url: "",
   // APK
   gpcpro_apk_download_url: "",
   gpcpro_apk_version: "",
   // Frase legal
-  gpcpro_legal_notice: "GPCPRO is a media player application. The app does not provide or include any media or content.",
+  gpcpro_legal_notice: "Maximus player is a media player application. The app does not provide or include any media or content.",
   // Nome do app
-  gpcpro_app_name: "GPCPRO",
+  gpcpro_app_name: "Maximus player",
   // Revendedor
   gpcpro_reseller_contact_name: "",
   gpcpro_reseller_whatsapp: "",
