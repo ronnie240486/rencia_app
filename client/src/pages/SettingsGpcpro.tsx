@@ -105,7 +105,7 @@ export default function SettingsGpcpro() {
 
   const updateMany = trpc.settings.updateMany.useMutation({
     onSuccess: () => {
-      toast.success("Configurações do GPCPRO salvas!");
+      toast.success("Configurações do Maximus salvas!");
       refetch();
     },
     onError: (e) => toast.error(e.message),
@@ -140,7 +140,7 @@ export default function SettingsGpcpro() {
 
   if (isLoading) {
     return (
-      <AdminLayout title="GPCPRO">
+      <AdminLayout title="Maximus">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="animate-spin text-muted-foreground" size={32} />
         </div>
@@ -149,11 +149,11 @@ export default function SettingsGpcpro() {
   }
 
   return (
-    <AdminLayout title="GPCPRO">
+    <AdminLayout title="Maximus">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-muted-foreground text-sm">
-            Personalize imagens, cores e configurações do aplicativo GPCPRO.
+            Personalize imagens, cores e configurações do aplicativo Maximus.
           </p>
           <Button onClick={handleSave} disabled={!dirty || updateMany.isPending} className="gap-2 btn-save">
             {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
@@ -165,14 +165,14 @@ export default function SettingsGpcpro() {
           {/* ═══ SEÇÃO: Imagens (Banner + Logo + Fundo) ═══ */}
           <Card>
             <CardHeader>
-              <CardTitle>GPCPRO — Imagens</CardTitle>
-              <CardDescription>Personalize banner, logo e fundo do aplicativo GPCPRO</CardDescription>
+              <CardTitle>Maximus — Imagens</CardTitle>
+              <CardDescription>Personalize banner, logo e fundo do aplicativo Maximus</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
 
               {/* Banner */}
               <div className="space-y-2">
-                <Label className="font-semibold">Banner do GPCPRO (320×180px)</Label>
+                <Label className="font-semibold">Banner do Maximus (320×180px)</Label>
                 <div className="flex gap-2">
                   <Input
                     value={form.gpcpro_banner_url}
@@ -184,7 +184,7 @@ export default function SettingsGpcpro() {
                 {form.gpcpro_banner_url && (
                   <img
                     src={form.gpcpro_banner_url}
-                    alt="Preview banner GPCPRO"
+                    alt="Preview banner Maximus"
                     className="mt-2 rounded border max-h-28 object-contain"
                     onError={e => (e.currentTarget.style.display = "none")}
                   />
@@ -193,7 +193,7 @@ export default function SettingsGpcpro() {
 
               {/* Logo */}
               <div className="space-y-2">
-                <Label className="font-semibold">Logo do GPCPRO</Label>
+                <Label className="font-semibold">Logo do Maximus</Label>
                 <div className="flex gap-2">
                   <Input
                     value={form.gpcpro_logo_url}
@@ -205,7 +205,7 @@ export default function SettingsGpcpro() {
                 {form.gpcpro_logo_url && (
                   <img
                     src={form.gpcpro_logo_url}
-                    alt="Preview logo GPCPRO"
+                    alt="Preview logo Maximus"
                     className="mt-2 rounded border max-h-16 object-contain"
                     onError={e => (e.currentTarget.style.display = "none")}
                   />
@@ -229,7 +229,7 @@ export default function SettingsGpcpro() {
                 {form.gpcpro_background_url && (
                   <img
                     src={form.gpcpro_background_url}
-                    alt="Preview fundo GPCPRO"
+                    alt="Preview fundo Maximus"
                     className="mt-2 rounded border max-h-32 object-contain"
                     onError={e => (e.currentTarget.style.display = "none")}
                   />
@@ -241,7 +241,7 @@ export default function SettingsGpcpro() {
           {/* ═══ SEÇÃO: Contato ═══ */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Contato / Home do GPCPRO</CardTitle>
+              <CardTitle className="text-base">Contato / Home do Maximus</CardTitle>
               <CardDescription>Configure as informações de contato exibidas no app</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -338,7 +338,7 @@ export default function SettingsGpcpro() {
                   placeholder="Ex: https://renciaapp.manus.space"
                 />
                 <p className="text-xs text-muted-foreground">
-                  URL do servidor que o GPCPRO usará como referência de DNS.
+                  URL do servidor que o Maximus usará como referência de DNS.
                 </p>
               </div>
             </CardContent>
@@ -356,7 +356,7 @@ export default function SettingsGpcpro() {
                 <Input
                   value={form.gpcpro_lock_title}
                   onChange={e => handleChange("gpcpro_lock_title", e.target.value)}
-                  placeholder="GPCPRO"
+                  placeholder="Maximus"
                 />
               </div>
               <div className="space-y-2">
@@ -365,7 +365,7 @@ export default function SettingsGpcpro() {
                   value={form.gpcpro_lock_message}
                   onChange={e => handleChange("gpcpro_lock_message", e.target.value)}
                   rows={3}
-                  placeholder="GPCPRO is a media player application..."
+                  placeholder="Maximus is a media player application..."
                 />
               </div>
               <div className="space-y-2">
@@ -389,7 +389,7 @@ export default function SettingsGpcpro() {
                 <Input
                   value={form.gpcpro_app_name}
                   onChange={e => handleChange("gpcpro_app_name", e.target.value)}
-                  placeholder="GPCPRO"
+                  placeholder="Maximus"
                 />
               </div>
             </CardContent>
@@ -399,22 +399,22 @@ export default function SettingsGpcpro() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <Smartphone size={16} /> Configurações do APK GPCPRO
+                <Smartphone size={16} /> Configurações do APK Maximus
               </CardTitle>
-              <CardDescription>Gerencie versões e links de download do APK GPCPRO</CardDescription>
+              <CardDescription>Gerencie versões e links de download do APK Maximus</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="space-y-2">
-                <Label className="font-semibold">URL de Download do APK GPCPRO</Label>
+                <Label className="font-semibold">URL de Download do APK Maximus</Label>
                 <Input
                   value={form.gpcpro_apk_download_url}
                   onChange={e => handleChange("gpcpro_apk_download_url", e.target.value)}
-                  placeholder="https://exemplo.com/gpcpro.apk"
+                  placeholder="https://exemplo.com/maximus.apk"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="font-semibold">Versão Atual do APK GPCPRO</Label>
+                <Label className="font-semibold">Versão Atual do APK Maximus</Label>
                 <Input
                   value={form.gpcpro_apk_version}
                   onChange={e => handleChange("gpcpro_apk_version", e.target.value)}
@@ -423,7 +423,7 @@ export default function SettingsGpcpro() {
               </div>
 
               <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 p-3 text-xs text-blue-800 dark:text-blue-200 space-y-1">
-                <p className="font-semibold">Endpoints GPCPRO (v5):</p>
+                <p className="font-semibold">Endpoints Maximus (v5):</p>
                 <p><code>/api/v5/check_mac.php</code> — Verificar e autenticar MAC</p>
                 <p><code>/api/v5/mac_exists</code> — Verificar se MAC está cadastrado</p>
                 <p><code>/api/v5/check_expire.php</code> — Verificar expiração</p>
