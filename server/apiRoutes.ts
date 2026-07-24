@@ -1780,11 +1780,11 @@ export function registerApiRoutes(app: Express) {
     }
   });
 
-  // ─── Maximus player API v5 (Flutter) ─────────────────────────────────────────────
+  // ─── Maximus API v5 (Flutter) ─────────────────────────────────────────────
 
   /**
    * GET /api/v5/check_mac.php?mac=XX:XX:XX:XX:XX:XX
-    * Endpoint usado pelo Maximus player (Flutter) para verificar e autenticar um MAC.
+    * Endpoint usado pelo Maximus (Flutter) para verificar e autenticar um MAC.
    * Retorna dados do dispositivo e playlist para loginByMac.
    */
   app.get("/api/v5/check_mac.php", async (req: Request, res: Response) => {
@@ -1866,7 +1866,7 @@ export function registerApiRoutes(app: Express) {
         .where(eq(deviceUrls.deviceId, device.id))
         .orderBy(deviceUrls.ordem);
 
-      // O APK Maximus player espera playlist_url e playlist_name em vez de url/name simples
+      // O APK Maximus espera playlist_url e playlist_name em vez de url/name simples
       const playlists: Array<{ name: string; url: string; playlist_name: string; playlist_url: string; type: string }> = [];
 
       // Playlist principal do device
@@ -1935,7 +1935,7 @@ export function registerApiRoutes(app: Express) {
       const gpcBanner = (cfg.gpcpro_banner_url || cfg.trial_banner_url || "").trim();
       const gpcBg = (cfg.gpcpro_background_url || cfg.trial_background_url || "").trim();
       const gpcDnsUrl = (cfg.gpcpro_server_url || cfg.server_url || cfg.contact_website || "").trim();
-      const gpcAppName = (cfg.gpcpro_app_name || "Maximus player").trim();
+      const gpcAppName = (cfg.gpcpro_app_name || "Maximus").trim();
       const gpcWhatsapp = (cfg.gpcpro_contact_whatsapp || cfg.contact_whatsapp || "").trim();
       const gpcResellerName = (cfg.gpcpro_reseller_contact_name || cfg.reseller_contact_name || cfg.contact_info || "").trim();
       const gpcResellerWhatsapp = (cfg.gpcpro_reseller_whatsapp || cfg.reseller_whatsapp || cfg.contact_whatsapp || "").trim();
@@ -1974,7 +1974,7 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * GET /api/v5/mac_exists?mac=XX:XX:XX:XX:XX:XX
-    * Endpoint do Maximus player para verificar se um MAC está cadastrado no sistema.
+    * Endpoint do Maximus para verificar se um MAC está cadastrado no sistema.
    */
   app.get("/api/v5/mac_exists", async (req: Request, res: Response) => {
     try {
@@ -2137,7 +2137,7 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * GET /api/v5/get_playlist_roku?mac=XX:XX:XX:XX:XX:XX
-    * Retorna a playlist do MAC para o Maximus player.
+    * Retorna a playlist do MAC para o Maximus.
    */
   app.get("/api/v5/get_playlist_roku", async (req: Request, res: Response) => {
     try {
@@ -2242,7 +2242,7 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * GET /api/v5/logo_roku
-    * Retorna o logo para o Maximus player (Roku/TV).
+    * Retorna o logo para o Maximus (Roku/TV).
    */
   app.get("/api/v5/logo_roku", async (_req: Request, res: Response) => {
     try {
@@ -2260,7 +2260,7 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * GET /api/v5/bg_roku
-    * Retorna a imagem de fundo para o Maximus player (Roku/TV).
+    * Retorna a imagem de fundo para o Maximus (Roku/TV).
    */
   app.get("/api/v5/bg_roku", async (_req: Request, res: Response) => {
     try {
@@ -2281,18 +2281,18 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * GET /api/v5/roku_banners
-    * Retorna banners para a interface do Maximus player.
+    * Retorna banners para a interface do Maximus.
    */
   app.get("/api/v5/roku_banners", async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
       const banners: Array<{ id: number; title: string; image: string; url: string }> = [];
 
-      // Banner principal Maximus player (com fallback OuroPro)
+      // Banner principal Maximus (com fallback OuroPro)
       const gpcBannerUrl = cfg.gpcpro_banner_url || cfg.trial_banner_url;
       const gpcImpactPhrase = cfg.gpcpro_impact_phrase || cfg.impact_phrase;
       const gpcContactWebsite = cfg.gpcpro_contact_website || cfg.contact_website;
-      const gpcAppName = cfg.gpcpro_app_name || cfg.app_name || "Maximus player";
+      const gpcAppName = cfg.gpcpro_app_name || cfg.app_name || "Maximus";
       const gpcLogoUrl = cfg.gpcpro_logo_url || cfg.trial_logo_url;
 
       if (gpcBannerUrl) {
@@ -2362,8 +2362,8 @@ export function registerApiRoutes(app: Express) {
         phone: whatsappNumber,
         email: cfg.gpcpro_reseller_email || cfg.reseller_email || "",
         impact_phrase: cfg.gpcpro_impact_phrase || cfg.impact_phrase || "",
-        legal_notice: cfg.gpcpro_legal_notice || cfg.legal_notice || "Maximus player is a media player application. The app does not provide or include any media or content.",
-        app_name: cfg.gpcpro_app_name || cfg.app_name || "Maximus player",
+        legal_notice: cfg.gpcpro_legal_notice || cfg.legal_notice || "Maximus is a media player application. The app does not provide or include any media or content.",
+        app_name: cfg.gpcpro_app_name || cfg.app_name || "Maximus",
       });
 
     } catch (error) {
@@ -2374,7 +2374,7 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * POST /api/v5/user_register
-    * Registra um usuário/dispositivo no sistema do Maximus player.
+    * Registra um usuário/dispositivo no sistema do Maximus.
     * Body: { mac, reseller, dns_url, playlist_url }
     */
   app.post("/api/v5/user_register", async (req: Request, res: Response) => {
@@ -2429,7 +2429,7 @@ export function registerApiRoutes(app: Express) {
       // MAC não cadastrado - registrar como trial/bloqueado
       // O admin precisa aprovar no painel
       const ownerId = 1; // admin/revendedor principal
-      const nomeServer = reseller || "Maximus player";
+      const nomeServer = reseller || "Maximus";
 
       await db.insert(devices).values({
         ownerId,
@@ -2471,7 +2471,7 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * POST /api/v5/login
-    * Endpoint POST para Maximus player fazer login com MAC
+    * Endpoint POST para Maximus fazer login com MAC
    */
   app.post("/api/v5/login", async (req: Request, res: Response) => {
     try {
@@ -2809,7 +2809,7 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * GET /config_domain.json e /api/config_domain.json
-    * Endpoint de configuração de domínio para o Maximus player (Flutter)
+    * Endpoint de configuração de domínio para o Maximus (Flutter)
    * O APK busca este arquivo para descobrir qual servidor usar
    * Rota /api/* não é interceptada pelo proxy OAuth do Manus
    * pagea.uk/Abcde → /api/config_domain.json (14 bytes, mesmo tamanho que painelfoda.top)
@@ -2827,7 +2827,7 @@ export function registerApiRoutes(app: Express) {
   app.get("/api/config_domain.json", handleConfigDomain);
   app.get("/config_domain.json", async (_req: Request, res: Response) => {
     try {
-      // O APK Maximus player (Flutter) espera EXATAMENTE o campo "primary" com a URL base
+      // O APK Maximus (Flutter) espera EXATAMENTE o campo "primary" com a URL base
       // Formato original do painelfoda.top: {"primary":"https://www.gerenciaapp.top"}
       // O APK lê este campo e usa como URL base para todas as requisições subsequentes
       res.json({
@@ -2883,7 +2883,7 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * GET /api/v5/get_playlist_roku?mac=XX:XX:XX:XX:XX:XX
-    * Retorna a playlist do MAC para o APK Roku/Maximus player
+    * Retorna a playlist do MAC para o APK Roku/Maximus
    */
   app.get("/api/v5/get_playlist_roku", async (req: Request, res: Response) => {
     const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : null;
