@@ -574,6 +574,56 @@ export const appRouter = router({
       }),
   }),
 
+  // ─── Configurações do Maximus Player ────────────────────────────────────────
+  maximus: router({
+    getSettings: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const rows = await db.select().from(appSettings).where(
+        sql`key LIKE 'maximus_%'`
+      );
+      const result: Record<string, any> = {};
+      for (const row of rows) {
+        const key = row.key.replace('maximus_', '');
+        try {
+          result[key] = JSON.parse(row.value ?? '{}');
+        } catch {
+          result[key] = row.value;
+        }
+      }
+      return result;
+    }),
+
+    updateSettings: protectedProcedure
+      .input(z.object({
+        subuser: z.string().optional(),
+        alwaysLogin: z.boolean().optional(),
+        autoPlayLastChannel: z.boolean().optional(),
+        autoRotate: z.boolean().optional(),
+        currentPlan: z.string().optional(),
+        imageRatio: z.string().optional(),
+        bufferSize: z.string().optional(),
+        retryAttempts: z.number().optional(),
+        language: z.string().optional(),
+        contactEmail: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        
+        for (const [key, value] of Object.entries(input)) {
+          if (value !== undefined) {
+            const dbKey = `maximus_${key}`;
+            const dbValue = typeof value === 'string' ? value : JSON.stringify(value);
+            await db.insert(appSettings)
+              .values({ key: dbKey, value: dbValue })
+              .onDuplicateKeyUpdate({ set: { value: dbValue } });
+          }
+        }
+        return { success: true };
+      }),
+  }),
+
   // ─── Admin: gerenciamento de usuários do sistema ───────────────────────────
   adminUsers: router({
     list: adminProcedure
