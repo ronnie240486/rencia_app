@@ -13,7 +13,8 @@ import Users from "./pages/Users";
 import UserCreate from "./pages/UserCreate";
 import UserEdit from "./pages/UserEdit";
 import Settings from "./pages/Settings";
-import SettingsGpcpro from "./pages/SettingsGpcpro";
+import SettingsGpcpro from './pages/SettingsGpcpro';
+import { SettingsMaximus } from './pages/SettingsMaximus';
 import Revendas from "./pages/Revendas";
 import DeviceLists from "./pages/DeviceLists";
 import DnsMassa from "./pages/DnsMassa";
@@ -49,7 +50,8 @@ function Router() {
       <Route path={"/sugestoes"} component={Suggestions} />
       <Route path={"/avisos"} component={Notices} />
       <Route path={"/configuracoes"} component={Settings} />
-      <Route path={"/gpcpro"} component={SettingsGpcpro} />
+      <Route path="/gpcpro" component={SettingsGpcpro} />
+      <Route path="/maximus" component={SettingsMaximus} />
       <Route path={"/nuvix-config"} component={NuvixConfig} />
       <Route path={"/player"} component={Player} />
       <Route component={NotFound} />
