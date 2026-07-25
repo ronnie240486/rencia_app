@@ -3717,5 +3717,147 @@ export function registerApiRoutes(app: Express) {
     }
   });
 
+  /**
+   * GET /api/v5/most-watched?limit=10
+   * Retorna os canais/conteúdo mais assistidos (baseado em currentContent)
+   */
+  app.get('/api/v5/most-watched', async (req, res) => {
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.json({ channels: [], error: 'server unavailable' });
+        return;
+      }
+
+      const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
+
+      // Buscar todos os dispositivos com currentContent
+      const allDevices = await db.select().from(devices).limit(100);
+      
+      // Contar ocorrências de currentContent
+      const contentCount: Record<string, number> = {};
+      allDevices.forEach(device => {
+        if (device.currentContent) {
+          contentCount[device.currentContent] = (contentCount[device.currentContent] || 0) + 1;
+        }
+      });
+
+      // Converter para array e ordenar por contagem
+      const mostWatched = Object.entries(contentCount)
+        .map(([content, count]) => ({
+          id: content,
+          name: content,
+          views: count,
+          icon: 'https://via.placeholder.com/100x100?text=' + encodeURIComponent(content.substring(0, 10)),
+        }))
+        .sort((a, b) => b.views - a.views)
+        .slice(0, limit);
+
+      res.json({
+        channels: mostWatched,
+        total: mostWatched.length,
+      });
+    } catch (error) {
+      console.error('[API] /api/v5/most-watched error:', error);
+      res.status(500).json({ channels: [], error: 'Internal error' });
+    }
+  });
+
+  /**
+   * GET /api/v5/recently-viewed?limit=10
+   * Retorna conteúdo recentemente visualizado
+   */
+  app.get('/api/v5/recently-viewed', async (req, res) => {
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.json({ items: [], error: 'server unavailable' });
+        return;
+      }
+
+      const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
+
+      // Buscar dispositivos com lastSeen recente e currentContent
+      const recentDevices = await db
+        .select()
+        .from(devices)
+        .orderBy(devices.lastSeen)
+        .limit(limit * 2);
+
+      const recentlyViewed = recentDevices
+        .filter(d => d.currentContent)
+        .map(device => ({
+          id: device.currentContent,
+          name: device.currentContent,
+          lastWatched: device.lastSeen?.toISOString() || new Date().toISOString(),
+          icon: 'https://via.placeholder.com/100x100?text=' + encodeURIComponent(device.currentContent!.substring(0, 10)),
+        }))
+        .slice(0, limit);
+
+      res.json({
+        items: recentlyViewed,
+        total: recentlyViewed.length,
+      });
+    } catch (error) {
+      console.error('[API] /api/v5/recently-viewed error:', error);
+      res.status(500).json({ items: [], error: 'Internal error' });
+    }
+  });
+
+  /**
+   * GET /api/v5/current-watching?mac=XX:XX:XX:XX:XX:XX
+   * Retorna o conteúdo que está sendo assistido no momento
+   */
+  app.get('/api/v5/current-watching', async (req, res) => {
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.json({ content: null, error: 'server unavailable' });
+        return;
+      }
+
+      const mac = req.query.mac ? String(req.query.mac).trim() : null;
+      if (!mac) {
+        res.json({ content: null, error: 'mac required' });
+        return;
+      }
+
+      const macNormalized = mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+      const macWithColons = macNormalized.length === 12
+        ? macNormalized.match(/.{2}/g)!.join(':')
+        : mac.toUpperCase();
+
+      const result = await db
+        .select()
+        .from(devices)
+        .where(or(
+          eq(devices.mac, macWithColons),
+          eq(devices.mac, macNormalized),
+          eq(devices.mac, mac),
+        ))
+        .limit(1);
+
+      if (result.length === 0) {
+        res.json({ content: null, mac: macWithColons, registered: false });
+        return;
+      }
+
+      const device = result[0];
+      res.json({
+        content: device.currentContent || null,
+        mac: device.mac,
+        lastSeen: device.lastSeen?.toISOString() || null,
+        device: {
+          id: device.id,
+          nome: device.nomeServer,
+          tipo: device.tipo,
+        },
+      });
+    } catch (error) {
+      console.error('[API] /api/v5/current-watching error:', error);
+      res.status(500).json({ content: null, error: 'Internal error' });
+    }
+  });
+
 
 }

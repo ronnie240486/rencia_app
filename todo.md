@@ -287,3 +287,14 @@
 - [x] Interactive Player carregando canais (removida convertUrlsInObject que estava transformando URLs)
 - [x] Auto-registro de MAC addresses no /player_api.php (device registrado automaticamente quando credencial válida é usada)
 - [x] Correção de 'online' no dashboard (device vinculado ao ownerId da credencial usada)
+
+
+## Renomeacao GPCPRO → Maximus (24/07/2026)
+- [x] Mudar nome de "GPCPRO" para "Maximus" no menu lateral
+- [x] Mudar nome de "GPCPRO" para "Maximus" em todos os endpoints /api/v5
+- [x] Mudar nome de "GPCPRO" para "Maximus" em todas as paginas do frontend
+- [x] Adicionar endpoints maximus.getSettings e maximus.updateSettings no backend
+- [x] Criar pagina SettingsMaximus.tsx com tela de configuracoes
+- [ ] Modificar APK Maximus player para chamar endpoints de configuracoes
+- [ ] Adicionar endpoints /api/v5/maximus/* para o APK buscar configuracoes
+- [ ] Compilar e assinar novo APK Maximus com suporte a configuracoes
