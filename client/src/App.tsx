@@ -14,7 +14,7 @@ import UserCreate from "./pages/UserCreate";
 import UserEdit from "./pages/UserEdit";
 import Settings from "./pages/Settings";
 import SettingsGpcpro from './pages/SettingsGpcpro';
-import { SettingsMaximus } from './pages/SettingsMaximus';
+import SettingsMaximus from './pages/SettingsMaximus';
 import Revendas from "./pages/Revendas";
 import DeviceLists from "./pages/DeviceLists";
 import DnsMassa from "./pages/DnsMassa";
