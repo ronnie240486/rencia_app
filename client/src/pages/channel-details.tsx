@@ -213,7 +213,7 @@ export default function ChannelDetailsScreen() {
             <View style={styles.categorySectionHeader}>
               <Text style={styles.categorySectionTitle}>{channel.category}</Text>
               <Pressable>
-                <Text style={styles.viewAllLink}>Ver todos ></Text>
+                <Text style={styles.viewAllLink}>Ver todos &gt;</Text>
               </Pressable>
             </View>
           </View>

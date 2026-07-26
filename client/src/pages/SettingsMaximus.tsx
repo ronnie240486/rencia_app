@@ -7,8 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
-
 interface SettingsData {
   autoPlayLastChannel: boolean;
   autoRotate: boolean;
@@ -28,7 +26,6 @@ interface SettingsData {
 }
 
 export default function SettingsMaximus() {
-  const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<SettingsData>({
     autoPlayLastChannel: true,
@@ -52,16 +49,9 @@ export default function SettingsMaximus() {
     try {
       // Simular salvamento
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      toast({
-        title: 'Sucesso',
-        description: 'Configurações salvas com sucesso!',
-      });
+      console.log('Configurações salvas com sucesso!');
     } catch (error) {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao salvar configurações',
-        variant: 'destructive',
-      });
+      console.error('Erro ao salvar configurações', error);
     } finally {
       setIsSaving(false);
     }
