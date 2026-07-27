@@ -3917,9 +3917,6 @@ export function registerApiRoutes(app: Express) {
     }
   });
 
-
-}
-
   // ─── Export/Import Backup ─────────────────────────────────────────────────
   app.get('/api/v5/export-backup', async (req: Request, res: Response) => {
     try {
