@@ -55,9 +55,24 @@ export default function MaximusPlayer() {
     },
   ]);
 
-  const handleChannelChange = (channel: CurrentChannel) => {
+  const handleChannelChange = async (channel: CurrentChannel) => {
     setCurrentChannel(channel);
     setIsPanelOpen(false);
+    
+    // Enviar para backend qual canal está sendo assistido
+    try {
+      const mac = localStorage.getItem('deviceMac') || 'unknown';
+      await fetch('/api/trpc/device.updateCurrentContent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mac,
+          currentContent: channel.name,
+        }),
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar canal:', error);
+    }
   };
 
   return (

@@ -1044,5 +1044,29 @@ export const appRouter = router({
         return { success: true, message: 'Configurações atualizadas!' };
       }),
   }),
+
+  // Endpoint para atualizar canal/conteúdo assistido
+  device: router({
+    updateCurrentContent: publicProcedure
+      .input(z.object({
+        mac: z.string().min(1),
+        currentContent: z.string().nullable(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database connection failed' });
+        
+        const device = await db.select().from(devices).where(eq(devices.mac, input.mac)).limit(1);
+        if (!device.length) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Device não encontrado.' });
+        }
+        
+        await db.update(devices)
+          .set({ currentContent: input.currentContent })
+          .where(eq(devices.mac, input.mac));
+        
+        return { success: true };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;
