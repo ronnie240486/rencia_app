@@ -27,6 +27,7 @@ import { PanelFunctions } from "./pages/PanelFunctions";
 import Player from "./pages/Player";
 import { NuvixConfig } from "./pages/NuvixConfig";
 import MovieDetails from "./pages/MovieDetails";
+import MaximusPlayer from "./pages/MaximusPlayer";
 
 function Router() {
   return (
@@ -56,6 +57,7 @@ function Router() {
       <Route path={"/nuvix-config"} component={NuvixConfig} />
       <Route path={"/player"} component={Player} />
       <Route path={"/movie/:id"} component={MovieDetails} />
+      <Route path="/maximus-player" component={MaximusPlayer} />
       <Route path={"*"} component={NotFound} />
     </Switch>
   );
