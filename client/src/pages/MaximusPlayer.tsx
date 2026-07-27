@@ -62,16 +62,16 @@ export default function MaximusPlayer() {
     // Enviar para backend qual canal esta sendo assistido
     try {
       const mac = localStorage.getItem('deviceMac') || sessionStorage.getItem('mac') || 'AA:BB:CC:DD:EE:FF';
-      const response = await fetch('/api/v5/update-watching', {
+      const response = await fetch('/api/v4/heartbeat.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mac,
-          currentContent: channel.name,
+          content: channel.name,
         }),
       });
       const data = await response.json();
-      console.log('Canal atualizado:', data);
+      console.log('Canal atualizado no heartbeat:', data);
     } catch (error) {
       console.error('Erro ao atualizar canal:', error);
     }
