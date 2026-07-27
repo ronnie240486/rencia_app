@@ -3859,5 +3859,62 @@ export function registerApiRoutes(app: Express) {
     }
   });
 
+  /**
+   * POST /api/v5/update-watching
+   * Atualiza o conteudo que esta sendo assistido
+   * Body: { mac: string, currentContent: string }
+   */
+  app.post('/api/v5/update-watching', async (req, res) => {
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.status(500).json({ success: false, error: 'server unavailable' });
+        return;
+      }
+
+      const { mac, currentContent } = req.body;
+      if (!mac) {
+        res.status(400).json({ success: false, error: 'mac required' });
+        return;
+      }
+
+      const macNormalized = mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase();
+      const macWithColons = macNormalized.length === 12
+        ? macNormalized.match(/.{2}/g)!.join(':')
+        : mac.toUpperCase();
+
+      // Buscar device
+      const result = await db
+        .select()
+        .from(devices)
+        .where(or(
+          eq(devices.mac, macWithColons),
+          eq(devices.mac, macNormalized),
+          eq(devices.mac, mac),
+        ))
+        .limit(1);
+
+      if (result.length === 0) {
+        res.status(404).json({ success: false, error: 'device not found', mac: macWithColons });
+        return;
+      }
+
+      // Atualizar currentContent
+      await db.update(devices)
+        .set({ currentContent: currentContent || null })
+        .where(eq(devices.id, result[0].id));
+
+      res.json({
+        success: true,
+        mac: result[0].mac,
+        currentContent: currentContent || null,
+        updated: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('[API] /api/v5/update-watching error:', error);
+      res.status(500).json({ success: false, error: 'Internal error' });
+    }
+  });
+
 
 }

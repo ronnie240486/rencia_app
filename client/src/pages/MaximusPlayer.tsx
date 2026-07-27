@@ -59,10 +59,10 @@ export default function MaximusPlayer() {
     setCurrentChannel(channel);
     setIsPanelOpen(false);
     
-    // Enviar para backend qual canal está sendo assistido
+    // Enviar para backend qual canal esta sendo assistido
     try {
-      const mac = localStorage.getItem('deviceMac') || 'unknown';
-      await fetch('/api/trpc/device.updateCurrentContent', {
+      const mac = localStorage.getItem('deviceMac') || sessionStorage.getItem('mac') || 'AA:BB:CC:DD:EE:FF';
+      const response = await fetch('/api/v5/update-watching', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -70,6 +70,8 @@ export default function MaximusPlayer() {
           currentContent: channel.name,
         }),
       });
+      const data = await response.json();
+      console.log('Canal atualizado:', data);
     } catch (error) {
       console.error('Erro ao atualizar canal:', error);
     }
