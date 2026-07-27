@@ -11,7 +11,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AlertTriangle, CalendarDays, Crown, Layers, Search, Shield,
-  Star, Users, Wifi, WifiOff, RefreshCw, Activity,
+  Star, Users, Wifi, WifiOff, RefreshCw, Activity, Download, Upload,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -43,6 +43,40 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [recentSearch, setRecentSearch] = useState("");
   const [connectedFilter, setConnectedFilter] = useState(30);
+
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/api/v5/export-backup', { method: 'GET' });
+      const data = await response.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erro ao exportar:', error);
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const response = await fetch('/api/v5/import-backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
+      if (result.success) window.location.reload();
+    } catch (error) {
+      console.error('Erro ao importar:', error);
+    }
+  };
 
   const { data: stats, isLoading: statsLoading, error: statsError } = trpc.devices.stats.useQuery();
   const { data: planInfo } = trpc.plan.info.useQuery();
@@ -100,6 +134,15 @@ export default function Dashboard() {
               <span>{"DEVICES: "}</span>
               <span>{(!planInfo?.limiteDevices || planInfo.limiteDevices >= 999999 || planInfo.plano === 'Ultra Master') ? 'Ilimitado' : planInfo.limiteDevices}</span>
             </Badge>
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="w-4 h-4 mr-1" />
+              <span>{"Exportar"}</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => document.getElementById('importFile')?.click()}>
+              <Upload className="w-4 h-4 mr-1" />
+              <span>{"Importar"}</span>
+            </Button>
+            <input id="importFile" type="file" accept=".json" style={{display: 'none'}} onChange={handleImport} />
           </div>
         </div>
 

@@ -27,6 +27,7 @@ import { getDb } from "./db";
 import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials } from "../drizzle/schema";
 import { eq, or, and } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
+import { exportBackup, importBackup } from "./exportImport";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -3917,4 +3918,37 @@ export function registerApiRoutes(app: Express) {
   });
 
 
+}
+
+  // ─── Export/Import Backup ─────────────────────────────────────────────────
+  app.get('/api/v5/export-backup', async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+      const backup = await exportBackup(userId);
+      res.json(backup);
+    } catch (error) {
+      console.error('[API] /api/v5/export-backup error:', error);
+      res.status(500).json({ success: false, error: 'Internal error' });
+    }
+  });
+
+  app.post('/api/v5/import-backup', async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+      const backup = req.body;
+      const result = await importBackup(userId, backup);
+      res.json(result);
+    } catch (error) {
+      console.error('[API] /api/v5/import-backup error:', error);
+      res.status(500).json({ success: false, error: 'Internal error' });
+    }
+  });
 }
