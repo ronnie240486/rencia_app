@@ -1068,5 +1068,33 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // ─── Ranking de Apps ────────────────────────────────────────────────────
+  ranking: router({
+    appStats: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();  
+      if (!db) return { ouropro: 0, maximus: 0, total: 0 };
+      
+      const result = await db.select({
+        app: users.app,
+        count: sql`COUNT(*)`
+      })
+      .from(users)
+      .where(eq(users.role, 'user'))
+      .groupBy(users.app);
+      
+      const counts = result.reduce((acc: any, row: any) => {
+        const appName = row.app || 'Sem App';
+        acc[appName] = Number(row.count) || 0;
+        return acc;
+      }, {});
+      
+      return {
+        ouropro: counts['OuroPro'] || 0,
+        maximus: counts['Maximus'] || 0,
+        total: Object.values(counts).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0)
+      };
+    }),
+  }),
 });
 export type AppRouter = typeof appRouter;

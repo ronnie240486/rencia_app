@@ -15,27 +15,17 @@ interface AppRanking {
 }
 
 export default function RankingApps() {
-  // Buscar todos os usuários cadastrados
-  const { data: usersResponse } = trpc.adminUsers.list.useQuery({ 
-    limit: 1000, 
-    offset: 0,
-    role: "all"
-  });
-  const allUsers = usersResponse?.data || [];
-
-  // Contar usuários por aplicativo (usando coluna 'app')
+  // Buscar estatísticas de apps
+  const { data: appStats } = trpc.ranking.appStats.useQuery();
+  
   const appCounts = useMemo(() => {
-    return allUsers.reduce(
-      (acc: Record<string, number>, user: any) => {
-        const app = user.app || "Sem App";
-        acc[app] = (acc[app] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-  }, [allUsers]);
+    return {
+      'OuroPro': appStats?.ouropro || 0,
+      'Maximus': appStats?.maximus || 0
+    };
+  }, [appStats]);
 
-  const totalUsers = Object.values(appCounts).reduce((sum: number, count: number) => sum + count, 0);
+  const totalUsers = (appStats?.total) || 0;
 
   // Criar ranking apenas com OuroPro e Maximus
   const ranking: AppRanking[] = useMemo(() => {
@@ -44,13 +34,13 @@ export default function RankingApps() {
         name: "OuroPro",
         logo: "/manus-storage/ouropro_logo_c0c3caef.png",
         color: "yellow",
-        users: appCounts["OuroPro"] || 0,
+        users: appCounts['OuroPro'] || 0,
       },
       {
         name: "Maximus",
         logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663162366914/PzXaZFHtEbexAZJA.png",
         color: "purple",
-        users: appCounts["Maximus"] || 0,
+        users: appCounts['Maximus'] || 0,
       },
     ];
 
