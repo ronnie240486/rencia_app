@@ -1080,7 +1080,6 @@ export const appRouter = router({
         count: sql`COUNT(*)`
       })
       .from(users)
-      .where(eq(users.role, 'user'))
       .groupBy(users.app);
       
       const counts = result.reduce((acc: any, row: any) => {
