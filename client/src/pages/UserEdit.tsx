@@ -310,12 +310,21 @@ export default function UserEdit() {
               </div>
             )}
 
-            {/* App - fixo OuroPro */}
+            {/* App - Selecionável entre OuroPro e Maximus */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP DO CLIENTE:</Label>
-              <div className="h-10 flex items-center px-3 rounded-md border bg-muted text-sm font-medium text-muted-foreground">
-                {form.app === "OuroPro" ? "OuroPro" : "OuroPro (corrigido)"}
-              </div>
+              <Select
+                value={form.app}
+                onValueChange={v => setForm(f => ({ ...f, app: v }))}
+              >
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue placeholder="Selecione o app" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OuroPro">OuroPro</SelectItem>
+                  <SelectItem value="Maximus">Maximus Player</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Status */}

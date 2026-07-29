@@ -298,3 +298,13 @@
 - [ ] Modificar APK Maximus player para chamar endpoints de configuracoes
 - [ ] Adicionar endpoints /api/v5/maximus/* para o APK buscar configuracoes
 - [ ] Compilar e assinar novo APK Maximus com suporte a configuracoes
+
+
+## Melhorias UI/UX (28/07/2026)
+- [x] UserEdit.tsx: campo "APP DO CLIENTE" agora é um dropdown com opções OuroPro e Maximus Player
+- [x] Contabilizar no ranking os apps escolhidos no cadastro de usuário
+- [x] RankingApps.tsx: redesenhar página com visual mais bonito e atrativo (cards, badges, animações)
+- [x] RankingApps.tsx: mostrar estatísticas de adoção de cada app (porcentagem, gráfico)
+- [x] Backend: criar endpoint para contar quantos dispositivos usam cada app
+- [x] Backend: atualizar ranking em tempo real quando um app é selecionado no cadastro
+- [x] Testes vitest para validar contabilização de apps no ranking

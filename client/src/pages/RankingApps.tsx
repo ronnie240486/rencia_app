@@ -1,8 +1,9 @@
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, TrendingUp } from "lucide-react";
+import { Trophy, TrendingUp, Users, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useMemo } from "react";
 
 interface AppRanking {
   name: string;
@@ -10,141 +11,254 @@ interface AppRanking {
   color: string;
   users: number;
   position: number;
+  percentage: number;
 }
 
 export default function RankingApps() {
   const { data: devicesResponse } = trpc.devices.list.useQuery({ page: 1, pageSize: 1000 });
   const devices = devicesResponse?.data || [];
 
-  // Contar usuários por aplicativo
-  const appCounts = devices.reduce(
-    (acc: Record<string, number>, device: any) => {
-      const app = device.currentContent || "Sem App";
-      acc[app] = (acc[app] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  ) || {};
+  // Contar usuários por aplicativo (usando coluna 'app')
+  const appCounts = useMemo(() => {
+    return devices.reduce(
+      (acc: Record<string, number>, device: any) => {
+        const app = device.app || "Sem App";
+        acc[app] = (acc[app] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+  }, [devices]);
+
+  const totalUsers = Object.values(appCounts).reduce((sum: number, count: number) => sum + count, 0);
 
   // Criar ranking
-  const ranking: AppRanking[] = [
-    {
-      name: "OuroPro",
-      logo: "/manus-storage/ouropro_logo_c0c3caef.png",
-      color: "yellow",
-      users: appCounts["OuroPro"] || 0,
-      position: 0,
-    },
-    {
-      name: "Maximus Player",
-      logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663162366914/PzXaZFHtEbexAZJA.png",
-      color: "blue",
-      users: appCounts["Maximus Player"] || 0,
-      position: 0,
-    },
-  ]
-    .sort((a, b) => b.users - a.users)
-    .map((app, idx) => ({ ...app, position: idx + 1 }));
+  const ranking: AppRanking[] = useMemo(() => {
+    const apps = [
+      {
+        name: "OuroPro",
+        logo: "/manus-storage/ouropro_logo_c0c3caef.png",
+        color: "yellow",
+        users: appCounts["OuroPro"] || 0,
+      },
+      {
+        name: "Maximus",
+        logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663162366914/PzXaZFHtEbexAZJA.png",
+        color: "purple",
+        users: appCounts["Maximus"] || 0,
+      },
+    ];
+
+    return apps
+      .sort((a, b) => b.users - a.users)
+      .map((app, idx) => ({
+        ...app,
+        position: idx + 1,
+        percentage: totalUsers > 0 ? Math.round((app.users / totalUsers) * 100) : 0,
+      }));
+  }, [appCounts, totalUsers]);
 
   const colorClasses = {
-    yellow: "border-yellow-200 dark:border-yellow-800 bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-950/30 dark:to-yellow-900/30",
-    blue: "border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30",
+    yellow: "border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-yellow-50 via-yellow-50 to-yellow-100/50 dark:from-yellow-950/40 dark:via-yellow-900/20 dark:to-yellow-800/30",
+    purple: "border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 via-purple-50 to-purple-100/50 dark:from-purple-950/40 dark:via-purple-900/20 dark:to-purple-800/30",
   };
 
   const positionColors = {
-    1: "from-yellow-400 to-yellow-600",
-    2: "from-gray-300 to-gray-500",
-    3: "from-orange-300 to-orange-600",
+    1: "from-yellow-400 to-yellow-600 shadow-lg shadow-yellow-400/50",
+    2: "from-gray-300 to-gray-500 shadow-lg shadow-gray-400/50",
+    3: "from-orange-300 to-orange-600 shadow-lg shadow-orange-400/50",
+  };
+
+  const badgeColors = {
+    yellow: "bg-yellow-500 text-yellow-900 hover:bg-yellow-600",
+    purple: "bg-purple-500 text-white hover:bg-purple-600",
   };
 
   return (
     <AdminLayout title="Ranking de Aplicativos">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center py-6">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Trophy className="w-8 h-8 text-yellow-500" />
-            <h1 className="text-3xl font-bold tracking-tight">Ranking de Aplicativos</h1>
-            <Trophy className="w-8 h-8 text-yellow-500" />
+      <div className="max-w-5xl mx-auto space-y-8">
+        {/* Header com animação */}
+        <div className="text-center py-8 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/10 via-purple-400/10 to-yellow-400/10 rounded-lg blur-3xl" />
+          <div className="relative">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <Trophy className="w-10 h-10 text-yellow-500 animate-bounce" />
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-yellow-600 to-purple-600 bg-clip-text text-transparent">
+                Ranking de Aplicativos
+              </h1>
+              <Trophy className="w-10 h-10 text-yellow-500 animate-bounce" style={{ animationDelay: "0.2s" }} />
+            </div>
+            <p className="text-muted-foreground text-lg">
+              Veja quais aplicativos seus clientes estão usando
+            </p>
           </div>
-          <p className="text-muted-foreground">Aplicativos mais usados pelos seus clientes neste momento</p>
         </div>
 
-        {/* Ranking Cards */}
-        <div className="space-y-4">
+        {/* Cards de Ranking - Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {ranking.map((app) => (
-            <Card
-              key={app.name}
-              className={`border-2 ${colorClasses[app.color as keyof typeof colorClasses]} overflow-hidden`}
-            >
-              <CardContent className="p-0">
-                <div className="flex items-center gap-4 p-6">
-                  {/* Posição */}
-                  <div
-                    className={`flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br ${
+            <div key={app.name} className="relative group">
+              {/* Glow effect */}
+              <div className={`absolute inset-0 bg-gradient-to-r ${
+                app.color === "yellow" 
+                  ? "from-yellow-400/20 to-yellow-600/20" 
+                  : "from-purple-400/20 to-purple-600/20"
+              } rounded-lg blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+              
+              <Card
+                className={`border-2 ${colorClasses[app.color as keyof typeof colorClasses]} overflow-hidden relative transition-all duration-300 group-hover:shadow-lg group-hover:scale-105`}
+              >
+                <CardContent className="p-0">
+                  <div className="flex flex-col h-full">
+                    {/* Top section com posição */}
+                    <div className={`bg-gradient-to-r ${
                       positionColors[app.position as keyof typeof positionColors] || "from-gray-400 to-gray-600"
-                    } text-white font-bold text-2xl shadow-lg`}
-                  >
-                    {app.position}°
-                  </div>
+                    } px-6 py-4 flex items-center justify-between`}>
+                      <div className="flex items-center gap-3">
+                        <div className="text-white font-bold text-3xl">#{app.position}</div>
+                        <div>
+                          <div className="text-white text-sm font-semibold">Posição</div>
+                          {app.position === 1 && (
+                            <div className="text-yellow-200 text-xs font-bold">🔥 Mais Popular</div>
+                          )}
+                        </div>
+                      </div>
+                      <Badge className={`${badgeColors[app.color as keyof typeof badgeColors]} text-sm px-3 py-1 font-bold`}>
+                        {app.percentage}%
+                      </Badge>
+                    </div>
 
-                  {/* Logo */}
-                  <img
-                    src={app.logo}
-                    alt={app.name}
-                    className="w-20 h-20 rounded-lg object-cover shadow-md"
-                  />
+                    {/* Middle section com logo e info */}
+                    <div className="flex-1 p-6 flex items-center gap-4">
+                      <img
+                        src={app.logo}
+                        alt={app.name}
+                        className="w-24 h-24 rounded-xl object-cover shadow-md border-2 border-white/20"
+                      />
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-bold mb-2">{app.name}</h3>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-5 h-5 text-blue-500" />
+                            <span className="font-semibold">
+                              {app.users} {app.users === 1 ? "cliente" : "clientes"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-yellow-500" />
+                            <span className="text-sm text-muted-foreground">
+                              {app.percentage}% de adoção
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-                  {/* Info */}
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold">{app.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <TrendingUp className="w-4 h-4 text-green-500" />
-                      <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                        {app.users} {app.users === 1 ? "cliente" : "clientes"} usando
-                      </span>
+                    {/* Progress bar */}
+                    <div className="px-6 pb-4">
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                        <div
+                          className={`h-full bg-gradient-to-r ${
+                            app.color === "yellow"
+                              ? "from-yellow-400 to-yellow-600"
+                              : "from-purple-400 to-purple-600"
+                          } transition-all duration-500`}
+                          style={{ width: `${app.percentage}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
-
-                  {/* Badge */}
-                  {app.position === 1 && (
-                    <Badge className="bg-yellow-500 text-black text-sm px-3 py-1">
-                      🔥 Mais Popular
-                    </Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           ))}
         </div>
 
-        {/* Stats */}
-        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-blue-200 dark:border-blue-800">
-          <CardHeader>
-            <CardTitle className="text-lg">Estatísticas</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Total de clientes usando apps:</span>
-              <span className="font-bold text-lg">{ranking.reduce((sum, app) => sum + app.users, 0)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">App mais popular:</span>
-              <span className="font-bold text-lg">{ranking[0]?.name || "N/A"}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Taxa de adoção:</span>
-              <span className="font-bold text-lg">
-                {ranking[0]?.users && ranking.reduce((sum, app) => sum + app.users, 0) > 0
-                  ? Math.round(
-                      (ranking[0].users / ranking.reduce((sum, app) => sum + app.users, 0)) * 100
-                    )
-                  : 0}
-                %
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Estatísticas detalhadas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/40 dark:to-blue-900/20 border-blue-200 dark:border-blue-800">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-500" />
+                Total de Clientes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{totalUsers}</div>
+              <p className="text-xs text-muted-foreground mt-1">usando aplicativos</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100/50 dark:from-yellow-950/40 dark:to-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-yellow-500" />
+                Líder
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{ranking[0]?.name || "N/A"}</div>
+              <p className="text-xs text-muted-foreground mt-1">{ranking[0]?.users || 0} clientes</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/40 dark:to-purple-900/20 border-purple-200 dark:border-purple-800">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-purple-500" />
+                Taxa de Adoção
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{ranking[0]?.percentage || 0}%</div>
+              <p className="text-xs text-muted-foreground mt-1">do líder</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Comparação visual */}
+        {totalUsers > 0 && (
+          <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-200 dark:border-indigo-800">
+            <CardHeader>
+              <CardTitle className="text-lg">Comparação de Mercado</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {ranking.map((app) => (
+                <div key={app.name} className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold">{app.name}</span>
+                    <span className="text-sm text-muted-foreground">{app.users} clientes</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                    <div
+                      className={`h-full bg-gradient-to-r ${
+                        app.color === "yellow"
+                          ? "from-yellow-400 to-yellow-600"
+                          : "from-purple-400 to-purple-600"
+                      } transition-all duration-500 flex items-center justify-end pr-2`}
+                      style={{ width: `${app.percentage}%` }}
+                    >
+                      {app.percentage > 10 && (
+                        <span className="text-white text-xs font-bold">{app.percentage}%</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Mensagem quando não há dados */}
+        {totalUsers === 0 && (
+          <Card className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800">
+            <CardContent className="p-6 text-center">
+              <p className="text-muted-foreground">
+                Nenhum cliente selecionou um aplicativo ainda. Os dados aparecerão aqui quando usuários forem cadastrados.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </AdminLayout>
   );
