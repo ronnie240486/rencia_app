@@ -16,6 +16,8 @@ export const users = mysqlTable("users", {
   telefone: varchar("telefone", { length: 32 }),
   avatarUrl: text("avatarUrl"),
   bannerUrl: text("bannerUrl"),
+  // App que o usuário usa
+  app: varchar("app", { length: 128 }),
   // Plan info
   plano: varchar("plano", { length: 64 }).default("Revenda"),
   planValidade: date("planValidade"),

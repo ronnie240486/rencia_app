@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `app` varchar(128);

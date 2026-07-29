@@ -15,20 +15,25 @@ interface AppRanking {
 }
 
 export default function RankingApps() {
-  const { data: devicesResponse } = trpc.devices.list.useQuery({ page: 1, pageSize: 1000 });
-  const devices = devicesResponse?.data || [];
+  // Buscar todos os usuários cadastrados
+  const { data: usersResponse } = trpc.adminUsers.list.useQuery({ 
+    limit: 1000, 
+    offset: 0,
+    role: "all"
+  });
+  const allUsers = usersResponse?.data || [];
 
   // Contar usuários por aplicativo (usando coluna 'app')
   const appCounts = useMemo(() => {
-    return devices.reduce(
-      (acc: Record<string, number>, device: any) => {
-        const app = device.app || "Sem App";
+    return allUsers.reduce(
+      (acc: Record<string, number>, user: any) => {
+        const app = user.app || "Sem App";
         acc[app] = (acc[app] || 0) + 1;
         return acc;
       },
       {} as Record<string, number>
     );
-  }, [devices]);
+  }, [allUsers]);
 
   const totalUsers = Object.values(appCounts).reduce((sum: number, count: number) => sum + count, 0);
 

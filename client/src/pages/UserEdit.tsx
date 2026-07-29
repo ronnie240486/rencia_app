@@ -148,7 +148,7 @@ export default function UserEdit() {
       modoSelecao: form.modoSelecao,
       tipo: form.tipo,
       status: form.status,
-      app: "OuroPro",
+      app: form.app,
       urlM3u8: urlM3u8 || undefined,
       urlEpg: form.urlEpg || undefined,
       valor: form.valor || undefined,
