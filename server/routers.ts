@@ -1088,10 +1088,13 @@ export const appRouter = router({
         return acc;
       }, {});
       
+      const ouropro = counts['OuroPro'] || 0;
+      const maximus = counts['Maximus'] || 0;
+      
       return {
-        ouropro: counts['OuroPro'] || 0,
-        maximus: counts['Maximus'] || 0,
-        total: Object.values(counts).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0)
+        ouropro,
+        maximus,
+        total: ouropro + maximus
       };
     }),
   }),
