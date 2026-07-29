@@ -1076,11 +1076,11 @@ export const appRouter = router({
       if (!db) return { ouropro: 0, maximus: 0, total: 0 };
       
       const result = await db.select({
-        app: users.app,
+        app: devices.app,
         count: sql`COUNT(*)`
       })
-      .from(users)
-      .groupBy(users.app);
+      .from(devices)
+      .groupBy(devices.app);
       
       const counts = result.reduce((acc: any, row: any) => {
         const appName = row.app || 'Sem App';
