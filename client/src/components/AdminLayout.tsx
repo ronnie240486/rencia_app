@@ -43,6 +43,7 @@ const navItems: NavItem[] = [
   { label: "Chatbot de Avisos", href: "/chatbot", icon: <MessageCircle size={18} />, ownerOnly: true },
   { label: "DNS", href: "/dns", icon: <Server size={18} /> },
   { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} />, ownerOnly: true },
+  { label: "Ranking de Apps", href: "/ranking-apps", icon: <BarChart3 size={18} />, ownerOnly: true },
   { label: "Sugestões", href: "/sugestoes", icon: <MessageSquare size={18} /> },
   { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true },
   { label: "OuroPro", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
