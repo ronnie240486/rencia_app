@@ -187,58 +187,9 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* ── Alterar Nome e E-mail (Login) ── */}
-        <div className="bg-card rounded-2xl border border-border p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 mb-1">
-            <KeyRound size={16} className="text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">Alterar Nome e Login</h3>
-          </div>
-          <p className="text-xs text-muted-foreground -mt-2">
-            Atualize seu nome de exibição e e-mail de login. Após salvar, faça logout e login novamente para aplicar.
-          </p>
+        {/* ── Alterar Nome e E-mail (Login) - REMOVIDO PARA REVENDA ── */}
 
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1">
-              <User size={11} /> Nome de exibição
-            </Label>
-            <Input
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              placeholder="Seu nome"
-              className="h-9 text-sm"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1">
-              <Mail size={11} /> E-mail de login
-            </Label>
-            <Input
-              value={newEmail}
-              onChange={e => setNewEmail(e.target.value)}
-              placeholder="email@exemplo.com"
-              type="email"
-              className="h-9 text-sm"
-            />
-          </div>
-
-          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-3 text-xs text-amber-800 dark:text-amber-200 flex gap-2">
-            <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-            <span>O e-mail alterado aqui é usado para identificação no painel. O login via OAuth (Manus) continua funcionando normalmente.</span>
-          </div>
-
-          <Button
-            onClick={handleSaveCredentials}
-            disabled={changeCredentials.isPending}
-            variant="outline"
-            className="w-full h-9 text-sm font-semibold"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {changeCredentials.isPending ? "Salvando..." : "Salvar Nome e E-mail"}
-          </Button>
-        </div>
-
-        {/* ── Campos editáveis ── */}
+        {/* ── Informações de Contato (Somente Leitura) ── */}
         <div className="bg-card rounded-2xl border border-border p-6 shadow-sm space-y-4">
           <h3 className="text-sm font-semibold text-foreground">Contato</h3>
 
@@ -246,23 +197,13 @@ export default function Profile() {
             <Label className="text-xs text-muted-foreground">Telefone / WhatsApp</Label>
             <div className="flex gap-2">
               <Phone className="w-4 h-4 mt-2.5 text-muted-foreground flex-shrink-0" />
-              <Input
-                value={telefone}
-                onChange={e => setTelefone(e.target.value)}
-                placeholder="(11) 99999-9999"
-                className="h-9 text-sm"
-              />
+              <span className="h-9 text-sm flex items-center text-foreground">{telefone || "Não informado"}</span>
             </div>
           </div>
 
-          <Button
-            onClick={handleSave}
-            disabled={updateProfile.isPending}
-            className="w-full h-9 text-sm font-semibold"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {updateProfile.isPending ? "Salvando..." : "Salvar Contato"}
-          </Button>
+          <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 p-3 text-xs text-blue-800 dark:text-blue-200 flex gap-2">
+            <span>Para alterar seus dados de contato ou credenciais, entre em contato com o administrador.</span>
+          </div>
         </div>
 
         {/* ── Sessão ── */}
