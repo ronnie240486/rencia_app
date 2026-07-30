@@ -36,6 +36,7 @@ export function NuvixConfig() {
 
   const [appName, setAppName] = useState(config?.appName || "NUVIX");
   const [buttonColor, setButtonColor] = useState(config?.buttonColor || "#000000");
+  const [buttonAddListColor, setButtonAddListColor] = useState(config?.buttonAddListColor || "#16a34a");
   const [backgroundUrl, setBackgroundUrl] = useState(config?.backgroundUrl || "");
   const [iconUrl, setIconUrl] = useState(config?.iconUrl || "");
 
@@ -45,6 +46,7 @@ export function NuvixConfig() {
       const data: any = {
         appName,
         buttonColor,
+        buttonAddListColor,
         backgroundUrl,
         iconUrl,
       };
@@ -106,6 +108,24 @@ export function NuvixConfig() {
                 value={buttonColor}
                 onChange={(e) => setButtonColor(e.target.value)}
                 placeholder="#000000"
+              />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="buttonAddListColor">Cor do Botão "Adicionar Lista"</Label>
+            <div className="flex gap-2">
+              <Input
+                id="buttonAddListColor"
+                type="color"
+                value={buttonAddListColor}
+                onChange={(e) => setButtonAddListColor(e.target.value)}
+                className="w-20 h-10"
+              />
+              <Input
+                type="text"
+                value={buttonAddListColor}
+                onChange={(e) => setButtonAddListColor(e.target.value)}
+                placeholder="#16a34a"
               />
             </div>
           </div>

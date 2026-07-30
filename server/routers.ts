@@ -1024,6 +1024,7 @@ export const appRouter = router({
         iconUrl: z.string().optional(),
         appName: z.string().optional(),
         buttonColor: z.string().optional(),
+        buttonAddListColor: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();

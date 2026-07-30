@@ -57,6 +57,7 @@ const DEFAULT_VALUES: Record<string, string> = {
   panel_all_color: "#EF4444",
   panel_selected_color: "#EF4444",
   panel_save_color: "#EF4444",
+  panel_add_list_color: "#16a34a",
 };
 
 const SIDEBAR_PRESETS = [
@@ -594,6 +595,7 @@ export default function Settings() {
                         { key: "panel_all_color", label: "Botão Todos (Filtro)" },
                         { key: "panel_selected_color", label: "Botão Selecionado (Ativo)" },
                         { key: "panel_save_color", label: "Botões Salvar / Confirmar" },
+                        { key: "panel_add_list_color", label: "Botão Adicionar Lista" },
                       ].map(({ key, label }) => (
                         <div key={key} className="flex items-center gap-3">
                           <div className="flex-1">

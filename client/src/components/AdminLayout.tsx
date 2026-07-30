@@ -150,6 +150,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       panel_all_color: "--btn-all-color",
       panel_selected_color: "--btn-selected-color",
       panel_save_color: "--btn-save-color",
+      panel_add_list_color: "--btn-add-list-color",
     };
     for (const [settingKey, cssVar] of Object.entries(btnKeys)) {
       const val = s[settingKey];

@@ -152,7 +152,9 @@ export default function DeviceLists() {
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold text-foreground">Listas de Reprodução</h2>
-        <Button size="sm" onClick={openCreate} className="gap-2">
+        <Button size="sm" onClick={openCreate} className="gap-2 text-white" style={{
+          backgroundColor: 'var(--btn-add-list-color)',
+        }}>
           <Plus size={14} />
           Adicionar Lista
         </Button>

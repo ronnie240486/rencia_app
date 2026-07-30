@@ -1,0 +1,1 @@
+ALTER TABLE `nuvix_config` ADD `buttonAddListColor` varchar(7) DEFAULT '#16a34a';
