@@ -134,7 +134,7 @@ export default function UserCreate() {
       nomeServer: form.nomeServer.trim(),
       modoSelecao: principal.modo,
       tipo: form.tipo,
-      app: "OuroPro",
+      app: form.app,
       urlM3u8: urlM3u8 || undefined,
       urlEpg: principal.urlEpg || undefined,
       valor: form.valor || undefined,
@@ -189,9 +189,15 @@ export default function UserCreate() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP DO CLIENTE:</Label>
-              <div className="h-10 flex items-center px-3 rounded-md border bg-muted text-sm font-medium text-muted-foreground">
-                OuroPro
-              </div>
+              <Select value={form.app} onValueChange={(value) => setForm(f => ({ ...f, app: value }))}>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Selecione um app" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OuroPro">OuroPro</SelectItem>
+                  <SelectItem value="Maximus">Maximus</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
