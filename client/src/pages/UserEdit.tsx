@@ -91,7 +91,7 @@ export default function UserEdit() {
         xtServer,
         xtUsername,
         xtPassword,
-        app: "OuroPro",
+        app: device.app ?? "OuroPro",
         urlEpg: device.urlEpg ?? "",
         valor: device.valor ? String(device.valor) : "",
         dataExpiracao: device.dataExpiracao

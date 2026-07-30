@@ -262,7 +262,7 @@ export default function SettingsMaximus() {
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} disabled={isSaving} className="w-full">
+      <Button onClick={handleSave} disabled={isSaving} className="w-full dark:!text-white dark:!bg-green-600 dark:hover:!bg-green-700">
         {isSaving ? 'Salvando...' : 'Salvar Tudo'}
       </Button>
     </div>

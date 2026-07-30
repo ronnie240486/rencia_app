@@ -155,7 +155,7 @@ export default function SettingsGpcpro() {
           <p className="text-muted-foreground text-sm">
             Personalize imagens, cores e configurações do aplicativo Maximus.
           </p>
-          <Button onClick={handleSave} disabled={!dirty || updateMany.isPending} className="gap-2 btn-save">
+          <Button onClick={handleSave} disabled={!dirty || updateMany.isPending} className="gap-2 btn-save dark:!text-white dark:!bg-green-600 dark:hover:!bg-green-700">
             {updateMany.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Salvar Tudo
           </Button>
