@@ -430,7 +430,7 @@ export default function UserCreate() {
           {/* Submit */}
           <div className="flex justify-end gap-2 pt-2">
             <Link href="/users">
-              <Button type="button" variant="outline">Cancelar</Button>
+              <Button type="button" variant="outline" className="dark:!text-white">Cancelar</Button>
             </Link>
             <Button type="submit" disabled={createMutation.isPending} className="gap-2 btn-add-user-bottom">
               <Save className="w-4 h-4" />

@@ -401,9 +401,9 @@ export default function UserEdit() {
             {/* Submit */}
             <div className="flex justify-end gap-2 pt-2">
               <Link href="/users">
-                <Button type="button" variant="outline">Cancelar</Button>
+                <Button type="button" variant="outline" className="dark:!text-white">Cancelar</Button>
               </Link>
-              <Button type="submit" disabled={updateMutation.isPending} className="gap-2">
+              <Button type="submit" disabled={updateMutation.isPending} className="gap-2 dark:!text-white">
                 <Save className="w-4 h-4" />
                 {updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}
               </Button>
