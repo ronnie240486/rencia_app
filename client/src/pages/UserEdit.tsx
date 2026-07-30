@@ -403,7 +403,7 @@ export default function UserEdit() {
               <Link href="/users">
                 <Button type="button" variant="outline" className="dark:!text-white">Cancelar</Button>
               </Link>
-              <Button type="submit" disabled={updateMutation.isPending} className="gap-2 dark:!text-white">
+              <Button type="submit" disabled={updateMutation.isPending} className="gap-2 dark:!text-white dark:!bg-green-600 dark:hover:!bg-green-700">
                 <Save className="w-4 h-4" />
                 {updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}
               </Button>
