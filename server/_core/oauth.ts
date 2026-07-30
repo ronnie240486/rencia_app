@@ -28,11 +28,19 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
+      // Verificar se o usuario ja existe no banco de dados
+      const existingUser = await db.getUserByOpenId(userInfo.openId);
+      
+      if (!existingUser) {
+        // Usuario nao cadastrado - rejeitar login
+        console.log("[OAuth] User not found in database:", userInfo.openId);
+        res.status(403).json({ error: "Usuario nao cadastrado no painel. Contate o administrador." });
+        return;
+      }
+
+      // Atualizar ultimo acesso
       await db.upsertUser({
         openId: userInfo.openId,
-        name: userInfo.name || null,
-        email: userInfo.email ?? null,
-        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
         lastSignedIn: new Date(),
       });
 
