@@ -60,7 +60,7 @@ export default function Notices() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Formulário de aviso (apenas para admin) */}
         {isAdmin && (
-          <Card className="p-6 border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-950">
+          <Card className="p-6 border-l-4 border-l-blue-500">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               Criar Novo Aviso
