@@ -12,7 +12,7 @@ import {
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
   getConnectedDevices, updateUserProfile,
 } from "./db";
-import { eq, and, inArray, sql, desc } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, isNotNull } from "drizzle-orm";
 import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -1080,6 +1080,7 @@ export const appRouter = router({
         count: sql`COUNT(*)`
       })
       .from(devices)
+      .where(isNotNull(devices.app))
       .groupBy(devices.app);
       
       const counts = result.reduce((acc: any, row: any) => {
