@@ -308,3 +308,14 @@
 - [x] Backend: criar endpoint para contar quantos dispositivos usam cada app
 - [x] Backend: atualizar ranking em tempo real quando um app é selecionado no cadastro
 - [x] Testes vitest para validar contabilização de apps no ranking
+
+
+## Autenticação com Email/Senha (30/07/2026)
+- [ ] Preparar banco de dados - adicionar colunas passwordHash e senhaRevenda
+- [ ] Implementar bcrypt para hash de senha
+- [ ] Criar endpoints de login/logout com email/senha
+- [ ] Criar página de login com email/senha
+- [ ] Adicionar campo de senha ao criar usuários (Revenda, Master, Admin)
+- [ ] Remover autenticação Manus OAuth do código
+- [ ] Criar conta de master: ronnie240486@gmail.com / Ronnie_alle240486@
+- [ ] Testar fluxo completo de autenticação

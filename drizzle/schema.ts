@@ -5,8 +5,9 @@ export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
-  email: varchar("email", { length: 320 }),
-  loginMethod: varchar("loginMethod", { length: 64 }),
+  email: varchar("email", { length: 320 }).unique(),
+  passwordHash: text("passwordHash"),
+  loginMethod: varchar("loginMethod", { length: 64 }).default("email_password"),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -26,6 +27,8 @@ export const users = mysqlTable("users", {
   resellerId: int("resellerId"),
   // Limite de revendas que este usuário pode criar
   limiteRevendas: int("limiteRevendas").default(0),
+  // Senha de revenda (apenas para revendas)
+  senhaRevenda: text("senhaRevenda"),
 });
 
 export type User = typeof users.$inferSelect;
