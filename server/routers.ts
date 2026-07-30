@@ -39,20 +39,21 @@ export const appRouter = router({
         password: z.string().min(1),
       }))
       .mutation(async ({ ctx, input }) => {
-        const crypto = await import('crypto');
+        const { comparePassword } = await import('./auth');
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database connection failed' });
         
-        const hashInput = crypto.createHash('sha256').update(input.password).digest('hex');
-        const cred = await db.select().from(localCredentials).where(eq(localCredentials.email, input.email)).limit(1);
+        // Buscar usuário por email
+        const user = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
         
-        if (!cred.length || cred[0].passwordHash !== hashInput) {
+        if (!user.length || !user[0].passwordHash) {
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Email ou senha inválidos.' });
         }
         
-        const user = await db.select().from(users).where(eq(users.id, cred[0].userId)).limit(1);
-        if (!user.length) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'Usuário não encontrado.' });
+        // Comparar senha com bcrypt
+        const isPasswordValid = await comparePassword(input.password, user[0].passwordHash);
+        if (!isPasswordValid) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Email ou senha inválidos.' });
         }
         
         const cookieOptions = getSessionCookieOptions(ctx.req);
