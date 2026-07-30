@@ -50,6 +50,11 @@ export const appRouter = router({
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Email ou senha inválidos.' });
         }
         
+        // Verificar se o usuário está ativo
+        if (!user[0].isActive) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Usuário inativo ou deletado.' });
+        }
+        
         // Comparar senha com bcrypt
         const isPasswordValid = await comparePassword(input.password, user[0].passwordHash);
         if (!isPasswordValid) {

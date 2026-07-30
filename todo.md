@@ -319,3 +319,11 @@
 - [ ] Remover autenticação Manus OAuth do código
 - [ ] Criar conta de master: ronnie240486@gmail.com / Ronnie_alle240486@
 - [ ] Testar fluxo completo de autenticação
+
+## Cor dinâmica do botão "Adicionar Lista" (30/07/2026)
+- [x] Adicionar coluna buttonAddListColor à tabela nuvixConfig
+- [x] Criar campo de cor no NuvixConfig.tsx
+- [x] Adicionar suporte no AdminLayout.tsx para aplicar cor via CSS variable
+- [x] Adicionar variável CSS --btn-add-list-color no index.css
+- [x] Atualizar DeviceLists.tsx para usar a variável CSS
+- [x] Adicionar campo panel_add_list_color em Settings.tsx
