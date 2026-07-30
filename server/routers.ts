@@ -50,11 +50,6 @@ export const appRouter = router({
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Email ou senha inválidos.' });
         }
         
-        // Verificar se o usuário está ativo
-        if (!user[0].isActive) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Usuário inativo ou deletado.' });
-        }
-        
         // Comparar senha com bcrypt
         const isPasswordValid = await comparePassword(input.password, user[0].passwordHash);
         if (!isPasswordValid) {
@@ -436,26 +431,18 @@ export const appRouter = router({
             .where(eq(users.resellerId, input.id));
           const subIds = subRevendas.map(r => r.id);
 
-          // 2. Bloquear devices diretos da revenda
-          await db.update(devices)
-            .set({ status: "Bloqueado" })
+          // 2. Deletar devices diretos da revenda
+          await db.delete(devices)
             .where(eq(devices.ownerId, input.id));
 
-          // 3. Bloquear devices de todas as sub-revendas (cascata)
+          // 3. Deletar devices de todas as sub-revendas (cascata)
           if (subIds.length > 0) {
-            await db.update(devices)
-              .set({ status: "Bloqueado" })
+            await db.delete(devices)
               .where(inArray(devices.ownerId, subIds));
-            // Marcar sub-revendas como inativas
-            await db.update(users)
-              .set({ isActive: false })
+            // Deletar sub-revendas
+            await db.delete(users)
               .where(inArray(users.id, subIds));
           }
-
-          // 4. Marcar a própria revenda como inativa antes de deletar
-          await db.update(users)
-            .set({ isActive: false })
-            .where(and(eq(users.id, input.id), eq(users.resellerId, ctx.user.id)));
         }
         await deleteRevenda(input.id, ctx.user.id);
         return { success: true };

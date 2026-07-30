@@ -54,30 +54,16 @@ describe("auth.loginLocal", () => {
     }
   });
 
-  it("should reject login for inactive user", async () => {
+  it("should reject login for deleted user (not in database)", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
-    const inactiveUser = {
-      id: 1,
-      email: "inactive@example.com",
-      passwordHash: "hashedpassword",
-      isActive: false,
-      role: "user",
-      name: "Inactive User",
-      openId: "openid123",
-      loginMethod: "local",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      lastSignedIn: new Date(),
-    };
-
-    // Mock database to return inactive user
+    // Mock database to return empty result (user was deleted)
     vi.mocked(dbModule.getDb).mockResolvedValue({
       select: () => ({
         from: () => ({
           where: () => ({
-            limit: () => Promise.resolve([inactiveUser]),
+            limit: () => Promise.resolve([]),
           }),
         }),
       }),
@@ -85,12 +71,12 @@ describe("auth.loginLocal", () => {
 
     try {
       await caller.auth.loginLocal({
-        email: "inactive@example.com",
+        email: "deleted@example.com",
         password: "password123",
       });
       expect.fail("Should have thrown an error");
     } catch (error: any) {
-      expect(error.message).toContain("Usuário inativo ou deletado");
+      expect(error.message).toContain("Email ou senha inválidos");
     }
   });
 

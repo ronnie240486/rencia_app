@@ -327,3 +327,9 @@
 - [x] Adicionar variável CSS --btn-add-list-color no index.css
 - [x] Atualizar DeviceLists.tsx para usar a variável CSS
 - [x] Adicionar campo panel_add_list_color em Settings.tsx
+
+## Correção de Segurança - Login (30/07/2026)
+- [x] Adicionar validação de isActive no loginLocal
+- [x] Garantir que usuários deletados não conseguem fazer login
+- [x] Criar teste vitest para validar segurança do login
+- [x] Validar que usuários inativos são rejeitados
