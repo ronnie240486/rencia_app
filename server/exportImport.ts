@@ -11,6 +11,7 @@ import {
   notices,
   nuvixConfig,
   playerCredentials,
+  localCredentials,
 } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
@@ -34,6 +35,7 @@ export async function exportBackup(ownerId: number) {
       allCarouselConfig,
       allSuggestions,
       allNotices,
+      allLocalCredentials,
     ] = await Promise.all([
       db.select().from(devices).where(eq(devices.ownerId, ownerId)),
       db.select().from(dnsEntries).where(eq(dnsEntries.ownerId, ownerId)),
@@ -45,6 +47,7 @@ export async function exportBackup(ownerId: number) {
       db.select().from(carouselConfig), // Configuração do carousel
       db.select().from(suggestions), // Todas as sugestões
       db.select().from(notices), // Todos os avisos
+      db.select().from(localCredentials), // Todas as credenciais locais
     ]);
 
     // Buscar device URLs para cada device
@@ -71,6 +74,7 @@ export async function exportBackup(ownerId: number) {
         carouselConfig: allCarouselConfig,
         suggestions: allSuggestions,
         notices: allNotices,
+        localCredentials: allLocalCredentials,
       },
     };
   } catch (error) {
@@ -222,6 +226,18 @@ export async function importBackup(ownerId: number, backup: any) {
           await db.insert(notices).values(noticeData).onDuplicateKeyUpdate({ set: noticeData });
         } catch (err) {
           console.warn(`[Import] Erro ao importar Notice:`, err);
+        }
+      }
+    }
+
+    // Importar Local Credentials
+    if (backup.data?.localCredentials && Array.isArray(backup.data.localCredentials)) {
+      for (const cred of backup.data.localCredentials) {
+        const { id, ...credData } = cred;
+        try {
+          await db.insert(localCredentials).values(credData).onDuplicateKeyUpdate({ set: credData });
+        } catch (err) {
+          console.warn(`[Import] Erro ao importar Local Credential:`, err);
         }
       }
     }
