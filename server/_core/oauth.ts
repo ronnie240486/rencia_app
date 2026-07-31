@@ -10,57 +10,8 @@ function getQueryParam(req: Request, key: string): string | undefined {
 }
 
 export function registerOAuthRoutes(app: Express) {
+  // OAuth desabilitado - apenas email/senha permitido
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
-    const code = getQueryParam(req, "code");
-    const state = getQueryParam(req, "state");
-
-    if (!code || !state) {
-      res.status(400).json({ error: "code and state are required" });
-      return;
-    }
-
-    try {
-      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-
-      if (!userInfo.openId) {
-        res.status(400).json({ error: "openId missing from user info" });
-        return;
-      }
-
-      // Verificar se o usuario ja existe no banco de dados
-      const existingUser = await db.getUserByOpenId(userInfo.openId);
-      
-      if (!existingUser) {
-        // Usuario nao cadastrado - rejeitar login
-        console.log("[OAuth] User not found in database:", userInfo.openId);
-        res.status(403).json({ error: "Usuario nao cadastrado no painel. Contate o administrador." });
-        return;
-      }
-
-      // Atualizar ultimo acesso
-      await db.upsertUser({
-        openId: userInfo.openId,
-        lastSignedIn: new Date(),
-      });
-
-      const sessionToken = await sdk.createSessionToken(userInfo.openId, {
-        name: userInfo.name || "",
-        expiresInMs: ONE_YEAR_MS,
-      });
-
-      const cookieOptions = getSessionCookieOptions(req);
-      console.log("[OAuth] Cookie options:", JSON.stringify(cookieOptions));
-      console.log("[OAuth] Protocol:", req.protocol, "| x-forwarded-proto:", req.headers["x-forwarded-proto"]);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-
-      // Redirect to the returnPath encoded in state, defaulting to /dashboard
-      const returnPath = sdk.parseReturnPath(state);
-      console.log("[OAuth] Redirecting to:", returnPath);
-      res.redirect(302, returnPath);
-    } catch (error) {
-      console.error("[OAuth] Callback failed", error);
-      res.status(500).json({ error: "OAuth callback failed" });
-    }
+    res.status(403).json({ error: "OAuth desabilitado. Use email e senha para fazer login." });
   });
 }
