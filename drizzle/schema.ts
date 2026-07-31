@@ -29,6 +29,8 @@ export const users = mysqlTable("users", {
   limiteRevendas: int("limiteRevendas").default(0),
   // Senha de revenda (apenas para revendas)
   senhaRevenda: text("senhaRevenda"),
+  // Marca se é o dono/proprietário do sistema
+  isOwner: boolean("isOwner").default(false).notNull(),
 });
 
 export type User = typeof users.$inferSelect;

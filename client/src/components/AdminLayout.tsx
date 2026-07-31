@@ -199,11 +199,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   }
 
   const isAdmin = user?.role === "admin";
-  // Ultra Master e dono veem tudo; Revenda e Master não veem itens ownerOnly
-  const isUltraMaster = !planInfo?.plano || planInfo.plano === "Ultra Master" || (planInfo.limiteDevices ?? 0) >= 999999;
+  // Dono vê tudo; outros veem apenas itens não ownerOnly
+  const isOwner = (user as any)?.isOwner === true;
   const visibleNavItems = navItems.filter(item => {
     if (item.adminOnly && !isAdmin) return false;
-    if (item.ownerOnly && !isUltraMaster) return false;
+    if (item.ownerOnly && !isOwner) return false;
     return true;
   });
 

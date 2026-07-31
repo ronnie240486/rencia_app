@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `isOwner` boolean DEFAULT false NOT NULL;
