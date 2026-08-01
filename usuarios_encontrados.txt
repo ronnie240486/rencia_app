@@ -1,0 +1,22 @@
+Usuários encontrados nos arquivos de cache:
+
+1. 58:04:54:49:77:56 - Ronnie
+2. 10:f9:eb:7a:ce:5c - Ronnie celular
+3. 13:e1:c7:a1:66:f3 - Ronnie (quarto)
+4. 66:D5:27:5a:Ed:d3 - Vanilda
+5. 34:c3:d2:3f:32:de - Suzete
+6. 3C:40:CE:A1:AB:E9 - Teate
+7. A8:19:0b:23:ce:ea - Nilso
+8. 81:61:3C:A6:60:C3 - Zaqueu
+9. 7A:CE:AE:5B:D1:3A - Teste
+10. A2:E6:89:65:7C:FA - Teste
+11. 47:65:B7:52:ad:56 - ? (encontrado nos logs)
+12. 55:14:17:a8:3a:b3 - ? (encontrado nos logs)
+13. 70:2e:8e:96:0a:3c - ? (encontrado nos logs)
+14. 7c:94:9f:94:5a:08 - ? (encontrado nos logs)
+15. 98:c9:7c:d2:c5:aa - ? (encontrado nos logs)
+16. C4:4E:AC:0A:65:85 - ? (encontrado nos logs)
+17. A8:20:09:DE:28:91 - Marcinha
+18. A8:20:08:CF:C3:1F - galvaogodomarcos (user)
+
+Faltam nomes para os MACs: 47:65:B7:52:ad:56, 55:14:17:a8:3a:b3, 70:2e:8e:96:0a:3c, 7c:94:9f:94:5a:08, 98:c9:7c:d2:c5:aa, C4:4E:AC:0A:65:85
