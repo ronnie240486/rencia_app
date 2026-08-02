@@ -22,39 +22,48 @@ export async function exportBackup(ownerId: number) {
   try {
     // Buscar o dono para incluir no backup
     const owner = await db.select().from(users).where(eq(users.id, ownerId));
+    console.log('[Export] Owner:', owner.length > 0 ? 'found' : 'not found');
 
-    // Buscar todos os dados relacionados ao dono
-    const [
-      ownerDevices,
-      ownerDns,
-      ownerNuvixConfig,
-      ownerPlayerCredentials,
-      allUsers,
-      allAppSettings,
-      allCarouselSlides,
-      allCarouselConfig,
-      allSuggestions,
-      allNotices,
-      allLocalCredentials,
-    ] = await Promise.all([
-      db.select().from(devices).where(eq(devices.ownerId, ownerId)),
-      db.select().from(dnsEntries).where(eq(dnsEntries.ownerId, ownerId)),
-      db.select().from(nuvixConfig).where(eq(nuvixConfig.ownerId, ownerId)),
-      db.select().from(playerCredentials).where(eq(playerCredentials.ownerId, ownerId)),
-      db.select().from(users), // Todos os usuários
-      db.select().from(appSettings), // Todas as configurações
-      db.select().from(carouselSlides), // Todos os slides
-      db.select().from(carouselConfig), // Configuração do carousel
-      db.select().from(suggestions), // Todas as sugestões
-      db.select().from(notices), // Todos os avisos
-      db.select().from(localCredentials), // Todas as credenciais locais
-    ]);
+    // Buscar todos os dados relacionados ao dono - com try-catch individual para cada query
+    let ownerDevices: any[] = [];
+    let ownerDns: any[] = [];
+    let ownerNuvixConfig: any[] = [];
+    let ownerPlayerCredentials: any[] = [];
+    let allUsers: any[] = [];
+    let allAppSettings: any[] = [];
+    let allCarouselSlides: any[] = [];
+    let allCarouselConfig: any[] = [];
+    let allSuggestions: any[] = [];
+    let allNotices: any[] = [];
+    let allLocalCredentials: any[] = [];
+
+    try { ownerDevices = await db.select().from(devices).where(eq(devices.ownerId, ownerId)); } catch (e) { console.error('[Export] Error fetching devices:', e); }
+    try { ownerDns = await db.select().from(dnsEntries).where(eq(dnsEntries.ownerId, ownerId)); } catch (e) { console.error('[Export] Error fetching dnsEntries:', e); }
+    try { ownerNuvixConfig = await db.select().from(nuvixConfig).where(eq(nuvixConfig.ownerId, ownerId)); } catch (e) { console.error('[Export] Error fetching nuvixConfig:', e); }
+    try { ownerPlayerCredentials = await db.select().from(playerCredentials).where(eq(playerCredentials.ownerId, ownerId)); } catch (e) { console.error('[Export] Error fetching playerCredentials:', e); }
+    try { allUsers = await db.select().from(users); } catch (e) { console.error('[Export] Error fetching users:', e); }
+    try { allAppSettings = await db.select().from(appSettings); } catch (e) { console.error('[Export] Error fetching appSettings:', e); }
+    try { allCarouselSlides = await db.select().from(carouselSlides); } catch (e) { console.error('[Export] Error fetching carouselSlides:', e); }
+    try { allCarouselConfig = await db.select().from(carouselConfig); } catch (e) { console.error('[Export] Error fetching carouselConfig:', e); }
+    try { allSuggestions = await db.select().from(suggestions); } catch (e) { console.error('[Export] Error fetching suggestions:', e); }
+    try { allNotices = await db.select().from(notices); } catch (e) { console.error('[Export] Error fetching notices:', e); }
+    try { allLocalCredentials = await db.select().from(localCredentials); } catch (e) { console.error('[Export] Error fetching localCredentials:', e); }
+
+    console.log('[Export] Data fetched - devices:', ownerDevices.length, 'users:', allUsers.length);
 
     // Buscar device URLs para cada device
     const deviceUrlsMap: Record<number, typeof deviceUrls.$inferSelect[]> = {};
-    for (const device of ownerDevices) {
-      const urls = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, device.id));
-      deviceUrlsMap[device.id] = urls;
+    try {
+      for (const device of ownerDevices) {
+        try {
+          const urls = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, device.id));
+          deviceUrlsMap[device.id] = urls;
+        } catch (e) {
+          console.error('[Export] Error fetching deviceUrls for device', device.id, ':', e);
+        }
+      }
+    } catch (e) {
+      console.error('[Export] Error in deviceUrls loop:', e);
     }
 
     return {

@@ -3920,11 +3920,15 @@ export function registerApiRoutes(app: Express) {
   // ─── Export/Import Backup ─────────────────────────────────────────────────
   app.get('/api/v5/export-backup', async (req: Request, res: Response) => {
     try {
+      console.log('[API] GET /api/v5/export-backup - Headers:', req.headers);
+      console.log('[API] GET /api/v5/export-backup - Cookies:', req.headers.cookie);
       // Autenticar usuário
       let user: any = null;
       try {
         user = await sdk.authenticateRequest(req);
+        console.log('[API] User authenticated:', user?.id, user?.email);
       } catch (error) {
+        console.log('[API] Auth error:', error);
         res.status(401).json({ success: false, error: 'Unauthorized' });
         return;
       }
