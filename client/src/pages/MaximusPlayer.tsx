@@ -61,12 +61,25 @@ export default function MaximusPlayer() {
     
     // Enviar para backend qual canal esta sendo assistido
     try {
-      const mac = localStorage.getItem('deviceMac') || sessionStorage.getItem('mac') || 'AA:BB:CC:DD:EE:FF';
+      let mac = localStorage.getItem('deviceMac') || 
+                sessionStorage.getItem('mac') || 
+                localStorage.getItem('mac') || null;
+      
+      if (!mac) {
+        const params = new URLSearchParams(window.location.search);
+        mac = params.get('mac') || params.get('deviceMac') || null;
+      }
+      
+      if (!mac) {
+        console.warn('MAC do dispositivo nao encontrado');
+        return;
+      }
+      
       const response = await fetch('/api/v4/heartbeat.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mac,
+          mac: mac.toUpperCase(),
           content: channel.name,
         }),
       });
