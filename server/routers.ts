@@ -164,6 +164,19 @@ export const appRouter = router({
       return { success: true };
     }),
 
+    updateCurrentContent: protectedProcedure
+      .input(z.object({ id: z.number(), currentContent: z.string().nullable() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        const device = await getDeviceById(input.id, ctx.user.id);
+        if (!device) throw new TRPCError({ code: 'NOT_FOUND', message: 'Device nao encontrado.' });
+        await db.update(devices)
+          .set({ currentContent: input.currentContent })
+          .where(and(eq(devices.id, input.id), eq(devices.ownerId, ctx.user.id)));
+        return { success: true };
+      }),
+
     bulkUpdateDns: protectedProcedure
       .input(z.object({
         newUrl: z.string().min(1),

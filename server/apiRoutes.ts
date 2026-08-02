@@ -1379,6 +1379,8 @@ export function registerApiRoutes(app: Express) {
         ));
 
       console.log(`[HEARTBEAT] MAC=${formattedMac} content=${currentContent ?? "(none)"}`);
+      console.log(`[HEARTBEAT] Body:`, JSON.stringify(body));
+      console.log(`[HEARTBEAT] Query:`, JSON.stringify(req.query));
       res.json({ ok: true, mac: formattedMac, content: currentContent });
     } catch (error) {
       console.error("[API] /api/v4/heartbeat.php error:", error);

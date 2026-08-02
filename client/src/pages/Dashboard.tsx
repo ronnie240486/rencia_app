@@ -15,6 +15,31 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+function EditCurrentContentButton({ deviceId, currentContent }: { deviceId: number; currentContent: string | null }) {
+  const updateMutation = trpc.devices.updateCurrentContent.useMutation();
+  
+  const handleEdit = () => {
+    const newContent = prompt('Canal assistido:', currentContent || '');
+    if (newContent !== null) {
+      updateMutation.mutate({
+        id: deviceId,
+        currentContent: newContent || null
+      });
+    }
+  };
+  
+  return (
+    <button
+      onClick={handleEdit}
+      disabled={updateMutation.isPending}
+      className="opacity-0 group-hover:opacity-100 transition-opacity text-xs px-1 py-0.5 rounded hover:bg-muted disabled:opacity-50"
+      title="Editar"
+    >
+      {updateMutation.isPending ? '...' : '✎'}
+    </button>
+  );
+}
+
 function StatCard({ title, value, icon: Icon, color }: {
   title: string; value: number | string; icon: React.ElementType; color: string;
 }) {
@@ -262,14 +287,17 @@ export default function Dashboard() {
                           <Badge variant="secondary" className="text-xs"><span>{d.tipo}</span></Badge>
                         </TableCell>
                         <TableCell className="text-xs max-w-[160px]">
-                          {d.currentContent ? (
-                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium truncate" title={d.currentContent}>
-                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
-                              <span className="truncate">{d.currentContent}</span>
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
+                          <div className="flex items-center gap-1 group">
+                            {d.currentContent ? (
+                              <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium truncate flex-1" title={d.currentContent}>
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+                                <span className="truncate">{d.currentContent}</span>
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground flex-1">—</span>
+                            )}
+                            <EditCurrentContentButton deviceId={d.id} currentContent={d.currentContent} />
+                          </div>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           <span>{formatLastSeen(d.lastSeen)}</span>
