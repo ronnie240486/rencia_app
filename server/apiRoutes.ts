@@ -709,7 +709,11 @@ export function registerApiRoutes(app: Express) {
           } catch { /* ignora */ }
         }
         const updateSet: Record<string, unknown> = { lastSeen: now };
-        if (currentContent !== null) updateSet.currentContent = currentContent;
+        // IMPORTANTE: Só atualizar currentContent se houver novo valor
+        // Nunca limpar o canal anterior, mesmo que o APK não envie
+        if (currentContent !== null) {
+          updateSet.currentContent = currentContent;
+        }
         await db
           .update(devices)
           .set(updateSet)
@@ -1367,6 +1371,8 @@ export function registerApiRoutes(app: Express) {
 
       const now = new Date();
       const updateSet: Record<string, unknown> = { lastSeen: now };
+      // IMPORTANTE: Só atualizar currentContent se houver novo valor
+      // Nunca limpar o canal anterior
       if (currentContent) updateSet.currentContent = currentContent;
 
       // Atualizar por MAC exato ou normalizado

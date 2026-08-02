@@ -113,7 +113,7 @@ export default function Dashboard() {
   const { data: expiringSoon } = trpc.devices.expiringSoon.useQuery({ days: 7 });
   const { data: connectedDevices, isLoading: connectedLoading, refetch: refetchConnected } = trpc.connected.list.useQuery(
     { minutesAgo: connectedFilter },
-    { refetchInterval: 30_000 } // atualiza a cada 30s para mostrar canal assistido em tempo real
+    { refetchInterval: 60_000 } // atualiza a cada 1 minuto para mostrar canal assistido em tempo real
   );
 
   const formatDate = (d: Date | string | null | undefined) => {
