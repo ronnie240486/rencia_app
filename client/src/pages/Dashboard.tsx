@@ -46,7 +46,10 @@ export default function Dashboard() {
 
   const handleExport = async () => {
     try {
-      const response = await fetch('/api/v5/export-backup', { method: 'GET' });
+      const response = await fetch('/api/v5/export-backup', { 
+        method: 'GET',
+        credentials: 'include'
+      });
       const data = await response.json();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -68,6 +71,7 @@ export default function Dashboard() {
       const data = JSON.parse(text);
       const response = await fetch('/api/v5/import-backup', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });

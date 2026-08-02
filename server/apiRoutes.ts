@@ -3920,7 +3920,16 @@ export function registerApiRoutes(app: Express) {
   // ─── Export/Import Backup ─────────────────────────────────────────────────
   app.get('/api/v5/export-backup', async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id;
+      // Autenticar usuário
+      let user: any = null;
+      try {
+        user = await sdk.authenticateRequest(req);
+      } catch (error) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+      
+      const userId = user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: 'Unauthorized' });
         return;
@@ -3935,7 +3944,16 @@ export function registerApiRoutes(app: Express) {
 
   app.post('/api/v5/import-backup', async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id;
+      // Autenticar usuário
+      let user: any = null;
+      try {
+        user = await sdk.authenticateRequest(req);
+      } catch (error) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+      
+      const userId = user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: 'Unauthorized' });
         return;
