@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChevronDown, Play, SkipBack, SkipForward } from 'lucide-react';
+import { ChevronDown, Play, SkipBack, SkipForward, Settings } from 'lucide-react';
 
 interface CurrentChannel {
   id: string;
@@ -15,6 +15,10 @@ interface CurrentChannel {
 
 export default function MaximusPlayer() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [apiServerUrl, setApiServerUrl] = useState(localStorage.getItem('apiServerUrl') || '');
+  const [tempApiUrl, setTempApiUrl] = useState(apiServerUrl);
+  
   const [currentChannel, setCurrentChannel] = useState<CurrentChannel>({
     id: '1',
     name: 'Globo FHD',
@@ -90,6 +94,12 @@ export default function MaximusPlayer() {
     }
   };
 
+  const handleSaveApiUrl = () => {
+    localStorage.setItem('apiServerUrl', tempApiUrl);
+    setApiServerUrl(tempApiUrl);
+    setIsSettingsOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
@@ -129,6 +139,11 @@ export default function MaximusPlayer() {
           <p className="text-gray-400 text-sm mt-4">
             👥 {currentChannel.viewers.toLocaleString('pt-BR')} espectadores
           </p>
+          {apiServerUrl && (
+            <p className="text-gray-500 text-xs mt-4">
+              Servidor: {apiServerUrl}
+            </p>
+          )}
         </div>
 
         {/* Pull-down Panel Indicator */}
@@ -171,6 +186,38 @@ export default function MaximusPlayer() {
         </div>
       )}
 
+      {/* Settings Panel */}
+      {isSettingsOpen && (
+        <div className="bg-gray-900 border-t border-gray-800 p-4 space-y-4">
+          <h3 className="text-lg font-bold mb-4">Configurações</h3>
+          <div>
+            <label className="text-sm text-gray-400 mb-2 block">API do Servidor</label>
+            <input
+              type="text"
+              value={tempApiUrl}
+              onChange={(e) => setTempApiUrl(e.target.value)}
+              placeholder="http://seu-servidor.com"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+            />
+            <p className="text-xs text-gray-500 mt-2">Coloque a URL da API do seu servidor aqui. Sempre que você mudar, o app usará a nova URL.</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSaveApiUrl}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-white text-sm font-bold"
+            >
+              Salvar
+            </button>
+            <button
+              onClick={() => setIsSettingsOpen(false)}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white text-sm"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Controls */}
       <div className="bg-gradient-to-t from-black to-transparent p-4 flex justify-center gap-4">
         <Button variant="outline" size="sm" className="flex items-center gap-2">
@@ -184,6 +231,15 @@ export default function MaximusPlayer() {
         <Button variant="outline" size="sm" className="flex items-center gap-2">
           Próximo
           <SkipForward className="w-4 h-4" />
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+          className="flex items-center gap-2 ml-auto"
+        >
+          <Settings className="w-4 h-4" />
+          Configurações
         </Button>
       </div>
     </div>

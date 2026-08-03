@@ -331,14 +331,14 @@ export default function SettingsGpcpro() {
               </div>
 
               <div className="space-y-2">
-                <Label className="font-semibold">URL do Servidor (DNS)</Label>
+                <Label className="font-semibold">API do Servidor</Label>
                 <Input
                   value={form.gpcpro_server_url}
                   onChange={e => handleChange("gpcpro_server_url", e.target.value)}
                   placeholder="Ex: https://renciaapp.manus.space"
                 />
                 <p className="text-xs text-muted-foreground">
-                  URL do servidor que o Maximus usará como referência de DNS.
+                  URL da API do servidor que o Maximus usará. Sempre que você mudar, o app usará a nova URL automaticamente.
                 </p>
               </div>
             </CardContent>
