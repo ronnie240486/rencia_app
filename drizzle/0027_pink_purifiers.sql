@@ -1,0 +1,1 @@
+ALTER TABLE `nuvix_config` ADD `observadorApiUrl` text;

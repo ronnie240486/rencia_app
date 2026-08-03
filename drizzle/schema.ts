@@ -212,6 +212,8 @@ export const nuvixConfig = mysqlTable("nuvix_config", {
   buttonColor: varchar("buttonColor", { length: 7 }).default("#000000"),
   // Cor do botão "Adicionar Lista" (hex)
   buttonAddListColor: varchar("buttonAddListColor", { length: 7 }).default("#16a34a"), // Verde padrão
+  // URL da API do Observador de IPTV para testes automáticos
+  observadorApiUrl: text("observadorApiUrl"),
   // Ativo/Inativo
   ativo: boolean("ativo").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

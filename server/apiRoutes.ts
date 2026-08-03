@@ -924,6 +924,13 @@ export function registerApiRoutes(app: Express) {
         .where(eq(deviceUrls.deviceId, device.id))
         .orderBy(deviceUrls.ordem);
 
+      // Buscar configurações do NuvixConfig
+      const nuvixConfigResult = await db.select().from(nuvixConfig)
+        .where(eq(nuvixConfig.ownerId, device.ownerId))
+        .limit(1);
+      const nuvixCfg = nuvixConfigResult[0];
+      const observadorApiUrl = nuvixCfg?.observadorApiUrl || null;
+
       const responseData = [];
 
       if (deviceUrlsList.length > 0) {
@@ -988,7 +995,12 @@ export function registerApiRoutes(app: Express) {
         });
       }
 
-      res.json({ data: responseData });
+      // Adicionar observadorApiUrl na resposta se existir
+      const response: any = { data: responseData };
+      if (observadorApiUrl) {
+        response.observador_api_url = observadorApiUrl;
+      }
+      res.json(response);
     } catch (error) {
       console.error("[API] GET /api/guim.php error:", error);
       res.status(500).json({ error: "Erro interno do servidor." });

@@ -39,6 +39,7 @@ export function NuvixConfig() {
   const [buttonAddListColor, setButtonAddListColor] = useState(config?.buttonAddListColor || "#16a34a");
   const [backgroundUrl, setBackgroundUrl] = useState(config?.backgroundUrl || "");
   const [iconUrl, setIconUrl] = useState(config?.iconUrl || "");
+  const [observadorApiUrl, setObservadorApiUrl] = useState(config?.observadorApiUrl || "");
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -49,6 +50,7 @@ export function NuvixConfig() {
         buttonAddListColor,
         backgroundUrl,
         iconUrl,
+        observadorApiUrl,
       };
 
       dns.forEach((d, i) => {
@@ -136,7 +138,7 @@ export function NuvixConfig() {
       <Card>
         <CardHeader>
           <CardTitle>Mídia</CardTitle>
-          <CardDescription>Imagem de fundo e ícone customizado</CardDescription>
+          <CardDescription>Imagem de fundo e Ícone customizado</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -156,6 +158,28 @@ export function NuvixConfig() {
               onChange={(e) => setIconUrl(e.target.value)}
               placeholder="https://..."
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Observador de IPTV */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Observador de IPTV</CardTitle>
+          <CardDescription>URL da API para testes automáticos</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="observadorApiUrl">URL da API do Observador</Label>
+            <Input
+              id="observadorApiUrl"
+              value={observadorApiUrl}
+              onChange={(e) => setObservadorApiUrl(e.target.value)}
+              placeholder="http://seu-servidor/api/teste"
+            />
+            <p className="text-sm text-muted-foreground mt-2">
+              Esta URL será enviada para o APK quando ele chamar /api/guim.php
+            </p>
           </div>
         </CardContent>
       </Card>
