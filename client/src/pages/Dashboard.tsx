@@ -40,6 +40,28 @@ function EditCurrentContentButton({ deviceId, currentContent }: { deviceId: numb
   );
 }
 
+function ForceShowChannelToggle({ deviceId, forceShowChannel }: { deviceId: number; forceShowChannel: boolean }) {
+  const updateMutation = trpc.devices.updateForceShowChannel.useMutation();
+  
+  const handleToggle = () => {
+    updateMutation.mutate({
+      id: deviceId,
+      forceShowChannel: !forceShowChannel
+    });
+  };
+  
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={updateMutation.isPending}
+      className={`w-8 h-4 rounded-full transition-colors ${forceShowChannel ? 'bg-green-500' : 'bg-muted'} flex items-center px-0.5`}
+      title={forceShowChannel ? 'Forçar canal ativado' : 'Forçar canal desativado'}
+    >
+      <div className={`w-3 h-3 rounded-full bg-white transition-transform ${forceShowChannel ? 'translate-x-4' : 'translate-x-0'}`} />
+    </button>
+  );
+}
+
 function StatCard({ title, value, icon: Icon, color }: {
   title: string; value: number | string; icon: React.ElementType; color: string;
 }) {
@@ -260,6 +282,7 @@ export default function Dashboard() {
                     <TableHead className="text-xs"><span>{"NOME DO SERVER"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"TIPO"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"ASSISTINDO"}</span></TableHead>
+                    <TableHead className="text-xs"><span>{"FORÇAR CANAL"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"ÚLTIMA CONEXÃO"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"EXPIRA EM"}</span></TableHead>
                   </TableRow>
@@ -298,6 +321,9 @@ export default function Dashboard() {
                             )}
                             <EditCurrentContentButton deviceId={d.id} currentContent={d.currentContent} />
                           </div>
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          <ForceShowChannelToggle deviceId={d.id} forceShowChannel={d.forceShowChannel ?? false} />
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           <span>{formatLastSeen(d.lastSeen)}</span>

@@ -1,0 +1,1 @@
+ALTER TABLE `devices` ADD `forceShowChannel` boolean DEFAULT false NOT NULL;

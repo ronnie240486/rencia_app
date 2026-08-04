@@ -55,6 +55,7 @@ export const devices = mysqlTable("devices", {
   lastSeen: timestamp("lastSeen"),
   currentContent: text("currentContent"), // canal/série/filme que está assistindo
   telefone: varchar("telefone", { length: 32 }),
+  forceShowChannel: boolean("forceShowChannel").default(false).notNull(), // força envio do canal mesmo sem Device Type = TV
 });
 
 export type Device = typeof devices.$inferSelect;
