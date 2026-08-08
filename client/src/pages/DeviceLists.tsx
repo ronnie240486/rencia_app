@@ -301,7 +301,7 @@ export default function DeviceLists() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={addMut.isPending || updateMut.isPending}>
+            <Button className="btn-add-user" onClick={handleSave} disabled={addMut.isPending || updateMut.isPending}>
               {(addMut.isPending || updateMut.isPending) && <Loader2 size={14} className="mr-2 animate-spin" />}
               {editId ? "Salvar" : "Adicionar"}
             </Button>
