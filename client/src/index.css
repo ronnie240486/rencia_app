@@ -229,6 +229,17 @@
     @apply text-white;
   }
 
+  /* ── Seleção dourada no tema escuro ── */
+  .dark ::selection {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .dark ::-moz-selection {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
 
   /**
    * Custom container utility that centers content and adds responsive padding.
