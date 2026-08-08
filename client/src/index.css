@@ -163,8 +163,12 @@
   }
   .btn-add-user {
     background-color: var(--btn-add-user-color) !important;
-    color: #ffffff !important;
+    color: #000000 !important;
     border-color: var(--btn-add-user-color) !important;
+  }
+  
+  .dark .btn-add-user {
+    color: #ffffff !important;
   }
   .btn-add-user-bottom {
     background-color: var(--btn-add-user-bottom-color) !important;
