@@ -229,26 +229,47 @@
     @apply text-white;
   }
 
+  /* ── Seleção azul no tema claro ── */
+  ::selection {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+  }
+
+  ::-moz-selection {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+  }
+  
+  *::selection {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+  }
+  
+  *::-moz-selection {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+  }
+
   /* ── Seleção dourada no tema escuro ── */
   .dark ::selection {
-    background-color: var(--primary) !important;
-    color: var(--primary-foreground) !important;
+    background-color: #fbbf24 !important;
+    color: #000000 !important;
   }
 
   .dark ::-moz-selection {
-    background-color: var(--primary) !important;
-    color: var(--primary-foreground) !important;
+    background-color: #fbbf24 !important;
+    color: #000000 !important;
   }
   
   /* Garantir seleção dourada em elementos específicos */
   .dark *::selection {
-    background-color: var(--primary) !important;
-    color: var(--primary-foreground) !important;
+    background-color: #fbbf24 !important;
+    color: #000000 !important;
   }
   
   .dark *::-moz-selection {
-    background-color: var(--primary) !important;
-    color: var(--primary-foreground) !important;
+    background-color: #fbbf24 !important;
+    color: #000000 !important;
   }
 
 
