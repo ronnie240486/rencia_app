@@ -231,13 +231,24 @@
 
   /* ── Seleção dourada no tema escuro ── */
   .dark ::selection {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
+    background-color: var(--primary) !important;
+    color: var(--primary-foreground) !important;
   }
 
   .dark ::-moz-selection {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
+    background-color: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+  }
+  
+  /* Garantir seleção dourada em elementos específicos */
+  .dark *::selection {
+    background-color: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+  }
+  
+  .dark *::-moz-selection {
+    background-color: var(--primary) !important;
+    color: var(--primary-foreground) !important;
   }
 
 
