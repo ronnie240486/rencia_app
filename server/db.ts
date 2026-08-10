@@ -341,7 +341,7 @@ export async function createRevenda(data: {
   if (!db) throw new Error("Database not available");
   // Criar usuário de revenda com openId único gerado
   const openId = `revenda_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  await db.insert(users).values({
+  const result = await db.insert(users).values({
     openId,
     name: data.name,
     email: data.email ?? null,
@@ -354,6 +354,15 @@ export async function createRevenda(data: {
     resellerId: data.resellerId,
     lastSignedIn: new Date(),
   });
+  
+  // Enviar aviso automático se tiver data de vencimento
+  if (data.planValidade) {
+    const { checkAndSendExpirationNotice } = await import('./autoNotifications');
+    const userId = (result as any).insertId || data.resellerId;
+    checkAndSendExpirationNotice(userId, data.planValidade).catch(err => {
+      console.error('[createRevenda] Erro ao enviar notificação:', err);
+    });
+  }
 }
 
 export async function updateRevenda(id: number, resellerId: number, data: Partial<{
