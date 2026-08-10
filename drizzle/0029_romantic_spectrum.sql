@@ -1,0 +1,1 @@
+ALTER TABLE `nuvix_config` ADD `daysBeforeExpireWarning` int DEFAULT 1 NOT NULL;

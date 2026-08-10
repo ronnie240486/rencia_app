@@ -40,6 +40,7 @@ export function NuvixConfig() {
   const [backgroundUrl, setBackgroundUrl] = useState(config?.backgroundUrl || "");
   const [iconUrl, setIconUrl] = useState(config?.iconUrl || "");
   const [observadorApiUrl, setObservadorApiUrl] = useState(config?.observadorApiUrl || "");
+  const [daysBeforeExpireWarning, setDaysBeforeExpireWarning] = useState(config?.daysBeforeExpireWarning || 1);
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -51,6 +52,7 @@ export function NuvixConfig() {
         backgroundUrl,
         iconUrl,
         observadorApiUrl,
+        daysBeforeExpireWarning,
       };
 
       dns.forEach((d, i) => {
@@ -179,6 +181,31 @@ export function NuvixConfig() {
             />
             <p className="text-sm text-muted-foreground mt-2">
               Esta URL será enviada para o APK quando ele chamar /api/guim.php
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Avisos de Vencimento */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Avisos de Vencimento</CardTitle>
+          <CardDescription>Configure quando enviar avisos automáticos</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="daysBeforeExpireWarning">Dias antes do vencimento para avisar</Label>
+            <Input
+              id="daysBeforeExpireWarning"
+              type="number"
+              min="1"
+              max="30"
+              value={daysBeforeExpireWarning}
+              onChange={(e) => setDaysBeforeExpireWarning(parseInt(e.target.value) || 1)}
+              placeholder="1"
+            />
+            <p className="text-sm text-muted-foreground mt-2">
+              O chatbot enviará avisos automáticos quando faltar este número de dias para o vencimento
             </p>
           </div>
         </CardContent>

@@ -215,6 +215,8 @@ export const nuvixConfig = mysqlTable("nuvix_config", {
   buttonAddListColor: varchar("buttonAddListColor", { length: 7 }).default("#16a34a"), // Verde padrão
   // URL da API do Observador de IPTV para testes automáticos
   observadorApiUrl: text("observadorApiUrl"),
+  // Dias antes do vencimento para enviar aviso automático
+  daysBeforeExpireWarning: int("daysBeforeExpireWarning").default(1).notNull(),
   // Ativo/Inativo
   ativo: boolean("ativo").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
