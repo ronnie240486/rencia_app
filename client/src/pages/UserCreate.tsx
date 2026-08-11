@@ -44,6 +44,7 @@ function newLista(isPrimary = false): ListaItem {
 
 export default function UserCreate() {
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
   const { data: appsData } = trpc.apps.list.useQuery();
 
   const [form, setForm] = useState({
@@ -90,6 +91,7 @@ export default function UserCreate() {
       }
       
       toast.success("Usuário cadastrado com sucesso!");
+      utils.devices.list.invalidate();
       navigate("/users");
     },
     onError: (e) => toast.error(e.message),

@@ -49,6 +49,7 @@ export default function Revendas() {
   const [form, setForm] = useState<RevendaForm>(emptyForm);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
+  const utils = trpc.useUtils();
   const { data, isLoading, refetch } = trpc.revendas.list.useQuery({ search, page, pageSize: 20 });
 
   // Filtrar por status no cliente
@@ -61,21 +62,21 @@ export default function Revendas() {
   const { data: planInfo } = trpc.plan.info.useQuery();
 
   const createMut = trpc.revendas.create.useMutation({
-    onSuccess: () => { toast.success("Revenda criada!"); setShowDialog(false); refetch(); },
+    onSuccess: () => { toast.success("Revenda criada!"); setShowDialog(false); utils.revendas.list.invalidate(); },
     onError: (e) => toast.error(e.message),
   });
   const updateMut = trpc.revendas.update.useMutation({
-    onSuccess: () => { toast.success("Revenda atualizada!"); setShowDialog(false); refetch(); },
+    onSuccess: () => { toast.success("Revenda atualizada!"); setShowDialog(false); utils.revendas.list.invalidate(); },
     onError: (e) => toast.error(e.message),
   });
   const deleteMut = trpc.revendas.delete.useMutation({
-    onSuccess: () => { toast.success("Revenda removida!"); setDeleteId(null); refetch(); },
+    onSuccess: () => { toast.success("Revenda removida!"); setDeleteId(null); utils.revendas.list.invalidate(); },
     onError: (e) => toast.error(e.message),
   });
   const toggleBlockMut = trpc.revendas.toggleBlock.useMutation({
     onSuccess: (_, vars) => {
       toast.success(vars.block ? "Revenda bloqueada! Todos os devices foram bloqueados." : "Revenda desbloqueada! Devices liberados.");
-      refetch();
+      utils.revendas.list.invalidate();
     },
     onError: (e) => toast.error(e.message),
   });
