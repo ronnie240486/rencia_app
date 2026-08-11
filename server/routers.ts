@@ -140,6 +140,15 @@ export const appRouter = router({
         const device = await getDeviceById(id, ctx.user.id);
         if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
         await updateDevice(id, ctx.user.id, data);
+        
+        // Enviar aviso automatico se a data de expiracao foi atualizada
+        if (data.dataExpiracao) {
+          const { checkAndSendExpirationNotice } = await import('./autoNotifications');
+          checkAndSendExpirationNotice(id, data.dataExpiracao).catch(err => {
+            console.error('[devices.update] Erro ao enviar notificacao:', err);
+          });
+        }
+        
         return { success: true };
       }),
 
@@ -410,6 +419,15 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
         await updateRevenda(id, ctx.user.id, data);
+        
+        // Enviar aviso automatico se a data de vencimento foi atualizada
+        if (data.planValidade) {
+          const { checkAndSendExpirationNotice } = await import('./autoNotifications');
+          checkAndSendExpirationNotice(id, data.planValidade).catch(err => {
+            console.error('[updateRevenda] Erro ao enviar notificacao:', err);
+          });
+        }
+        
          return { success: true };
       }),
 
