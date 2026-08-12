@@ -1404,6 +1404,24 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    duplicateToDevices: protectedProcedure
+      .input(z.object({ sourceId: z.number(), sourceDeviceId: z.number(), targetDeviceIds: z.array(z.number()).min(1).max(100) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const sourceDevice = await getDeviceById(input.sourceDeviceId, ctx.user.id);
+        if (!sourceDevice) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente de origem não encontrado." });
+        const source = (await db.select().from(deviceUrls).where(and(eq(deviceUrls.id, input.sourceId), eq(deviceUrls.deviceId, input.sourceDeviceId))).limit(1))[0];
+        if (!source) throw new TRPCError({ code: "NOT_FOUND", message: "Lista de origem não encontrada." });
+        const targets = await db.select({ id: devices.id }).from(devices).where(and(eq(devices.ownerId, ctx.user.id), inArray(devices.id, input.targetDeviceIds.filter((id) => id !== input.sourceDeviceId))));
+        for (const target of targets) {
+          const countResult = await db.select({ count: sql<number>`count(*)` }).from(deviceUrls).where(eq(deviceUrls.deviceId, target.id));
+          await db.insert(deviceUrls).values({ deviceId: target.id, nome: source.nome, modoSelecao: source.modoSelecao, urlM3u8: source.urlM3u8, xtServer: source.xtServer, xtUsername: source.xtUsername, xtPassword: source.xtPassword, ordem: Number(countResult[0]?.count ?? 0), ativo: source.ativo });
+        }
+        await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "list", entityId: input.sourceId, action: "duplicated", summary: `Lista ${source.nome} copiada para ${targets.length} cliente(s)`, afterData: { targetDeviceIds: targets.map((target) => target.id) } });
+        return { copied: targets.length };
+      }),
+
     delete: protectedProcedure
       .input(z.object({ id: z.number(), deviceId: z.number() }))
       .mutation(async ({ ctx, input }) => {
