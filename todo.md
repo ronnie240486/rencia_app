@@ -377,3 +377,8 @@
 - [x] Criar indicadores de receita recebida, pendências e atrasos
 - [x] Criar filtro de período para os relatórios
 - [x] Criar tela de relatório financeiro para proprietário e revendas
+
+## Modelos de Mensagens
+- [x] Criar modelos salvos de renovação, cobrança, boas-vindas e manutenção
+- [x] Permitir criar, editar e remover modelos do Chatbot
+- [x] Permitir aplicar um modelo à mensagem do Chatbot

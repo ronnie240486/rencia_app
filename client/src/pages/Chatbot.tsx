@@ -3,8 +3,10 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, MessageCircle, ExternalLink, Phone, RefreshCw, AlertTriangle, Building2 } from "lucide-react";
+import { Loader2, MessageCircle, ExternalLink, Phone, RefreshCw, AlertTriangle, Building2, Copy, Pencil, Save, Trash2 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { toast } from "sonner";
 
@@ -27,9 +29,26 @@ export default function Chatbot() {
   const [lastCheckRevendas, setLastCheckRevendas] = useState<string | null>(null);
   const [totalClientes, setTotalClientes] = useState<number | null>(null);
   const [totalRevendas, setTotalRevendas] = useState<number | null>(null);
+  const [templateId, setTemplateId] = useState<number | null>(null);
+  const [templateName, setTemplateName] = useState("");
+  const [templateCategory, setTemplateCategory] = useState<"renewal" | "collection" | "welcome" | "maintenance" | "custom">("renewal");
+  const [templateContent, setTemplateContent] = useState("");
+  const utils = trpc.useUtils();
+  const templatesQuery = trpc.messageTemplates.list.useQuery();
+  const resetTemplateForm = () => { setTemplateId(null); setTemplateName(""); setTemplateCategory("renewal"); setTemplateContent(""); };
+  const saveTemplate = trpc.messageTemplates.create.useMutation({ onSuccess: async () => { await utils.messageTemplates.list.invalidate(); toast.success("Modelo salvo."); resetTemplateForm(); } });
+  const updateTemplate = trpc.messageTemplates.update.useMutation({ onSuccess: async () => { await utils.messageTemplates.list.invalidate(); toast.success("Modelo atualizado."); resetTemplateForm(); } });
+  const removeTemplate = trpc.messageTemplates.remove.useMutation({ onSuccess: async () => { await utils.messageTemplates.list.invalidate(); toast.success("Modelo removido."); if (templateId) resetTemplateForm(); } });
+  const applyTemplate = trpc.messageTemplates.applyToExpiration.useMutation({ onSuccess: async () => { await utils.settings.getAll.invalidate(); toast.success("Modelo aplicado ao aviso de vencimento."); } });
 
   const diasAviso = parseInt(settings?.chatbot_dias_aviso ?? "3") || 3;
   const automaticNotices = notices.filter((notice) => notice.titulo === "Aviso de Vencimento");
+  const handleTemplateSave = () => {
+    if (!templateName.trim() || !templateContent.trim()) return toast.error("Informe o nome e o conteúdo do modelo.");
+    const data = { name: templateName.trim(), category: templateCategory, content: templateContent.trim() };
+    if (templateId) updateTemplate.mutate({ id: templateId, ...data }); else saveTemplate.mutate(data);
+  };
+  const editTemplate = (template: NonNullable<typeof templatesQuery.data>[number]) => { setTemplateId(template.id); setTemplateName(template.name); setTemplateCategory(template.category); setTemplateContent(template.content); };
 
   const handleCheckClientes = async () => {
     setLoadingClientes(true);
@@ -283,6 +302,23 @@ export default function Chatbot() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2"><MessageCircle size={17} /> Modelos de Mensagens</CardTitle>
+            <CardDescription>Use <code>{"{nome}"}</code>, <code>{"{dias}"}</code> e <code>{"{data}"}</code> nos modelos de vencimento.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-[1fr_180px]">
+              <label className="grid gap-1.5 text-sm font-medium">Nome do modelo<Input value={templateName} onChange={(event) => setTemplateName(event.target.value)} placeholder="Ex.: Renovação mensal" /></label>
+              <label className="grid gap-1.5 text-sm font-medium">Categoria<select value={templateCategory} onChange={(event) => setTemplateCategory(event.target.value as typeof templateCategory)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="renewal">Renovação</option><option value="collection">Cobrança</option><option value="welcome">Boas-vindas</option><option value="maintenance">Manutenção</option><option value="custom">Personalizado</option></select></label>
+            </div>
+            <label className="grid gap-1.5 text-sm font-medium">Mensagem<Textarea value={templateContent} onChange={(event) => setTemplateContent(event.target.value)} rows={4} placeholder="Digite a mensagem que deseja reutilizar" /></label>
+            <div className="flex flex-wrap gap-2"><Button onClick={handleTemplateSave} disabled={saveTemplate.isPending || updateTemplate.isPending} className="gap-2 text-black dark:text-white"><Save size={15} /> {templateId ? "Salvar alterações" : "Salvar modelo"}</Button>{templateId && <Button variant="outline" onClick={resetTemplateForm}>Cancelar edição</Button>}</div>
+            <div className="space-y-2 border-t pt-4">
+              {templatesQuery.isLoading ? <p className="text-sm text-muted-foreground">Carregando modelos…</p> : templatesQuery.data?.map((template) => <div key={template.id} className="rounded-lg border p-3"><div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex items-center gap-2"><p className="font-medium text-sm">{template.name}</p><Badge variant="secondary" className="text-xs">{template.category}</Badge></div><p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{template.content}</p></div><div className="flex shrink-0 flex-wrap gap-1"><Button size="sm" variant="outline" title="Copiar" onClick={() => { navigator.clipboard.writeText(template.content); toast.success("Modelo copiado."); }}><Copy size={14} /></Button><Button size="sm" variant="outline" title="Editar" onClick={() => editTemplate(template)}><Pencil size={14} /></Button><Button size="sm" variant="outline" onClick={() => applyTemplate.mutate({ id: template.id })}>Usar no vencimento</Button><Button size="sm" variant="ghost" className="text-destructive" title="Remover" onClick={() => { if (window.confirm(`Remover o modelo ${template.name}?`)) removeTemplate.mutate({ id: template.id }); }}><Trash2 size={14} /></Button></div></div></div>)}</div>
           </CardContent>
         </Card>
 

@@ -13,12 +13,13 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 import { getEffectivePaymentStatus } from "./payments";
 import { buildFinancialReport } from "./financialReport";
+import { normalizeMessageTemplate } from "./messageTemplate";
 import { probeListUrl } from "./listHealth";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 
@@ -595,6 +596,67 @@ export const appRouter = router({
       await db.delete(payments).where(eq(payments.id, input.id));
       await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "payment", entityId: input.id, action: "deleted", summary: `Cobrança de R$ ${payment.amount} removida`, beforeData: payment });
       return { success: true };
+    }),
+  }),
+
+  // ─── Modelos do Chatbot ──────────────────────────────────────────────────────
+  messageTemplates: router({
+    list: ownerProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const existing = await db.select().from(messageTemplates).where(eq(messageTemplates.ownerId, ctx.user.id)).orderBy(desc(messageTemplates.updatedAt));
+      if (existing.length > 0) return existing;
+      await db.insert(messageTemplates).values([
+        { ownerId: ctx.user.id, name: "Renovação", category: "renewal", content: "Olá {nome}! Seu acesso vence em {dias} dia(s), no dia {data}. Renove para continuar usando normalmente." },
+        { ownerId: ctx.user.id, name: "Cobrança", category: "collection", content: "Olá {nome}! Identificamos uma pendência no seu acesso. Entre em contato para regularizar e manter o serviço ativo." },
+        { ownerId: ctx.user.id, name: "Boas-vindas", category: "welcome", content: "Olá {nome}! Seu acesso foi cadastrado com sucesso. Se precisar de ajuda, fale conosco." },
+        { ownerId: ctx.user.id, name: "Manutenção", category: "maintenance", content: "Olá {nome}! Estamos realizando uma manutenção para melhorar o serviço. Agradecemos a compreensão." },
+      ]);
+      return db.select().from(messageTemplates).where(eq(messageTemplates.ownerId, ctx.user.id)).orderBy(desc(messageTemplates.updatedAt));
+    }),
+    create: ownerProcedure.input(z.object({
+      name: z.string().min(1).max(128),
+      category: z.enum(["renewal", "collection", "welcome", "maintenance", "custom"]),
+      content: z.string().min(1).max(2000),
+    })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const template = normalizeMessageTemplate(input);
+      const result = await db.insert(messageTemplates).values({ ownerId: ctx.user.id, ...template });
+      const id = Number((result as any)[0]?.insertId ?? (result as any).insertId);
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "message_template", entityId: id, action: "created", summary: `Modelo de mensagem ${template.name} criado` });
+      return { success: true, id };
+    }),
+    update: ownerProcedure.input(z.object({
+      id: z.number(),
+      name: z.string().min(1).max(128),
+      category: z.enum(["renewal", "collection", "welcome", "maintenance", "custom"]),
+      content: z.string().min(1).max(2000),
+    })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const { id, ...data } = input;
+      const template = normalizeMessageTemplate(data);
+      await db.update(messageTemplates).set(template).where(and(eq(messageTemplates.id, id), eq(messageTemplates.ownerId, ctx.user.id)));
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "message_template", entityId: id, action: "updated", summary: `Modelo de mensagem ${template.name} atualizado` });
+      return { success: true };
+    }),
+    remove: ownerProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.delete(messageTemplates).where(and(eq(messageTemplates.id, input.id), eq(messageTemplates.ownerId, ctx.user.id)));
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "message_template", entityId: input.id, action: "deleted", summary: "Modelo de mensagem removido" });
+      return { success: true };
+    }),
+    applyToExpiration: ownerProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [template] = await db.select().from(messageTemplates).where(and(eq(messageTemplates.id, input.id), eq(messageTemplates.ownerId, ctx.user.id))).limit(1);
+      if (!template) throw new TRPCError({ code: "NOT_FOUND", message: "Modelo não encontrado." });
+      await db.insert(appSettings).values({ key: "chatbot_mensagem_vencimento", value: template.content })
+        .onDuplicateKeyUpdate({ set: { value: template.content } });
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "message_template", entityId: input.id, action: "applied", summary: `Modelo ${template.name} aplicado ao aviso de vencimento` });
+      return { success: true, content: template.content };
     }),
   }),
 

@@ -218,6 +218,13 @@
       "when": 1786509846736,
       "tag": "0030_bouncy_luke_cage",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "5",
+      "when": 1786512817974,
+      "tag": "0031_yummy_ikaris",
+      "breakpoints": true
     }
   ]
 }
