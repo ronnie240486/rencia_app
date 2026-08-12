@@ -92,6 +92,43 @@ export async function exportBackup(ownerId: number) {
   }
 }
 
+export function normalizeImportMac(mac: unknown): string {
+  return String(mac ?? "").replace(/[^a-fA-F0-9]/g, "").toUpperCase();
+}
+
+export function analyzeImportDevices(incoming: any[], existing: Array<{ id: number; mac: string; nomeServer: string | null }>) {
+  const existingByMac = new Map(existing.map((device) => [normalizeImportMac(device.mac), device]));
+  const seen = new Set<string>();
+  const duplicateInFile: any[] = [];
+  const existingMatches: any[] = [];
+  const newDevices: any[] = [];
+  const invalidDevices: any[] = [];
+  for (const device of incoming) {
+    const mac = normalizeImportMac(device?.mac);
+    if (!mac || mac.length !== 12) { invalidDevices.push({ nomeServer: device?.nomeServer ?? "Sem nome", mac: device?.mac ?? null }); continue; }
+    if (seen.has(mac)) { duplicateInFile.push({ nomeServer: device?.nomeServer ?? "Sem nome", mac: device?.mac }); continue; }
+    seen.add(mac);
+    const found = existingByMac.get(mac);
+    if (found) existingMatches.push({ mac: device?.mac, importName: device?.nomeServer ?? "Sem nome", currentName: found.nomeServer, currentId: found.id });
+    else newDevices.push({ nomeServer: device?.nomeServer ?? "Sem nome", mac: device?.mac });
+  }
+  return { newDevices, existingMatches, duplicateInFile, invalidDevices };
+}
+
+export async function previewBackupImport(ownerId: number, backup: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  if (backup?.version !== "2.0.0") throw new Error("Versão de backup incompatível. Esperado: 2.0.0");
+  const incoming = Array.isArray(backup?.data?.devices) ? backup.data.devices : [];
+  const existing = await db.select({ id: devices.id, mac: devices.mac, nomeServer: devices.nomeServer }).from(devices).where(eq(devices.ownerId, ownerId));
+  const { newDevices, existingMatches, duplicateInFile, invalidDevices } = analyzeImportDevices(incoming, existing);
+  return {
+    valid: invalidDevices.length === 0,
+    summary: { importedDevices: incoming.length, newDevices: newDevices.length, existingMatches: existingMatches.length, duplicateInFile: duplicateInFile.length, invalidDevices: invalidDevices.length },
+    newDevices: newDevices.slice(0, 20), existingMatches: existingMatches.slice(0, 20), duplicateInFile: duplicateInFile.slice(0, 20), invalidDevices: invalidDevices.slice(0, 20),
+  };
+}
+
 export async function importBackup(ownerId: number, backup: any) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");

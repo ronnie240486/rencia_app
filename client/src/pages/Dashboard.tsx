@@ -90,6 +90,10 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [recentSearch, setRecentSearch] = useState("");
   const [connectedFilter, setConnectedFilter] = useState(30);
+  const [pendingBackup, setPendingBackup] = useState<any | null>(null);
+  const [importPreview, setImportPreview] = useState<any | null>(null);
+  const [previewingImport, setPreviewingImport] = useState(false);
+  const [confirmingImport, setConfirmingImport] = useState(false);
 
   const handleExport = async () => {
     try {
@@ -114,18 +118,40 @@ export default function Dashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      setPreviewingImport(true);
       const text = await file.text();
       const data = JSON.parse(text);
-      const response = await fetch('/api/v5/import-backup', {
+      const response = await fetch('/api/v5/preview-import-backup', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
       const result = await response.json();
-      if (result.success) window.location.reload();
+      if (!result.success) throw new Error(result.error || 'Não foi possível analisar o backup.');
+      setPendingBackup(data);
+      setImportPreview(result.preview);
     } catch (error) {
       console.error('Erro ao importar:', error);
+      alert(error instanceof Error ? error.message : 'Não foi possível analisar o arquivo.');
+    } finally {
+      setPreviewingImport(false);
+      e.target.value = '';
+    }
+  };
+
+  const confirmImport = async () => {
+    if (!pendingBackup) return;
+    setConfirmingImport(true);
+    try {
+      const response = await fetch('/api/v5/import-backup', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pendingBackup) });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || 'Não foi possível importar o backup.');
+      window.location.reload();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Erro ao importar backup.');
+    } finally {
+      setConfirmingImport(false);
     }
   };
 
@@ -189,13 +215,15 @@ export default function Dashboard() {
               <Download className="w-4 h-4 mr-1" />
               <span>{"Exportar"}</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => document.getElementById('importFile')?.click()}>
+            <Button variant="outline" size="sm" disabled={previewingImport} onClick={() => document.getElementById('importFile')?.click()}>
               <Upload className="w-4 h-4 mr-1" />
               <span>{"Importar"}</span>
             </Button>
             <input id="importFile" type="file" accept=".json" style={{display: 'none'}} onChange={handleImport} />
           </div>
         </div>
+
+        {importPreview && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"><Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto"><CardHeader><CardTitle>Prévia segura da importação</CardTitle><p className="text-sm text-muted-foreground">Nada foi alterado ainda. Revise os MACs abaixo antes de confirmar.</p></CardHeader><CardContent className="space-y-4"><div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><PreviewMetric label="No arquivo" value={importPreview.summary.importedDevices} /><PreviewMetric label="Novos" value={importPreview.summary.newDevices} /><PreviewMetric label="Já existem" value={importPreview.summary.existingMatches} /><PreviewMetric label="Duplicados" value={importPreview.summary.duplicateInFile + importPreview.summary.invalidDevices} /></div>{importPreview.existingMatches.length > 0 && <PreviewList title="MACs já cadastrados — serão atualizados" rows={importPreview.existingMatches.map((row: any) => `${row.mac} · ${row.currentName}`)} />}{importPreview.duplicateInFile.length > 0 && <PreviewList title="MACs repetidos dentro do arquivo" rows={importPreview.duplicateInFile.map((row: any) => `${row.mac} · ${row.nomeServer}`)} danger />}{importPreview.invalidDevices.length > 0 && <PreviewList title="Registros inválidos — não serão importados" rows={importPreview.invalidDevices.map((row: any) => `${row.mac || 'sem MAC'} · ${row.nomeServer}`)} danger />}<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button variant="outline" onClick={() => { setImportPreview(null); setPendingBackup(null); }}>Cancelar</Button><Button onClick={confirmImport} disabled={confirmingImport || !importPreview.valid} className="text-black dark:text-white">{confirmingImport ? 'Importando…' : 'Confirmar importação'}</Button></div>{!importPreview.valid && <p className="text-sm text-destructive">Corrija os registros inválidos no backup antes de importar.</p>}</CardContent></Card></div>}
 
         {/* Stats Cards */}
         {statsError && (
@@ -476,4 +504,12 @@ export default function Dashboard() {
       </div>
     </AdminLayout>
   );
+}
+
+function PreviewMetric({ label, value }: { label: string; value: number }) {
+  return <div className="rounded-lg border p-3"><p className="text-xl font-bold">{value}</p><p className="text-xs text-muted-foreground">{label}</p></div>;
+}
+
+function PreviewList({ title, rows, danger = false }: { title: string; rows: string[]; danger?: boolean }) {
+  return <div className={`rounded-lg border p-3 ${danger ? "border-amber-500/40" : ""}`}><p className="mb-2 text-sm font-medium">{title}</p><div className="space-y-1 text-xs text-muted-foreground">{rows.map((row, index) => <p key={`${row}-${index}`}>{row}</p>)}</div></div>;
 }

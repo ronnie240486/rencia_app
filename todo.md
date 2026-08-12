@@ -437,3 +437,12 @@
 - [x] Criar Busca Global por cliente, MAC, telefone, lista e revenda
 - [x] Criar Central de Segurança com logins, alterações de senha e bloqueios
 - [x] Criar cobrança recorrente para revendas com vencimento e status de pagamento
+
+## Pacote Operacional Avançado
+- [x] Criar etiquetas personalizadas para organizar clientes por situação
+- [x] Criar observações internas por cliente com histórico operacional
+- [x] Permitir anexar referência de comprovante às cobranças de clientes
+- [x] Criar fila de manutenção com status, prioridade e responsável
+- [x] Criar notificações internas para alertas operacionais importantes
+- [x] Formalizar permissões operacionais entre proprietário, master e revenda
+- [x] Criar prévia de importação com detecção de MACs duplicados e alterações

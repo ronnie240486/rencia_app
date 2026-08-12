@@ -33,6 +33,7 @@ import {
   Settings,
   Search,
   ShieldCheck,
+  BellRing,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -54,6 +55,8 @@ const navItems: NavItem[] = [
   { label: "Central de Controle", href: "/central", icon: <ShieldAlert size={18} />, ownerOnly: true },
   { label: "Busca Global", href: "/busca", icon: <Search size={18} /> },
   { label: "Segurança", href: "/seguranca", icon: <ShieldCheck size={18} />, ownerOnly: true },
+  { label: "Alertas", href: "/alertas", icon: <BellRing size={18} /> },
+  { label: "Permissões", href: "/permissoes", icon: <Shield size={18} /> },
   { label: "Cobranças Revendas", href: "/cobrancas-revendas", icon: <WalletCards size={18} />, ownerOnly: true },
   { label: "Diagnóstico", href: "/diagnostico", icon: <Activity size={18} />, ownerOnly: true },
   { label: "Pagamentos", href: "/pagamentos", icon: <WalletCards size={18} /> },

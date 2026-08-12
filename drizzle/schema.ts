@@ -231,12 +231,66 @@ export const payments = mysqlTable("payments", {
   dueDate: date("dueDate"),
   paidAt: timestamp("paidAt"),
   note: text("note"),
+  proofReference: text("proofReference"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = typeof payments.$inferInsert;
+
+// Etiquetas organizacionais aplicadas aos clientes de cada painel
+export const customerTags = mysqlTable("customer_tags", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  name: varchar("name", { length: 64 }).notNull(),
+  color: varchar("color", { length: 7 }).default("#D4A72C").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const deviceTags = mysqlTable("device_tags", {
+  id: int("id").autoincrement().primaryKey(),
+  deviceId: int("deviceId").notNull(),
+  tagId: int("tagId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Observações internas por cliente, sem exposição nas rotas dos aplicativos
+export const customerNotes = mysqlTable("customer_notes", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  deviceId: int("deviceId").notNull(),
+  authorUserId: int("authorUserId").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Fila de tarefas e ocorrências de manutenção do painel
+export const maintenanceTasks = mysqlTable("maintenance_tasks", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  deviceId: int("deviceId"),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  priority: mysqlEnum("priority", ["low", "medium", "high", "critical"]).default("medium").notNull(),
+  status: mysqlEnum("status", ["open", "in_progress", "resolved", "cancelled"]).default("open").notNull(),
+  assignedToUserId: int("assignedToUserId"),
+  dueAt: date("dueAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// Alertas internos do painel para eventos operacionais e de segurança
+export const internalAlerts = mysqlTable("internal_alerts", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  targetUserId: int("targetUserId"),
+  type: mysqlEnum("type", ["info", "warning", "critical", "success"]).default("info").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  isRead: boolean("isRead").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
 
 // Cobranças de assinatura das revendas, separadas das cobranças dos clientes finais
 export const resellerBillings = mysqlTable("reseller_billings", {

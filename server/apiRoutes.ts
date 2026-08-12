@@ -27,7 +27,7 @@ import { getDb } from "./db";
 import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials } from "../drizzle/schema";
 import { eq, or, and } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
-import { exportBackup, importBackup } from "./exportImport";
+import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -3994,6 +3994,18 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error('[API] /api/v5/import-backup error:', error);
       res.status(500).json({ success: false, error: 'Internal error' });
+    }
+  });
+
+  app.post('/api/v5/preview-import-backup', async (req: Request, res: Response) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if (!user?.id) return res.status(401).json({ success: false, error: 'Unauthorized' });
+      const preview = await previewBackupImport(user.id, req.body);
+      res.json({ success: true, preview });
+    } catch (error) {
+      console.error('[API] /api/v5/preview-import-backup error:', error);
+      res.status(400).json({ success: false, error: error instanceof Error ? error.message : 'Não foi possível analisar o backup.' });
     }
   });
 }

@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull, like, or } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
@@ -738,6 +738,7 @@ export const appRouter = router({
         dueDate: payments.dueDate,
         paidAt: payments.paidAt,
         note: payments.note,
+        proofReference: payments.proofReference,
         createdAt: payments.createdAt,
         deviceName: devices.nomeServer,
         deviceMac: devices.mac,
@@ -768,6 +769,7 @@ export const appRouter = router({
       amount: z.string().regex(/^\d+(\.\d{1,2})?$/, "Informe um valor válido"),
       dueDate: z.string().optional(),
       note: z.string().max(1000).optional(),
+      proofReference: z.string().max(2000).optional(),
     })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -779,6 +781,7 @@ export const appRouter = router({
         amount: input.amount,
         dueDate: input.dueDate ? dateOnlyForDatabase(input.dueDate) : null,
         note: input.note?.trim() || null,
+        proofReference: input.proofReference?.trim() || null,
       });
       const id = Number((result as any)[0]?.insertId ?? (result as any).insertId);
       await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "payment", entityId: id, action: "created", summary: `Cobrança de R$ ${input.amount} registrada para ${device.nomeServer}`, afterData: input });
@@ -793,6 +796,16 @@ export const appRouter = router({
       await db.update(payments).set({ status: "paid", paidAt: new Date() }).where(eq(payments.id, input.id));
       const device = await getDeviceById(payment.deviceId, ctx.user.id);
       await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "payment", entityId: input.id, action: "paid", summary: `Pagamento de R$ ${payment.amount} confirmado${device ? ` para ${device.nomeServer}` : ""}`, beforeData: payment, afterData: { status: "paid" } });
+      return { success: true };
+    }),
+
+    attachProof: protectedProcedure.input(z.object({ id: z.number(), proofReference: z.string().trim().min(1).max(2000) })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [payment] = await db.select().from(payments).where(and(eq(payments.id, input.id), eq(payments.ownerId, ctx.user.id))).limit(1);
+      if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "Cobrança não encontrada." });
+      await db.update(payments).set({ proofReference: input.proofReference }).where(eq(payments.id, input.id));
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "payment", entityId: input.id, action: "proof_attached", summary: "Referência de comprovante adicionada à cobrança", afterData: { proofReference: "[registrado]" } });
       return { success: true };
     }),
 
@@ -949,6 +962,34 @@ export const appRouter = router({
       ]);
       return buildMaintenanceOverview(ownedDevices, checks, new Date());
     }),
+    tasks: router({
+      list: protectedProcedure.query(async ({ ctx }) => {
+        const db = await getDb();
+        if (!db) return [];
+        return db.select({ id: maintenanceTasks.id, deviceId: maintenanceTasks.deviceId, title: maintenanceTasks.title, description: maintenanceTasks.description, priority: maintenanceTasks.priority, status: maintenanceTasks.status, assignedToUserId: maintenanceTasks.assignedToUserId, dueAt: maintenanceTasks.dueAt, createdAt: maintenanceTasks.createdAt, updatedAt: maintenanceTasks.updatedAt, deviceName: devices.nomeServer, deviceMac: devices.mac })
+          .from(maintenanceTasks).leftJoin(devices, eq(maintenanceTasks.deviceId, devices.id)).where(eq(maintenanceTasks.ownerId, ctx.user.id)).orderBy(desc(maintenanceTasks.updatedAt)).limit(100);
+      }),
+      create: protectedProcedure.input(z.object({ deviceId: z.number().positive().optional(), title: z.string().trim().min(3).max(255), description: z.string().max(3000).optional(), priority: z.enum(["low", "medium", "high", "critical"]).default("medium"), dueAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() })).mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        if (input.deviceId && !await getDeviceById(input.deviceId, ctx.user.id)) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
+        const result = await db.insert(maintenanceTasks).values({ ownerId: ctx.user.id, deviceId: input.deviceId ?? null, title: input.title.trim(), description: input.description?.trim() || null, priority: input.priority, assignedToUserId: ctx.user.id, dueAt: input.dueAt ? dateOnlyForDatabase(input.dueAt) : null });
+        const id = Number((result as any)[0]?.insertId ?? (result as any).insertId);
+        await db.insert(internalAlerts).values({ ownerId: ctx.user.id, targetUserId: ctx.user.id, type: input.priority === "critical" ? "critical" : input.priority === "high" ? "warning" : "info", title: "Nova tarefa de manutenção", content: input.title.trim() });
+        await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "maintenance_task", entityId: id, action: "created", summary: `Tarefa de manutenção criada: ${input.title.trim()}`, afterData: input });
+        return { success: true, id };
+      }),
+      update: protectedProcedure.input(z.object({ id: z.number().positive(), status: z.enum(["open", "in_progress", "resolved", "cancelled"]).optional(), priority: z.enum(["low", "medium", "high", "critical"]).optional(), assignedToUserId: z.number().positive().nullable().optional() })).mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const task = (await db.select().from(maintenanceTasks).where(and(eq(maintenanceTasks.id, input.id), eq(maintenanceTasks.ownerId, ctx.user.id))).limit(1))[0];
+        if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Tarefa não encontrada." });
+        const { id, ...data } = input;
+        await db.update(maintenanceTasks).set(data).where(eq(maintenanceTasks.id, id));
+        await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "maintenance_task", entityId: id, action: "updated", summary: `Tarefa de manutenção atualizada: ${task.title}`, afterData: data });
+        return { success: true };
+      }),
+    }),
   }),
 
   // ─── Atualizações do APK ─────────────────────────────────────────────────────
@@ -978,13 +1019,97 @@ export const appRouter = router({
       }).from(devices).where(and(eq(devices.id, input.id), eq(devices.ownerId, ctx.user.id))).limit(1);
       const device = deviceResult[0];
       if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
-      const [lists, paymentRows, history, health] = await Promise.all([
+      const [lists, paymentRows, history, health, tags, notes] = await Promise.all([
         db.select({ id: deviceUrls.id, nome: deviceUrls.nome, modoSelecao: deviceUrls.modoSelecao, ordem: deviceUrls.ordem, ativo: deviceUrls.ativo }).from(deviceUrls).where(eq(deviceUrls.deviceId, input.id)).orderBy(deviceUrls.ordem),
-        db.select({ id: payments.id, amount: payments.amount, status: payments.status, dueDate: payments.dueDate, paidAt: payments.paidAt, note: payments.note, createdAt: payments.createdAt }).from(payments).where(and(eq(payments.ownerId, ctx.user.id), eq(payments.deviceId, input.id))).orderBy(desc(payments.createdAt)).limit(12),
+        db.select({ id: payments.id, amount: payments.amount, status: payments.status, dueDate: payments.dueDate, paidAt: payments.paidAt, note: payments.note, proofReference: payments.proofReference, createdAt: payments.createdAt }).from(payments).where(and(eq(payments.ownerId, ctx.user.id), eq(payments.deviceId, input.id))).orderBy(desc(payments.createdAt)).limit(12),
         db.select({ id: auditLogs.id, action: auditLogs.action, summary: auditLogs.summary, createdAt: auditLogs.createdAt }).from(auditLogs).where(and(eq(auditLogs.ownerId, ctx.user.id), eq(auditLogs.entityId, input.id))).orderBy(desc(auditLogs.createdAt)).limit(12),
         db.select({ id: listHealthChecks.id, status: listHealthChecks.status, responseTimeMs: listHealthChecks.responseTimeMs, message: listHealthChecks.message, checkedAt: listHealthChecks.checkedAt }).from(listHealthChecks).where(and(eq(listHealthChecks.ownerId, ctx.user.id), eq(listHealthChecks.deviceId, input.id))).orderBy(desc(listHealthChecks.checkedAt)).limit(8),
+        db.select({ id: customerTags.id, name: customerTags.name, color: customerTags.color }).from(deviceTags).innerJoin(customerTags, eq(deviceTags.tagId, customerTags.id)).where(eq(deviceTags.deviceId, input.id)),
+        db.select({ id: customerNotes.id, content: customerNotes.content, authorUserId: customerNotes.authorUserId, createdAt: customerNotes.createdAt }).from(customerNotes).where(and(eq(customerNotes.ownerId, ctx.user.id), eq(customerNotes.deviceId, input.id))).orderBy(desc(customerNotes.createdAt)).limit(30),
       ]);
-      return { device, connectionState: getConnectionState(device.lastSeen), lists, payments: paymentRows, history, health };
+      return { device, connectionState: getConnectionState(device.lastSeen), lists, payments: paymentRows, history, health, tags, notes };
+    }),
+  }),
+
+  customerOps: router({
+    tags: router({
+      list: protectedProcedure.query(async ({ ctx }) => {
+        const db = await getDb();
+        if (!db) return [];
+        return db.select().from(customerTags).where(eq(customerTags.ownerId, ctx.user.id)).orderBy(customerTags.name);
+      }),
+      create: protectedProcedure.input(z.object({ name: z.string().trim().min(1).max(64), color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default("#D4A72C") })).mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const result = await db.insert(customerTags).values({ ownerId: ctx.user.id, name: input.name.trim(), color: input.color });
+        const id = Number((result as any)[0]?.insertId ?? (result as any).insertId);
+        await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "customer_tag", entityId: id, action: "created", summary: `Etiqueta ${input.name.trim()} criada` });
+        return { success: true, id };
+      }),
+      setForDevice: protectedProcedure.input(z.object({ deviceId: z.number().positive(), tagIds: z.array(z.number().positive()).max(20) })).mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const device = await getDeviceById(input.deviceId, ctx.user.id);
+        if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
+        const validTags = input.tagIds.length ? await db.select({ id: customerTags.id }).from(customerTags).where(and(eq(customerTags.ownerId, ctx.user.id), inArray(customerTags.id, input.tagIds))) : [];
+        if (validTags.length !== input.tagIds.length) throw new TRPCError({ code: "FORBIDDEN", message: "Uma ou mais etiquetas não pertencem ao seu painel." });
+        await db.delete(deviceTags).where(eq(deviceTags.deviceId, input.deviceId));
+        if (input.tagIds.length) await db.insert(deviceTags).values(input.tagIds.map((tagId) => ({ deviceId: input.deviceId, tagId })));
+        await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "device", entityId: input.deviceId, action: "tags_updated", summary: `Etiquetas do cliente ${device.nomeServer} atualizadas`, afterData: { tagIds: input.tagIds } });
+        return { success: true };
+      }),
+    }),
+    notes: router({
+      create: protectedProcedure.input(z.object({ deviceId: z.number().positive(), content: z.string().trim().min(1).max(3000) })).mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const device = await getDeviceById(input.deviceId, ctx.user.id);
+        if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
+        const result = await db.insert(customerNotes).values({ ownerId: ctx.user.id, deviceId: input.deviceId, authorUserId: ctx.user.id, content: input.content.trim() });
+        const id = Number((result as any)[0]?.insertId ?? (result as any).insertId);
+        await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "device", entityId: input.deviceId, action: "note_created", summary: `Observação adicionada ao cliente ${device.nomeServer}` });
+        return { success: true, id };
+      }),
+    }),
+  }),
+
+  alerts: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(internalAlerts)
+        .where(and(eq(internalAlerts.ownerId, ctx.user.id), or(sql`${internalAlerts.targetUserId} IS NULL`, eq(internalAlerts.targetUserId, ctx.user.id))))
+        .orderBy(desc(internalAlerts.createdAt)).limit(100);
+    }),
+    markRead: protectedProcedure.input(z.object({ id: z.number().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.update(internalAlerts).set({ isRead: true }).where(and(eq(internalAlerts.id, input.id), eq(internalAlerts.ownerId, ctx.user.id)));
+      return { success: true };
+    }),
+    markAllRead: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.update(internalAlerts).set({ isRead: true }).where(and(eq(internalAlerts.ownerId, ctx.user.id), eq(internalAlerts.isRead, false)));
+      return { success: true };
+    }),
+  }),
+
+  accessControl: router({
+    policy: protectedProcedure.query(({ ctx }) => {
+      const role = ctx.user.isOwner ? "Ultra Master" : (ctx.user.plano || "Revenda");
+      const isOwner = Boolean(ctx.user.isOwner);
+      return {
+        role,
+        scopes: [
+          { area: "Clientes próprios", allowed: true, detail: "Cadastrar, editar, bloquear e administrar somente os próprios clientes." },
+          { area: "Pagamentos próprios", allowed: true, detail: "Registrar cobranças e comprovantes dos próprios clientes." },
+          { area: "Manutenção própria", allowed: true, detail: "Criar e acompanhar tarefas relacionadas ao próprio painel." },
+          { area: "Clientes de outras revendas", allowed: isOwner, detail: isOwner ? "Acesso completo como proprietário." : "Dados isolados; sem visualização de outras revendas." },
+          { area: "Segurança, backups e configurações do aplicativo", allowed: isOwner, detail: isOwner ? "Acesso exclusivo do proprietário." : "Área reservada ao Ultra Master." },
+          { area: "Criar e bloquear revendas", allowed: isOwner, detail: isOwner ? "Pode administrar a hierarquia de revendas." : "Sem permissão de administração global." },
+        ],
+      };
     }),
   }),
 

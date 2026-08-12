@@ -44,6 +44,8 @@ import BackupCenter from "./pages/BackupCenter";
 import GlobalSearch from "./pages/GlobalSearch";
 import SecurityCenter from "./pages/SecurityCenter";
 import ResellerBilling from "./pages/ResellerBilling";
+import AlertsCenter from "./pages/AlertsCenter";
+import Permissions from "./pages/Permissions";
 
 function Router() {
   return (
@@ -90,6 +92,8 @@ function Router() {
       <Route path="/busca" component={GlobalSearch} />
       <Route path="/seguranca" component={SecurityCenter} />
       <Route path="/cobrancas-revendas" component={ResellerBilling} />
+      <Route path="/alertas" component={AlertsCenter} />
+      <Route path="/permissoes" component={Permissions} />
       <Route path={"*"} component={NotFound} />
     </Switch>
   );
