@@ -22,6 +22,7 @@ import { buildFinancialReport } from "./financialReport";
 import { normalizeMessageTemplate } from "./messageTemplate";
 import { buildSessionOverview } from "./sessionControl";
 import { summarizeResellerFinance } from "./resellerReport";
+import { buildRenewalAgenda } from "./renewalAgenda";
 import { probeListUrl } from "./listHealth";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 
@@ -717,6 +718,18 @@ export const appRouter = router({
           finance,
         };
       });
+    }),
+  }),
+
+  // ─── Agenda de Renovação ─────────────────────────────────────────────────────
+  renewals: router({
+    list: protectedProcedure.input(z.object({ days: z.number().min(1).max(90).optional().default(30), status: z.enum(["all", "Liberado", "Bloqueado", "Expirado"]).optional().default("all") })).query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db.select({ id: devices.id, nomeServer: devices.nomeServer, telefone: devices.telefone, dataExpiracao: devices.dataExpiracao, status: devices.status })
+        .from(devices).where(and(eq(devices.ownerId, ctx.user.id), isNotNull(devices.dataExpiracao)));
+      const agenda = buildRenewalAgenda(rows as any);
+      return agenda.filter((item) => item.days <= input.days && (input.status === "all" || item.status === input.status));
     }),
   }),
 

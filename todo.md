@@ -392,3 +392,8 @@
 - [x] Consolidar clientes, dispositivos e limites por revenda
 - [x] Consolidar vencimentos e pagamentos por revenda
 - [x] Criar tela de acompanhamento geral das revendas para o proprietário
+
+## Agenda de Renovação
+- [x] Criar lista de vencimentos para hoje, amanhã e próximos dias
+- [x] Criar filtros por período e status do cliente
+- [x] Preparar avisos em massa para os clientes selecionados
