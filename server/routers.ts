@@ -1821,6 +1821,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         titulo: z.string().min(1, "Título obrigatório"),
+        grupo: z.string().trim().min(1).max(128).optional().default("Padrão"),
         host: z.string().min(1, "Host obrigatório"),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -1831,6 +1832,7 @@ export const appRouter = router({
         await db.insert(dnsEntries).values({
           ownerId: ctx.user.id,
           titulo: input.titulo,
+          grupo: input.grupo,
           host,
           ativo: true,
         });
@@ -1840,6 +1842,7 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         titulo: z.string().min(1).optional(),
+        grupo: z.string().trim().min(1).max(128).optional(),
         host: z.string().min(1).optional(),
         ativo: z.boolean().optional(),
       }))

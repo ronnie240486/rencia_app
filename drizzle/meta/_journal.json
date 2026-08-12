@@ -281,6 +281,13 @@
       "when": 1786551660846,
       "tag": "0039_gray_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "5",
+      "when": 1786552068140,
+      "tag": "0040_zippy_yellowjacket",
+      "breakpoints": true
     }
   ]
 }

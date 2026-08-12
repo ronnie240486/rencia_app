@@ -59,6 +59,7 @@ export const devices = mysqlTable("devices", {
   forceShowChannel: boolean("forceShowChannel").default(false).notNull(), // força envio do canal mesmo sem Device Type = TV
   activeDeviceUrlId: int("activeDeviceUrlId"), // null = lista principal legada; id = lista extra priorizada
   listFailoverEnabled: boolean("listFailoverEnabled").default(true).notNull(),
+  maxConcurrentConnections: int("maxConcurrentConnections").default(1).notNull(),
 });
 
 export type Device = typeof devices.$inferSelect;
@@ -110,6 +111,7 @@ export const dnsEntries = mysqlTable("dns_entries", {
   id: int("id").autoincrement().primaryKey(),
   ownerId: int("ownerId").notNull(),
   titulo: varchar("titulo", { length: 128 }).notNull(),
+  grupo: varchar("grupo", { length: 128 }).default("Padrão").notNull(),
   host: varchar("host", { length: 512 }).notNull(), // Ex: http://servidor.com ou http://servidor.com:8080
   ativo: boolean("ativo").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
