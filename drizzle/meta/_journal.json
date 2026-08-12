@@ -225,6 +225,13 @@
       "when": 1786512817974,
       "tag": "0031_yummy_ikaris",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "5",
+      "when": 1786527987028,
+      "tag": "0032_friendly_secret_warriors",
+      "breakpoints": true
     }
   ]
 }

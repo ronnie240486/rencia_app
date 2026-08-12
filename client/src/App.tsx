@@ -38,6 +38,7 @@ import Sessions from "./pages/Sessions";
 import ResellerReport from "./pages/ResellerReport";
 import RenewalAgenda from "./pages/RenewalAgenda";
 import MaintenanceCenter from "./pages/MaintenanceCenter";
+import ApkUpdates from "./pages/ApkUpdates";
 
 function Router() {
   return (
@@ -78,6 +79,7 @@ function Router() {
       <Route path="/relatorio-revendas" component={ResellerReport} />
       <Route path="/agenda-renovacao" component={RenewalAgenda} />
       <Route path="/manutencao" component={MaintenanceCenter} />
+      <Route path="/atualizacoes" component={ApkUpdates} />
       <Route path={"*"} component={NotFound} />
     </Switch>
   );

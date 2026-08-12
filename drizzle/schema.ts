@@ -44,6 +44,7 @@ export const devices = mysqlTable("devices", {
   tipo: mysqlEnum("tipo", ["Usuario", "Revenda", "UltraMaster", "Master"]).default("Usuario").notNull(),
   modoSelecao: mysqlEnum("modoSelecao", ["XTeamCode", "M3U8"]).default("XTeamCode").notNull(),
   app: varchar("app", { length: 128 }),
+  appVersion: varchar("appVersion", { length: 64 }),
   urlM3u8: text("urlM3u8"),
   urlEpg: text("urlEpg"),
   valor: decimal("valor", { precision: 10, scale: 2 }),

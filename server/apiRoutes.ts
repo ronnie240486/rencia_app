@@ -540,6 +540,7 @@ export function registerApiRoutes(app: Express) {
 
       // O APK envia { data: "<BASE64>" }
       let macAddress: string | null = null;
+      let reportedAppVersion: string | null = null;
 
       // LOG para diagnóstico do body enviado pelo APK
       console.log("[APK-BODY] Raw body keys:", body ? Object.keys(body) : "null");
@@ -555,6 +556,7 @@ export function registerApiRoutes(app: Express) {
         // Usar decodeFromApk para remover a key antes de decodificar
         const parsed = decodeFromApk(String(body.data));
         if (parsed) {
+          reportedAppVersion = String(parsed.app_version ?? parsed.appVersion ?? parsed.version_name ?? parsed.version ?? "").trim().slice(0, 64) || null;
           const rawDeviceId = (parsed.app_device_id as string) ?? null;
           if (rawDeviceId) {
             // Verificar se já é um MAC no formato XX:XX:XX:XX:XX:XX (sem Base64)
@@ -714,6 +716,7 @@ export function registerApiRoutes(app: Express) {
         if (currentContent !== null) {
           updateSet.currentContent = currentContent;
         }
+        if (reportedAppVersion) updateSet.appVersion = reportedAppVersion;
         await db
           .update(devices)
           .set(updateSet)
@@ -1338,6 +1341,7 @@ export function registerApiRoutes(app: Express) {
       const body = req.body as Record<string, unknown>;
       let macAddress: string | null = null;
       let currentContent: string | null = null;
+      let reportedAppVersion: string | null = body ? String(body.app_version ?? body.appVersion ?? body.version ?? "").trim().slice(0, 64) || null : null;
 
       // Formato 1: { mac, content } — plain JSON
       if (body && body.mac) {
@@ -1357,6 +1361,7 @@ export function registerApiRoutes(app: Express) {
               || (parsed.current_series as string)
               || (parsed.current_content as string)
               || null;
+            reportedAppVersion = String(parsed.app_version ?? parsed.appVersion ?? parsed.version_name ?? parsed.version ?? reportedAppVersion ?? "").trim().slice(0, 64) || null;
           }
         } catch { /* ignora */ }
       }
@@ -1386,6 +1391,7 @@ export function registerApiRoutes(app: Express) {
       // IMPORTANTE: Só atualizar currentContent se houver novo valor
       // Nunca limpar o canal anterior
       if (currentContent) updateSet.currentContent = currentContent;
+      if (reportedAppVersion) updateSet.appVersion = reportedAppVersion;
 
       // Atualizar por MAC exato ou normalizado
       await db

@@ -402,3 +402,8 @@
 - [x] Consolidar falhas recentes de listas em uma única tela
 - [x] Mostrar dispositivos offline e bloqueados que exigem atenção
 - [x] Priorizar ações de manutenção por nível de risco
+
+## Painel de Atualizações do APK
+- [x] Consolidar clientes por aplicativo e versão em uso
+- [x] Identificar clientes com versão inferior à versão configurada
+- [x] Preparar avisos em massa para clientes desatualizados

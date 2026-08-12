@@ -24,6 +24,7 @@ import { buildSessionOverview } from "./sessionControl";
 import { summarizeResellerFinance } from "./resellerReport";
 import { buildRenewalAgenda } from "./renewalAgenda";
 import { buildMaintenanceOverview } from "./maintenanceCenter";
+import { buildApkUpdateOverview } from "./apkUpdates";
 import { probeListUrl } from "./listHealth";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 
@@ -744,6 +745,21 @@ export const appRouter = router({
         db.select({ deviceId: listHealthChecks.deviceId, deviceUrlId: listHealthChecks.deviceUrlId, status: listHealthChecks.status, message: listHealthChecks.message, checkedAt: listHealthChecks.checkedAt }).from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id)),
       ]);
       return buildMaintenanceOverview(ownedDevices, checks, new Date());
+    }),
+  }),
+
+  // ─── Atualizações do APK ─────────────────────────────────────────────────────
+  apkUpdates: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { versions: { ouroPro: null, maximus: null }, devices: [] };
+      const [deviceRows, settings] = await Promise.all([
+        db.select({ id: devices.id, nomeServer: devices.nomeServer, app: devices.app, appVersion: devices.appVersion, telefone: devices.telefone, lastSeen: devices.lastSeen }).from(devices).where(eq(devices.ownerId, ctx.user.id)),
+        db.select({ key: appSettings.key, value: appSettings.value }).from(appSettings).where(inArray(appSettings.key, ["apk_version", "gpcpro_apk_version"])),
+      ]);
+      const byKey = Object.fromEntries(settings.map((setting) => [setting.key, setting.value]));
+      const versions = { ouroPro: byKey.apk_version ?? null, maximus: byKey.gpcpro_apk_version ?? null };
+      return { versions, devices: buildApkUpdateOverview(deviceRows, versions) };
     }),
   }),
 
