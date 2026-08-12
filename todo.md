@@ -369,3 +369,11 @@
 - [x] Bloquear revenda de forma efetiva no login e no acesso aos próprios clientes
 - [x] Aplicar limite de dispositivos da revenda ao cadastrar clientes
 - [x] Exibir uso e limite de dispositivos no painel da revenda
+
+## Atendimento por Cliente
+- [ ] Pulado: cliente final não acessa o painel
+
+## Relatórios Financeiros
+- [x] Criar indicadores de receita recebida, pendências e atrasos
+- [x] Criar filtro de período para os relatórios
+- [x] Criar tela de relatório financeiro para proprietário e revendas

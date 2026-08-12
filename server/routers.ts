@@ -18,6 +18,7 @@ import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 import { getEffectivePaymentStatus } from "./payments";
+import { buildFinancialReport } from "./financialReport";
 import { probeListUrl } from "./listHealth";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 
@@ -517,7 +518,7 @@ export const appRouter = router({
 
   // ─── Controle Financeiro ─────────────────────────────────────────────────────
   payments: router({
-    list: ownerProcedure.query(async ({ ctx }) => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
       const rows = await db.select({
@@ -540,7 +541,20 @@ export const appRouter = router({
       }));
     }),
 
-    create: ownerProcedure.input(z.object({
+    report: protectedProcedure.input(z.object({
+      start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    })).query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return buildFinancialReport([], input);
+      const rows = await db.select().from(payments).where(eq(payments.ownerId, ctx.user.id));
+      return buildFinancialReport(rows.map((payment) => ({
+        ...payment,
+        status: getEffectivePaymentStatus(payment.status, payment.dueDate),
+      })), input);
+    }),
+
+    create: protectedProcedure.input(z.object({
       deviceId: z.number(),
       amount: z.string().regex(/^\d+(\.\d{1,2})?$/, "Informe um valor válido"),
       dueDate: z.string().optional(),
@@ -562,7 +576,7 @@ export const appRouter = router({
       return { success: true, id };
     }),
 
-    markPaid: ownerProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+    markPaid: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const [payment] = await db.select().from(payments).where(and(eq(payments.id, input.id), eq(payments.ownerId, ctx.user.id))).limit(1);
@@ -573,7 +587,7 @@ export const appRouter = router({
       return { success: true };
     }),
 
-    remove: ownerProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+    remove: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const [payment] = await db.select().from(payments).where(and(eq(payments.id, input.id), eq(payments.ownerId, ctx.user.id))).limit(1);
