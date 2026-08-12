@@ -1057,7 +1057,6 @@ export const appRouter = router({
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         const task = (await db.select().from(maintenanceTasks).where(and(eq(maintenanceTasks.id, input.id), eq(maintenanceTasks.ownerId, ctx.user.id))).limit(1))[0];
         if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Tarefa não encontrada." });
-        if (!['resolved', 'cancelled'].includes(task.status)) throw new TRPCError({ code: "BAD_REQUEST", message: "Conclua ou cancele a tarefa antes de apagá-la." });
         await db.delete(maintenanceTasks).where(eq(maintenanceTasks.id, input.id));
         return { success: true };
       }),
@@ -1065,6 +1064,12 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         await db.delete(maintenanceTasks).where(and(eq(maintenanceTasks.ownerId, ctx.user.id), inArray(maintenanceTasks.status, ["resolved", "cancelled"])));
+        return { success: true };
+      }),
+      clearAll: protectedProcedure.mutation(async ({ ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.delete(maintenanceTasks).where(eq(maintenanceTasks.ownerId, ctx.user.id));
         return { success: true };
       }),
     }),

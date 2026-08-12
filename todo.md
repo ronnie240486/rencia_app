@@ -457,3 +457,4 @@
 - [x] Adicionar lixeira individual e limpeza total para Alertas Internos
 - [x] Adicionar lixeira individual e limpeza total para fila de Manutenção concluída/cancelada
 - [x] Completar lixeira em todas as demais telas que exibem histórico operacional
+- [x] Corrigir visibilidade das lixeiras na Central de Manutenção e demais telas publicadas
