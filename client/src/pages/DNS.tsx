@@ -45,6 +45,10 @@ export default function DNS() {
     onSuccess: () => { toast.success("DNS removida!"); setDeleteId(null); refetch(); },
     onError: (e) => toast.error(e.message),
   });
+  const applyGroupMut = trpc.dns.applyGroupToDevices.useMutation({
+    onSuccess: (data) => toast.success(`DNS aplicada a ${data.updated} cliente(s) do grupo.`),
+    onError: (e) => toast.error(e.message),
+  });
   const swapMut = trpc.devices.bulkSwapDns.useMutation({
     onSuccess: (data) => {
       if (data.count === 0) {
@@ -166,6 +170,21 @@ export default function DNS() {
                       >
                         <Pencil size={12} />
                       </Button>
+                      {dnsList.filter((item) => (item.grupo ?? "Padrão") === (dns.grupo ?? "Padrão")).length > 1 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-emerald-600 hover:text-emerald-700"
+                          title={`Aplicar esta DNS a todos os clientes do grupo ${dns.grupo ?? "Padrão"}`}
+                          disabled={applyGroupMut.isPending}
+                          onClick={() => {
+                            const group = dns.grupo ?? "Padrão";
+                            if (window.confirm(`Aplicar a DNS “${dns.titulo}” para os clientes vinculados ao grupo “${group}”?`)) applyGroupMut.mutate({ grupo: group, targetDnsId: dns.id });
+                          }}
+                        >
+                          <CheckCircle2 size={12} />
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
