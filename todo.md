@@ -333,3 +333,10 @@
 - [x] Garantir que usuários deletados não conseguem fazer login
 - [x] Criar teste vitest para validar segurança do login
 - [x] Validar que usuários inativos são rejeitados
+
+## Correções urgentes de vencimento e dados (11/08/2026)
+- [x] Corrigir deslocamento de data: data escolhida no calendário deve ser salva e exibida no mesmo dia
+- [x] Criar verificação automática apenas quando faltar exatamente 1 dia para a expiração do usuário
+- [x] Executar a verificação ao criar e editar usuários já cadastrados
+- [ ] Integrar envio real e automático de WhatsApp, sem abrir links ou exigir cliques manuais
+- [ ] Atualizar imediatamente no painel a data e as listas recém-salvas

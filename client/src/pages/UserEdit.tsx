@@ -11,6 +11,7 @@ import { AlertTriangle, ArrowLeft, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
+import { toDateOnly } from "@shared/dateOnly";
 
 /**
  * Monta a URL M3U8 a partir dos campos XteamCode (usuário, senha, servidor).
@@ -94,9 +95,7 @@ export default function UserEdit() {
         app: device.app ?? "OuroPro",
         urlEpg: device.urlEpg ?? "",
         valor: device.valor ? String(device.valor) : "",
-        dataExpiracao: device.dataExpiracao
-          ? new Date(device.dataExpiracao).toISOString().split("T")[0]
-          : "",
+        dataExpiracao: toDateOnly(device.dataExpiracao),
         tipo: (device.tipo as "Usuario" | "Revenda" | "UltraMaster" | "Master") ?? "Usuario",
         status: (device.status as "Liberado" | "Bloqueado" | "Expirado") ?? "Liberado",
         telefone: device.telefone ? device.telefone.replace(/^\+55/, "") : "",

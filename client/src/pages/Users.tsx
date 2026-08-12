@@ -21,6 +21,7 @@ import {
 import { useState } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
+import { formatDateOnlyPtBr } from "@shared/dateOnly";
 
 const PAGE_SIZE = 50;
 
@@ -114,8 +115,7 @@ export default function Users() {
   });
 
   const formatDate = (d: Date | string | null | undefined) => {
-    if (!d) return "—";
-    try { return format(new Date(d), "dd/MM/yyyy", { locale: ptBR }); } catch { return "—"; }
+    return formatDateOnlyPtBr(d);
   };
 
   const handleSearch = () => {

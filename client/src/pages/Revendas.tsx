@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { formatDateOnlyPtBr, toDateOnly } from "@shared/dateOnly";
 
 interface RevendaForm {
   name: string;
@@ -88,7 +89,7 @@ export default function Revendas() {
       name: r.name ?? "",
       email: r.email ?? "",
       plano: r.plano ?? "Revenda",
-      planValidade: r.planValidade ? new Date(r.planValidade).toISOString().split("T")[0] : "",
+      planValidade: toDateOnly(r.planValidade),
       limiteDevices: r.limiteDevices ?? 50,
       limiteRevendas: r.limiteRevendas ?? 0,
     });
@@ -227,7 +228,7 @@ export default function Revendas() {
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{r.limiteDevices ?? 0} devices</td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
-                        {r.planValidade ? new Date(r.planValidade).toLocaleDateString("pt-BR") : "—"}
+                        {formatDateOnlyPtBr(r.planValidade)}
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         <span className="inline-flex items-center gap-1 text-sm font-semibold text-foreground">

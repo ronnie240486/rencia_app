@@ -2,6 +2,7 @@ import { and, count, desc, eq, gte, like, lt, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, apps, devices, deviceUrls, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { dateOnlyForDatabase } from "../shared/dateOnly";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -122,7 +123,7 @@ export async function createDevice(data: {
     urlM3u8: data.urlM3u8 ?? null,
     urlEpg: data.urlEpg ?? null,
     valor: data.valor ?? null,
-    dataExpiracao: data.dataExpiracao ? new Date(data.dataExpiracao) : null,
+    dataExpiracao: data.dataExpiracao ? dateOnlyForDatabase(data.dataExpiracao) : null,
     telefone: data.telefone ?? null,
     status: "Liberado",
   });
@@ -155,7 +156,7 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
   if (data.urlM3u8 !== undefined) updateData.urlM3u8 = data.urlM3u8;
   if (data.urlEpg !== undefined) updateData.urlEpg = data.urlEpg;
   if (data.valor !== undefined) updateData.valor = data.valor;
-  if (data.dataExpiracao !== undefined) updateData.dataExpiracao = data.dataExpiracao ? new Date(data.dataExpiracao) : null;
+  if (data.dataExpiracao !== undefined) updateData.dataExpiracao = data.dataExpiracao ? dateOnlyForDatabase(data.dataExpiracao) : null;
   if (data.status !== undefined) updateData.status = data.status;
   if (data.telefone !== undefined) updateData.telefone = data.telefone;
   if (Object.keys(updateData).length === 0) return;

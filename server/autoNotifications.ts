@@ -1,46 +1,45 @@
 import { getDb } from "./db";
-import { users, notices, nuvixConfig } from "../drizzle/schema";
-import { eq, and, lte, gte } from "drizzle-orm";
+import { devices, notices } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
+import { daysUntilDateOnly, formatDateOnlyPtBr } from "../shared/dateOnly";
+
+export function isExpirationNoticeDue(dataExpiracao: string | Date, reference = new Date()): boolean {
+  return daysUntilDateOnly(dataExpiracao, reference) === 1;
+}
 
 /**
  * Verifica se um usuário está próximo de vencer e manda aviso automático
  */
-export async function checkAndSendExpirationNotice(userId: number, planValidade?: string | null) {
-  if (!planValidade) return;
+export async function checkAndSendExpirationNotice(deviceId: number, dataExpiracao?: string | null) {
+  if (!dataExpiracao) return { created: false, reason: "no-expiration-date" as const };
 
   try {
     const db = await getDb();
-    if (!db) return;
+    if (!db) return { created: false, reason: "database-unavailable" as const };
 
-    // Buscar usuário
-    const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-    if (!user.length) return;
+    const [device] = await db.select().from(devices).where(eq(devices.id, deviceId)).limit(1);
+    if (!device) return { created: false, reason: "device-not-found" as const };
 
-    const resellerId = user[0].resellerId || userId;
-
-    // Calcular dias até vencer
-    const expireDate = new Date(planValidade);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    expireDate.setHours(0, 0, 0, 0);
-
-    const daysUntilExpire = Math.ceil((expireDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const daysUntilExpire = daysUntilDateOnly(dataExpiracao);
 
     // Manda notificação SOMENTE quando faltar exatamente 1 dia
-    if (daysUntilExpire === 1) {
-      const message = `⚠️ Seu acesso vence em 1 dia! Data: ${planValidade}`;
+    if (isExpirationNoticeDue(dataExpiracao)) {
+      const message = `⚠️ ${device.nomeServer} vence em 1 dia! Data: ${formatDateOnlyPtBr(dataExpiracao)}.`;
 
       // Criar aviso
       await db.insert(notices).values({
-        autorId: resellerId,
+        autorId: device.ownerId,
         titulo: "Aviso de Vencimento",
         conteudo: message,
         ativo: true,
       });
 
-      console.log(`[Auto-Notification] Aviso enviado para usuário ${userId}: ${message}`);
+      console.log(`[Auto-Notification] Aviso criado para device ${deviceId}: ${message}`);
+      return { created: true, reason: "expires-tomorrow" as const };
     }
+    return { created: false, reason: "not-due-tomorrow" as const };
   } catch (error) {
     console.error("[Auto-Notification] Erro:", error);
+    return { created: false, reason: "error" as const };
   }
 }

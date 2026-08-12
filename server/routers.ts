@@ -117,6 +117,11 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: `Limite de ${limite} devices atingido.` });
         }
         const result = await createDevice({ ownerId: ctx.user.id, ...input });
+
+        if (input.dataExpiracao) {
+          const { checkAndSendExpirationNotice } = await import("./autoNotifications");
+          await checkAndSendExpirationNotice(result.id, input.dataExpiracao);
+        }
         return { success: true, id: result.id };
       }),
 
