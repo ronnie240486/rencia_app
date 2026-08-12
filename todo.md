@@ -465,7 +465,7 @@
 - [ ] Executar o monitoramento automático de listas a cada 10 minutos
 - [ ] Priorizar Lista 2 e depois Lista 3 quando a lista principal falhar
 - [ ] Registrar o histórico de falhas e trocas automáticas de lista
-- [ ] Permitir duplicar uma lista para vários clientes de uma vez
+- [x] Permitir duplicar uma lista para vários clientes de uma vez
 - [ ] Criar grupos de DNS e aplicar troca de DNS por grupo
 - [ ] Definir limite de conexões simultâneas por cliente
 - [ ] Criar relatório de instabilidade por lista e servidor

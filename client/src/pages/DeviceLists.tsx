@@ -11,6 +11,7 @@ import { trpc } from "@/lib/trpc";
 import {
   ArrowLeft,
   Edit2,
+  Copy,
   List,
   Loader2,
   Plus,
@@ -50,9 +51,12 @@ export default function DeviceLists() {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<ListForm>(emptyForm);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [copySourceId, setCopySourceId] = useState<number | null>(null);
+  const [copyTargets, setCopyTargets] = useState<number[]>([]);
 
   const { data: device } = trpc.devices.getById.useQuery({ id: deviceId }, { enabled: !!deviceId });
   const { data: lists, isLoading, refetch } = trpc.deviceUrls.list.useQuery({ deviceId }, { enabled: !!deviceId });
+  const { data: availableTargets = [] } = trpc.deviceUrls.copyTargets.useQuery({ deviceId }, { enabled: !!deviceId && copySourceId !== null });
 
   const addMut = trpc.deviceUrls.add.useMutation({
     onSuccess: () => { toast.success("Lista adicionada!"); setShowDialog(false); refetch(); },
@@ -64,6 +68,10 @@ export default function DeviceLists() {
   });
   const deleteMut = trpc.deviceUrls.delete.useMutation({
     onSuccess: () => { toast.success("Lista removida!"); setDeleteId(null); refetch(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const copyMut = trpc.deviceUrls.duplicateToDevices.useMutation({
+    onSuccess: (result) => { toast.success(`Lista copiada para ${result.copied} cliente(s)!`); setCopySourceId(null); setCopyTargets([]); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -197,6 +205,9 @@ export default function DeviceLists() {
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(l)}>
                       <Edit2 size={13} />
                     </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" title="Copiar para outros clientes" onClick={() => { setCopySourceId(l.id); setCopyTargets([]); }}>
+                      <Copy size={13} />
+                    </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(l.id)}>
                       <Trash2 size={13} />
                     </Button>
@@ -306,6 +317,18 @@ export default function DeviceLists() {
               {editId ? "Salvar" : "Adicionar"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={copySourceId !== null} onOpenChange={() => { setCopySourceId(null); setCopyTargets([]); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Copiar lista para clientes</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Selecione os clientes que receberão uma cópia desta lista.</p>
+          <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border p-2">
+            {availableTargets.map((target) => <label key={target.id} className="flex cursor-pointer items-center gap-3 rounded-md p-2 hover:bg-muted"><input type="checkbox" checked={copyTargets.includes(target.id)} onChange={(event) => setCopyTargets(current => event.target.checked ? [...current, target.id] : current.filter(id => id !== target.id))} /><span className="min-w-0"><span className="block truncate text-sm font-medium">{target.nomeServer}</span><span className="block font-mono text-xs text-muted-foreground">{target.mac}</span></span></label>)}
+            {!availableTargets.length && <p className="p-3 text-center text-sm text-muted-foreground">Nenhum outro cliente disponível.</p>}
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setCopySourceId(null)}>Cancelar</Button><Button className="btn-add-user" disabled={!copySourceId || copyTargets.length === 0 || copyMut.isPending} onClick={() => copySourceId && copyMut.mutate({ sourceId: copySourceId, sourceDeviceId: deviceId, targetDeviceIds: copyTargets })}>{copyMut.isPending && <Loader2 size={14} className="mr-2 animate-spin" />}Copiar para selecionados</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

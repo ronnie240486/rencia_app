@@ -1347,6 +1347,16 @@ export const appRouter = router({
         return getDeviceUrls(input.deviceId);
       }),
 
+    copyTargets: protectedProcedure
+      .input(z.object({ deviceId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const device = await getDeviceById(input.deviceId, ctx.user.id);
+        if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
+        const db = await getDb();
+        if (!db) return [];
+        return db.select({ id: devices.id, nomeServer: devices.nomeServer, mac: devices.mac }).from(devices).where(and(eq(devices.ownerId, ctx.user.id), sql`${devices.id} <> ${input.deviceId}`)).orderBy(desc(devices.createdAt)).limit(100);
+      }),
+
     add: protectedProcedure
       .input(z.object({
         deviceId: z.number(),
