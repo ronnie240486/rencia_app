@@ -66,6 +66,7 @@ export default function UserEdit() {
     tipo: "Usuario" as "Usuario" | "Revenda" | "UltraMaster" | "Master",
     status: "Liberado" as "Liberado" | "Bloqueado" | "Expirado",
     telefone: "",
+    maxConcurrentConnections: 1,
   });
 
   // formKey força re-render dos Select quando os dados chegam do servidor
@@ -99,6 +100,7 @@ export default function UserEdit() {
         tipo: (device.tipo as "Usuario" | "Revenda" | "UltraMaster" | "Master") ?? "Usuario",
         status: (device.status as "Liberado" | "Bloqueado" | "Expirado") ?? "Liberado",
         telefone: device.telefone ? device.telefone.replace(/^\+55/, "") : "",
+        maxConcurrentConnections: device.maxConcurrentConnections ?? 1,
       });
       // Incrementar formKey força os Select a re-renderizarem com os novos valores
       setFormKey(k => k + 1);
@@ -153,6 +155,7 @@ export default function UserEdit() {
       valor: form.valor || undefined,
       dataExpiracao: form.dataExpiracao || undefined,
       telefone: form.telefone ? `+55${form.telefone.replace(/\D/g, "")}` : undefined,
+      maxConcurrentConnections: form.maxConcurrentConnections,
     });
   };
 
@@ -378,6 +381,19 @@ export default function UserEdit() {
                 onChange={e => setForm(f => ({ ...f, dataExpiracao: e.target.value }))}
                 className="h-10"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">LIMITE DE CONEXÕES SIMULTÂNEAS:</Label>
+              <Input
+                type="number"
+                min="1"
+                max="10"
+                value={form.maxConcurrentConnections}
+                onChange={e => setForm(f => ({ ...f, maxConcurrentConnections: Math.min(10, Math.max(1, Number(e.target.value) || 1)) }))}
+                className="h-10"
+              />
+              <p className="text-xs text-muted-foreground">Define a quantidade máxima configurada para este cliente.</p>
             </div>
 
             {/* Telefone */}
