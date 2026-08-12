@@ -246,6 +246,13 @@
       "when": 1786540159338,
       "tag": "0034_conscious_swordsman",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "5",
+      "when": 1786541511643,
+      "tag": "0035_mean_stingray",
+      "breakpoints": true
     }
   ]
 }

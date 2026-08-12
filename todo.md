@@ -370,6 +370,11 @@
 - [x] Aplicar limite de dispositivos da revenda ao cadastrar clientes
 - [x] Exibir uso e limite de dispositivos no painel da revenda
 
+## Correção Crítica de Revendas
+- [x] Corrigir avisos de vencimento para aparecerem somente na revenda dona do cliente
+- [x] Impedir acesso imediato da revenda bloqueada em todas as sessões existentes
+- [x] Corrigir limite de dispositivos configurado para não voltar para 999
+
 ## Atendimento por Cliente
 - [ ] Pulado: cliente final não acessa o painel
 

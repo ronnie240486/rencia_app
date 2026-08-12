@@ -179,6 +179,7 @@ export type InsertLocalCredential = typeof localCredentials.$inferInsert;
 export const notices = mysqlTable("notices", {
   id: int("id").autoincrement().primaryKey(),
   autorId: int("autorId").notNull(),
+  targetOwnerId: int("targetOwnerId"),
   titulo: varchar("titulo", { length: 255 }).notNull(),
   conteudo: text("conteudo").notNull(),
   ativo: boolean("ativo").default(true).notNull(),

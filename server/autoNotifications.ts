@@ -30,7 +30,7 @@ export async function checkAndSendExpirationNotice(deviceId: number, dataExpirac
         .select({ id: notices.id })
         .from(notices)
         .where(and(
-          eq(notices.autorId, device.ownerId),
+          eq(notices.targetOwnerId, device.ownerId),
           eq(notices.titulo, "Aviso de Vencimento"),
           eq(notices.conteudo, message),
           eq(notices.ativo, true),
@@ -44,6 +44,7 @@ export async function checkAndSendExpirationNotice(deviceId: number, dataExpirac
       // Criar aviso
       await db.insert(notices).values({
         autorId: device.ownerId,
+        targetOwnerId: device.ownerId,
         titulo: "Aviso de Vencimento",
         conteudo: message,
         ativo: true,

@@ -1,6 +1,7 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
 import { sdk } from "./sdk";
+import { COOKIE_NAME } from "@shared/const";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -17,6 +18,7 @@ export async function createContext(
     user = await sdk.authenticateRequest(opts.req);
     if (user && !user.isActive) {
       console.warn('[Auth] Blocked user attempted to access the panel:', user.id);
+      opts.res.clearCookie(COOKIE_NAME);
       user = null;
     }
     if (!user) {

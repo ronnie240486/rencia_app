@@ -359,14 +359,7 @@ export async function createRevenda(data: {
     lastSignedIn: new Date(),
   });
   
-  // Enviar aviso automático se tiver data de vencimento
   const revendaId = Number((result as any).insertId);
-  if (data.planValidade) {
-    const { checkAndSendExpirationNotice } = await import('./autoNotifications');
-    checkAndSendExpirationNotice(revendaId, data.planValidade).catch(err => {
-      console.error('[createRevenda] Erro ao enviar notificação:', err);
-    });
-  }
   return { id: revendaId };
 }
 

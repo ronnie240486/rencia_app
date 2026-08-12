@@ -17,6 +17,7 @@ import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, ca
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
+import { getEnforcedDeviceLimit } from "./deviceLimit";
 import { getEffectivePaymentStatus } from "./payments";
 import { buildFinancialReport } from "./financialReport";
 import { normalizeMessageTemplate } from "./messageTemplate";
@@ -230,7 +231,15 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const planInfo = await getUserPlanInfo(ctx.user.id);
         const stats = await getDeviceStats(ctx.user.id);
-        const limite = planInfo?.limiteDevices ?? 999;
+        if (!planInfo) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Plano da revenda não encontrado." });
+        }
+        let limite: number;
+        try {
+          limite = getEnforcedDeviceLimit(planInfo.limiteDevices);
+        } catch {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Limite de dispositivos inválido. Entre em contato com o administrador." });
+        }
         if (stats.total >= limite) {
           throw new TRPCError({ code: "FORBIDDEN", message: `Limite de ${limite} devices atingido.` });
         }
@@ -1043,14 +1052,6 @@ export const appRouter = router({
         const passwordHash = password ? await (await import("./auth")).hashPassword(password) : undefined;
         await updateRevenda(id, ctx.user.id, { ...data, passwordHash });
         
-        // Enviar aviso automatico se a data de vencimento foi atualizada
-        if (data.planValidade) {
-          const { checkAndSendExpirationNotice } = await import('./autoNotifications');
-          checkAndSendExpirationNotice(id, data.planValidade).catch(err => {
-            console.error('[updateRevenda] Erro ao enviar notificacao:', err);
-          });
-        }
-        
          return { success: true };
       }),
 
@@ -1547,10 +1548,13 @@ export const appRouter = router({
   }),
 
   notices: router({
-    list: publicProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const result = await db.select().from(notices).where(eq(notices.ativo, true)).orderBy(desc(notices.criadoEm));
+      const result = await db.select().from(notices).where(and(
+        eq(notices.ativo, true),
+        sql`(${notices.targetOwnerId} IS NULL OR ${notices.targetOwnerId} = ${ctx.user.id})`,
+      )).orderBy(desc(notices.criadoEm));
       return result;
     }),
 
@@ -1564,6 +1568,7 @@ export const appRouter = router({
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         await db.insert(notices).values({
           autorId: ctx.user.id,
+          targetOwnerId: null,
           ...input,
         });
         return { success: true };
@@ -1571,10 +1576,10 @@ export const appRouter = router({
 
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        await db.delete(notices).where(eq(notices.id, input.id));
+        await db.delete(notices).where(and(eq(notices.id, input.id), eq(notices.autorId, ctx.user.id)));
         return { success: true };
       }),
   }),

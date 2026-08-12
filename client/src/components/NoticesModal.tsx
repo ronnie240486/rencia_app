@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import { X, AlertCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "./ui/button";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function NoticesModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [hasSeenToday, setHasSeenToday] = useState(false);
-  const { data: notices } = trpc.notices.list.useQuery();
+  const { user } = useAuth();
+  const { data: notices } = trpc.notices.list.useQuery(undefined, { enabled: Boolean(user?.id) });
 
   useEffect(() => {
     // Verificar se o usuário já viu os avisos hoje
-    const lastSeenDate = localStorage.getItem("noticesLastSeen");
+    const lastSeenDate = user?.id ? localStorage.getItem(`noticesLastSeen:${user.id}`) : null;
     const today = new Date().toDateString();
 
     if (lastSeenDate !== today && notices && notices.length > 0) {
@@ -18,11 +20,11 @@ export default function NoticesModal() {
     } else if (lastSeenDate === today) {
       setHasSeenToday(true);
     }
-  }, [notices]);
+  }, [notices, user?.id]);
 
   const handleClose = () => {
     setIsOpen(false);
-    localStorage.setItem("noticesLastSeen", new Date().toDateString());
+    if (user?.id) localStorage.setItem(`noticesLastSeen:${user.id}`, new Date().toDateString());
     setHasSeenToday(true);
   };
 
