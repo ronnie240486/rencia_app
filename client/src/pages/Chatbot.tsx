@@ -18,6 +18,7 @@ interface ExpiringItem {
 
 export default function Chatbot() {
   const { data: settings } = trpc.settings.getAll.useQuery();
+  const { data: notices = [] } = trpc.notices.list.useQuery(undefined, { refetchInterval: 15_000 });
   const [loadingClientes, setLoadingClientes] = useState(false);
   const [loadingRevendas, setLoadingRevendas] = useState(false);
   const [clients, setClients] = useState<ExpiringItem[] | null>(null);
@@ -28,6 +29,7 @@ export default function Chatbot() {
   const [totalRevendas, setTotalRevendas] = useState<number | null>(null);
 
   const diasAviso = parseInt(settings?.chatbot_dias_aviso ?? "3") || 3;
+  const automaticNotices = notices.filter((notice) => notice.titulo === "Aviso de Vencimento");
 
   const handleCheckClientes = async () => {
     setLoadingClientes(true);
@@ -227,9 +229,36 @@ export default function Chatbot() {
         <div>
           <h1 className="text-xl font-bold">Chatbot de Avisos de Vencimento</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Envie avisos automáticos via WhatsApp para clientes e revendas antes do vencimento.
+            Avisos são criados automaticamente quando um cliente fica a um dia do vencimento.
           </p>
         </div>
+
+        <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle size={17} className="text-amber-600" />
+              Avisos Automáticos
+              <Badge variant="secondary">{automaticNotices.length}</Badge>
+            </CardTitle>
+            <CardDescription>
+              Esta lista é atualizada automaticamente; não é necessário clicar em “Verificar Agora”.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {automaticNotices.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum cliente com vencimento para amanhã no momento.</p>
+            ) : (
+              <div className="space-y-2">
+                {automaticNotices.map((notice) => (
+                  <div key={notice.id} className="rounded-lg border border-amber-200 dark:border-amber-800 p-3 bg-background/70">
+                    <p className="font-medium text-sm">{notice.titulo}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{notice.conteudo}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Tabs defaultValue="clientes">
           <TabsList className="w-full">

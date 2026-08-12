@@ -340,3 +340,5 @@
 - [x] Executar a verificação ao criar e editar usuários já cadastrados
 - [ ] Integrar envio real e automático de WhatsApp, sem abrir links ou exigir cliques manuais
 - [ ] Atualizar imediatamente no painel a data e as listas recém-salvas
+- [x] Corrigir gravação da data escolhida: 13/08 deve permanecer 13/08 no banco, formulário e tabela
+- [x] Fazer o Chatbot registrar automaticamente o aviso interno, sem depender de "Verificar Agora" ou de links do WhatsApp

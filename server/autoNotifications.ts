@@ -1,6 +1,6 @@
 import { getDb } from "./db";
 import { devices, notices } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { daysUntilDateOnly, formatDateOnlyPtBr } from "../shared/dateOnly";
 
 export function isExpirationNoticeDue(dataExpiracao: string | Date, reference = new Date()): boolean {
@@ -25,6 +25,21 @@ export async function checkAndSendExpirationNotice(deviceId: number, dataExpirac
     // Manda notificação SOMENTE quando faltar exatamente 1 dia
     if (isExpirationNoticeDue(dataExpiracao)) {
       const message = `⚠️ ${device.nomeServer} vence em 1 dia! Data: ${formatDateOnlyPtBr(dataExpiracao)}.`;
+
+      const [existingNotice] = await db
+        .select({ id: notices.id })
+        .from(notices)
+        .where(and(
+          eq(notices.autorId, device.ownerId),
+          eq(notices.titulo, "Aviso de Vencimento"),
+          eq(notices.conteudo, message),
+          eq(notices.ativo, true),
+        ))
+        .limit(1);
+
+      if (existingNotice) {
+        return { created: false, reason: "already-created" as const };
+      }
 
       // Criar aviso
       await db.insert(notices).values({

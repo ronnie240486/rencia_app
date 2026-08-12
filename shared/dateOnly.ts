@@ -10,14 +10,15 @@ export function toDateOnly(value: string | Date | null | undefined): string {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "";
 
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
 /** Cria uma data ao meio-dia local para não gravar o dia anterior no banco. */
 export function dateOnlyForDatabase(value: string): Date {
   const dateOnly = toDateOnly(value);
   if (!dateOnly) throw new Error("Data de vencimento inválida");
-  return new Date(`${dateOnly}T12:00:00`);
+  const [year, month, day] = dateOnly.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 12));
 }
 
 export function formatDateOnlyPtBr(value: string | Date | null | undefined): string {
