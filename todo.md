@@ -412,3 +412,9 @@
 - [x] Consolidar dados de dispositivo, listas, vencimento e pagamentos por cliente
 - [x] Exibir sessões recentes e histórico de ações do cliente
 - [x] Criar ações rápidas de bloqueio, liberação e edição a partir da ficha
+
+## Exportação de Relatórios
+- [x] Exportar relatório de pagamentos filtrado em CSV
+- [x] Exportar agenda de vencimentos filtrada em CSV
+- [x] Exportar relatório consolidado de revendas em CSV
+- [x] Exportar lista de clientes filtrada em CSV

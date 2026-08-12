@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { downloadCsv } from "@/lib/csv";
+import { Download } from "lucide-react";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const isoToday = () => new Date().toISOString().slice(0, 10);
@@ -18,11 +20,15 @@ export default function FinancialReports() {
   const report = reportQuery.data;
   const maxValue = useMemo(() => Math.max(...(report?.byMonth.flatMap((item) => [item.billed, item.received]) ?? [1]), 1), [report]);
   const setPreset = (days: number) => { setStart(isoDaysAgo(days - 1)); setEnd(isoToday()); };
+  const exportReport = () => {
+    if (!report) return;
+    downloadCsv(`relatorio-financeiro-${start}-${end}.csv`, ["Mês", "Cobrado", "Recebido", "Pendente", "Atrasado"], report.byMonth.map((month) => [month.month, month.billed, month.received, report.pending, report.overdue]));
+  };
 
   return <AdminLayout title="Relatórios Financeiros"><div className="space-y-6">
     <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
       <div><div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-[.18em] text-primary"><BarChart3 size={17} /> Gestão financeira</div><h1 className="text-2xl font-bold">Relatórios Financeiros</h1><p className="mt-1 text-sm text-muted-foreground">Acompanhe cobranças lançadas, recebimentos e pendências somente dos seus clientes.</p></div>
-      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => setPreset(7)}>7 dias</Button><Button size="sm" variant="outline" onClick={() => setPreset(30)}>30 dias</Button><Button size="sm" variant="outline" onClick={() => setPreset(90)}>90 dias</Button></div>
+      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => setPreset(7)}>7 dias</Button><Button size="sm" variant="outline" onClick={() => setPreset(30)}>30 dias</Button><Button size="sm" variant="outline" onClick={() => setPreset(90)}>90 dias</Button><Button size="sm" variant="outline" className="gap-1.5" disabled={!report} onClick={exportReport}><Download size={15} /> CSV</Button></div>
     </div>
     <Card><CardContent className="grid gap-3 p-4 sm:grid-cols-[1fr_1fr_auto]"><label className="grid gap-1.5 text-sm font-medium">Início<Input type="date" value={start} onChange={(event) => setStart(event.target.value)} /></label><label className="grid gap-1.5 text-sm font-medium">Fim<Input type="date" value={end} onChange={(event) => setEnd(event.target.value)} /></label><div className="flex items-end"><Button className="w-full gap-2 text-black dark:text-white" onClick={() => reportQuery.refetch()}><CalendarDays size={16} /> Atualizar</Button></div></CardContent></Card>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

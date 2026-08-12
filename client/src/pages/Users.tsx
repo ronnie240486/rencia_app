@@ -17,12 +17,13 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ChevronLeft, ChevronRight, ChevronDown, List, Pencil, Plus, Search, Trash2, Globe,
-  LockKeyhole, SlidersHorizontal, UnlockKeyhole,
+  LockKeyhole, SlidersHorizontal, UnlockKeyhole, Download,
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { formatDateOnlyPtBr } from "@shared/dateOnly";
+import { downloadCsv } from "@/lib/csv";
 
 const PAGE_SIZE = 50;
 
@@ -74,6 +75,7 @@ export default function Users() {
   const utils = trpc.useUtils();
 
   const { data, isLoading } = trpc.devices.list.useQuery({ search, page, pageSize: PAGE_SIZE });
+  const exportClientsQuery = trpc.dataExports.clients.useQuery({ search }, { enabled: false });
   const devices = data?.data ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -162,6 +164,13 @@ export default function Users() {
     setSelected(new Set());
   };
 
+  const exportClients = async () => {
+    const result = await exportClientsQuery.refetch();
+    if (!result.data) return toast.error("Não foi possível exportar os clientes.");
+    downloadCsv("clientes-filtrados.csv", ["Nome", "MAC", "Aplicativo", "Versão", "Telefone", "Valor", "Status", "Cadastro", "Vencimento"], result.data.map((device) => [device.nomeServer, device.mac, device.app, device.appVersion, device.telefone, device.valor, device.status, formatDate(device.dataCadastro), formatDate(device.dataExpiracao)]));
+    toast.success(`${result.data.length} cliente(s) exportado(s).`);
+  };
+
   const toggleSelect = (id: number) => {
     setSelected(prev => {
       const next = new Set(prev);
@@ -240,6 +249,9 @@ export default function Users() {
                 Cadastrar Novo
               </Button>
             </Link>
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={exportClients} disabled={exportClientsQuery.isFetching}>
+              <Download className="w-3 h-3" /> CSV
+            </Button>
             <Button
               size="sm"
               variant="destructive"

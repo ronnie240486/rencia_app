@@ -729,7 +729,7 @@ export const appRouter = router({
     list: protectedProcedure.input(z.object({ days: z.number().min(1).max(90).optional().default(30), status: z.enum(["all", "Liberado", "Bloqueado", "Expirado"]).optional().default("all") })).query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return [];
-      const rows = await db.select({ id: devices.id, nomeServer: devices.nomeServer, telefone: devices.telefone, dataExpiracao: devices.dataExpiracao, status: devices.status })
+      const rows = await db.select({ id: devices.id, nomeServer: devices.nomeServer, mac: devices.mac, telefone: devices.telefone, dataExpiracao: devices.dataExpiracao, status: devices.status })
         .from(devices).where(and(eq(devices.ownerId, ctx.user.id), isNotNull(devices.dataExpiracao)));
       const agenda = buildRenewalAgenda(rows as any);
       return agenda.filter((item) => item.days <= input.days && (input.status === "all" || item.status === input.status));
@@ -783,6 +783,19 @@ export const appRouter = router({
         db.select({ id: listHealthChecks.id, status: listHealthChecks.status, responseTimeMs: listHealthChecks.responseTimeMs, message: listHealthChecks.message, checkedAt: listHealthChecks.checkedAt }).from(listHealthChecks).where(and(eq(listHealthChecks.ownerId, ctx.user.id), eq(listHealthChecks.deviceId, input.id))).orderBy(desc(listHealthChecks.checkedAt)).limit(8),
       ]);
       return { device, connectionState: getConnectionState(device.lastSeen), lists, payments: paymentRows, history, health };
+    }),
+  }),
+
+  dataExports: router({
+    clients: protectedProcedure.input(z.object({ search: z.string().optional() })).query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const allDevices = await db.select({
+        id: devices.id, mac: devices.mac, nomeServer: devices.nomeServer, app: devices.app, appVersion: devices.appVersion,
+        status: devices.status, telefone: devices.telefone, valor: devices.valor, dataCadastro: devices.dataCadastro, dataExpiracao: devices.dataExpiracao,
+      }).from(devices).where(eq(devices.ownerId, ctx.user.id)).limit(5000);
+      const search = input.search?.trim().toLowerCase();
+      return search ? allDevices.filter((device) => `${device.nomeServer} ${device.mac} ${device.telefone ?? ""}`.toLowerCase().includes(search)) : allDevices;
     }),
   }),
 

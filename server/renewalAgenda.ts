@@ -1,4 +1,4 @@
-export type RenewalCandidate = { id: number; nomeServer: string; telefone: string | null; dataExpiracao: Date | string; status: "Liberado" | "Bloqueado" | "Expirado" };
+export type RenewalCandidate = { id: number; nomeServer: string; mac: string; telefone: string | null; dataExpiracao: Date | string; status: "Liberado" | "Bloqueado" | "Expirado" };
 
 function utcStart(value: Date) { return Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()); }
 
