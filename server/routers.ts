@@ -1308,6 +1308,15 @@ export const appRouter = router({
       }
       return Array.from(grouped.values()).map((item) => ({ ...item, errorRate: item.checks ? Math.round((item.errors / item.checks) * 100) : 0, avgResponseMs: item.responseSamples ? Math.round(item.totalResponseMs / item.responseSamples) : null })).sort((a, b) => b.errorRate - a.errorRate || b.errors - a.errors);
     }),
+
+    testMacs: ownerProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { checked: 0, online: 0, offline: 0, items: [] };
+      const rows = await db.select({ id: devices.id, nomeServer: devices.nomeServer, mac: devices.mac, status: devices.status, lastSeen: devices.lastSeen }).from(devices).where(eq(devices.ownerId, ctx.user.id)).orderBy(desc(devices.lastSeen)).limit(200);
+      const now = Date.now();
+      const items = rows.map((row) => ({ ...row, online: row.status === "Liberado" && !!row.lastSeen && now - new Date(row.lastSeen).getTime() <= 15 * 60_000 }));
+      return { checked: items.length, online: items.filter((item) => item.online).length, offline: items.filter((item) => !item.online).length, items };
+    }),
   }),
 
   listFailover: router({

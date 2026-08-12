@@ -469,5 +469,5 @@
 - [ ] Criar grupos de DNS e aplicar troca de DNS por grupo
 - [ ] Definir limite de conexões simultâneas por cliente
 - [ ] Criar relatório de instabilidade por lista e servidor
-- [ ] Criar teste de MACs em massa no painel
+- [x] Criar teste de MACs em massa no painel
 - [ ] Criar aviso de manutenção programada por grupo de clientes e listas
