@@ -29,6 +29,7 @@ import { NuvixConfig } from "./pages/NuvixConfig";
 import MovieDetails from "./pages/MovieDetails";
 import MaximusPlayer from "./pages/MaximusPlayer";
 import RankingApps from "./pages/RankingApps";
+import ControlCenter from "./pages/ControlCenter";
 
 function Router() {
   return (
@@ -60,6 +61,7 @@ function Router() {
       <Route path={"/movie/:id"} component={MovieDetails} />
       <Route path="/maximus-player" component={MaximusPlayer} />
       <Route path="/ranking-apps" component={RankingApps} />
+      <Route path="/central" component={ControlCenter} />
       <Route path={"*"} component={NotFound} />
     </Switch>
   );

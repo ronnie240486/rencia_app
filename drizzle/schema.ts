@@ -188,6 +188,57 @@ export const notices = mysqlTable("notices", {
 export type Notice = typeof notices.$inferSelect;
 export type InsertNotice = typeof notices.$inferInsert;
 
+// Histórico auditável das principais ações realizadas no painel
+export const auditLogs = mysqlTable("audit_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  actorUserId: int("actorUserId").notNull(),
+  entityType: varchar("entityType", { length: 64 }).notNull(),
+  entityId: int("entityId"),
+  action: varchar("action", { length: 64 }).notNull(),
+  summary: varchar("summary", { length: 500 }).notNull(),
+  beforeData: text("beforeData"),
+  afterData: text("afterData"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
+// Controle financeiro por cliente/dispositivo
+export const payments = mysqlTable("payments", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  deviceId: int("deviceId").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: mysqlEnum("status", ["pending", "paid", "overdue"]).default("pending").notNull(),
+  dueDate: date("dueDate"),
+  paidAt: timestamp("paidAt"),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = typeof payments.$inferInsert;
+
+// Resultado da última verificação de disponibilidade de cada lista
+export const listHealthChecks = mysqlTable("list_health_checks", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  deviceId: int("deviceId").notNull(),
+  deviceUrlId: int("deviceUrlId"),
+  urlSnapshot: text("urlSnapshot").notNull(),
+  status: mysqlEnum("status", ["success", "error", "pending"]).default("pending").notNull(),
+  statusCode: int("statusCode"),
+  responseTimeMs: int("responseTimeMs"),
+  message: varchar("message", { length: 500 }),
+  checkedAt: timestamp("checkedAt").defaultNow().notNull(),
+});
+
+export type ListHealthCheck = typeof listHealthChecks.$inferSelect;
+export type InsertListHealthCheck = typeof listHealthChecks.$inferInsert;
+
 // Tabela de configurações do APK NuvixXC6
 export const nuvixConfig = mysqlTable("nuvix_config", {
   id: int("id").autoincrement().primaryKey(),

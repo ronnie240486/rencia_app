@@ -346,3 +346,10 @@
 - [ ] Integrar WhatsApp Business para entrega automática do aviso ao telefone cadastrado
 - [x] Botão "Verificar Agora" do Chatbot: texto branco e legível no tema escuro
 - [x] Chatbot: botão "Enviar para Todos" para preparar avisos em massa sem abrir cada cliente individualmente
+
+## Pacote Super Painel
+- [x] Criar Central de Alertas com vencimentos, dispositivos offline, listas com erro e clientes sem telefone
+- [x] Criar Histórico de Ações com data, hora, usuário e alteração realizada
+- [ ] Criar Diagnóstico de Conexão por dispositivo
+- [ ] Criar Controle de Pagamentos por cliente
+- [ ] Criar Monitor de Disponibilidade das Listas

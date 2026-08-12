@@ -13,8 +13,9 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { recordAudit } from "./audit";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin") {
@@ -117,6 +118,15 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: `Limite de ${limite} devices atingido.` });
         }
         const result = await createDevice({ ownerId: ctx.user.id, ...input });
+        await recordAudit({
+          ownerId: ctx.user.id,
+          actorUserId: ctx.user.id,
+          entityType: "device",
+          entityId: result.id,
+          action: "created",
+          summary: `Cliente ${input.nomeServer} cadastrado`,
+          afterData: input,
+        });
 
         if (input.dataExpiracao) {
           const { checkAndSendExpirationNotice } = await import("./autoNotifications");
@@ -145,6 +155,16 @@ export const appRouter = router({
         const device = await getDeviceById(id, ctx.user.id);
         if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
         await updateDevice(id, ctx.user.id, data);
+        await recordAudit({
+          ownerId: ctx.user.id,
+          actorUserId: ctx.user.id,
+          entityType: "device",
+          entityId: id,
+          action: "updated",
+          summary: `Cliente ${device.nomeServer} atualizado`,
+          beforeData: device,
+          afterData: data,
+        });
         
         // Enviar aviso automatico se a data de expiracao foi atualizada
         if (data.dataExpiracao) {
@@ -163,6 +183,15 @@ export const appRouter = router({
         const device = await getDeviceById(input.id, ctx.user.id);
         if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
         await deleteDevice(input.id, ctx.user.id);
+        await recordAudit({
+          ownerId: ctx.user.id,
+          actorUserId: ctx.user.id,
+          entityType: "device",
+          entityId: input.id,
+          action: "deleted",
+          summary: `Cliente ${device.nomeServer} excluído`,
+          beforeData: device,
+        });
         return { success: true };
       }),
 
@@ -313,6 +342,67 @@ export const appRouter = router({
     }),
   }),
 
+  // ─── Central de Alertas e Histórico ─────────────────────────────────────────
+  superPanel: router({
+    overview: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const offlineBoundary = new Date(Date.now() - 30 * 60 * 1000);
+      const ownerFilter = eq(devices.ownerId, ctx.user.id);
+      const [expiring, offline, missingPhone, listErrors, recentActions] = await Promise.all([
+        db.select({ id: devices.id, nomeServer: devices.nomeServer, dataExpiracao: devices.dataExpiracao, telefone: devices.telefone })
+          .from(devices)
+          .where(and(ownerFilter, sql`${devices.dataExpiracao} IS NOT NULL`, sql`${devices.dataExpiracao} >= CURDATE()`, sql`${devices.dataExpiracao} <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)`))
+          .orderBy(devices.dataExpiracao)
+          .limit(10),
+        db.select({ id: devices.id, nomeServer: devices.nomeServer, mac: devices.mac, lastSeen: devices.lastSeen })
+          .from(devices)
+          .where(and(ownerFilter, sql`(${devices.lastSeen} IS NULL OR ${devices.lastSeen} < ${offlineBoundary})`))
+          .orderBy(devices.lastSeen)
+          .limit(10),
+        db.select({ id: devices.id, nomeServer: devices.nomeServer, mac: devices.mac })
+          .from(devices)
+          .where(and(ownerFilter, sql`(${devices.telefone} IS NULL OR TRIM(${devices.telefone}) = '')`))
+          .limit(10),
+        db.select({ id: listHealthChecks.id, deviceId: listHealthChecks.deviceId, message: listHealthChecks.message, checkedAt: listHealthChecks.checkedAt })
+          .from(listHealthChecks)
+          .where(and(eq(listHealthChecks.ownerId, ctx.user.id), eq(listHealthChecks.status, "error")))
+          .orderBy(desc(listHealthChecks.checkedAt))
+          .limit(10),
+        db.select().from(auditLogs)
+          .where(eq(auditLogs.ownerId, ctx.user.id))
+          .orderBy(desc(auditLogs.createdAt))
+          .limit(12),
+      ]);
+
+      return {
+        counts: {
+          expiring: expiring.length,
+          offline: offline.length,
+          missingPhone: missingPhone.length,
+          listErrors: listErrors.length,
+        },
+        expiring,
+        offline,
+        missingPhone,
+        listErrors,
+        recentActions,
+      };
+    }),
+
+    auditLog: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).optional().default(50) }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        return db.select().from(auditLogs)
+          .where(eq(auditLogs.ownerId, ctx.user.id))
+          .orderBy(desc(auditLogs.createdAt))
+          .limit(input.limit);
+      }),
+  }),
+
   // ─── Device URLs (múltiplas listas por device) ────────────────────────────
   deviceUrls: router({
     list: protectedProcedure
@@ -339,6 +429,15 @@ export const appRouter = router({
         const device = await getDeviceById(input.deviceId, ctx.user.id);
         if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
         await addDeviceUrl(input);
+        await recordAudit({
+          ownerId: ctx.user.id,
+          actorUserId: ctx.user.id,
+          entityType: "list",
+          entityId: input.deviceId,
+          action: "created",
+          summary: `Lista ${input.nome} adicionada a ${device.nomeServer}`,
+          afterData: input,
+        });
         return { success: true };
       }),
 
@@ -360,6 +459,15 @@ export const appRouter = router({
         if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
         const { id, deviceId: _, ...data } = input;
         await updateDeviceUrl(id, data);
+        await recordAudit({
+          ownerId: ctx.user.id,
+          actorUserId: ctx.user.id,
+          entityType: "list",
+          entityId: id,
+          action: "updated",
+          summary: `Lista de ${device.nomeServer} atualizada`,
+          afterData: data,
+        });
         return { success: true };
       }),
 
@@ -369,6 +477,14 @@ export const appRouter = router({
         const device = await getDeviceById(input.deviceId, ctx.user.id);
         if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
         await deleteDeviceUrl(input.id);
+        await recordAudit({
+          ownerId: ctx.user.id,
+          actorUserId: ctx.user.id,
+          entityType: "list",
+          entityId: input.id,
+          action: "deleted",
+          summary: `Lista de ${device.nomeServer} removida`,
+        });
         return { success: true };
       }),
   }),
