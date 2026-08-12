@@ -1292,6 +1292,22 @@ export const appRouter = router({
       for (const target of targets) results.push(await runListHealthCheck(db, ctx.user.id, ctx.user.id, target));
       return { checked: results.length, success: results.filter((item) => item.status === "success").length, errors: results.filter((item) => item.status === "error").length };
     }),
+
+    instabilityReport: ownerProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const checks = await db.select().from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id)).orderBy(desc(listHealthChecks.checkedAt)).limit(500);
+      const grouped = new Map<string, { url: string; checks: number; errors: number; totalResponseMs: number; responseSamples: number; lastCheckedAt: Date | null }>();
+      for (const check of checks) {
+        const current = grouped.get(check.urlSnapshot) ?? { url: check.urlSnapshot, checks: 0, errors: 0, totalResponseMs: 0, responseSamples: 0, lastCheckedAt: null };
+        current.checks += 1;
+        if (check.status === "error") current.errors += 1;
+        if (check.responseTimeMs !== null) { current.totalResponseMs += check.responseTimeMs; current.responseSamples += 1; }
+        if (!current.lastCheckedAt || check.checkedAt > current.lastCheckedAt) current.lastCheckedAt = check.checkedAt;
+        grouped.set(check.urlSnapshot, current);
+      }
+      return Array.from(grouped.values()).map((item) => ({ ...item, errorRate: item.checks ? Math.round((item.errors / item.checks) * 100) : 0, avgResponseMs: item.responseSamples ? Math.round(item.totalResponseMs / item.responseSamples) : null })).sort((a, b) => b.errorRate - a.errorRate || b.errors - a.errors);
+    }),
   }),
 
   listFailover: router({
