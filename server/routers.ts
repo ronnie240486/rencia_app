@@ -19,6 +19,7 @@ import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 import { getEffectivePaymentStatus } from "./payments";
 import { probeListUrl } from "./listHealth";
+import { bulkDeviceUpdateSchema } from "./deviceBulk";
 
 type MonitorTarget = { deviceId: number; deviceUrlId: number | null; deviceName: string; listName: string; url: string };
 
@@ -227,6 +228,38 @@ export const appRouter = router({
         }
         
         return { success: true };
+      }),
+
+    bulkUpdate: protectedProcedure
+      .input(bulkDeviceUpdateSchema)
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const selectedDevices = await db.select().from(devices).where(and(eq(devices.ownerId, ctx.user.id), inArray(devices.id, input.ids)));
+        if (selectedDevices.length !== input.ids.length) throw new TRPCError({ code: "NOT_FOUND", message: "Um ou mais clientes não foram encontrados." });
+
+        const updateData: Record<string, unknown> = {};
+        if (input.status) updateData.status = input.status;
+        if (input.app) updateData.app = input.app;
+        if (input.urlM3u8) updateData.urlM3u8 = input.urlM3u8;
+        if (input.dataExpiracao) updateData.dataExpiracao = dateOnlyForDatabase(input.dataExpiracao);
+        await db.update(devices).set(updateData).where(and(eq(devices.ownerId, ctx.user.id), inArray(devices.id, input.ids)));
+
+        if (input.dataExpiracao) {
+          const { checkAndSendExpirationNotice } = await import("./autoNotifications");
+          await Promise.all(selectedDevices.map((device) => checkAndSendExpirationNotice(device.id, input.dataExpiracao!).catch((error) => console.error("[devices.bulkUpdate] Aviso de vencimento:", error))));
+        }
+
+        await recordAudit({
+          ownerId: ctx.user.id,
+          actorUserId: ctx.user.id,
+          entityType: "device",
+          action: "bulk_updated",
+          summary: `${selectedDevices.length} cliente(s) atualizados em massa`,
+          beforeData: selectedDevices.map((device) => ({ id: device.id, nomeServer: device.nomeServer, status: device.status, app: device.app, dataExpiracao: device.dataExpiracao, urlM3u8: device.urlM3u8 })),
+          afterData: { ...input, ids: undefined },
+        });
+        return { success: true, count: selectedDevices.length };
       }),
 
     delete: protectedProcedure

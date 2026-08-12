@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ChevronLeft, ChevronRight, ChevronDown, List, Pencil, Plus, Search, Trash2, Globe,
+  LockKeyhole, SlidersHorizontal, UnlockKeyhole,
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
@@ -64,6 +65,11 @@ export default function Users() {
   const [dnsDialogOpen, setDnsDialogOpen] = useState(false);
   const [dnsDialogScope, setDnsDialogScope] = useState<"selected" | "all">("selected");
   const [newDnsUrl, setNewDnsUrl] = useState("");
+  const [bulkConfigOpen, setBulkConfigOpen] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState<"" | DeviceStatus>("");
+  const [bulkApp, setBulkApp] = useState("");
+  const [bulkExpiration, setBulkExpiration] = useState("");
+  const [bulkUrl, setBulkUrl] = useState("");
 
   const utils = trpc.useUtils();
 
@@ -110,6 +116,38 @@ export default function Users() {
       utils.devices.list.invalidate();
       setDnsDialogOpen(false);
       setNewDnsUrl("");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const invalidateDeviceData = async () => {
+    await Promise.all([
+      utils.devices.list.invalidate(),
+      utils.devices.stats.invalidate(),
+      utils.connected.list.invalidate(),
+      utils.superPanel.overview.invalidate(),
+      utils.superPanel.diagnostics.invalidate(),
+    ]);
+  };
+
+  const updateStatusMutation = trpc.devices.update.useMutation({
+    onSuccess: async () => {
+      await invalidateDeviceData();
+      toast.success("Status do cliente atualizado.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const bulkUpdateMutation = trpc.devices.bulkUpdate.useMutation({
+    onSuccess: async (result) => {
+      await invalidateDeviceData();
+      toast.success(`${result.count} cliente(s) atualizado(s).`);
+      setSelected(new Set());
+      setBulkConfigOpen(false);
+      setBulkStatus("");
+      setBulkApp("");
+      setBulkExpiration("");
+      setBulkUrl("");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -166,6 +204,29 @@ export default function Users() {
     });
   };
 
+  const openBulkConfig = () => {
+    if (selected.size === 0) return toast.error("Selecione pelo menos um cliente.");
+    setBulkStatus("");
+    setBulkApp("");
+    setBulkExpiration("");
+    setBulkUrl("");
+    setBulkConfigOpen(true);
+  };
+
+  const handleBulkConfigSubmit = () => {
+    if (!bulkStatus && !bulkApp && !bulkExpiration && !bulkUrl) {
+      toast.error("Escolha pelo menos uma configuração para alterar.");
+      return;
+    }
+    bulkUpdateMutation.mutate({
+      ids: Array.from(selected),
+      status: bulkStatus || undefined,
+      app: bulkApp || undefined,
+      dataExpiracao: bulkExpiration || undefined,
+      urlM3u8: bulkUrl || undefined,
+    });
+  };
+
   return (
     <AdminLayout title="Usuários">
       <div className="space-y-4">
@@ -219,6 +280,18 @@ export default function Users() {
                 >
                   <Globe className="w-3 h-3 mr-2" />
                   Trocar DNS dos selecionados
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={openBulkConfig}>
+                  <SlidersHorizontal className="w-3 h-3 mr-2" />
+                  Configurar selecionados
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer text-amber-700" onClick={() => bulkUpdateMutation.mutate({ ids: Array.from(selected), status: "Bloqueado" })}>
+                  <LockKeyhole className="w-3 h-3 mr-2" />
+                  Bloquear selecionados
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer text-emerald-700" onClick={() => bulkUpdateMutation.mutate({ ids: Array.from(selected), status: "Liberado" })}>
+                  <UnlockKeyhole className="w-3 h-3 mr-2" />
+                  Liberar selecionados
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -304,6 +377,16 @@ export default function Users() {
                             onClick={() => setDeleteId(d.id)}
                           >
                             <Trash2 className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className={`h-7 w-7 p-0 ${d.status === "Bloqueado" ? "border-emerald-500 text-emerald-600" : "border-amber-500 text-amber-600"}`}
+                            title={d.status === "Bloqueado" ? "Liberar cliente" : "Bloquear cliente"}
+                            onClick={() => updateStatusMutation.mutate({ id: d.id, status: d.status === "Bloqueado" ? "Liberado" : "Bloqueado" })}
+                            disabled={updateStatusMutation.isPending}
+                          >
+                            {d.status === "Bloqueado" ? <UnlockKeyhole className="w-3 h-3" /> : <LockKeyhole className="w-3 h-3" />}
                           </Button>
                           <Link href={`/users/${d.id}/edit`}>
                             <Button size="sm" className="h-7 w-7 p-0 bg-blue-500 hover:bg-blue-600" title="Editar">
@@ -400,6 +483,49 @@ export default function Users() {
             >
               <Globe className="w-4 h-4" />
               {bulkDnsMutation.isPending ? "Aplicando..." : "Aplicar DNS"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Configuração em Massa */}
+      <Dialog open={bulkConfigOpen} onOpenChange={setBulkConfigOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><SlidersHorizontal className="w-5 h-5 text-primary" /> Configurar {selected.size} cliente(s)</DialogTitle>
+            <DialogDescription>Preencha apenas os campos que deseja alterar. Os demais dados dos clientes serão preservados.</DialogDescription>
+          </DialogHeader>
+          <div className="grid sm:grid-cols-2 gap-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value as "" | DeviceStatus)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                <option value="">Não alterar</option>
+                <option value="Liberado">Liberado</option>
+                <option value="Bloqueado">Bloqueado</option>
+                <option value="Expirado">Expirado</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Aplicativo</Label>
+              <select value={bulkApp} onChange={e => setBulkApp(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                <option value="">Não alterar</option>
+                <option value="OuroPro">OuroPro</option>
+                <option value="Maximus Player">Maximus Player</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Nova data de vencimento</Label>
+              <Input type="date" value={bulkExpiration} onChange={e => setBulkExpiration(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Nova DNS / lista principal</Label>
+              <Input placeholder="https://servidor.com/lista" value={bulkUrl} onChange={e => setBulkUrl(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkConfigOpen(false)}>Cancelar</Button>
+            <Button onClick={handleBulkConfigSubmit} disabled={bulkUpdateMutation.isPending} className="gap-2 text-black dark:text-white">
+              <SlidersHorizontal className="w-4 h-4" /> {bulkUpdateMutation.isPending ? "Aplicando..." : "Aplicar alterações"}
             </Button>
           </DialogFooter>
         </DialogContent>
