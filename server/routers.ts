@@ -21,6 +21,7 @@ import { getEffectivePaymentStatus } from "./payments";
 import { buildFinancialReport } from "./financialReport";
 import { normalizeMessageTemplate } from "./messageTemplate";
 import { buildSessionOverview } from "./sessionControl";
+import { summarizeResellerFinance } from "./resellerReport";
 import { probeListUrl } from "./listHealth";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 
@@ -685,6 +686,37 @@ export const appRouter = router({
       await db.update(devices).set({ status: input.status }).where(eq(devices.id, input.id));
       await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "session", entityId: input.id, action: input.status === "Bloqueado" ? "blocked" : "released", summary: `Dispositivo ${device.nomeServer} ${input.status === "Bloqueado" ? "bloqueado" : "liberado"} pelo controle de sessões`, beforeData: { status: device.status }, afterData: { status: input.status } });
       return { success: true };
+    }),
+  }),
+
+  // ─── Relatório Consolidado de Revendas ───────────────────────────────────────
+  resellerReport: router({
+    list: ownerProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const resellers = await db.select({ id: users.id, name: users.name, email: users.email, isActive: users.isActive, planValidade: users.planValidade, limiteDevices: users.limiteDevices })
+        .from(users).where(eq(users.resellerId, ctx.user.id)).orderBy(desc(users.createdAt));
+      if (resellers.length === 0) return [];
+      const ids = resellers.map((reseller) => reseller.id);
+      const [allDevices, allPayments] = await Promise.all([
+        db.select({ id: devices.id, ownerId: devices.ownerId, status: devices.status, dataExpiracao: devices.dataExpiracao }).from(devices).where(inArray(devices.ownerId, ids)),
+        db.select({ ownerId: payments.ownerId, amount: payments.amount, status: payments.status, dueDate: payments.dueDate }).from(payments).where(inArray(payments.ownerId, ids)),
+      ]);
+      const now = new Date();
+      return resellers.map((reseller) => {
+        const clients = allDevices.filter((device) => device.ownerId === reseller.id);
+        const finance = summarizeResellerFinance(allPayments.filter((payment) => payment.ownerId === reseller.id), now);
+        const expiringSoon = clients.filter((device) => device.dataExpiracao && (new Date(device.dataExpiracao).getTime() - now.getTime()) / 86_400_000 >= 0 && (new Date(device.dataExpiracao).getTime() - now.getTime()) / 86_400_000 <= 7).length;
+        return {
+          ...reseller,
+          clientCount: clients.length,
+          activeClients: clients.filter((device) => device.status === "Liberado").length,
+          blockedClients: clients.filter((device) => device.status === "Bloqueado" || device.status === "Expirado").length,
+          remainingDevices: Math.max(0, (reseller.limiteDevices ?? 0) - clients.length),
+          expiringSoon,
+          finance,
+        };
+      });
     }),
   }),
 

@@ -387,3 +387,8 @@
 - [x] Criar painel de sessões recentes por MAC e dispositivo
 - [x] Identificar tentativas simultâneas ou suspeitas no mesmo MAC
 - [x] Permitir bloquear o dispositivo suspeito diretamente pelo painel
+
+## Relatório de Revendas
+- [x] Consolidar clientes, dispositivos e limites por revenda
+- [x] Consolidar vencimentos e pagamentos por revenda
+- [x] Criar tela de acompanhamento geral das revendas para o proprietário
