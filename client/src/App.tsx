@@ -31,6 +31,7 @@ import MaximusPlayer from "./pages/MaximusPlayer";
 import RankingApps from "./pages/RankingApps";
 import ControlCenter from "./pages/ControlCenter";
 import Diagnostics from "./pages/Diagnostics";
+import Payments from "./pages/Payments";
 
 function Router() {
   return (
@@ -64,6 +65,7 @@ function Router() {
       <Route path="/ranking-apps" component={RankingApps} />
       <Route path="/central" component={ControlCenter} />
       <Route path="/diagnostico" component={Diagnostics} />
+      <Route path="/pagamentos" component={Payments} />
       <Route path={"*"} component={NotFound} />
     </Switch>
   );

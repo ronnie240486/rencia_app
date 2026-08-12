@@ -351,5 +351,5 @@
 - [x] Criar Central de Alertas com vencimentos, dispositivos offline, listas com erro e clientes sem telefone
 - [x] Criar Histórico de Ações com data, hora, usuário e alteração realizada
 - [x] Criar Diagnóstico de Conexão por dispositivo
-- [ ] Criar Controle de Pagamentos por cliente
+- [x] Criar Controle de Pagamentos por cliente
 - [ ] Criar Monitor de Disponibilidade das Listas

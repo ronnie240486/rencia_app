@@ -13,9 +13,11 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
+import { dateOnlyForDatabase } from "../shared/dateOnly";
+import { getEffectivePaymentStatus } from "./payments";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin") {
@@ -428,6 +430,75 @@ export const appRouter = router({
           return { ...row, connection, listCount: listCount.get(row.id) ?? 0 };
         });
       }),
+  }),
+
+  // ─── Controle Financeiro ─────────────────────────────────────────────────────
+  payments: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db.select({
+        id: payments.id,
+        deviceId: payments.deviceId,
+        amount: payments.amount,
+        status: payments.status,
+        dueDate: payments.dueDate,
+        paidAt: payments.paidAt,
+        note: payments.note,
+        createdAt: payments.createdAt,
+        deviceName: devices.nomeServer,
+        deviceMac: devices.mac,
+      }).from(payments).innerJoin(devices, eq(payments.deviceId, devices.id))
+        .where(eq(payments.ownerId, ctx.user.id)).orderBy(desc(payments.createdAt));
+
+      return rows.map((payment) => ({
+        ...payment,
+        status: getEffectivePaymentStatus(payment.status, payment.dueDate),
+      }));
+    }),
+
+    create: protectedProcedure.input(z.object({
+      deviceId: z.number(),
+      amount: z.string().regex(/^\d+(\.\d{1,2})?$/, "Informe um valor válido"),
+      dueDate: z.string().optional(),
+      note: z.string().max(1000).optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const device = await getDeviceById(input.deviceId, ctx.user.id);
+      if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
+      const result = await db.insert(payments).values({
+        ownerId: ctx.user.id,
+        deviceId: input.deviceId,
+        amount: input.amount,
+        dueDate: input.dueDate ? dateOnlyForDatabase(input.dueDate) : null,
+        note: input.note?.trim() || null,
+      });
+      const id = Number((result as any)[0]?.insertId ?? (result as any).insertId);
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "payment", entityId: id, action: "created", summary: `Cobrança de R$ ${input.amount} registrada para ${device.nomeServer}`, afterData: input });
+      return { success: true, id };
+    }),
+
+    markPaid: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [payment] = await db.select().from(payments).where(and(eq(payments.id, input.id), eq(payments.ownerId, ctx.user.id))).limit(1);
+      if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "Cobrança não encontrada." });
+      await db.update(payments).set({ status: "paid", paidAt: new Date() }).where(eq(payments.id, input.id));
+      const device = await getDeviceById(payment.deviceId, ctx.user.id);
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "payment", entityId: input.id, action: "paid", summary: `Pagamento de R$ ${payment.amount} confirmado${device ? ` para ${device.nomeServer}` : ""}`, beforeData: payment, afterData: { status: "paid" } });
+      return { success: true };
+    }),
+
+    remove: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [payment] = await db.select().from(payments).where(and(eq(payments.id, input.id), eq(payments.ownerId, ctx.user.id))).limit(1);
+      if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "Cobrança não encontrada." });
+      await db.delete(payments).where(eq(payments.id, input.id));
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "payment", entityId: input.id, action: "deleted", summary: `Cobrança de R$ ${payment.amount} removida`, beforeData: payment });
+      return { success: true };
+    }),
   }),
 
   // ─── Device URLs (múltiplas listas por device) ────────────────────────────

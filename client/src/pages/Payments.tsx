@@ -1,0 +1,41 @@
+import AdminLayout from "@/components/AdminLayout";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { trpc } from "@/lib/trpc";
+import { formatDateOnlyPtBr } from "@shared/dateOnly";
+import { CheckCircle2, CircleDollarSign, Loader2, Plus, ReceiptText, Trash2, WalletCards } from "lucide-react";
+import { FormEvent, useMemo, useState } from "react";
+import { toast } from "sonner";
+
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+type PaymentFilter = "all" | "paid" | "pending" | "overdue";
+
+export default function Payments() {
+  const [showForm, setShowForm] = useState(false);
+  const [filter, setFilter] = useState<PaymentFilter>("all");
+  const [deviceId, setDeviceId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [note, setNote] = useState("");
+  const paymentQuery = trpc.payments.list.useQuery();
+  const deviceQuery = trpc.devices.list.useQuery({ page: 1, pageSize: 100 });
+  const utils = trpc.useUtils();
+  const create = trpc.payments.create.useMutation({ onSuccess: async () => { await utils.payments.list.invalidate(); toast.success("Cobrança registrada."); setShowForm(false); setDeviceId(""); setAmount(""); setDueDate(""); setNote(""); } });
+  const markPaid = trpc.payments.markPaid.useMutation({ onSuccess: async () => { await utils.payments.list.invalidate(); toast.success("Pagamento confirmado."); } });
+  const remove = trpc.payments.remove.useMutation({ onSuccess: async () => { await utils.payments.list.invalidate(); toast.success("Cobrança removida."); } });
+  const payments = paymentQuery.data ?? [];
+  const filtered = payments.filter(payment => filter === "all" || payment.status === filter);
+  const summary = useMemo(() => payments.reduce((acc, payment) => { const value = Number(payment.amount); if (payment.status === "paid") acc.paid += value; else if (payment.status === "overdue") acc.overdue += value; else acc.pending += value; return acc; }, { paid: 0, pending: 0, overdue: 0 }), [payments]);
+
+  const submit = (event: FormEvent) => { event.preventDefault(); if (!deviceId || !amount) return toast.error("Selecione o cliente e informe o valor."); create.mutate({ deviceId: Number(deviceId), amount: amount.replace(",", "."), dueDate: dueDate || undefined, note: note || undefined }); };
+  const status = { paid: { label: "Pago", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" }, pending: { label: "Pendente", className: "bg-amber-500/10 text-amber-700 dark:text-amber-300" }, overdue: { label: "Atrasado", className: "bg-rose-500/10 text-rose-700 dark:text-rose-300" } } as const;
+
+  return <AdminLayout title="Pagamentos"><div className="space-y-6">
+    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><div className="text-primary text-xs font-bold uppercase tracking-[.18em] flex items-center gap-2 mb-1"><WalletCards size={17} /> Super Painel</div><h1 className="text-2xl font-bold">Controle de Pagamentos</h1><p className="text-sm text-muted-foreground mt-1">Registre cobranças, confirme recebimentos e acompanhe valores pendentes.</p></div><Button onClick={() => setShowForm(v => !v)} className="gap-2 self-start sm:self-auto text-black dark:text-white"><Plus size={16} /> Nova cobrança</Button></div>
+    <div className="grid grid-cols-3 gap-3"><Card><CardContent className="p-4"><p className="text-lg sm:text-2xl font-bold text-emerald-600">{currency.format(summary.paid)}</p><p className="text-xs text-muted-foreground">Recebido</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-lg sm:text-2xl font-bold text-amber-600">{currency.format(summary.pending)}</p><p className="text-xs text-muted-foreground">Pendente</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-lg sm:text-2xl font-bold text-rose-600">{currency.format(summary.overdue)}</p><p className="text-xs text-muted-foreground">Em atraso</p></CardContent></Card></div>
+    {showForm && <Card className="border-primary/30"><CardHeader><CardTitle className="text-base">Registrar cobrança</CardTitle><CardDescription>Use esta área para controlar pagamentos manualmente, sem precisar de integração financeira.</CardDescription></CardHeader><CardContent><form onSubmit={submit} className="grid md:grid-cols-2 lg:grid-cols-4 gap-3"><label className="grid gap-1.5 text-sm font-medium lg:col-span-2">Cliente<select value={deviceId} onChange={e => setDeviceId(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Selecione o cliente</option>{deviceQuery.data?.data.map(device => <option key={device.id} value={device.id}>{device.nomeServer} · {device.mac}</option>)}</select></label><label className="grid gap-1.5 text-sm font-medium">Valor<Input inputMode="decimal" placeholder="Ex: 30,00" value={amount} onChange={e => setAmount(e.target.value)} /></label><label className="grid gap-1.5 text-sm font-medium">Vencimento<Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></label><label className="grid gap-1.5 text-sm font-medium lg:col-span-3">Observação<Input placeholder="Ex: Mensalidade de agosto" value={note} onChange={e => setNote(e.target.value)} /></label><div className="flex items-end gap-2"><Button type="submit" disabled={create.isPending} className="w-full gap-2 text-black dark:text-white">{create.isPending && <Loader2 size={15} className="animate-spin" />} Salvar cobrança</Button></div></form></CardContent></Card>}
+    <Card><CardHeader className="gap-4"><div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3"><div><CardTitle className="text-base flex items-center gap-2"><ReceiptText size={17} /> Cobranças registradas</CardTitle><CardDescription>{payments.length} registro(s) financeiro(s).</CardDescription></div><div className="flex flex-wrap gap-2">{(["all", "pending", "paid", "overdue"] as const).map(item => <Button key={item} size="sm" variant={filter === item ? "default" : "outline"} onClick={() => setFilter(item)}>{item === "all" ? "Todos" : status[item].label}</Button>)}</div></div></CardHeader><CardContent><div className="space-y-3">{filtered.map(payment => { const item = status[payment.status as keyof typeof status]; return <div key={payment.id} className="border rounded-xl p-4 flex flex-col xl:flex-row gap-4 xl:items-center"><div className="flex-1 min-w-0"><p className="font-medium truncate">{payment.deviceName}</p><p className="text-xs font-mono text-muted-foreground">{payment.deviceMac}</p>{payment.note && <p className="text-sm text-muted-foreground mt-1">{payment.note}</p>}</div><p className="font-bold text-lg">{currency.format(Number(payment.amount))}</p><Badge variant="secondary" className={`${item.className} w-fit`}>{item.label}</Badge><div className="text-sm min-w-28"><p className="text-xs text-muted-foreground">Vencimento</p><p>{formatDateOnlyPtBr(payment.dueDate)}</p></div><div className="flex gap-2">{payment.status !== "paid" && <Button size="sm" onClick={() => markPaid.mutate({ id: payment.id })} disabled={markPaid.isPending} className="gap-1.5 text-black dark:text-white"><CheckCircle2 size={14} /> Pago</Button>}<Button size="sm" variant="outline" onClick={() => { if (window.confirm("Remover esta cobrança?")) remove.mutate({ id: payment.id }); }} disabled={remove.isPending}><Trash2 size={14} /></Button></div></div>})}{!paymentQuery.isLoading && filtered.length === 0 && <div className="text-center py-12 text-sm text-muted-foreground"><CircleDollarSign className="mx-auto mb-2 opacity-40" size={28} /> Nenhuma cobrança neste filtro.</div>}</div></CardContent></Card>
+  </div></AdminLayout>;
+}
