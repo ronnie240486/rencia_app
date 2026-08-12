@@ -18,6 +18,49 @@ import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 import { getEffectivePaymentStatus } from "./payments";
+import { probeListUrl } from "./listHealth";
+
+type MonitorTarget = { deviceId: number; deviceUrlId: number | null; deviceName: string; listName: string; url: string };
+
+async function getListMonitorTargets(db: any, ownerId: number): Promise<MonitorTarget[]> {
+  const ownedDevices = await db.select({ id: devices.id, nomeServer: devices.nomeServer, urlM3u8: devices.urlM3u8 })
+    .from(devices).where(eq(devices.ownerId, ownerId));
+  const devicesById = new Map<number, { id: number; nomeServer: string; urlM3u8: string | null }>();
+  ownedDevices.forEach((device: any) => devicesById.set(device.id, device));
+  const targets: MonitorTarget[] = ownedDevices.flatMap((device: any) => device.urlM3u8 ? [{ deviceId: device.id, deviceUrlId: null, deviceName: device.nomeServer, listName: "Lista principal", url: device.urlM3u8 }] : []);
+  const childLists = await db.select({ id: deviceUrls.id, deviceId: deviceUrls.deviceId, nome: deviceUrls.nome, urlM3u8: deviceUrls.urlM3u8, xtServer: deviceUrls.xtServer })
+    .from(deviceUrls).where(eq(deviceUrls.ativo, true));
+  childLists.forEach((list: any) => {
+    const device = devicesById.get(list.deviceId);
+    const url = list.urlM3u8 || list.xtServer;
+    if (device && url) targets.push({ deviceId: list.deviceId, deviceUrlId: list.id, deviceName: device.nomeServer, listName: list.nome, url });
+  });
+  return targets;
+}
+
+async function runListHealthCheck(db: any, ownerId: number, actorUserId: number, target: MonitorTarget) {
+  const result = await probeListUrl(target.url);
+  await db.insert(listHealthChecks).values({
+    ownerId,
+    deviceId: target.deviceId,
+    deviceUrlId: target.deviceUrlId,
+    urlSnapshot: target.url,
+    status: result.status,
+    statusCode: result.statusCode,
+    responseTimeMs: result.responseTimeMs,
+    message: result.message,
+  });
+  await recordAudit({
+    ownerId,
+    actorUserId,
+    entityType: "list_health",
+    entityId: target.deviceUrlId ?? target.deviceId,
+    action: result.status === "success" ? "checked" : "error",
+    summary: `${target.listName} de ${target.deviceName}: ${result.message}`,
+    afterData: { target, result },
+  });
+  return { ...target, ...result };
+}
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin") {
@@ -498,6 +541,42 @@ export const appRouter = router({
       await db.delete(payments).where(eq(payments.id, input.id));
       await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "payment", entityId: input.id, action: "deleted", summary: `Cobrança de R$ ${payment.amount} removida`, beforeData: payment });
       return { success: true };
+    }),
+  }),
+
+  // ─── Monitor de Listas ──────────────────────────────────────────────────────
+  listMonitor: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const [targets, checks] = await Promise.all([
+        getListMonitorTargets(db, ctx.user.id),
+        db.select().from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id)).orderBy(desc(listHealthChecks.checkedAt)),
+      ]);
+      const latestChecks = new Map<string, any>();
+      checks.forEach((check: any) => {
+        const key = `${check.deviceId}:${check.deviceUrlId ?? "principal"}`;
+        if (!latestChecks.has(key)) latestChecks.set(key, check);
+      });
+      return targets.map((target) => ({ ...target, lastCheck: latestChecks.get(`${target.deviceId}:${target.deviceUrlId ?? "principal"}`) ?? null }));
+    }),
+
+    check: protectedProcedure.input(z.object({ deviceId: z.number(), deviceUrlId: z.number().nullable() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const targets = await getListMonitorTargets(db, ctx.user.id);
+      const target = targets.find((item) => item.deviceId === input.deviceId && item.deviceUrlId === input.deviceUrlId);
+      if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Lista não encontrada ou sem permissão." });
+      return runListHealthCheck(db, ctx.user.id, ctx.user.id, target);
+    }),
+
+    checkAll: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const targets = (await getListMonitorTargets(db, ctx.user.id)).slice(0, 30);
+      const results = [];
+      for (const target of targets) results.push(await runListHealthCheck(db, ctx.user.id, ctx.user.id, target));
+      return { checked: results.length, success: results.filter((item) => item.status === "success").length, errors: results.filter((item) => item.status === "error").length };
     }),
   }),
 

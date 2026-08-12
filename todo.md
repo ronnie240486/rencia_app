@@ -352,4 +352,4 @@
 - [x] Criar Histórico de Ações com data, hora, usuário e alteração realizada
 - [x] Criar Diagnóstico de Conexão por dispositivo
 - [x] Criar Controle de Pagamentos por cliente
-- [ ] Criar Monitor de Disponibilidade das Listas
+- [x] Criar Monitor de Disponibilidade das Listas

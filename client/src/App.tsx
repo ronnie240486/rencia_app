@@ -32,6 +32,7 @@ import RankingApps from "./pages/RankingApps";
 import ControlCenter from "./pages/ControlCenter";
 import Diagnostics from "./pages/Diagnostics";
 import Payments from "./pages/Payments";
+import ListMonitor from "./pages/ListMonitor";
 
 function Router() {
   return (
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/central" component={ControlCenter} />
       <Route path="/diagnostico" component={Diagnostics} />
       <Route path="/pagamentos" component={Payments} />
+      <Route path="/monitor-listas" component={ListMonitor} />
       <Route path={"*"} component={NotFound} />
     </Switch>
   );
