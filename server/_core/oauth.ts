@@ -28,12 +28,11 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
-      // Verificar se o usuario ja existe no banco de dados
+      // Contas inexistentes ou bloqueadas não podem receber uma nova sessão.
       const existingUser = await db.getUserByOpenId(userInfo.openId);
-      if (!existingUser) {
-        // Usuario nao cadastrado - rejeitar login
-        console.log("[OAuth] User not found in database:", userInfo.openId);
-        res.status(403).json({ error: "Usuario nao cadastrado no painel. Contate o administrador." });
+      if (!existingUser || !existingUser.isActive) {
+        console.log("[OAuth] User not eligible for login:", userInfo.openId);
+        res.status(403).json({ error: "Usuário não cadastrado ou bloqueado no painel. Contate o administrador." });
         return;
       }
 

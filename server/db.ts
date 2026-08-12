@@ -341,12 +341,20 @@ export async function createRevenda(data: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const email = data.email.trim().toLowerCase();
+  const existing = await db.select({ id: users.id })
+    .from(users)
+    .where(sql`LOWER(${users.email}) = ${email}`)
+    .limit(1);
+  if (existing.length > 0) {
+    throw new Error("Já existe uma conta cadastrada com este e-mail.");
+  }
   // Criar usuário de revenda com openId único gerado
   const openId = `revenda_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const result = await db.insert(users).values({
     openId,
     name: data.name,
-    email: data.email,
+    email,
     passwordHash: data.passwordHash,
     loginMethod: "manual",
     role: "user",

@@ -33,6 +33,7 @@ import { autoBackupSettings, backupSnapshots } from "../drizzle/schema";
 import { createBackupSnapshot, restoreBackupSnapshot, AUTO_BACKUP_CRON } from "./backupService";
 import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 import { parse as parseCookie } from "cookie";
+import { chooseLocalLoginAccount } from "./loginSelection";
 
 type MonitorTarget = { deviceId: number; deviceUrlId: number | null; deviceName: string; listName: string; url: string };
 
@@ -162,22 +163,27 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database connection failed' });
         
-        // Buscar usuário por email
-        const user = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+        // Uma revenda cadastrada pelo proprietário tem precedência sobre uma
+        // conta legada que, por engano, tenha o mesmo e-mail.
+        const normalizedEmail = input.email.trim().toLowerCase();
+        const matches = await db.select().from(users)
+          .where(sql`LOWER(${users.email}) = ${normalizedEmail}`)
+          .limit(20);
+        const user = chooseLocalLoginAccount(matches);
         
-        if (!user.length || !user[0].passwordHash || !user[0].isActive) {
+        if (!user || !user.passwordHash || !user.isActive) {
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Email ou senha inválidos.' });
         }
         
         // Comparar senha com bcrypt
-        const isPasswordValid = await comparePassword(input.password, user[0].passwordHash);
+        const isPasswordValid = await comparePassword(input.password, user.passwordHash);
         if (!isPasswordValid) {
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Email ou senha inválidos.' });
         }
         
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, JSON.stringify({ userId: user[0].id, email: user[0].email }), cookieOptions);
-        return { success: true, user: user[0] };
+        ctx.res.cookie(COOKIE_NAME, JSON.stringify({ userId: user.id, email: user.email }), cookieOptions);
+        return { success: true, user };
       }),
   }),
 
@@ -1022,7 +1028,15 @@ export const appRouter = router({
         }
         const { hashPassword } = await import("./auth");
         const { password, ...revendaData } = input;
-        const result = await createRevenda({ resellerId: ctx.user.id, ...revendaData, passwordHash: await hashPassword(password) });
+        let result: { id: number };
+        try {
+          result = await createRevenda({ resellerId: ctx.user.id, ...revendaData, passwordHash: await hashPassword(password) });
+        } catch (error) {
+          if (error instanceof Error && error.message.includes("Já existe uma conta")) {
+            throw new TRPCError({ code: "CONFLICT", message: error.message });
+          }
+          throw error;
+        }
         await recordAudit({
           ownerId: ctx.user.id,
           actorUserId: ctx.user.id,
