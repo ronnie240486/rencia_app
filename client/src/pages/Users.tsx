@@ -393,6 +393,11 @@ export default function Users() {
                               <Pencil className="w-3 h-3" />
                             </Button>
                           </Link>
+                          <Link href={`/cliente/${d.id}`}>
+                            <Button size="sm" variant="outline" className="h-7 px-2 text-[10px]" title="Ficha 360°">
+                              360°
+                            </Button>
+                          </Link>
                           <Link href={`/users/${d.id}/lists`}>
                             <Button size="sm" className="h-7 w-7 p-0 bg-emerald-500 hover:bg-emerald-600" title="Gerenciar Listas">
                               <List className="w-3 h-3" />

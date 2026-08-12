@@ -25,6 +25,7 @@ import { summarizeResellerFinance } from "./resellerReport";
 import { buildRenewalAgenda } from "./renewalAgenda";
 import { buildMaintenanceOverview } from "./maintenanceCenter";
 import { buildApkUpdateOverview } from "./apkUpdates";
+import { getConnectionState } from "./customerProfile";
 import { probeListUrl } from "./listHealth";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 
@@ -760,6 +761,28 @@ export const appRouter = router({
       const byKey = Object.fromEntries(settings.map((setting) => [setting.key, setting.value]));
       const versions = { ouroPro: byKey.apk_version ?? null, maximus: byKey.gpcpro_apk_version ?? null };
       return { versions, devices: buildApkUpdateOverview(deviceRows, versions) };
+    }),
+  }),
+
+  // ─── Ficha 360° do Cliente ──────────────────────────────────────────────────
+  customerProfile: router({
+    get: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const deviceResult = await db.select({
+        id: devices.id, nomeServer: devices.nomeServer, mac: devices.mac, tipo: devices.tipo, app: devices.app, appVersion: devices.appVersion,
+        status: devices.status, telefone: devices.telefone, valor: devices.valor, dataCadastro: devices.dataCadastro, dataExpiracao: devices.dataExpiracao,
+        lastSeen: devices.lastSeen, currentContent: devices.currentContent, modoSelecao: devices.modoSelecao,
+      }).from(devices).where(and(eq(devices.id, input.id), eq(devices.ownerId, ctx.user.id))).limit(1);
+      const device = deviceResult[0];
+      if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
+      const [lists, paymentRows, history, health] = await Promise.all([
+        db.select({ id: deviceUrls.id, nome: deviceUrls.nome, modoSelecao: deviceUrls.modoSelecao, ordem: deviceUrls.ordem, ativo: deviceUrls.ativo }).from(deviceUrls).where(eq(deviceUrls.deviceId, input.id)).orderBy(deviceUrls.ordem),
+        db.select({ id: payments.id, amount: payments.amount, status: payments.status, dueDate: payments.dueDate, paidAt: payments.paidAt, note: payments.note, createdAt: payments.createdAt }).from(payments).where(and(eq(payments.ownerId, ctx.user.id), eq(payments.deviceId, input.id))).orderBy(desc(payments.createdAt)).limit(12),
+        db.select({ id: auditLogs.id, action: auditLogs.action, summary: auditLogs.summary, createdAt: auditLogs.createdAt }).from(auditLogs).where(and(eq(auditLogs.ownerId, ctx.user.id), eq(auditLogs.entityId, input.id))).orderBy(desc(auditLogs.createdAt)).limit(12),
+        db.select({ id: listHealthChecks.id, status: listHealthChecks.status, responseTimeMs: listHealthChecks.responseTimeMs, message: listHealthChecks.message, checkedAt: listHealthChecks.checkedAt }).from(listHealthChecks).where(and(eq(listHealthChecks.ownerId, ctx.user.id), eq(listHealthChecks.deviceId, input.id))).orderBy(desc(listHealthChecks.checkedAt)).limit(8),
+      ]);
+      return { device, connectionState: getConnectionState(device.lastSeen), lists, payments: paymentRows, history, health };
     }),
   }),
 

@@ -407,3 +407,8 @@
 - [x] Consolidar clientes por aplicativo e versão em uso
 - [x] Identificar clientes com versão inferior à versão configurada
 - [x] Preparar avisos em massa para clientes desatualizados
+
+## Ficha 360° do Cliente
+- [x] Consolidar dados de dispositivo, listas, vencimento e pagamentos por cliente
+- [x] Exibir sessões recentes e histórico de ações do cliente
+- [x] Criar ações rápidas de bloqueio, liberação e edição a partir da ficha

@@ -39,6 +39,7 @@ import ResellerReport from "./pages/ResellerReport";
 import RenewalAgenda from "./pages/RenewalAgenda";
 import MaintenanceCenter from "./pages/MaintenanceCenter";
 import ApkUpdates from "./pages/ApkUpdates";
+import CustomerProfile from "./pages/CustomerProfile";
 
 function Router() {
   return (
@@ -80,6 +81,7 @@ function Router() {
       <Route path="/agenda-renovacao" component={RenewalAgenda} />
       <Route path="/manutencao" component={MaintenanceCenter} />
       <Route path="/atualizacoes" component={ApkUpdates} />
+      <Route path="/cliente/:id" component={CustomerProfile} />
       <Route path={"*"} component={NotFound} />
     </Switch>
   );
