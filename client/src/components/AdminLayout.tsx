@@ -49,6 +49,7 @@ const navItems: NavItem[] = [
   { label: "Diagnóstico", href: "/diagnostico", icon: <Activity size={18} />, ownerOnly: true },
   { label: "Pagamentos", href: "/pagamentos", icon: <WalletCards size={18} /> },
   { label: "Relatórios", href: "/relatorios", icon: <BarChart3 size={18} /> },
+  { label: "Sessões", href: "/sessoes", icon: <Activity size={18} /> },
   { label: "Monitor de Listas", href: "/monitor-listas", icon: <Radio size={18} />, ownerOnly: true },
   { label: "DNS", href: "/dns", icon: <Server size={18} /> },
   { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} />, ownerOnly: true },

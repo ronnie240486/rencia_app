@@ -34,6 +34,7 @@ import Diagnostics from "./pages/Diagnostics";
 import Payments from "./pages/Payments";
 import ListMonitor from "./pages/ListMonitor";
 import FinancialReports from "./pages/FinancialReports";
+import Sessions from "./pages/Sessions";
 
 function Router() {
   return (
@@ -70,6 +71,7 @@ function Router() {
       <Route path="/pagamentos" component={Payments} />
       <Route path="/relatorios" component={FinancialReports} />
       <Route path="/monitor-listas" component={ListMonitor} />
+      <Route path="/sessoes" component={Sessions} />
       <Route path={"*"} component={NotFound} />
     </Switch>
   );

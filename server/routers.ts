@@ -20,6 +20,7 @@ import { dateOnlyForDatabase } from "../shared/dateOnly";
 import { getEffectivePaymentStatus } from "./payments";
 import { buildFinancialReport } from "./financialReport";
 import { normalizeMessageTemplate } from "./messageTemplate";
+import { buildSessionOverview } from "./sessionControl";
 import { probeListUrl } from "./listHealth";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 
@@ -657,6 +658,33 @@ export const appRouter = router({
         .onDuplicateKeyUpdate({ set: { value: template.content } });
       await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "message_template", entityId: input.id, action: "applied", summary: `Modelo ${template.name} aplicado ao aviso de vencimento` });
       return { success: true, content: template.content };
+    }),
+  }),
+
+  // ─── Controle de Sessões ─────────────────────────────────────────────────────
+  sessions: router({
+    list: protectedProcedure.input(z.object({ minutesAgo: z.number().min(5).max(1440).optional().default(30) })).query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db.select({
+        id: devices.id,
+        mac: devices.mac,
+        nomeServer: devices.nomeServer,
+        app: devices.app,
+        status: devices.status,
+        lastSeen: devices.lastSeen,
+        currentContent: devices.currentContent,
+      }).from(devices).where(eq(devices.ownerId, ctx.user.id));
+      return buildSessionOverview(rows, new Date(), input.minutesAgo);
+    }),
+    setStatus: protectedProcedure.input(z.object({ id: z.number(), status: z.enum(["Liberado", "Bloqueado"]) })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [device] = await db.select().from(devices).where(and(eq(devices.id, input.id), eq(devices.ownerId, ctx.user.id))).limit(1);
+      if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Dispositivo não encontrado." });
+      await db.update(devices).set({ status: input.status }).where(eq(devices.id, input.id));
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "session", entityId: input.id, action: input.status === "Bloqueado" ? "blocked" : "released", summary: `Dispositivo ${device.nomeServer} ${input.status === "Bloqueado" ? "bloqueado" : "liberado"} pelo controle de sessões`, beforeData: { status: device.status }, afterData: { status: input.status } });
+      return { success: true };
     }),
   }),
 

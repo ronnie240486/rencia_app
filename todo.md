@@ -382,3 +382,8 @@
 - [x] Criar modelos salvos de renovação, cobrança, boas-vindas e manutenção
 - [x] Permitir criar, editar e remover modelos do Chatbot
 - [x] Permitir aplicar um modelo à mensagem do Chatbot
+
+## Controle de Sessões
+- [x] Criar painel de sessões recentes por MAC e dispositivo
+- [x] Identificar tentativas simultâneas ou suspeitas no mesmo MAC
+- [x] Permitir bloquear o dispositivo suspeito diretamente pelo painel
