@@ -363,3 +363,9 @@
 - [x] Criar bloqueio e liberação individual de cliente sem apagar dados
 - [x] Criar bloqueio e liberação em massa dos clientes selecionados
 - [x] Criar configuração em massa de status, vencimento, aplicativo e lista/DNS
+
+## Revendas Funcionais
+- [x] Garantir que a criação de revenda gere conta com acesso isolado e senha inicial
+- [x] Bloquear revenda de forma efetiva no login e no acesso aos próprios clientes
+- [x] Aplicar limite de dispositivos da revenda ao cadastrar clientes
+- [x] Exibir uso e limite de dispositivos no painel da revenda

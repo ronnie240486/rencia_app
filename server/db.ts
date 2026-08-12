@@ -332,7 +332,8 @@ export async function listRevendas(resellerId: number, opts: {
 export async function createRevenda(data: {
   resellerId: number;
   name: string;
-  email?: string;
+  email: string;
+  passwordHash: string;
   plano: string;
   planValidade?: string;
   limiteDevices: number;
@@ -345,11 +346,13 @@ export async function createRevenda(data: {
   const result = await db.insert(users).values({
     openId,
     name: data.name,
-    email: data.email ?? null,
+    email: data.email,
+    passwordHash: data.passwordHash,
     loginMethod: "manual",
     role: "user",
+    isActive: true,
     plano: data.plano,
-    planValidade: data.planValidade ? new Date(data.planValidade) : null,
+    planValidade: data.planValidade ? dateOnlyForDatabase(data.planValidade) : null,
     limiteDevices: data.limiteDevices,
     limiteRevendas: data.limiteRevendas,
     resellerId: data.resellerId,
@@ -357,13 +360,14 @@ export async function createRevenda(data: {
   });
   
   // Enviar aviso automático se tiver data de vencimento
+  const revendaId = Number((result as any).insertId);
   if (data.planValidade) {
     const { checkAndSendExpirationNotice } = await import('./autoNotifications');
-    const userId = (result as any).insertId || data.resellerId;
-    checkAndSendExpirationNotice(userId, data.planValidade).catch(err => {
+    checkAndSendExpirationNotice(revendaId, data.planValidade).catch(err => {
       console.error('[createRevenda] Erro ao enviar notificação:', err);
     });
   }
+  return { id: revendaId };
 }
 
 export async function updateRevenda(id: number, resellerId: number, data: Partial<{
@@ -374,6 +378,7 @@ export async function updateRevenda(id: number, resellerId: number, data: Partia
   limiteDevices: number;
   limiteRevendas: number;
   isActive: boolean;
+  passwordHash: string;
 }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -381,10 +386,11 @@ export async function updateRevenda(id: number, resellerId: number, data: Partia
   if (data.name !== undefined) updateData.name = data.name;
   if (data.email !== undefined) updateData.email = data.email;
   if (data.plano !== undefined) updateData.plano = data.plano;
-  if (data.planValidade !== undefined) updateData.planValidade = data.planValidade ? new Date(data.planValidade) : null;
+  if (data.planValidade !== undefined) updateData.planValidade = data.planValidade ? dateOnlyForDatabase(data.planValidade) : null;
   if (data.limiteDevices !== undefined) updateData.limiteDevices = data.limiteDevices;
   if (data.limiteRevendas !== undefined) updateData.limiteRevendas = data.limiteRevendas;
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
+  if (data.passwordHash !== undefined) updateData.passwordHash = data.passwordHash;
   if (Object.keys(updateData).length === 0) return;
   await db.update(users).set(updateData).where(and(eq(users.id, id), eq(users.resellerId, resellerId)));
 }

@@ -100,7 +100,7 @@ export const appRouter = router({
         // Buscar usuário por email
         const user = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
         
-        if (!user.length || !user[0].passwordHash) {
+        if (!user.length || !user[0].passwordHash || !user[0].isActive) {
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Email ou senha inválidos.' });
         }
         
@@ -725,7 +725,8 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         name: z.string().min(1),
-        email: z.string().email().optional(),
+        email: z.string().email(),
+        password: z.string().min(8, "A senha inicial precisa ter no mínimo 8 caracteres."),
         plano: z.string().default("Revenda"),
         planValidade: z.string().optional(),
         limiteDevices: z.number().min(1).default(50),
@@ -739,8 +740,19 @@ export const appRouter = router({
         if (limiteRevendas > 0 && stats.totalRevendas >= limiteRevendas) {
           throw new TRPCError({ code: "FORBIDDEN", message: `Limite de ${limiteRevendas} revendas atingido.` });
         }
-        await createRevenda({ resellerId: ctx.user.id, ...input });
-        return { success: true };
+        const { hashPassword } = await import("./auth");
+        const { password, ...revendaData } = input;
+        const result = await createRevenda({ resellerId: ctx.user.id, ...revendaData, passwordHash: await hashPassword(password) });
+        await recordAudit({
+          ownerId: ctx.user.id,
+          actorUserId: ctx.user.id,
+          entityType: "reseller",
+          entityId: result.id,
+          action: "created",
+          summary: `Revenda ${input.name} criada com limite de ${input.limiteDevices} dispositivos`,
+          afterData: { ...revendaData, password: "[oculto]" },
+        });
+        return { success: true, id: result.id };
       }),
 
     update: protectedProcedure
@@ -753,10 +765,12 @@ export const appRouter = router({
         limiteDevices: z.number().optional(),
         limiteRevendas: z.number().optional(),
         isActive: z.boolean().optional(),
+        password: z.string().min(8).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const { id, ...data } = input;
-        await updateRevenda(id, ctx.user.id, data);
+        const { id, password, ...data } = input;
+        const passwordHash = password ? await (await import("./auth")).hashPassword(password) : undefined;
+        await updateRevenda(id, ctx.user.id, { ...data, passwordHash });
         
         // Enviar aviso automatico se a data de vencimento foi atualizada
         if (data.planValidade) {
@@ -774,30 +788,30 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
-        // Coletar sub-revendas para cascata
-        const subRevendas = await db
-          .select({ id: users.id })
-          .from(users)
-          .where(eq(users.resellerId, input.id));
-        const subIds = subRevendas.map(r => r.id);
-        const deviceStatus = input.block ? "Bloqueado" : "Liberado";
-        // Bloquear/desbloquear devices diretos
-        await db.update(devices)
-          .set({ status: deviceStatus })
-          .where(eq(devices.ownerId, input.id));
-        // Cascata: sub-revendas
-        if (subIds.length > 0) {
-          await db.update(devices)
-            .set({ status: deviceStatus })
-            .where(inArray(devices.ownerId, subIds));
-          await db.update(users)
-            .set({ isActive: !input.block })
-            .where(inArray(users.id, subIds));
+        const target = await db.select({ id: users.id, name: users.name }).from(users)
+          .where(and(eq(users.id, input.id), eq(users.resellerId, ctx.user.id))).limit(1);
+        if (!target.length) throw new TRPCError({ code: "NOT_FOUND", message: "Revenda não encontrada." });
+        const descendantIds: number[] = [];
+        let parentIds = [input.id];
+        while (parentIds.length > 0) {
+          const children = await db.select({ id: users.id }).from(users).where(inArray(users.resellerId, parentIds));
+          parentIds = children.map((child) => child.id).filter((id) => !descendantIds.includes(id));
+          descendantIds.push(...parentIds);
         }
-        // Atualizar a própria revenda
+        const affectedOwnerIds = [input.id, ...descendantIds];
+        const deviceStatus = input.block ? "Bloqueado" : "Liberado";
+        await db.update(devices).set({ status: deviceStatus }).where(inArray(devices.ownerId, affectedOwnerIds));
         await db.update(users)
           .set({ isActive: !input.block })
-          .where(and(eq(users.id, input.id), eq(users.resellerId, ctx.user.id)));
+          .where(inArray(users.id, affectedOwnerIds));
+        await recordAudit({
+          ownerId: ctx.user.id,
+          actorUserId: ctx.user.id,
+          entityType: "reseller",
+          entityId: input.id,
+          action: input.block ? "blocked" : "unblocked",
+          summary: `Revenda ${target[0].name ?? input.id} ${input.block ? "bloqueada" : "liberada"} com ${descendantIds.length} sub-revenda(s)`,
+        });
         return { success: true };
       }),
 

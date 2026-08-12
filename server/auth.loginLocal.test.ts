@@ -123,6 +123,25 @@ describe("auth.loginLocal", () => {
     }
   });
 
+  it("should reject login for a blocked reseller", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const blockedUser = {
+      id: 2,
+      email: "blocked@example.com",
+      passwordHash: "hashedpassword",
+      isActive: false,
+    };
+    vi.mocked(dbModule.getDb).mockResolvedValue({
+      select: () => ({ from: () => ({ where: () => ({ limit: () => Promise.resolve([blockedUser]) }) }) }),
+    } as any);
+    vi.mocked(authModule.comparePassword).mockResolvedValue(true as any);
+
+    await expect(caller.auth.loginLocal({ email: "blocked@example.com", password: "correctpassword" }))
+      .rejects.toThrow("Email ou senha inválidos");
+    expect(ctx.res.cookie).not.toHaveBeenCalled();
+  });
+
   it("should successfully login active user with correct password", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);

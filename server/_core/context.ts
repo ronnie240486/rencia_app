@@ -15,6 +15,10 @@ export async function createContext(
 
   try {
     user = await sdk.authenticateRequest(opts.req);
+    if (user && !user.isActive) {
+      console.warn('[Auth] Blocked user attempted to access the panel:', user.id);
+      user = null;
+    }
     if (!user) {
       console.log('[Auth] No user found after authentication');
     } else {

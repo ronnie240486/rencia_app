@@ -26,6 +26,7 @@ import { formatDateOnlyPtBr, toDateOnly } from "@shared/dateOnly";
 interface RevendaForm {
   name: string;
   email: string;
+  password: string;
   plano: string;
   planValidade: string;
   limiteDevices: number;
@@ -35,6 +36,7 @@ interface RevendaForm {
 const emptyForm: RevendaForm = {
   name: "",
   email: "",
+  password: "",
   plano: "Revenda",
   planValidade: "",
   limiteDevices: 50,
@@ -88,6 +90,7 @@ export default function Revendas() {
     setForm({
       name: r.name ?? "",
       email: r.email ?? "",
+      password: "",
       plano: r.plano ?? "Revenda",
       planValidade: toDateOnly(r.planValidade),
       limiteDevices: r.limiteDevices ?? 50,
@@ -97,7 +100,8 @@ export default function Revendas() {
   };
 
   const handleSave = () => {
-    if (!form.name.trim()) { toast.error("Nome é obrigatório"); return; }
+    if (!form.name.trim() || !form.email.trim()) { toast.error("Nome e email são obrigatórios"); return; }
+    if (!editId && form.password.length < 8) { toast.error("Informe uma senha inicial de pelo menos 8 caracteres"); return; }
     if (editId) {
       updateMut.mutate({ id: editId, ...form, planValidade: form.planValidade || undefined });
     } else {
@@ -293,7 +297,12 @@ export default function Revendas() {
             </div>
             <div>
               <Label className="text-xs font-medium mb-1.5 block">Email</Label>
-              <Input value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@exemplo.com" type="email" />
+              <Input value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@exemplo.com" type="email" required />
+            </div>
+            <div>
+              <Label className="text-xs font-medium mb-1.5 block">{editId ? "Nova senha (opcional)" : "Senha inicial *"}</Label>
+              <Input value={form.password} onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))} placeholder={editId ? "Deixe em branco para manter" : "Mínimo de 8 caracteres"} type="password" />
+              <p className="mt-1 text-xs text-muted-foreground">Somente você pode criar ou alterar a senha da revenda.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
