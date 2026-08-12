@@ -169,6 +169,18 @@ export const appRouter = router({
       await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "backup", entityId: input.snapshotId, action: "restored", summary: "Backup restaurado", afterData: { snapshotId: input.snapshotId } });
       return result;
     }),
+    remove: ownerProcedure.input(z.object({ snapshotId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.delete(backupSnapshots).where(and(eq(backupSnapshots.id, input.snapshotId), eq(backupSnapshots.ownerId, ctx.user.id)));
+      return { success: true };
+    }),
+    clearHistory: ownerProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.delete(backupSnapshots).where(eq(backupSnapshots.ownerId, ctx.user.id));
+      return { success: true };
+    }),
   }),
 
   history: router({
@@ -1140,6 +1152,36 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         await db.delete(customerNotes).where(and(eq(customerNotes.id, input.id), eq(customerNotes.ownerId, ctx.user.id)));
+        return { success: true };
+      }),
+    }),
+    health: router({
+      remove: protectedProcedure.input(z.object({ id: z.number().positive() })).mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.delete(listHealthChecks).where(and(eq(listHealthChecks.id, input.id), eq(listHealthChecks.ownerId, ctx.user.id)));
+        return { success: true };
+      }),
+      clearForDevice: protectedProcedure.input(z.object({ deviceId: z.number().positive() })).mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        if (!await getDeviceById(input.deviceId, ctx.user.id)) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
+        await db.delete(listHealthChecks).where(and(eq(listHealthChecks.ownerId, ctx.user.id), eq(listHealthChecks.deviceId, input.deviceId)));
+        return { success: true };
+      }),
+    }),
+    history: router({
+      remove: protectedProcedure.input(z.object({ id: z.number().positive(), deviceId: z.number().positive() })).mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.delete(auditLogs).where(and(eq(auditLogs.id, input.id), eq(auditLogs.ownerId, ctx.user.id), eq(auditLogs.entityId, input.deviceId)));
+        return { success: true };
+      }),
+      clearForDevice: protectedProcedure.input(z.object({ deviceId: z.number().positive() })).mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        if (!await getDeviceById(input.deviceId, ctx.user.id)) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
+        await db.delete(auditLogs).where(and(eq(auditLogs.ownerId, ctx.user.id), eq(auditLogs.entityId, input.deviceId)));
         return { success: true };
       }),
     }),

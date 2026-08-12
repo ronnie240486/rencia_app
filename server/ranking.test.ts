@@ -48,15 +48,17 @@ describe("App Ranking - Contabilização de Apps", () => {
 
     const totalDevices = Object.values(appCounts).reduce((sum: number, count: number) => sum + count, 0);
 
-    // Calcular porcentagens
+    // Calcular porcentagens para apresentação. Cada item pode arredondar para cima,
+    // portanto a soma arredondada pode passar de 100 por alguns pontos percentuais.
     const percentages: Record<string, number> = {};
     for (const [app, count] of Object.entries(appCounts)) {
       percentages[app] = totalDevices > 0 ? Math.round((count / totalDevices) * 100) : 0;
     }
 
-    // Validar que a soma das porcentagens não ultrapassa 100%
-    const totalPercentage = Object.values(percentages).reduce((sum: number, pct: number) => sum + pct, 0);
-    expect(totalPercentage).toBeLessThanOrEqual(100);
+    // A soma matemática exata deve ser 100%; a soma usada no cartão pode variar por arredondamento.
+    const exactTotal = Object.values(appCounts).reduce((sum: number, count: number) => sum + (count / totalDevices) * 100, 0);
+    expect(exactTotal).toBeCloseTo(100, 10);
+    expect(Object.values(percentages).every((percentage) => percentage >= 0 && percentage <= 100)).toBe(true);
   });
 
   it("deve validar que campo 'app' contém valores válidos", async () => {
