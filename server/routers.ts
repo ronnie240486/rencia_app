@@ -1938,6 +1938,21 @@ export const appRouter = router({
         await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "dns_group", entityId: target.id, action: "applied", summary: `DNS ${target.titulo} aplicada a ${updated} cliente(s) do grupo ${input.grupo}` });
         return { updated };
       }),
+    createMaintenanceNotice: ownerProcedure
+      .input(z.object({ grupo: z.string().min(1), titulo: z.string().min(3).max(255), conteudo: z.string().min(3).max(3000) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const entries = await db.select({ host: dnsEntries.host }).from(dnsEntries).where(and(eq(dnsEntries.ownerId, ctx.user.id), eq(dnsEntries.grupo, input.grupo)));
+        const hosts = entries.map((entry) => entry.host.replace(/\/+$/, ""));
+        if (!hosts.length) throw new TRPCError({ code: "NOT_FOUND", message: "Nenhuma DNS encontrada neste grupo." });
+        const devicesInGroup = await db.select({ ownerId: devices.ownerId, urlM3u8: devices.urlM3u8 }).from(devices).where(eq(devices.ownerId, ctx.user.id));
+        const targets = Array.from(new Set(devicesInGroup.filter((device) => !!device.urlM3u8 && hosts.some((host) => device.urlM3u8!.startsWith(host))).map((device) => device.ownerId)));
+        if (!targets.length) targets.push(ctx.user.id);
+        await db.insert(notices).values(targets.map((targetOwnerId) => ({ autorId: ctx.user.id, targetOwnerId, titulo: input.titulo, conteudo: input.conteudo, ativo: true })));
+        await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "maintenance_notice", entityId: 0, action: "created", summary: `Aviso de manutenção enviado ao grupo ${input.grupo} para ${targets.length} painel(is)` });
+        return { sent: targets.length };
+      }),
   }),
 
   // ─── Dispositivos Conectados ───────────────────────────────────────────────

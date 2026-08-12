@@ -460,14 +460,15 @@
 - [x] Corrigir visibilidade das lixeiras na Central de Manutenção e demais telas publicadas
 
 ## Central Avançada de Listas
-- [ ] Monitorar automaticamente a disponibilidade e o tempo de resposta das listas
-- [ ] Trocar automaticamente da Lista 1 para Lista 2 ou Lista 3 quando a principal falhar
-- [ ] Executar o monitoramento automático de listas a cada 10 minutos
-- [ ] Priorizar Lista 2 e depois Lista 3 quando a lista principal falhar
-- [ ] Registrar o histórico de falhas e trocas automáticas de lista
+- [x] Monitorar automaticamente a disponibilidade e o tempo de resposta das listas
+- [x] Trocar automaticamente da Lista 1 para Lista 2 ou Lista 3 quando a principal falhar
+- [x] Executar o monitoramento automático de listas a cada 10 minutos
+- [x] Priorizar Lista 2 e depois Lista 3 quando a lista principal falhar
+- [x] Registrar o histórico de falhas e trocas automáticas de lista
 - [x] Permitir duplicar uma lista para vários clientes de uma vez
-- [ ] Criar grupos de DNS e aplicar troca de DNS por grupo
-- [ ] Definir limite de conexões simultâneas por cliente
-- [ ] Criar relatório de instabilidade por lista e servidor
+- [x] Criar grupos de DNS e aplicar troca de DNS por grupo
+- [x] Definir limite de conexões simultâneas por cliente
+- [x] Criar relatório de instabilidade por lista e servidor
 - [x] Criar teste de MACs em massa no painel
-- [ ] Criar aviso de manutenção programada por grupo de clientes e listas
+- [x] Criar aviso de manutenção programada por grupo de clientes e listas
+- [x] Exibir aviso de manutenção programada no painel das revendas afetadas

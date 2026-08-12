@@ -29,6 +29,9 @@ export default function DNS() {
   const [oldHost, setOldHost] = useState("");
   const [newHost, setNewHost] = useState("");
   const [useDropdown, setUseDropdown] = useState(true);
+  const [maintenanceGroup, setMaintenanceGroup] = useState("Padrão");
+  const [maintenanceTitle, setMaintenanceTitle] = useState("Manutenção programada");
+  const [maintenanceContent, setMaintenanceContent] = useState("");
 
   const { data: dnsList = [], isLoading, refetch } = trpc.dns.list.useQuery();
   const { data: uniqueUrls = [], refetch: refetchUrls } = trpc.devices.listUniqueUrls.useQuery();
@@ -47,6 +50,10 @@ export default function DNS() {
   });
   const applyGroupMut = trpc.dns.applyGroupToDevices.useMutation({
     onSuccess: (data) => toast.success(`DNS aplicada a ${data.updated} cliente(s) do grupo.`),
+    onError: (e) => toast.error(e.message),
+  });
+  const maintenanceNoticeMut = trpc.dns.createMaintenanceNotice.useMutation({
+    onSuccess: (data) => { toast.success(`Aviso preparado para ${data.sent} painel(is).`); setMaintenanceContent(""); },
     onError: (e) => toast.error(e.message),
   });
   const swapMut = trpc.devices.bulkSwapDns.useMutation({
@@ -198,6 +205,19 @@ export default function DNS() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Aviso de manutenção por grupo</CardTitle>
+            <CardDescription>Cria um aviso dentro do painel das revendas afetadas. O WhatsApp poderá ser conectado depois.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-2"><Label>Grupo de DNS</Label><Select value={maintenanceGroup} onValueChange={setMaintenanceGroup}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Array.from(new Set(dnsList.map((item) => item.grupo ?? "Padrão"))).map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Título</Label><Input value={maintenanceTitle} onChange={(event) => setMaintenanceTitle(event.target.value)} /></div>
+            <div className="space-y-2 md:col-span-2"><Label>Mensagem</Label><Input placeholder="Ex.: Hoje às 23h faremos uma manutenção no servidor." value={maintenanceContent} onChange={(event) => setMaintenanceContent(event.target.value)} /></div>
+            <div className="md:col-span-2"><Button className="text-black dark:text-white" disabled={maintenanceNoticeMut.isPending || maintenanceContent.trim().length < 3} onClick={() => maintenanceNoticeMut.mutate({ grupo: maintenanceGroup, titulo: maintenanceTitle, conteudo: maintenanceContent })}>{maintenanceNoticeMut.isPending ? "Enviando..." : "Criar aviso de manutenção"}</Button></div>
           </CardContent>
         </Card>
 
