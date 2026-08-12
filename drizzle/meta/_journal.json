@@ -232,6 +232,20 @@
       "when": 1786527987028,
       "tag": "0032_friendly_secret_warriors",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1786540007007,
+      "tag": "0033_quiet_scalphunter",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "5",
+      "when": 1786540159338,
+      "tag": "0034_conscious_swordsman",
+      "breakpoints": true
     }
   ]
 }

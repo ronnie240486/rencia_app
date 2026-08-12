@@ -28,6 +28,10 @@ import { buildApkUpdateOverview } from "./apkUpdates";
 import { getConnectionState } from "./customerProfile";
 import { probeListUrl } from "./listHealth";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
+import { autoBackupSettings, backupSnapshots } from "../drizzle/schema";
+import { createBackupSnapshot, restoreBackupSnapshot, AUTO_BACKUP_CRON } from "./backupService";
+import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
+import { parse as parseCookie } from "cookie";
 
 type MonitorTarget = { deviceId: number; deviceUrlId: number | null; deviceName: string; listName: string; url: string };
 
@@ -87,6 +91,58 @@ const ownerProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 export const appRouter = router({
   system: systemRouter,
+
+  backups: router({
+    overview: ownerProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { setting: null, snapshots: [] };
+      const setting = (await db.select().from(autoBackupSettings).where(eq(autoBackupSettings.ownerId, ctx.user.id)).limit(1))[0] ?? null;
+      const snapshots = await db.select().from(backupSnapshots).where(eq(backupSnapshots.ownerId, ctx.user.id)).orderBy(desc(backupSnapshots.createdAt)).limit(30);
+      return { setting, snapshots };
+    }),
+    runNow: ownerProcedure.mutation(async ({ ctx }) => {
+      const result = await createBackupSnapshot(ctx.user.id, "manual");
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "backup", entityId: result.snapshot?.id ?? 0, action: "created", summary: "Backup manual criado", afterData: { type: "manual" } });
+      return result;
+    }),
+    enableDaily: ownerProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
+      const existing = (await db.select().from(autoBackupSettings).where(eq(autoBackupSettings.ownerId, ctx.user.id)).limit(1))[0];
+      if (existing?.scheduleCronTaskUid) {
+        await db.update(autoBackupSettings).set({ enabled: true, runTime: "03:00", lastError: null }).where(eq(autoBackupSettings.id, existing.id));
+        return { enabled: true, existingSchedule: true };
+      }
+      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (!sessionToken) throw new TRPCError({ code: "UNAUTHORIZED", message: "Sua sessão expirou. Entre novamente para ativar o backup." });
+      const job = await createHeartbeatJob({
+        name: `backup-diario-${ctx.user.id}`,
+        cron: AUTO_BACKUP_CRON,
+        path: "/api/scheduled/automatic-backup",
+        description: "Backup automático diário às 03:00 de Brasília",
+      }, sessionToken);
+      if (existing) {
+        await db.update(autoBackupSettings).set({ enabled: true, runTime: "03:00", scheduleCronTaskUid: job.taskUid, lastError: null }).where(eq(autoBackupSettings.id, existing.id));
+      } else {
+        await db.insert(autoBackupSettings).values({ ownerId: ctx.user.id, enabled: true, runTime: "03:00", scheduleCronTaskUid: job.taskUid });
+      }
+      return { enabled: true, existingSchedule: false, nextExecutionAt: job.nextExecutionAt ?? null };
+    }),
+    disableDaily: ownerProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
+      const setting = (await db.select().from(autoBackupSettings).where(eq(autoBackupSettings.ownerId, ctx.user.id)).limit(1))[0];
+      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (setting?.scheduleCronTaskUid) await deleteHeartbeatJob(setting.scheduleCronTaskUid, sessionToken);
+      if (setting) await db.update(autoBackupSettings).set({ enabled: false, scheduleCronTaskUid: null }).where(eq(autoBackupSettings.id, setting.id));
+      return { enabled: false };
+    }),
+    restore: ownerProcedure.input(z.object({ snapshotId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const result = await restoreBackupSnapshot(ctx.user.id, input.snapshotId);
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "backup", entityId: input.snapshotId, action: "restored", summary: "Backup restaurado", afterData: { snapshotId: input.snapshotId } });
+      return result;
+    }),
+  }),
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),

@@ -418,3 +418,9 @@
 - [x] Exportar agenda de vencimentos filtrada em CSV
 - [x] Exportar relatório consolidado de revendas em CSV
 - [x] Exportar lista de clientes filtrada em CSV
+
+## Backup Automático
+- [x] Criar histórico de backups automáticos com cópias datadas
+- [x] Armazenar backups completos de forma segura fora do banco principal
+- [ ] Ativar cópia diária às 03:00 e registrar cada execução após a publicação
+- [x] Criar tela para consultar e restaurar backup com confirmação

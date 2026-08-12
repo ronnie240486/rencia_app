@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerApiRoutes } from "../apiRoutes";
+import { registerBackupScheduleRoutes } from "../backupSchedule";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -78,6 +79,7 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  registerBackupScheduleRoutes(app);
   // Registrar rotas da API ANTES de Vite para ter prioridade
   registerApiRoutes(app);
   // tRPC API

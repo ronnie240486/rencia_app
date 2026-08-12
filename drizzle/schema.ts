@@ -254,6 +254,38 @@ export const listHealthChecks = mysqlTable("list_health_checks", {
 export type ListHealthCheck = typeof listHealthChecks.$inferSelect;
 export type InsertListHealthCheck = typeof listHealthChecks.$inferInsert;
 
+// Histórico de backups completos armazenados fora do banco principal
+export const backupSnapshots = mysqlTable("backup_snapshots", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  storageKey: text("storageKey").notNull(),
+  storageUrl: text("storageUrl").notNull(),
+  fileSize: int("fileSize").notNull(),
+  type: mysqlEnum("type", ["automatic", "manual"]).default("automatic").notNull(),
+  runKey: varchar("runKey", { length: 10 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type BackupSnapshot = typeof backupSnapshots.$inferSelect;
+export type InsertBackupSnapshot = typeof backupSnapshots.$inferInsert;
+
+// Uma configuração de rotina automática por proprietário
+export const autoBackupSettings = mysqlTable("auto_backup_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  enabled: boolean("enabled").default(false).notNull(),
+  runTime: varchar("runTime", { length: 5 }).default("03:00").notNull(),
+  scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }),
+  lastRunAt: timestamp("lastRunAt"),
+  lastStatus: mysqlEnum("lastStatus", ["success", "error", "never"]).default("never").notNull(),
+  lastError: varchar("lastError", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AutoBackupSetting = typeof autoBackupSettings.$inferSelect;
+export type InsertAutoBackupSetting = typeof autoBackupSettings.$inferInsert;
+
 // Tabela de configurações do APK NuvixXC6
 export const nuvixConfig = mysqlTable("nuvix_config", {
   id: int("id").autoincrement().primaryKey(),

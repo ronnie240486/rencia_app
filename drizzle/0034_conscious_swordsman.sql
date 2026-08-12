@@ -1,0 +1,1 @@
+ALTER TABLE `backup_snapshots` ADD `runKey` varchar(10);

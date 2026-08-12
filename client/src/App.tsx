@@ -40,6 +40,7 @@ import RenewalAgenda from "./pages/RenewalAgenda";
 import MaintenanceCenter from "./pages/MaintenanceCenter";
 import ApkUpdates from "./pages/ApkUpdates";
 import CustomerProfile from "./pages/CustomerProfile";
+import BackupCenter from "./pages/BackupCenter";
 
 function Router() {
   return (
@@ -82,6 +83,7 @@ function Router() {
       <Route path="/manutencao" component={MaintenanceCenter} />
       <Route path="/atualizacoes" component={ApkUpdates} />
       <Route path="/cliente/:id" component={CustomerProfile} />
+      <Route path="/backups" component={BackupCenter} />
       <Route path={"*"} component={NotFound} />
     </Switch>
   );
