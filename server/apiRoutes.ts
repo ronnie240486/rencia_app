@@ -25,7 +25,7 @@ import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
 import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials } from "../drizzle/schema";
-import { eq, or, and } from "drizzle-orm";
+import { eq, or, and, asc } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
 
@@ -728,7 +728,7 @@ export function registerApiRoutes(app: Express) {
       // Montar lista de URLs para o APK
       // IMPORTANTE: o campo 'id' deve ser != '0' para o APK liberar a lista
       const urls: Array<{ id: string; url: string; name: string; type: string; is_protected: string; username?: string; password?: string }> = [];
-      if (device.urlM3u8 && isAllowed) {
+      if (device.urlM3u8 && isAllowed && !device.activeDeviceUrlId) {
         urls.push({
           id: String(device.id),
           url: device.urlM3u8,
@@ -741,8 +741,10 @@ export function registerApiRoutes(app: Express) {
       // Buscar listas extras cadastradas no painel (device_urls)
       if (isAllowed) {
         try {
-          const extraUrls = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, device.id));
-          for (const eu of extraUrls) {
+          const extraUrls = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
+          const activeExtra = device.activeDeviceUrlId ? extraUrls.find((item) => item.id === device.activeDeviceUrlId) : undefined;
+          const orderedExtraUrls = activeExtra ? [activeExtra, ...extraUrls.filter((item) => item.id !== activeExtra.id)] : extraUrls;
+          for (const eu of orderedExtraUrls) {
             if (eu.modoSelecao === "XTeamCode") {
               let xtreamUrl = (eu.xtServer || "").trim();
               if (!xtreamUrl && eu.urlM3u8) xtreamUrl = eu.urlM3u8;
@@ -772,6 +774,9 @@ export function registerApiRoutes(app: Express) {
                 is_protected: "1",
               });
             }
+          }
+          if (device.urlM3u8 && activeExtra) {
+            urls.push({ id: String(device.id), url: device.urlM3u8, name: device.nomeServer || "Lista principal", type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus", is_protected: "1" });
           }
         } catch { /* ignora erro de listas extras */ }
       }

@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull, like, or } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
@@ -36,6 +36,7 @@ import { parse as parseCookie } from "cookie";
 import { chooseLocalLoginAccount } from "./loginSelection";
 import { addBillingMonths, getResellerBillingStatus } from "./resellerBilling";
 import { cleanupOldOperationalHistory, HISTORY_RETENTION_CRON, HISTORY_RETENTION_DAYS } from "./historyRetention";
+import { LIST_FAILOVER_CRON, recordFailoverRun, runListFailoverSweep } from "./listFailover";
 
 export const revendaUpdateInputSchema = z.object({
   id: z.number(),
@@ -1290,6 +1291,48 @@ export const appRouter = router({
       const results = [];
       for (const target of targets) results.push(await runListHealthCheck(db, ctx.user.id, ctx.user.id, target));
       return { checked: results.length, success: results.filter((item) => item.status === "success").length, errors: results.filter((item) => item.status === "error").length };
+    }),
+  }),
+
+  listFailover: router({
+    overview: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { setting: null, events: [] };
+      const setting = (await db.select().from(listFailoverSettings).where(eq(listFailoverSettings.ownerId, ctx.user.id)).limit(1))[0] ?? null;
+      const events = await db.select().from(listFailoverEvents).where(eq(listFailoverEvents.ownerId, ctx.user.id)).orderBy(desc(listFailoverEvents.createdAt)).limit(50);
+      return { setting, events };
+    }),
+    runNow: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const setting = (await db.select().from(listFailoverSettings).where(eq(listFailoverSettings.ownerId, ctx.user.id)).limit(1))[0];
+      const result = await runListFailoverSweep(db, ctx.user.id);
+      if (setting) await recordFailoverRun(db, setting.id, result);
+      return result;
+    }),
+    enable: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const current = (await db.select().from(listFailoverSettings).where(eq(listFailoverSettings.ownerId, ctx.user.id)).limit(1))[0];
+      if (current?.scheduleCronTaskUid) {
+        await db.update(listFailoverSettings).set({ enabled: true, intervalMinutes: 10, lastError: null }).where(eq(listFailoverSettings.id, current.id));
+        return { enabled: true, existingSchedule: true };
+      }
+      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (!sessionToken) throw new TRPCError({ code: "UNAUTHORIZED", message: "Sua sessão expirou. Entre novamente para ativar o monitoramento." });
+      const job = await createHeartbeatJob({ name: `monitor-listas-${ctx.user.id}`, cron: LIST_FAILOVER_CRON, path: "/api/scheduled/list-failover", description: "Monitoramento e troca automática de listas a cada 10 minutos" }, sessionToken);
+      if (current) await db.update(listFailoverSettings).set({ enabled: true, intervalMinutes: 10, scheduleCronTaskUid: job.taskUid, lastError: null }).where(eq(listFailoverSettings.id, current.id));
+      else await db.insert(listFailoverSettings).values({ ownerId: ctx.user.id, enabled: true, intervalMinutes: 10, scheduleCronTaskUid: job.taskUid });
+      return { enabled: true, taskUid: job.taskUid };
+    }),
+    disable: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const setting = (await db.select().from(listFailoverSettings).where(eq(listFailoverSettings.ownerId, ctx.user.id)).limit(1))[0];
+      if (!setting) return { enabled: false };
+      if (setting.scheduleCronTaskUid) { try { await deleteHeartbeatJob(setting.scheduleCronTaskUid, parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? ""); } catch { /* manter registro local desativado */ } }
+      await db.update(listFailoverSettings).set({ enabled: false, scheduleCronTaskUid: null }).where(eq(listFailoverSettings.id, setting.id));
+      return { enabled: false };
     }),
   }),
 

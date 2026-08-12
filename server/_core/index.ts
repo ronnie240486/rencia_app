@@ -11,6 +11,7 @@ import { serveStatic, setupVite } from "./vite";
 import { registerApiRoutes } from "../apiRoutes";
 import { registerBackupScheduleRoutes } from "../backupSchedule";
 import { registerHistoryRetentionScheduleRoutes } from "../historyRetentionSchedule";
+import { registerListFailoverScheduleRoutes } from "../listFailoverSchedule";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -82,6 +83,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerBackupScheduleRoutes(app);
   registerHistoryRetentionScheduleRoutes(app);
+  registerListFailoverScheduleRoutes(app);
   // Registrar rotas da API ANTES de Vite para ter prioridade
   registerApiRoutes(app);
   // tRPC API

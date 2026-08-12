@@ -57,6 +57,8 @@ export const devices = mysqlTable("devices", {
   currentContent: text("currentContent"), // canal/série/filme que está assistindo
   telefone: varchar("telefone", { length: 32 }),
   forceShowChannel: boolean("forceShowChannel").default(false).notNull(), // força envio do canal mesmo sem Device Type = TV
+  activeDeviceUrlId: int("activeDeviceUrlId"), // null = lista principal legada; id = lista extra priorizada
+  listFailoverEnabled: boolean("listFailoverEnabled").default(true).notNull(),
 });
 
 export type Device = typeof devices.$inferSelect;
@@ -326,6 +328,30 @@ export const listHealthChecks = mysqlTable("list_health_checks", {
 
 export type ListHealthCheck = typeof listHealthChecks.$inferSelect;
 export type InsertListHealthCheck = typeof listHealthChecks.$inferInsert;
+
+// Preferências e histórico do monitoramento automático de listas
+export const listFailoverSettings = mysqlTable("list_failover_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull().unique(),
+  enabled: boolean("enabled").default(false).notNull(),
+  intervalMinutes: int("intervalMinutes").default(10).notNull(),
+  scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }),
+  lastRunAt: timestamp("lastRunAt"),
+  lastStatus: mysqlEnum("lastStatus", ["success", "error", "never"]).default("never").notNull(),
+  lastError: varchar("lastError", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const listFailoverEvents = mysqlTable("list_failover_events", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  deviceId: int("deviceId").notNull(),
+  fromDeviceUrlId: int("fromDeviceUrlId"),
+  toDeviceUrlId: int("toDeviceUrlId"),
+  reason: varchar("reason", { length: 500 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
 
 // Histórico de backups completos armazenados fora do banco principal
 export const backupSnapshots = mysqlTable("backup_snapshots", {
