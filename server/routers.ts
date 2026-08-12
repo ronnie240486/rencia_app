@@ -1915,6 +1915,27 @@ export const appRouter = router({
         await db.delete(dnsEntries).where(and(eq(dnsEntries.id, input.id), eq(dnsEntries.ownerId, ctx.user.id)));
         return { success: true };
       }),
+    applyGroupToDevices: protectedProcedure
+      .input(z.object({ grupo: z.string().min(1), targetDnsId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const entries = await db.select().from(dnsEntries).where(and(eq(dnsEntries.ownerId, ctx.user.id), eq(dnsEntries.grupo, input.grupo)));
+        const target = entries.find((entry) => entry.id === input.targetDnsId);
+        if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "DNS de destino não encontrada no grupo." });
+        const sourceHosts = entries.filter((entry) => entry.id !== target.id).map((entry) => entry.host.replace(/\/+$/, ""));
+        const rows = await db.select({ id: devices.id, urlM3u8: devices.urlM3u8 }).from(devices).where(eq(devices.ownerId, ctx.user.id));
+        let updated = 0;
+        for (const row of rows) {
+          if (!row.urlM3u8) continue;
+          const source = sourceHosts.find((host) => row.urlM3u8?.startsWith(host));
+          if (!source) continue;
+          await db.update(devices).set({ urlM3u8: `${target.host.replace(/\/+$/, "")}${row.urlM3u8.slice(source.length)}` }).where(eq(devices.id, row.id));
+          updated += 1;
+        }
+        await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "dns_group", entityId: target.id, action: "applied", summary: `DNS ${target.titulo} aplicada a ${updated} cliente(s) do grupo ${input.grupo}` });
+        return { updated };
+      }),
   }),
 
   // ─── Dispositivos Conectados ───────────────────────────────────────────────
