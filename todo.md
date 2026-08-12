@@ -446,3 +446,13 @@
 - [x] Criar notificações internas para alertas operacionais importantes
 - [x] Formalizar permissões operacionais entre proprietário, master e revenda
 - [x] Criar prévia de importação com detecção de MACs duplicados e alterações
+
+## Ativação de Backup Diário
+- [ ] Publicar e ativar a rotina automática diária de backup às 03:00
+- [ ] Confirmar que a rotina agendada registra a execução no Centro de Backups
+
+## Retenção de Históricos
+- [ ] Apagar automaticamente históricos operacionais após três dias
+- [x] Adicionar lixeira individual e limpeza total para Histórico de Ações
+- [x] Adicionar lixeira individual e limpeza total para Alertas Internos
+- [x] Adicionar lixeira individual e limpeza total para fila de Manutenção concluída/cancelada

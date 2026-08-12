@@ -359,6 +359,22 @@ export const autoBackupSettings = mysqlTable("auto_backup_settings", {
 export type AutoBackupSetting = typeof autoBackupSettings.$inferSelect;
 export type InsertAutoBackupSetting = typeof autoBackupSettings.$inferInsert;
 
+// Configuração da retenção automática dos históricos operacionais do painel
+export const historyRetentionSettings = mysqlTable("history_retention_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  enabled: boolean("enabled").default(false).notNull(),
+  retentionDays: int("retentionDays").default(3).notNull(),
+  scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }),
+  lastRunAt: timestamp("lastRunAt"),
+  lastStatus: mysqlEnum("lastStatus", ["success", "error", "never"]).default("never").notNull(),
+  lastError: varchar("lastError", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type HistoryRetentionSetting = typeof historyRetentionSettings.$inferSelect;
+
 // Tabela de configurações do APK NuvixXC6
 export const nuvixConfig = mysqlTable("nuvix_config", {
   id: int("id").autoincrement().primaryKey(),

@@ -10,6 +10,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerApiRoutes } from "../apiRoutes";
 import { registerBackupScheduleRoutes } from "../backupSchedule";
+import { registerHistoryRetentionScheduleRoutes } from "../historyRetentionSchedule";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -80,6 +81,7 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerBackupScheduleRoutes(app);
+  registerHistoryRetentionScheduleRoutes(app);
   // Registrar rotas da API ANTES de Vite para ter prioridade
   registerApiRoutes(app);
   // tRPC API

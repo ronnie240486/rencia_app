@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { formatDateOnlyPtBr } from "@shared/dateOnly";
-import { Activity, AlertTriangle, BellRing, ClipboardList, History, PhoneOff, Radio, RefreshCw, ShieldAlert, WifiOff } from "lucide-react";
+import { Activity, AlertTriangle, BellRing, ClipboardList, History, PhoneOff, Radio, RefreshCw, ShieldAlert, Trash2, WifiOff } from "lucide-react";
 import { Link } from "wouter";
 
 function relativeTime(value: Date | string) {
@@ -19,6 +19,13 @@ function relativeTime(value: Date | string) {
 
 export default function ControlCenter() {
   const overview = trpc.superPanel.overview.useQuery(undefined, { refetchInterval: 60_000 });
+  const utils = trpc.useUtils();
+  const audit = trpc.history.listAudit.useQuery({ limit: 50 });
+  const retention = trpc.history.retention.useQuery();
+  const enableRetention = trpc.history.enableRetention.useMutation({ onSuccess: () => utils.history.retention.invalidate() });
+  const disableRetention = trpc.history.disableRetention.useMutation({ onSuccess: () => utils.history.retention.invalidate() });
+  const clearAudit = trpc.history.clearAudit.useMutation({ onSuccess: () => { utils.history.listAudit.invalidate(); overview.refetch(); } });
+  const deleteAudit = trpc.history.deleteAudit.useMutation({ onSuccess: () => { utils.history.listAudit.invalidate(); overview.refetch(); } });
   const data = overview.data;
 
   const cards = [
@@ -57,6 +64,8 @@ export default function ControlCenter() {
           ))}
         </div>
 
+        <Card className="border-primary/25"><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium">Limpeza automática dos históricos</p><p className="mt-1 text-sm text-muted-foreground">Mantém somente os últimos 3 dias de ações, alertas, verificações de listas e tarefas concluídas. Clientes, pagamentos e backups não são apagados.</p></div>{retention.data?.enabled ? <Button variant="outline" disabled={disableRetention.isPending} onClick={() => disableRetention.mutate()}>Desativar limpeza</Button> : <Button className="text-black dark:text-white" disabled={enableRetention.isPending} onClick={() => enableRetention.mutate()}>Ativar limpeza de 3 dias</Button>}</CardContent></Card>
+
         <div className="grid lg:grid-cols-5 gap-5">
           <Card className="lg:col-span-3">
             <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><AlertTriangle size={17} className="text-amber-500" /> Situações que pedem atenção</CardTitle><CardDescription>Os alertas são atualizados automaticamente a cada minuto.</CardDescription></CardHeader>
@@ -79,9 +88,9 @@ export default function ControlCenter() {
           </Card>
 
           <Card className="lg:col-span-2">
-            <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><History size={17} /> Histórico de Ações</CardTitle><CardDescription>Últimas alterações registradas no painel.</CardDescription></CardHeader>
+            <CardHeader className="pb-3"><div className="flex items-center justify-between gap-3"><CardTitle className="text-base flex items-center gap-2"><History size={17} /> Histórico de Ações</CardTitle><Button size="sm" variant="outline" className="gap-1.5 text-destructive" disabled={!audit.data?.length || clearAudit.isPending} onClick={() => { if (window.confirm("Apagar todo o histórico de ações? Esta ação não pode ser desfeita.")) clearAudit.mutate(); }}><Trash2 size={14} /> Limpar</Button></div><CardDescription>Últimas alterações registradas no painel.</CardDescription></CardHeader>
             <CardContent>
-              {(data?.recentActions.length ?? 0) === 0 ? <div className="text-sm text-muted-foreground py-6 text-center"><ClipboardList className="mx-auto mb-2 opacity-50" size={22} /> As próximas alterações serão registradas aqui.</div> : <div className="space-y-4">{data?.recentActions.map(action => <div key={action.id} className="relative pl-4 border-l border-border"><p className="text-sm font-medium leading-snug">{action.summary}</p><p className="text-xs text-muted-foreground mt-1">{relativeTime(action.createdAt)} · {action.action}</p></div>)}</div>}
+              {(audit.data?.length ?? 0) === 0 ? <div className="text-sm text-muted-foreground py-6 text-center"><ClipboardList className="mx-auto mb-2 opacity-50" size={22} /> As próximas alterações serão registradas aqui.</div> : <div className="space-y-4">{audit.data?.map(action => <div key={action.id} className="relative flex gap-2 border-l border-border pl-4"><div className="min-w-0 flex-1"><p className="text-sm font-medium leading-snug">{action.summary}</p><p className="text-xs text-muted-foreground mt-1">{relativeTime(action.createdAt)} · {action.action}</p></div><Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => { if (window.confirm("Apagar este registro do histórico?")) deleteAudit.mutate({ id: action.id }); }}><Trash2 size={14} /></Button></div>)}</div>}
             </CardContent>
           </Card>
         </div>

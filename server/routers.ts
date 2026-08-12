@@ -29,12 +29,13 @@ import { buildApkUpdateOverview } from "./apkUpdates";
 import { getConnectionState } from "./customerProfile";
 import { probeListUrl } from "./listHealth";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
-import { autoBackupSettings, backupSnapshots } from "../drizzle/schema";
+import { autoBackupSettings, backupSnapshots, historyRetentionSettings } from "../drizzle/schema";
 import { createBackupSnapshot, restoreBackupSnapshot, AUTO_BACKUP_CRON } from "./backupService";
 import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 import { parse as parseCookie } from "cookie";
 import { chooseLocalLoginAccount } from "./loginSelection";
 import { addBillingMonths, getResellerBillingStatus } from "./resellerBilling";
+import { cleanupOldOperationalHistory, HISTORY_RETENTION_CRON, HISTORY_RETENTION_DAYS } from "./historyRetention";
 
 export const revendaUpdateInputSchema = z.object({
   id: z.number(),
@@ -167,6 +168,56 @@ export const appRouter = router({
       const result = await restoreBackupSnapshot(ctx.user.id, input.snapshotId);
       await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "backup", entityId: input.snapshotId, action: "restored", summary: "Backup restaurado", afterData: { snapshotId: input.snapshotId } });
       return result;
+    }),
+  }),
+
+  history: router({
+    retention: ownerProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+      return (await db.select().from(historyRetentionSettings).where(eq(historyRetentionSettings.ownerId, ctx.user.id)).limit(1))[0] ?? null;
+    }),
+    enableRetention: ownerProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
+      const existing = (await db.select().from(historyRetentionSettings).where(eq(historyRetentionSettings.ownerId, ctx.user.id)).limit(1))[0];
+      if (existing?.scheduleCronTaskUid) {
+        await db.update(historyRetentionSettings).set({ enabled: true, retentionDays: HISTORY_RETENTION_DAYS, lastError: null }).where(eq(historyRetentionSettings.id, existing.id));
+        return { enabled: true, existingSchedule: true };
+      }
+      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (!sessionToken) throw new TRPCError({ code: "UNAUTHORIZED", message: "Sua sessão expirou. Entre novamente para ativar a limpeza." });
+      const job = await createHeartbeatJob({ name: `limpeza-historicos-${ctx.user.id}`, cron: HISTORY_RETENTION_CRON, path: "/api/scheduled/history-retention", description: "Limpeza diária de históricos operacionais com retenção de 3 dias" }, sessionToken);
+      if (existing) await db.update(historyRetentionSettings).set({ enabled: true, retentionDays: HISTORY_RETENTION_DAYS, scheduleCronTaskUid: job.taskUid, lastError: null }).where(eq(historyRetentionSettings.id, existing.id));
+      else await db.insert(historyRetentionSettings).values({ ownerId: ctx.user.id, enabled: true, retentionDays: HISTORY_RETENTION_DAYS, scheduleCronTaskUid: job.taskUid });
+      return { enabled: true, existingSchedule: false, nextExecutionAt: job.nextExecutionAt ?? null };
+    }),
+    disableRetention: ownerProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
+      const setting = (await db.select().from(historyRetentionSettings).where(eq(historyRetentionSettings.ownerId, ctx.user.id)).limit(1))[0];
+      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (setting?.scheduleCronTaskUid) await deleteHeartbeatJob(setting.scheduleCronTaskUid, sessionToken);
+      if (setting) await db.update(historyRetentionSettings).set({ enabled: false, scheduleCronTaskUid: null }).where(eq(historyRetentionSettings.id, setting.id));
+      return { enabled: false };
+    }),
+    runRetentionNow: ownerProcedure.mutation(async ({ ctx }) => cleanupOldOperationalHistory(ctx.user.id)),
+    listAudit: ownerProcedure.input(z.object({ limit: z.number().min(1).max(100).optional().default(50) })).query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(auditLogs).where(eq(auditLogs.ownerId, ctx.user.id)).orderBy(desc(auditLogs.createdAt)).limit(input.limit);
+    }),
+    deleteAudit: ownerProcedure.input(z.object({ id: z.number().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.delete(auditLogs).where(and(eq(auditLogs.id, input.id), eq(auditLogs.ownerId, ctx.user.id)));
+      return { success: true };
+    }),
+    clearAudit: ownerProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.delete(auditLogs).where(eq(auditLogs.ownerId, ctx.user.id));
+      return { success: true };
     }),
   }),
 
@@ -989,6 +1040,21 @@ export const appRouter = router({
         await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "maintenance_task", entityId: id, action: "updated", summary: `Tarefa de manutenção atualizada: ${task.title}`, afterData: data });
         return { success: true };
       }),
+      remove: protectedProcedure.input(z.object({ id: z.number().positive() })).mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const task = (await db.select().from(maintenanceTasks).where(and(eq(maintenanceTasks.id, input.id), eq(maintenanceTasks.ownerId, ctx.user.id))).limit(1))[0];
+        if (!task) throw new TRPCError({ code: "NOT_FOUND", message: "Tarefa não encontrada." });
+        if (!['resolved', 'cancelled'].includes(task.status)) throw new TRPCError({ code: "BAD_REQUEST", message: "Conclua ou cancele a tarefa antes de apagá-la." });
+        await db.delete(maintenanceTasks).where(eq(maintenanceTasks.id, input.id));
+        return { success: true };
+      }),
+      clearFinished: protectedProcedure.mutation(async ({ ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.delete(maintenanceTasks).where(and(eq(maintenanceTasks.ownerId, ctx.user.id), inArray(maintenanceTasks.status, ["resolved", "cancelled"])));
+        return { success: true };
+      }),
     }),
   }),
 
@@ -1070,6 +1136,12 @@ export const appRouter = router({
         await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "device", entityId: input.deviceId, action: "note_created", summary: `Observação adicionada ao cliente ${device.nomeServer}` });
         return { success: true, id };
       }),
+      remove: protectedProcedure.input(z.object({ id: z.number().positive() })).mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await db.delete(customerNotes).where(and(eq(customerNotes.id, input.id), eq(customerNotes.ownerId, ctx.user.id)));
+        return { success: true };
+      }),
     }),
   }),
 
@@ -1091,6 +1163,18 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       await db.update(internalAlerts).set({ isRead: true }).where(and(eq(internalAlerts.ownerId, ctx.user.id), eq(internalAlerts.isRead, false)));
+      return { success: true };
+    }),
+    remove: protectedProcedure.input(z.object({ id: z.number().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.delete(internalAlerts).where(and(eq(internalAlerts.id, input.id), eq(internalAlerts.ownerId, ctx.user.id)));
+      return { success: true };
+    }),
+    clearAll: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.delete(internalAlerts).where(eq(internalAlerts.ownerId, ctx.user.id));
       return { success: true };
     }),
   }),

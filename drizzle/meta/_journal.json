@@ -267,6 +267,13 @@
       "when": 1786545994158,
       "tag": "0037_dizzy_barracuda",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "5",
+      "when": 1786549135325,
+      "tag": "0038_complete_galactus",
+      "breakpoints": true
     }
   ]
 }
