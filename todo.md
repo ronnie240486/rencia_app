@@ -376,6 +376,7 @@
 - [x] Corrigir limite de dispositivos configurado para não voltar para 999
 - [x] Reproduzir e corrigir acesso persistente da revenda bloqueada testeu163@gmail.com
 - [x] Corrigir limite 999 exibido para testeu163@gmail.com apesar do limite 50 cadastrado
+- [x] Permitir salvar edição de revenda sem alterar a senha
 
 ## Atendimento por Cliente
 - [ ] Pulado: cliente final não acessa o painel

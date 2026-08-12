@@ -35,6 +35,18 @@ import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 import { parse as parseCookie } from "cookie";
 import { chooseLocalLoginAccount } from "./loginSelection";
 
+export const revendaUpdateInputSchema = z.object({
+  id: z.number(),
+  name: z.string().optional(),
+  email: z.string().optional(),
+  plano: z.string().optional(),
+  planValidade: z.string().optional(),
+  limiteDevices: z.number().optional(),
+  limiteRevendas: z.number().optional(),
+  isActive: z.boolean().optional(),
+  password: z.union([z.string().trim().min(8), z.literal("")]).optional(),
+});
+
 type MonitorTarget = { deviceId: number; deviceUrlId: number | null; deviceName: string; listName: string; url: string };
 
 async function getListMonitorTargets(db: any, ownerId: number): Promise<MonitorTarget[]> {
@@ -1050,17 +1062,7 @@ export const appRouter = router({
       }),
 
     update: protectedProcedure
-      .input(z.object({
-        id: z.number(),
-        name: z.string().optional(),
-        email: z.string().optional(),
-        plano: z.string().optional(),
-        planValidade: z.string().optional(),
-        limiteDevices: z.number().optional(),
-        limiteRevendas: z.number().optional(),
-        isActive: z.boolean().optional(),
-        password: z.string().min(8).optional(),
-      }))
+      .input(revendaUpdateInputSchema)
       .mutation(async ({ ctx, input }) => {
         const { id, password, ...data } = input;
         const passwordHash = password ? await (await import("./auth")).hashPassword(password) : undefined;

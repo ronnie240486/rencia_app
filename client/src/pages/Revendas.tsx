@@ -103,7 +103,13 @@ export default function Revendas() {
     if (!form.name.trim() || !form.email.trim()) { toast.error("Nome e email são obrigatórios"); return; }
     if (!editId && form.password.length < 8) { toast.error("Informe uma senha inicial de pelo menos 8 caracteres"); return; }
     if (editId) {
-      updateMut.mutate({ id: editId, ...form, planValidade: form.planValidade || undefined });
+      const { password, ...revendaData } = form;
+      updateMut.mutate({
+        id: editId,
+        ...revendaData,
+        planValidade: form.planValidade || undefined,
+        ...(password.trim() ? { password } : {}),
+      });
     } else {
       createMut.mutate({ ...form, planValidade: form.planValidade || undefined });
     }
@@ -301,7 +307,7 @@ export default function Revendas() {
             </div>
             <div>
               <Label className="text-xs font-medium mb-1.5 block">{editId ? "Nova senha (opcional)" : "Senha inicial *"}</Label>
-              <Input value={form.password} onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))} placeholder={editId ? "Deixe em branco para manter" : "Mínimo de 8 caracteres"} type="password" />
+              <Input value={form.password} onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))} placeholder={editId ? "Deixe em branco para manter" : "Mínimo de 8 caracteres"} type="password" name="reseller-password" autoComplete="new-password" />
               <p className="mt-1 text-xs text-muted-foreground">Somente você pode criar ou alterar a senha da revenda.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
