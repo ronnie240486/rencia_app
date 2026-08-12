@@ -216,9 +216,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   });
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-sidebar-border">
+      <div className="px-4 py-4 border-b border-sidebar-border shrink-0">
         <img
           src={sidebarLogoUrl}
           alt="OuroPro"
@@ -229,7 +229,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-4 space-y-1 scrollbar-thin scrollbar-thumb-sidebar-border scrollbar-track-transparent">
         <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-3" style={{ color: "oklch(0.60 0.08 55)" }}>
           Menu
         </p>
@@ -263,7 +263,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       </nav>
 
       {/* User info + logout */}
-      <div className="px-3 py-4 border-t border-sidebar-border">
+      <div className="px-3 py-4 border-t border-sidebar-border shrink-0">
         <div className="flex items-center gap-3 px-3 py-3 rounded-lg" style={{ background: "oklch(0.18 0.04 255)" }}>
           <div className="w-8 h-8 rounded-full bg-sidebar-primary/30 flex items-center justify-center flex-shrink-0">
             <span className="text-xs font-semibold" style={{ color: "var(--sidebar-primary)" }}>

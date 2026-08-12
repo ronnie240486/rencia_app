@@ -353,3 +353,8 @@
 - [x] Criar Diagnóstico de Conexão por dispositivo
 - [x] Criar Controle de Pagamentos por cliente
 - [x] Criar Monitor de Disponibilidade das Listas
+
+## Auditoria e Navegação do Painel
+- [x] Auditar as funções existentes para não duplicar recursos já implementados
+- [x] Corrigir a barra lateral para permitir rolagem até a última função em telas pequenas e grandes
+- [x] Organizar a lista de próximas funções apenas com lacunas ainda não implementadas
