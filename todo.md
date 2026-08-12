@@ -397,3 +397,8 @@
 - [x] Criar lista de vencimentos para hoje, amanhã e próximos dias
 - [x] Criar filtros por período e status do cliente
 - [x] Preparar avisos em massa para os clientes selecionados
+
+## Central de Manutenção
+- [x] Consolidar falhas recentes de listas em uma única tela
+- [x] Mostrar dispositivos offline e bloqueados que exigem atenção
+- [x] Priorizar ações de manutenção por nível de risco

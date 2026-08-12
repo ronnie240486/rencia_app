@@ -23,6 +23,7 @@ import { normalizeMessageTemplate } from "./messageTemplate";
 import { buildSessionOverview } from "./sessionControl";
 import { summarizeResellerFinance } from "./resellerReport";
 import { buildRenewalAgenda } from "./renewalAgenda";
+import { buildMaintenanceOverview } from "./maintenanceCenter";
 import { probeListUrl } from "./listHealth";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 
@@ -730,6 +731,19 @@ export const appRouter = router({
         .from(devices).where(and(eq(devices.ownerId, ctx.user.id), isNotNull(devices.dataExpiracao)));
       const agenda = buildRenewalAgenda(rows as any);
       return agenda.filter((item) => item.days <= input.days && (input.status === "all" || item.status === input.status));
+    }),
+  }),
+
+  // ─── Central de Manutenção ───────────────────────────────────────────────────
+  maintenance: router({
+    overview: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { listErrors: 0, offline: 0, blocked: 0, actions: [] };
+      const [ownedDevices, checks] = await Promise.all([
+        db.select({ id: devices.id, nomeServer: devices.nomeServer, status: devices.status, lastSeen: devices.lastSeen }).from(devices).where(eq(devices.ownerId, ctx.user.id)),
+        db.select({ deviceId: listHealthChecks.deviceId, deviceUrlId: listHealthChecks.deviceUrlId, status: listHealthChecks.status, message: listHealthChecks.message, checkedAt: listHealthChecks.checkedAt }).from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id)),
+      ]);
+      return buildMaintenanceOverview(ownedDevices, checks, new Date());
     }),
   }),
 
