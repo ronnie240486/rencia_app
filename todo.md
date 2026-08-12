@@ -432,3 +432,8 @@
 - [x] Armazenar backups completos de forma segura fora do banco principal
 - [ ] Ativar cópia diária às 03:00 e registrar cada execução após a publicação
 - [x] Criar tela para consultar e restaurar backup com confirmação
+
+## Próximo Pacote do Super Painel
+- [x] Criar Busca Global por cliente, MAC, telefone, lista e revenda
+- [x] Criar Central de Segurança com logins, alterações de senha e bloqueios
+- [x] Criar cobrança recorrente para revendas com vencimento e status de pagamento

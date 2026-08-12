@@ -12,8 +12,8 @@ import {
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
   getConnectedDevices, updateUserProfile,
 } from "./db";
-import { eq, and, inArray, sql, desc, isNotNull } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates } from "../drizzle/schema";
+import { eq, and, inArray, sql, desc, isNotNull, like, or } from "drizzle-orm";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
@@ -34,6 +34,7 @@ import { createBackupSnapshot, restoreBackupSnapshot, AUTO_BACKUP_CRON } from ".
 import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 import { parse as parseCookie } from "cookie";
 import { chooseLocalLoginAccount } from "./loginSelection";
+import { addBillingMonths, getResellerBillingStatus } from "./resellerBilling";
 
 export const revendaUpdateInputSchema = z.object({
   id: z.number(),
@@ -48,6 +49,17 @@ export const revendaUpdateInputSchema = z.object({
 });
 
 type MonitorTarget = { deviceId: number; deviceUrlId: number | null; deviceName: string; listName: string; url: string };
+
+async function getManagedResellerIds(db: any, ownerId: number): Promise<number[]> {
+  const managedIds: number[] = [];
+  let parentIds = [ownerId];
+  while (parentIds.length > 0) {
+    const children = await db.select({ id: users.id }).from(users).where(inArray(users.resellerId, parentIds));
+    parentIds = children.map((child: { id: number }) => child.id).filter((id: number) => !managedIds.includes(id));
+    managedIds.push(...parentIds);
+  }
+  return managedIds;
+}
 
 async function getListMonitorTargets(db: any, ownerId: number): Promise<MonitorTarget[]> {
   const ownedDevices = await db.select({ id: devices.id, nomeServer: devices.nomeServer, urlM3u8: devices.urlM3u8 })
@@ -197,6 +209,113 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, JSON.stringify({ userId: user.id, email: user.email }), cookieOptions);
         return { success: true, user };
       }),
+  }),
+
+  globalSearch: router({
+    query: protectedProcedure.input(z.object({ term: z.string().trim().min(2).max(120) })).query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      const pattern = `%${input.term.trim()}%`;
+      const managedIds = await getManagedResellerIds(db, ctx.user.id);
+      const visibleOwnerIds = [ctx.user.id, ...managedIds];
+      const [devicesFound, listsFound, resellersFound] = await Promise.all([
+        db.select({ id: devices.id, nomeServer: devices.nomeServer, mac: devices.mac, telefone: devices.telefone, urlM3u8: devices.urlM3u8, ownerId: devices.ownerId, status: devices.status }).from(devices)
+          .where(and(inArray(devices.ownerId, visibleOwnerIds), or(like(devices.nomeServer, pattern), like(devices.mac, pattern), like(devices.telefone, pattern), like(devices.urlM3u8, pattern)))).limit(15),
+        db.select({ id: deviceUrls.id, deviceId: deviceUrls.deviceId, nome: deviceUrls.nome, urlM3u8: deviceUrls.urlM3u8, xtServer: deviceUrls.xtServer, deviceName: devices.nomeServer, deviceMac: devices.mac }).from(deviceUrls)
+          .innerJoin(devices, eq(deviceUrls.deviceId, devices.id))
+          .where(and(inArray(devices.ownerId, visibleOwnerIds), or(like(deviceUrls.nome, pattern), like(deviceUrls.urlM3u8, pattern), like(deviceUrls.xtServer, pattern)))).limit(15),
+        managedIds.length > 0
+          ? db.select({ id: users.id, name: users.name, email: users.email, plano: users.plano, isActive: users.isActive, limiteDevices: users.limiteDevices }).from(users)
+            .where(and(inArray(users.id, managedIds), or(like(users.name, pattern), like(users.email, pattern)))).limit(15)
+          : Promise.resolve([]),
+      ]);
+      const ownerRows = await db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, visibleOwnerIds));
+      const ownerNames = new Map(ownerRows.map((owner: { id: number; name: string | null }) => [owner.id, owner.name || `Revenda #${owner.id}`]));
+      return { devices: devicesFound.map((device: any) => ({ ...device, ownerName: ownerNames.get(device.ownerId) ?? "Painel principal" })), lists: listsFound, resellers: resellersFound };
+    }),
+  }),
+
+  security: router({
+    overview: ownerProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      const managedIds = await getManagedResellerIds(db, ctx.user.id);
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const [accounts, activity] = await Promise.all([
+        managedIds.length > 0 ? db.select({ id: users.id, name: users.name, email: users.email, plano: users.plano, isActive: users.isActive, lastSignedIn: users.lastSignedIn, limiteDevices: users.limiteDevices }).from(users).where(inArray(users.id, managedIds)).orderBy(desc(users.lastSignedIn)).limit(100) : Promise.resolve([]),
+        db.select().from(auditLogs).where(eq(auditLogs.ownerId, ctx.user.id)).orderBy(desc(auditLogs.createdAt)).limit(60),
+      ]);
+      const blocked = accounts.filter((account: any) => !account.isActive);
+      const recentLogins = accounts.filter((account: any) => account.lastSignedIn && new Date(account.lastSignedIn) >= sevenDaysAgo);
+      const staleAccounts = accounts.filter((account: any) => !account.lastSignedIn || new Date(account.lastSignedIn) < thirtyDaysAgo);
+      const sensitiveActions = activity.filter((item: any) => /blocked|unblocked|password|deleted|updated/i.test(item.action));
+      return { accounts, activity, sensitiveActions, blocked, recentLogins, staleAccounts, counts: { accounts: accounts.length, blocked: blocked.length, recentLogins: recentLogins.length, staleAccounts: staleAccounts.length } };
+    }),
+  }),
+
+  resellerBilling: router({
+    list: ownerProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db.select({
+        id: resellerBillings.id,
+        resellerId: resellerBillings.resellerId,
+        amount: resellerBillings.amount,
+        status: resellerBillings.status,
+        dueDate: resellerBillings.dueDate,
+        paidAt: resellerBillings.paidAt,
+        recurrenceMonths: resellerBillings.recurrenceMonths,
+        note: resellerBillings.note,
+        createdAt: resellerBillings.createdAt,
+        resellerName: users.name,
+        resellerEmail: users.email,
+        resellerIsActive: users.isActive,
+      }).from(resellerBillings).innerJoin(users, eq(resellerBillings.resellerId, users.id))
+        .where(eq(resellerBillings.ownerId, ctx.user.id)).orderBy(desc(resellerBillings.dueDate));
+      return rows.map((billing: any) => ({ ...billing, effectiveStatus: getResellerBillingStatus(billing.status, billing.dueDate) }));
+    }),
+    create: ownerProcedure.input(z.object({
+      resellerId: z.number().int().positive(),
+      amount: z.string().regex(/^\d+(\.\d{1,2})?$/, "Informe um valor válido"),
+      dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      recurrenceMonths: z.number().int().min(0).max(24).default(1),
+      note: z.string().max(1000).optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
+      const managedIds = await getManagedResellerIds(db, ctx.user.id);
+      if (!managedIds.includes(input.resellerId)) throw new TRPCError({ code: "NOT_FOUND", message: "Revenda não encontrada no seu painel." });
+      const result = await db.insert(resellerBillings).values({ ownerId: ctx.user.id, resellerId: input.resellerId, amount: input.amount, dueDate: new Date(`${input.dueDate}T12:00:00.000Z`), recurrenceMonths: input.recurrenceMonths, note: input.note?.trim() || null });
+      const id = Number((result as any)[0]?.insertId ?? (result as any).insertId);
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "reseller_billing", entityId: id, action: "created", summary: `Cobrança de R$ ${input.amount} criada para revenda #${input.resellerId}`, afterData: input });
+      return { success: true, id };
+    }),
+    markPaid: ownerProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
+      const billing = (await db.select().from(resellerBillings).where(and(eq(resellerBillings.id, input.id), eq(resellerBillings.ownerId, ctx.user.id))).limit(1))[0];
+      if (!billing) throw new TRPCError({ code: "NOT_FOUND", message: "Cobrança de revenda não encontrada." });
+      if (billing.status === "paid") return { success: true, nextBillingId: null };
+      await db.update(resellerBillings).set({ status: "paid", paidAt: new Date() }).where(eq(resellerBillings.id, input.id));
+      let nextBillingId: number | null = null;
+      if (billing.recurrenceMonths > 0) {
+        const nextDueDate = addBillingMonths(billing.dueDate, billing.recurrenceMonths);
+        const result = await db.insert(resellerBillings).values({ ownerId: billing.ownerId, resellerId: billing.resellerId, amount: billing.amount, dueDate: new Date(`${nextDueDate}T12:00:00.000Z`), recurrenceMonths: billing.recurrenceMonths, note: billing.note });
+        nextBillingId = Number((result as any)[0]?.insertId ?? (result as any).insertId);
+      }
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "reseller_billing", entityId: input.id, action: "paid", summary: `Cobrança de revenda #${billing.resellerId} confirmada${nextBillingId ? " e próxima recorrência criada" : ""}`, afterData: { nextBillingId } });
+      return { success: true, nextBillingId };
+    }),
+    remove: ownerProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
+      const billing = (await db.select().from(resellerBillings).where(and(eq(resellerBillings.id, input.id), eq(resellerBillings.ownerId, ctx.user.id))).limit(1))[0];
+      if (!billing) throw new TRPCError({ code: "NOT_FOUND", message: "Cobrança de revenda não encontrada." });
+      await db.delete(resellerBillings).where(eq(resellerBillings.id, input.id));
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "reseller_billing", entityId: input.id, action: "deleted", summary: `Cobrança de revenda #${billing.resellerId} removida`, beforeData: billing });
+      return { success: true };
+    }),
   }),
 
   // ─── Devices (Usuários do painel) ──────────────────────────────────────────
@@ -1065,10 +1184,23 @@ export const appRouter = router({
       .input(revendaUpdateInputSchema)
       .mutation(async ({ ctx, input }) => {
         const { id, password, ...data } = input;
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
+        const current = (await db.select().from(users).where(and(eq(users.id, id), eq(users.resellerId, ctx.user.id))).limit(1))[0];
+        if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Revenda não encontrada." });
         const passwordHash = password ? await (await import("./auth")).hashPassword(password) : undefined;
         await updateRevenda(id, ctx.user.id, { ...data, passwordHash });
-        
-         return { success: true };
+        await recordAudit({
+          ownerId: ctx.user.id,
+          actorUserId: ctx.user.id,
+          entityType: "reseller",
+          entityId: id,
+          action: password ? "password_changed" : "updated",
+          summary: password ? `Senha da revenda ${current.name ?? current.email ?? id} alterada` : `Revenda ${current.name ?? current.email ?? id} atualizada`,
+          beforeData: { name: current.name, email: current.email, plano: current.plano, limiteDevices: current.limiteDevices, limiteRevendas: current.limiteRevendas },
+          afterData: { ...data, password: password ? "[oculto]" : undefined },
+        });
+        return { success: true };
       }),
 
     toggleBlock: protectedProcedure

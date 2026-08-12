@@ -31,6 +31,8 @@ import {
   Moon,
   Sun,
   Settings,
+  Search,
+  ShieldCheck,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -50,6 +52,9 @@ const navItems: NavItem[] = [
   { label: "Revendas", href: "/revendas", icon: <Store size={18} /> },
   { label: "Chatbot de Avisos", href: "/chatbot", icon: <MessageCircle size={18} />, ownerOnly: true },
   { label: "Central de Controle", href: "/central", icon: <ShieldAlert size={18} />, ownerOnly: true },
+  { label: "Busca Global", href: "/busca", icon: <Search size={18} /> },
+  { label: "Segurança", href: "/seguranca", icon: <ShieldCheck size={18} />, ownerOnly: true },
+  { label: "Cobranças Revendas", href: "/cobrancas-revendas", icon: <WalletCards size={18} />, ownerOnly: true },
   { label: "Diagnóstico", href: "/diagnostico", icon: <Activity size={18} />, ownerOnly: true },
   { label: "Pagamentos", href: "/pagamentos", icon: <WalletCards size={18} /> },
   { label: "Relatórios", href: "/relatorios", icon: <BarChart3 size={18} /> },

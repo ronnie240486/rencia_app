@@ -238,6 +238,24 @@ export const payments = mysqlTable("payments", {
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = typeof payments.$inferInsert;
 
+// Cobranças de assinatura das revendas, separadas das cobranças dos clientes finais
+export const resellerBillings = mysqlTable("reseller_billings", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  resellerId: int("resellerId").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: mysqlEnum("status", ["pending", "paid", "overdue"]).default("pending").notNull(),
+  dueDate: date("dueDate").notNull(),
+  paidAt: timestamp("paidAt"),
+  recurrenceMonths: int("recurrenceMonths").default(1).notNull(),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ResellerBilling = typeof resellerBillings.$inferSelect;
+export type InsertResellerBilling = typeof resellerBillings.$inferInsert;
+
 // Resultado da última verificação de disponibilidade de cada lista
 export const listHealthChecks = mysqlTable("list_health_checks", {
   id: int("id").autoincrement().primaryKey(),

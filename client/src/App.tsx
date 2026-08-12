@@ -41,6 +41,9 @@ import MaintenanceCenter from "./pages/MaintenanceCenter";
 import ApkUpdates from "./pages/ApkUpdates";
 import CustomerProfile from "./pages/CustomerProfile";
 import BackupCenter from "./pages/BackupCenter";
+import GlobalSearch from "./pages/GlobalSearch";
+import SecurityCenter from "./pages/SecurityCenter";
+import ResellerBilling from "./pages/ResellerBilling";
 
 function Router() {
   return (
@@ -84,6 +87,9 @@ function Router() {
       <Route path="/atualizacoes" component={ApkUpdates} />
       <Route path="/cliente/:id" component={CustomerProfile} />
       <Route path="/backups" component={BackupCenter} />
+      <Route path="/busca" component={GlobalSearch} />
+      <Route path="/seguranca" component={SecurityCenter} />
+      <Route path="/cobrancas-revendas" component={ResellerBilling} />
       <Route path={"*"} component={NotFound} />
     </Switch>
   );
