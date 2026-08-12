@@ -342,3 +342,6 @@
 - [ ] Atualizar imediatamente no painel a data e as listas recém-salvas
 - [x] Corrigir gravação da data escolhida: 13/08 deve permanecer 13/08 no banco, formulário e tabela
 - [x] Fazer o Chatbot registrar automaticamente o aviso interno, sem depender de "Verificar Agora" ou de links do WhatsApp
+- [ ] Enviar automaticamente o aviso de vencimento ao telefone cadastrado do cliente
+- [ ] Integrar WhatsApp Business para entrega automática do aviso ao telefone cadastrado
+- [x] Botão "Verificar Agora" do Chatbot: texto branco e legível no tema escuro

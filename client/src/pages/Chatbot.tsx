@@ -112,7 +112,7 @@ export default function Chatbot() {
             }
           </p>
         </div>
-        <Button onClick={onCheck} disabled={loading} className="gap-2">
+        <Button onClick={onCheck} disabled={loading} className="gap-2 text-black dark:text-white [&_svg]:text-current">
           {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
           Verificar Agora
         </Button>
