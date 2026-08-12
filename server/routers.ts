@@ -428,6 +428,7 @@ export const appRouter = router({
         valor: z.string().optional(),
         dataExpiracao: z.string().optional(),
         telefone: z.string().optional(),
+        maxConcurrentConnections: z.number().int().min(1).max(10).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const planInfo = await getUserPlanInfo(ctx.user.id);
@@ -476,6 +477,7 @@ export const appRouter = router({
         dataExpiracao: z.string().optional(),
         status: z.enum(["Liberado", "Bloqueado", "Expirado"]).optional(),
         telefone: z.string().optional(),
+        maxConcurrentConnections: z.number().int().min(1).max(10).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
