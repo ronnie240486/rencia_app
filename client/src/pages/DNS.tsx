@@ -13,10 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface DnsForm {
   titulo: string;
+  grupo: string;
   host: string;
 }
 
-const emptyForm: DnsForm = { titulo: "", host: "" };
+const emptyForm: DnsForm = { titulo: "", grupo: "Padrão", host: "" };
 
 export default function DNS() {
   const [showDialog, setShowDialog] = useState(false);
@@ -59,7 +60,7 @@ export default function DNS() {
   });
 
   const openCreate = () => { setEditId(null); setForm(emptyForm); setShowDialog(true); };
-  const openEdit = (d: any) => { setEditId(d.id); setForm({ titulo: d.titulo, host: d.host }); setShowDialog(true); };
+  const openEdit = (d: any) => { setEditId(d.id); setForm({ titulo: d.titulo, grupo: d.grupo ?? "Padrão", host: d.host }); setShowDialog(true); };
 
   const handleSave = () => {
     if (!form.titulo.trim()) return toast.error("Título é obrigatório");
@@ -134,6 +135,7 @@ export default function DNS() {
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium text-sm">{dns.titulo}</p>
+                        <Badge variant="secondary" className="mt-1 text-[10px]">Grupo: {dns.grupo ?? "Padrão"}</Badge>
                         <p className="text-xs text-muted-foreground font-mono truncate max-w-xs">{dns.host}</p>
                       </div>
                     </div>
@@ -307,6 +309,14 @@ export default function DNS() {
                 placeholder="Ex: Servidor Principal, Backup 1..."
                 value={form.titulo}
                 onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Grupo</Label>
+              <Input
+                placeholder="Ex: Servidor A, Backup, Clientes VIP"
+                value={form.grupo}
+                onChange={(e) => setForm(f => ({ ...f, grupo: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
