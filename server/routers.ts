@@ -401,6 +401,33 @@ export const appRouter = router({
           .orderBy(desc(auditLogs.createdAt))
           .limit(input.limit);
       }),
+
+    diagnostics: protectedProcedure
+      .input(z.object({ recentMinutes: z.number().min(5).max(240).optional().default(30) }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const rows = await db.select({
+          id: devices.id,
+          nomeServer: devices.nomeServer,
+          mac: devices.mac,
+          app: devices.app,
+          status: devices.status,
+          lastSeen: devices.lastSeen,
+          currentContent: devices.currentContent,
+          dataExpiracao: devices.dataExpiracao,
+        }).from(devices).where(eq(devices.ownerId, ctx.user.id)).orderBy(desc(devices.lastSeen));
+        const listRows = await db.select({ deviceId: deviceUrls.deviceId }).from(deviceUrls).where(eq(deviceUrls.ativo, true));
+        const listCount = new Map<number, number>();
+        listRows.forEach((item) => listCount.set(item.deviceId, (listCount.get(item.deviceId) ?? 0) + 1));
+        const boundary = Date.now() - input.recentMinutes * 60_000;
+
+        return rows.map((row) => {
+          const lastSeenMs = row.lastSeen ? new Date(row.lastSeen).getTime() : null;
+          const connection = !lastSeenMs ? "never" : lastSeenMs >= boundary ? "online" : "offline";
+          return { ...row, connection, listCount: listCount.get(row.id) ?? 0 };
+        });
+      }),
   }),
 
   // ─── Device URLs (múltiplas listas por device) ────────────────────────────
