@@ -69,6 +69,13 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+const ownerProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!ctx.user.isOwner) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao proprietário do painel." });
+  }
+  return next({ ctx });
+});
+
 export const appRouter = router({
   system: systemRouter,
 
@@ -389,7 +396,7 @@ export const appRouter = router({
 
   // ─── Central de Alertas e Histórico ─────────────────────────────────────────
   superPanel: router({
-    overview: protectedProcedure.query(async ({ ctx }) => {
+    overview: ownerProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
@@ -436,7 +443,7 @@ export const appRouter = router({
       };
     }),
 
-    auditLog: protectedProcedure
+    auditLog: ownerProcedure
       .input(z.object({ limit: z.number().min(1).max(100).optional().default(50) }))
       .query(async ({ ctx, input }) => {
         const db = await getDb();
@@ -447,7 +454,7 @@ export const appRouter = router({
           .limit(input.limit);
       }),
 
-    diagnostics: protectedProcedure
+    diagnostics: ownerProcedure
       .input(z.object({ recentMinutes: z.number().min(5).max(240).optional().default(30) }))
       .query(async ({ ctx, input }) => {
         const db = await getDb();
@@ -477,7 +484,7 @@ export const appRouter = router({
 
   // ─── Controle Financeiro ─────────────────────────────────────────────────────
   payments: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
+    list: ownerProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
       const rows = await db.select({
@@ -500,7 +507,7 @@ export const appRouter = router({
       }));
     }),
 
-    create: protectedProcedure.input(z.object({
+    create: ownerProcedure.input(z.object({
       deviceId: z.number(),
       amount: z.string().regex(/^\d+(\.\d{1,2})?$/, "Informe um valor válido"),
       dueDate: z.string().optional(),
@@ -522,7 +529,7 @@ export const appRouter = router({
       return { success: true, id };
     }),
 
-    markPaid: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+    markPaid: ownerProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const [payment] = await db.select().from(payments).where(and(eq(payments.id, input.id), eq(payments.ownerId, ctx.user.id))).limit(1);
@@ -533,7 +540,7 @@ export const appRouter = router({
       return { success: true };
     }),
 
-    remove: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+    remove: ownerProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const [payment] = await db.select().from(payments).where(and(eq(payments.id, input.id), eq(payments.ownerId, ctx.user.id))).limit(1);
@@ -546,7 +553,7 @@ export const appRouter = router({
 
   // ─── Monitor de Listas ──────────────────────────────────────────────────────
   listMonitor: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
+    list: ownerProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
       const [targets, checks] = await Promise.all([
@@ -561,7 +568,7 @@ export const appRouter = router({
       return targets.map((target) => ({ ...target, lastCheck: latestChecks.get(`${target.deviceId}:${target.deviceUrlId ?? "principal"}`) ?? null }));
     }),
 
-    check: protectedProcedure.input(z.object({ deviceId: z.number(), deviceUrlId: z.number().nullable() })).mutation(async ({ ctx, input }) => {
+    check: ownerProcedure.input(z.object({ deviceId: z.number(), deviceUrlId: z.number().nullable() })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const targets = await getListMonitorTargets(db, ctx.user.id);
@@ -570,7 +577,7 @@ export const appRouter = router({
       return runListHealthCheck(db, ctx.user.id, ctx.user.id, target);
     }),
 
-    checkAll: protectedProcedure.mutation(async ({ ctx }) => {
+    checkAll: ownerProcedure.mutation(async ({ ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const targets = (await getListMonitorTargets(db, ctx.user.id)).slice(0, 30);
