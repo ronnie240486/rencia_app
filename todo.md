@@ -345,3 +345,4 @@
 - [ ] Enviar automaticamente o aviso de vencimento ao telefone cadastrado do cliente
 - [ ] Integrar WhatsApp Business para entrega automática do aviso ao telefone cadastrado
 - [x] Botão "Verificar Agora" do Chatbot: texto branco e legível no tema escuro
+- [x] Chatbot: botão "Enviar para Todos" para preparar avisos em massa sem abrir cada cliente individualmente

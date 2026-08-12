@@ -101,6 +101,21 @@ export default function Chatbot() {
     return `${dias} dias`;
   };
 
+  const handleOpenAllWhatsApp = (items: ExpiringItem[]) => {
+    if (items.length === 0) {
+      toast.info("Não há avisos para enviar.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Abrir ${items.length} conversa(s) do WhatsApp com as mensagens prontas? Você só precisará confirmar o envio no WhatsApp.`,
+    );
+    if (!confirmed) return;
+
+    items.forEach((item) => window.open(item.waUrl, "_blank", "noopener,noreferrer"));
+    toast.success(`${items.length} conversa(s) foram abertas com os avisos prontos.`);
+  };
+
   const renderList = (items: ExpiringItem[], total: number, lastCheck: string | null, loading: boolean, onCheck: () => void, tipo: "cliente" | "revenda") => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -147,9 +162,20 @@ export default function Chatbot() {
               )}
             </div>
             {total > 0 && (
-              <CardDescription>
-                Clique em "Abrir WhatsApp" para enviar a mensagem de aviso.
-              </CardDescription>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                <CardDescription>
+                  Use o envio em massa para abrir todos os avisos de uma vez.
+                </CardDescription>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleOpenAllWhatsApp(items)}
+                  className="gap-1.5 text-black dark:text-white [&_svg]:text-current"
+                >
+                  <MessageCircle size={14} />
+                  Enviar para Todos
+                </Button>
+              </div>
             )}
           </CardHeader>
 
