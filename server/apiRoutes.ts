@@ -29,6 +29,7 @@ import { eq, or, and, asc } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
 import { buildUltraPlayerConfig, normalizeMacAddress } from "./ultraPlayerConfig";
+import { normalizeHeartbeatContent } from "./heartbeatContent";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -3806,20 +3807,32 @@ export function registerApiRoutes(app: Express) {
   app.get('/api/v5/heartbeat', async (req, res) => {
     try {
       const db = await getDb();
-      const mac = req.query.mac as string;
+      const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : "";
       if (!mac) {
         res.json({ success: false, message: 'MAC nao fornecido' });
         return;
       }
 
-      // Atualizar lastSeen do dispositivo
+      // Heartbeat vazio mantém o último conteúdo. O APK pode enviar o mesmo
+      // current_content periodicamente quando a pessoa fica no mesmo canal/filme.
+      const currentContent = normalizeHeartbeatContent(
+        req.query.current_content ?? req.query.currentContent ?? req.query.content,
+      );
+
       if (db) {
-        await db.update(devices).set({
+        const updateData: { lastSeen: Date; currentContent?: string } = {
           lastSeen: new Date(),
-        }).where(eq(devices.mac, mac));
+        };
+        if (currentContent) updateData.currentContent = currentContent;
+
+        await db.update(devices).set(updateData).where(or(
+          eq(devices.mac, mac),
+          eq(devices.mac, mac.toLowerCase()),
+          eq(devices.mac, mac.toUpperCase()),
+        ));
       }
 
-      res.json({ success: true, mac, timestamp: new Date().toISOString() });
+      res.json({ success: true, mac, contentUpdated: Boolean(currentContent), timestamp: new Date().toISOString() });
     } catch (error) {
       console.error('[API] /api/v5/heartbeat error:', error);
       res.json({ success: false, message: 'Erro ao registrar heartbeat' });

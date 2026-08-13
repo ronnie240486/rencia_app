@@ -504,3 +504,8 @@
 
 ## Entrega ao desenvolvedor do APK
 - [x] Preparar texto de integração da rota Ultra Player e dos ícones dinâmicos de Canais, Filmes e Séries
+
+## Ajustes do painel e conteúdo assistido
+- [x] Exibir o filtro de período selecionado com texto branco e destaque visível no tema escuro
+- [x] Animar o botão de atualizar enquanto a lista de dispositivos conectados é recarregada
+- [x] Preservar e atualizar periodicamente o canal, filme ou série assistido quando o conteúdo não muda

@@ -159,7 +159,7 @@ export default function Dashboard() {
   const { data: planInfo } = trpc.plan.info.useQuery();
   const { data: recentDevices, isLoading: recentLoading } = trpc.devices.recentList.useQuery({ search: recentSearch, limit: 5 });
   const { data: expiringSoon } = trpc.devices.expiringSoon.useQuery({ days: 7 });
-  const { data: connectedDevices, isLoading: connectedLoading, refetch: refetchConnected } = trpc.connected.list.useQuery(
+  const { data: connectedDevices, isLoading: connectedLoading, isFetching: connectedRefreshing, refetch: refetchConnected } = trpc.connected.list.useQuery(
     { minutesAgo: connectedFilter },
     { refetchInterval: 60_000 } // atualiza a cada 1 minuto para mostrar canal assistido em tempo real
   );
@@ -270,7 +270,11 @@ export default function Dashboard() {
                     key={m}
                     size="sm"
                     variant={connectedFilter === m ? "default" : "outline"}
-                    className="h-6 px-2 text-xs"
+                    className={`h-7 px-2.5 text-xs font-semibold transition-colors ${
+                      connectedFilter === m
+                        ? "dark:bg-amber-500 dark:text-white dark:hover:bg-amber-500"
+                        : "text-foreground dark:text-foreground"
+                    }`}
                     onClick={() => setConnectedFilter(m)}
                   >
                     <span>{m < 60 ? `${m}min` : `${m / 60}h`}</span>
@@ -279,11 +283,13 @@ export default function Dashboard() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 w-6 p-0"
-                  onClick={() => refetchConnected()}
-                  title="Atualizar"
+                  className="h-7 w-7 p-0"
+                  disabled={connectedLoading || connectedRefreshing}
+                  onClick={() => void refetchConnected()}
+                  title={connectedRefreshing ? "Atualizando dispositivos conectados" : "Atualizar"}
                 >
-                  <RefreshCw className="w-3 h-3" />
+                  <RefreshCw className={`w-3.5 h-3.5 ${connectedRefreshing ? "animate-spin text-primary" : ""}`} />
+                  <span className="sr-only">{connectedRefreshing ? "Atualizando" : "Atualizar"}</span>
                 </Button>
               </div>
             </div>
