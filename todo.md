@@ -538,3 +538,5 @@
 ## Resumo de Alertas Técnicos
 - [x] Consolidar múltiplas falhas confirmadas em um único modal de resumo na abertura do painel
 - [x] Direcionar o resumo para a Central de Alertas sem exigir fechar avisos individuais
+- [x] Verificar a causa de o resumo não aparecer quando o usuário abre o painel
+- [x] Corrigir o título dos alertas de recuperação para não parecer uma nova falha de lista

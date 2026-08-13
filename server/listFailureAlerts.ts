@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, or } from "drizzle-orm";
 import { internalAlerts, listHealthChecks } from "../drizzle/schema";
 
 type HealthStatus = "success" | "error" | "pending";
@@ -15,9 +15,14 @@ export type ListAlertTarget = {
 };
 
 export const LIST_FAILURE_ALERT_PREFIX = "Falha confirmada de lista";
+export const LIST_RECOVERY_ALERT_PREFIX = "Lista recuperada";
 
 export function listAlertTitle(target: Pick<ListAlertTarget, "deviceId" | "listName" | "deviceName">) {
   return `${LIST_FAILURE_ALERT_PREFIX}: ${target.listName} · ${target.deviceName} #${target.deviceId}`;
+}
+
+export function listRecoveryAlertTitle(target: Pick<ListAlertTarget, "deviceId" | "listName" | "deviceName">) {
+  return `${LIST_RECOVERY_ALERT_PREFIX}: ${target.listName} · ${target.deviceName} #${target.deviceId}`;
 }
 
 export function resolveListAlertTransition(recentStatuses: HealthStatus[], latestAlertType: AlertType): "failure" | "recovery" | null {
@@ -46,10 +51,14 @@ export async function syncConfirmedListFailureAlert(db: any, ownerId: number, ta
     .orderBy(desc(listHealthChecks.checkedAt), desc(listHealthChecks.id))
     .limit(2);
 
-  const title = listAlertTitle(target);
+  const failureTitle = listAlertTitle(target);
+  const recoveryTitle = listRecoveryAlertTitle(target);
   const previousAlert = (await db.select({ type: internalAlerts.type })
     .from(internalAlerts)
-    .where(and(eq(internalAlerts.ownerId, ownerId), eq(internalAlerts.title, title)))
+    .where(and(
+      eq(internalAlerts.ownerId, ownerId),
+      or(eq(internalAlerts.title, failureTitle), eq(internalAlerts.title, recoveryTitle)),
+    ))
     .orderBy(desc(internalAlerts.createdAt), desc(internalAlerts.id))
     .limit(1))[0];
   const transition = resolveListAlertTransition(
@@ -62,7 +71,7 @@ export async function syncConfirmedListFailureAlert(db: any, ownerId: number, ta
       ownerId,
       targetUserId: ownerId,
       type: "critical",
-      title,
+      title: failureTitle,
       content: `Falha técnica confirmada em dois testes consecutivos: ${target.message}. Cliente afetado: ${target.deviceName}. Abra o Monitor de Listas para testar novamente ou aplicar uma lista alternativa.`,
     });
   }
@@ -72,7 +81,7 @@ export async function syncConfirmedListFailureAlert(db: any, ownerId: number, ta
       ownerId,
       targetUserId: ownerId,
       type: "success",
-      title,
+      title: recoveryTitle,
       content: `Lista recuperada: o servidor voltou a responder ao teste técnico. Cliente monitorado: ${target.deviceName}.`,
     });
   }
