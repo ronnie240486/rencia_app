@@ -39,6 +39,7 @@ export default function DNS() {
   const { data: uniqueUrls = [], refetch: refetchUrls } = trpc.devices.listUniqueUrls.useQuery();
   const { data: serverBlocks = [], refetch: refetchBlocks } = trpc.dns.listServerBlocks.useQuery();
   const { data: groupHealth = [] } = trpc.dns.groupHealth.useQuery();
+  const { data: swapImpact } = trpc.devices.previewBulkSwapDns.useQuery({ oldUrl: oldHost || " " }, { enabled: Boolean(oldHost.trim()) });
 
   const createMut = trpc.dns.create.useMutation({
     onSuccess: () => { toast.success("DNS cadastrada!"); setShowDialog(false); refetch(); },
@@ -96,6 +97,8 @@ export default function DNS() {
     if (!oldHost.trim()) return toast.error("Selecione a DNS atual.");
     if (!newHost.trim()) return toast.error("Informe a nova DNS.");
     if (oldHost.trim() === newHost.trim()) return toast.error("A DNS nova deve ser diferente da atual.");
+    const impact = swapImpact?.count ?? 0;
+    if (!window.confirm(`Confirma trocar a DNS de ${impact} cliente(s)? Esta ação mantém o caminho da lista e altera somente o servidor.`)) return;
     swapMut.mutate({ oldUrl: oldHost.trim(), newUrl: newHost.trim() });
   };
 
@@ -338,6 +341,10 @@ export default function DNS() {
                       {newHost.length > 50 ? newHost.slice(0, 50) + "..." : newHost}
                     </code>
                   </div>
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-300 pt-1">
+                    Impacto: {swapImpact?.count ?? "…"} cliente(s), {swapImpact?.owners ?? "…"} conta(s). A confirmação será solicitada antes de aplicar.
+                  </p>
+                  {swapImpact?.devices?.length ? <p className="text-xs text-muted-foreground">Exemplos: {swapImpact.devices.map((device) => `${device.nome} (${device.mac})`).join(", ")}</p> : null}
                 </div>
               )}
 
