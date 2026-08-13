@@ -615,6 +615,17 @@ export const appRouter = router({
       }),
 
     // Trocar DNS em massa: substitui oldUrl por newUrl (só afeta quem tinha aquela DNS)
+    previewBulkSwapDns: protectedProcedure
+      .input(z.object({ oldUrl: z.string().min(1) }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { like } = await import("drizzle-orm");
+        let host = input.oldUrl;
+        try { const parsed = new URL(input.oldUrl.endsWith("/") ? input.oldUrl : `${input.oldUrl}/`); host = `${parsed.protocol}//${parsed.host}`; } catch { /* mantém a entrada */ }
+        const affected = await db.select({ id: devices.id, mac: devices.mac, nome: devices.nomeServer, ownerId: devices.ownerId }).from(devices).where(and(eq(devices.ownerId, ctx.user.id), like(devices.urlM3u8, `${host}%`)));
+        return { count: affected.length, devices: affected.slice(0, 10), owners: new Set(affected.map((item) => item.ownerId)).size };
+      }),
     bulkSwapDns: protectedProcedure
       .input(z.object({
         oldUrl: z.string().min(1),
