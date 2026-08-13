@@ -431,7 +431,7 @@
 ## Backup Automático
 - [x] Criar histórico de backups automáticos com cópias datadas
 - [x] Armazenar backups completos de forma segura fora do banco principal
-- [ ] Ativar cópia diária às 03:00 e registrar cada execução após a publicação
+- [x] Ativar cópia diária às 03:00 e registrar cada execução após a publicação
 - [x] Criar tela para consultar e restaurar backup com confirmação
 
 ## Próximo Pacote do Super Painel
@@ -449,11 +449,11 @@
 - [x] Criar prévia de importação com detecção de MACs duplicados e alterações
 
 ## Ativação de Backup Diário
-- [ ] Publicar e ativar a rotina automática diária de backup às 03:00
-- [ ] Confirmar que a rotina agendada registra a execução no Centro de Backups
+- [x] Publicar e ativar a rotina automática diária de backup às 03:00
+- [x] Confirmar que a rotina agendada registra a execução no Centro de Backups
 
 ## Retenção de Históricos
-- [ ] Apagar automaticamente históricos operacionais após três dias
+- [x] Apagar automaticamente históricos operacionais após três dias
 - [x] Adicionar lixeira individual e limpeza total para Histórico de Ações
 - [x] Adicionar lixeira individual e limpeza total para Alertas Internos
 - [x] Adicionar lixeira individual e limpeza total para fila de Manutenção concluída/cancelada
@@ -485,7 +485,7 @@
 
 ## Próximas Melhorias Prioritárias
 - [x] Exibir impacto de clientes, MACs e revendas antes de aplicar alteração em massa
-- [ ] Ativar backup completo diário às 03:00 e registrar cada execução
+- [x] Ativar backup completo diário às 03:00 e registrar cada execução
 
 ## Clientes Externos e Ultra Player
 - [x] Criar gerenciamento de clientes que usam aplicativo externo, preservando MAC e aplicativo atual
