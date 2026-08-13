@@ -67,7 +67,7 @@ describe("App Ranking - Contabilização de Apps", () => {
     for (const device of allDevices) {
       if (device.app) {
         // Se app não é null, deve ser um dos valores válidos
-        const validApps = ["OuroPro", "Maximus"];
+        const validApps = ["OuroPro", "Maximus", "Maximus Player", "Ultra Player", "Outro"];
         expect(validApps).toContain(device.app);
       }
     }

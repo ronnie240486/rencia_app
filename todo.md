@@ -500,6 +500,7 @@
 ## Ajustes Ultra Player — uploads e ícones
 - [x] Corrigir o envio de imagens do Ultra Player, que atualmente exibe a mensagem de falha no upload
 - [x] Adicionar uploads de ícones personalizáveis para Canais, Filmes e Séries no Ultra Player
+- [x] Corrigir a aplicação da imagem de fundo configurada pelo painel no APK Ultra Player
 
 ## Entrega ao desenvolvedor do APK
 - [x] Preparar texto de integração da rota Ultra Player e dos ícones dinâmicos de Canais, Filmes e Séries
