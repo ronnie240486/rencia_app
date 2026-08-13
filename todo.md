@@ -1,4 +1,5 @@
 # Rencia App - TODO
+# Atualização Ultra Player: uploads visuais, Loja e Ranking registrados abaixo como pendentes prioritários.
 
 ## Backend
 - [x] Schema do banco de dados com tabela users (já existe, verificar campos)
@@ -490,5 +491,8 @@
 - [x] Criar gerenciamento de clientes que usam aplicativo externo, preservando MAC e aplicativo atual
 - [x] Registrar o aplicativo atual do cliente com opções OuroPro, Maximus, Ultra Player e Outro
 - [ ] Criar painel de configuração do Ultra Player com banner, ícones, mensagens e API do servidor
+- [ ] Adicionar upload de logo, fundo, banner e imagens de mensagem do Ultra Player
+- [x] Adicionar o Ultra Player à Loja com o ícone enviado
+- [ ] Adicionar Ultra Player à seleção de listas e aos indicadores do Ranking
 - [ ] Criar endpoints de configuração do Ultra Player para consumo pelo APK
 - [x] Preparar especificação técnica de integração para o desenvolvedor do Ultra Player

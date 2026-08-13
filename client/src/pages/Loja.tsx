@@ -38,6 +38,15 @@ const APPS: AppConfig[] = [
     shortUrl: "https://maximus.link",
     settingKey: "maximus",
   },
+  {
+    name: "Ultra Player",
+    logo: "/manus-storage/ultra-player-logo_efd734bc.png",
+    color: "purple",
+    version: "1.0.0",
+    downloadUrl: "https://example.com/ultra-player.apk",
+    shortUrl: "https://ultra-player.link",
+    settingKey: "ultra_player",
+  },
 ];
 
 function AppCard({ app }: { app: AppConfig }) {
@@ -83,11 +92,13 @@ function AppCard({ app }: { app: AppConfig }) {
   const colorClasses = {
     yellow: "border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20",
     blue: "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20",
+    purple: "border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/20",
   };
 
   const buttonClasses = {
     yellow: "bg-yellow-600 hover:bg-yellow-700",
     blue: "bg-blue-600 hover:bg-blue-700",
+    purple: "bg-purple-600 hover:bg-purple-700",
   };
 
   const currentDownloadUrl = editMode ? editDownloadUrl : app.downloadUrl;

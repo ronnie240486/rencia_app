@@ -106,6 +106,22 @@ export const appSettings = mysqlTable("app_settings", {
 export type AppSetting = typeof appSettings.$inferSelect;
 export type InsertAppSetting = typeof appSettings.$inferInsert;
 
+// Configurações exclusivas do Ultra Player, separadas do OuroPro e Maximus
+export const ultraPlayerConfig = mysqlTable("ultra_player_config", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull().unique(),
+  appName: varchar("appName", { length: 128 }).default("Ultra Player").notNull(),
+  bannerUrl: text("bannerUrl"),
+  backgroundUrl: text("backgroundUrl"),
+  logoUrl: text("logoUrl"),
+  iconsJson: text("iconsJson"),
+  welcomeMessage: text("welcomeMessage"),
+  maintenanceMessage: text("maintenanceMessage"),
+  serverApiUrl: text("serverApiUrl"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type UltraPlayerConfig = typeof ultraPlayerConfig.$inferSelect;
+
 // Tabela de DNS cadastradas pelo revendedor
 export const dnsEntries = mysqlTable("dns_entries", {
   id: int("id").autoincrement().primaryKey(),
