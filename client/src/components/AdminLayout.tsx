@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { cn } from "@/lib/utils";
 import { getVisibleNavigationGroups } from "./sidebarNavigation";
-import { shouldOpenConfirmedListAlert } from "./listAlertDismissal";
+import { getActiveConfirmedListAlerts } from "./listAlertDismissal";
 import {
   BarChart3,
   ChevronDown,
@@ -133,7 +133,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [openedListAlertId, setOpenedListAlertId] = useState<number | null>(null);
+  const [isListAlertSummaryOpen, setIsListAlertSummaryOpen] = useState(false);
   const [dismissedListAlertIds, setDismissedListAlertIds] = useState<number[]>([]);
   const [openNavGroups, setOpenNavGroups] = useState<string[]>(() =>
     navGroups.filter(group => group.defaultOpen).map(group => group.label)
@@ -157,30 +157,16 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   // IMPORTANTE: trpc.plan.info.useQuery() deve ser chamado ANTES de qualquer return condicional
   // para não violar a regra dos hooks do React (React Error #310)
   const { data: planInfo } = trpc.plan.info.useQuery();
-  const utils = trpc.useUtils();
   const { data: panelAlerts } = trpc.alerts.list.useQuery(undefined, { enabled: isAuthenticated });
-  const markAlertRead = trpc.alerts.markRead.useMutation({
-    onSuccess: async () => { await utils.alerts.list.invalidate(); },
-  });
-
-  const unreadListAlert = panelAlerts?.find(alert =>
-    !alert.isRead &&
-    alert.type === "critical" &&
-    alert.title.startsWith("Falha confirmada de lista:"),
-  );
-  const openedListAlert = panelAlerts?.find(alert => alert.id === openedListAlertId && !alert.isRead && !dismissedListAlertIds.includes(alert.id));
+  const activeListAlerts = getActiveConfirmedListAlerts(panelAlerts, dismissedListAlertIds);
 
   useEffect(() => {
-    if (shouldOpenConfirmedListAlert(unreadListAlert, openedListAlertId, dismissedListAlertIds)) setOpenedListAlertId(unreadListAlert!.id);
-  }, [unreadListAlert?.id, unreadListAlert?.isRead, openedListAlertId, dismissedListAlertIds]);
+    if (activeListAlerts.length > 0 && !isListAlertSummaryOpen) setIsListAlertSummaryOpen(true);
+  }, [activeListAlerts.length, isListAlertSummaryOpen]);
 
-  const dismissListAlert = (openAlerts = false) => {
-    if (openedListAlertId) {
-      const alertId = openedListAlertId;
-      setDismissedListAlertIds(current => current.includes(alertId) ? current : [...current, alertId]);
-      markAlertRead.mutate({ id: alertId });
-    }
-    setOpenedListAlertId(null);
+  const dismissListAlertSummary = (openAlerts = false) => {
+    setDismissedListAlertIds(current => Array.from(new Set([...current, ...activeListAlerts.map(alert => alert.id)])));
+    setIsListAlertSummaryOpen(false);
     if (openAlerts) setLocation("/alertas");
   };
 
@@ -412,20 +398,24 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
-      {openedListAlert && (
+      {isListAlertSummaryOpen && activeListAlerts.length > 0 && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirmed-list-alert-title">
           <div className="w-full max-w-lg rounded-2xl border border-red-500/40 bg-card p-5 shadow-2xl">
             <div className="flex items-start gap-3">
               <div className="rounded-xl bg-red-500/15 p-2 text-red-500"><BellRing size={22} /></div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold uppercase tracking-[.16em] text-red-500">Falha técnica confirmada</p>
-                <h2 id="confirmed-list-alert-title" className="mt-1 text-lg font-bold">{openedListAlert.title.replace("Falha confirmada de lista: ", "")}</h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{openedListAlert.content}</p>
+                <p className="text-xs font-bold uppercase tracking-[.16em] text-red-500">Resumo de falhas técnicas</p>
+                <h2 id="confirmed-list-alert-title" className="mt-1 text-lg font-bold">{activeListAlerts.length} {activeListAlerts.length === 1 ? "lista precisa" : "listas precisam"} de atenção</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">O painel agrupou os avisos para não bloquear sua abertura. Abra a Central de Alertas para ver todos os detalhes e agir em cada lista.</p>
+                <div className="mt-3 space-y-1.5 rounded-xl border border-red-500/15 bg-red-500/5 p-3 text-sm">
+                  {activeListAlerts.slice(0, 3).map(alert => <p key={alert.id} className="truncate font-medium">• {alert.title.replace("Falha confirmada de lista: ", "")}</p>)}
+                  {activeListAlerts.length > 3 && <p className="text-muted-foreground">e mais {activeListAlerts.length - 3} falhas na Central de Alertas.</p>}
+                </div>
               </div>
             </div>
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => dismissListAlert(false)} className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted">Marcar como lido</button>
-              <button type="button" onClick={() => dismissListAlert(true)} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">Abrir Alertas</button>
+              <button type="button" onClick={() => dismissListAlertSummary(false)} className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted">Continuar no painel</button>
+              <button type="button" onClick={() => dismissListAlertSummary(true)} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">Abrir Alertas</button>
             </div>
           </div>
         </div>
