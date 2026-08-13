@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { cn } from "@/lib/utils";
-import { getVisibleNavigationGroups } from "./sidebarNavigation";
+import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS } from "./sidebarNavigation";
 import { getActiveConfirmedListAlerts } from "./listAlertDismissal";
 import {
   BarChart3,
@@ -135,9 +135,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isListAlertSummaryOpen, setIsListAlertSummaryOpen] = useState(false);
   const [dismissedListAlertIds, setDismissedListAlertIds] = useState<number[]>([]);
-  const [openNavGroups, setOpenNavGroups] = useState<string[]>(() =>
-    navGroups.filter(group => group.defaultOpen).map(group => group.label)
-  );
+  const [openNavGroups, setOpenNavGroups] = useState<string[]>(() => [...INITIAL_OPEN_NAV_GROUPS]);
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("theme");
     return saved === "dark";

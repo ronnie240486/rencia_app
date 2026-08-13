@@ -7,6 +7,9 @@ export interface NavigationGroup<T extends AccessControlledNavItem> {
   items: T[];
 }
 
+/** Todos os grupos começam fechados e só expandem quando o usuário interage. */
+export const INITIAL_OPEN_NAV_GROUPS: string[] = [];
+
 /** Mantém apenas itens e grupos disponíveis para o perfil autenticado. */
 export function getVisibleNavigationGroups<
   T extends AccessControlledNavItem,

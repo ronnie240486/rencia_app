@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { getVisibleNavigationGroups } from "./sidebarNavigation";
+import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS } from "./sidebarNavigation";
 
 describe("organização da barra lateral", () => {
   const groups = [
     { items: [{ label: "Usuários" }, { label: "Ultra Player", ownerOnly: true }] },
     { items: [{ label: "Backups", ownerOnly: true }] },
   ];
+
+  it("inicia todos os grupos fechados", () => {
+    expect(INITIAL_OPEN_NAV_GROUPS).toEqual([]);
+  });
 
   it("mantém o grupo prioritário e oculta grupos sem itens disponíveis", () => {
     expect(getVisibleNavigationGroups(groups, false, false)).toEqual([
