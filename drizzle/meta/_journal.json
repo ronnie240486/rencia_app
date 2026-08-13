@@ -288,6 +288,13 @@
       "when": 1786552068140,
       "tag": "0040_zippy_yellowjacket",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "5",
+      "when": 1786584506397,
+      "tag": "0041_smiling_klaw",
+      "breakpoints": true
     }
   ]
 }

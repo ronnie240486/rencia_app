@@ -355,6 +355,16 @@ export const listFailoverEvents = mysqlTable("list_failover_events", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const serverMaintenanceBlocks = mysqlTable("server_maintenance_blocks", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  host: varchar("host", { length: 500 }).notNull(),
+  reason: varchar("reason", { length: 500 }),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 // Histórico de backups completos armazenados fora do banco principal
 export const backupSnapshots = mysqlTable("backup_snapshots", {
   id: int("id").autoincrement().primaryKey(),

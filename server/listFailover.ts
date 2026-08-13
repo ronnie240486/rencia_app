@@ -1,5 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
-import { devices, deviceUrls, listFailoverEvents, listFailoverSettings, listHealthChecks } from "../drizzle/schema";
+import { desc } from "drizzle-orm";
+import { devices, deviceUrls, listFailoverEvents, listFailoverSettings, listHealthChecks, serverMaintenanceBlocks } from "../drizzle/schema";
 import { probeListUrl } from "./listHealth";
 
 export const LIST_FAILOVER_CRON = "0 */10 * * * *";
@@ -13,6 +14,8 @@ export function orderFailoverCandidates<T extends { id: number | null }>(candida
 
 export async function runListFailoverSweep(db: any, ownerId: number) {
   const deviceRows = await db.select().from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.listFailoverEnabled, true)));
+  const blocks = await db.select({ host: serverMaintenanceBlocks.host }).from(serverMaintenanceBlocks).where(and(eq(serverMaintenanceBlocks.ownerId, ownerId), eq(serverMaintenanceBlocks.active, true)));
+  const blockedHosts = blocks.map((block: { host: string }) => block.host.replace(/\/+$/, ""));
   let checked = 0;
   let switched = 0;
 
@@ -21,11 +24,23 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     const candidates: Candidate[] = [
       ...(device.urlM3u8 ? [{ id: null, name: "Lista 1", url: device.urlM3u8 }] : []),
       ...extras.map((list: any): Candidate => ({ id: list.id as number, name: list.nome || `Lista ${list.ordem + 2}`, url: (list.urlM3u8 || list.xtServer || "").trim() })).filter((candidate: Candidate) => Boolean(candidate.url)),
-    ];
+    ].filter((candidate) => !blockedHosts.some((host: string) => candidate.url.startsWith(host)));
     if (!candidates.length) continue;
 
     const ordered = orderFailoverCandidates(candidates, device.activeDeviceUrlId ?? null);
     const current = ordered[0];
+    const primary = candidates[0];
+    if (current.id !== primary.id) {
+      const primaryResult = await probeListUrl(primary.url);
+      checked += 1;
+      await db.insert(listHealthChecks).values({ ownerId, deviceId: device.id, deviceUrlId: primary.id, urlSnapshot: primary.url, status: primaryResult.status, statusCode: primaryResult.statusCode, responseTimeMs: primaryResult.responseTimeMs, message: primaryResult.message });
+      if (primaryResult.status === "success") {
+        await db.update(devices).set({ activeDeviceUrlId: primary.id }).where(eq(devices.id, device.id));
+        await db.insert(listFailoverEvents).values({ ownerId, deviceId: device.id, fromDeviceUrlId: current.id, toDeviceUrlId: primary.id, reason: "Lista 1 recuperada e confirmada no monitoramento automático." });
+        switched += 1;
+        continue;
+      }
+    }
     const currentResult = await probeListUrl(current.url);
     checked += 1;
     await db.insert(listHealthChecks).values({ ownerId, deviceId: device.id, deviceUrlId: current.id, urlSnapshot: current.url, status: currentResult.status, statusCode: currentResult.statusCode, responseTimeMs: currentResult.responseTimeMs, message: currentResult.message });
@@ -39,6 +54,8 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
       if (result.status === "success") { replacement = candidate; break; }
     }
     if (!replacement || replacement.id === current.id) continue;
+    const lastEvent = (await db.select().from(listFailoverEvents).where(and(eq(listFailoverEvents.ownerId, ownerId), eq(listFailoverEvents.deviceId, device.id))).orderBy(desc(listFailoverEvents.createdAt)).limit(1))[0];
+    if (lastEvent && Date.now() - new Date(lastEvent.createdAt).getTime() < 30 * 60 * 1000) continue;
 
     await db.update(devices).set({ activeDeviceUrlId: replacement.id }).where(eq(devices.id, device.id));
     await db.insert(listFailoverEvents).values({ ownerId, deviceId: device.id, fromDeviceUrlId: current.id, toDeviceUrlId: replacement.id, reason: `${current.name} falhou; ${replacement.name} passou no teste automático.` });
