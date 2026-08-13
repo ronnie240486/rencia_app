@@ -128,8 +128,9 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { user, loading, isAuthenticated, logout } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openedListAlertId, setOpenedListAlertId] = useState<number | null>(null);
   const [openNavGroups, setOpenNavGroups] = useState<string[]>(() =>
     navGroups.filter(group => group.defaultOpen).map(group => group.label)
   );
@@ -152,6 +153,28 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   // IMPORTANTE: trpc.plan.info.useQuery() deve ser chamado ANTES de qualquer return condicional
   // para não violar a regra dos hooks do React (React Error #310)
   const { data: planInfo } = trpc.plan.info.useQuery();
+  const utils = trpc.useUtils();
+  const { data: panelAlerts } = trpc.alerts.list.useQuery(undefined, { enabled: isAuthenticated });
+  const markAlertRead = trpc.alerts.markRead.useMutation({
+    onSuccess: async () => { await utils.alerts.list.invalidate(); },
+  });
+
+  const unreadListAlert = panelAlerts?.find(alert =>
+    !alert.isRead &&
+    alert.type === "critical" &&
+    alert.title.startsWith("Falha confirmada de lista:"),
+  );
+  const openedListAlert = panelAlerts?.find(alert => alert.id === openedListAlertId && !alert.isRead);
+
+  useEffect(() => {
+    if (unreadListAlert && openedListAlertId === null) setOpenedListAlertId(unreadListAlert.id);
+  }, [unreadListAlert?.id, openedListAlertId]);
+
+  const dismissListAlert = (openAlerts = false) => {
+    if (openedListAlertId) markAlertRead.mutate({ id: openedListAlertId });
+    setOpenedListAlertId(null);
+    if (openAlerts) setLocation("/alertas");
+  };
 
   // Aplicar cor primária, cor da sidebar e logo ao carregar
   useEffect(() => {
@@ -381,6 +404,24 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
+      {openedListAlert && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirmed-list-alert-title">
+          <div className="w-full max-w-lg rounded-2xl border border-red-500/40 bg-card p-5 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-red-500/15 p-2 text-red-500"><BellRing size={22} /></div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold uppercase tracking-[.16em] text-red-500">Falha técnica confirmada</p>
+                <h2 id="confirmed-list-alert-title" className="mt-1 text-lg font-bold">{openedListAlert.title.replace("Falha confirmada de lista: ", "")}</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{openedListAlert.content}</p>
+              </div>
+            </div>
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => dismissListAlert(false)} className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted">Marcar como lido</button>
+              <button type="button" onClick={() => dismissListAlert(true)} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">Abrir Alertas</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Desktop Sidebar */}
       <aside
         className="hidden lg:flex flex-col w-64 flex-shrink-0 fixed left-0 top-0 h-full z-30"

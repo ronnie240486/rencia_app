@@ -513,3 +513,8 @@
 ## Organização da barra lateral
 - [x] Propor e aprovar uma reorganização da sidebar, priorizando Usuários, Cadastro, DNS, OuroPro, Ultra Player e Maximus
 - [x] Implementar grupos recolhíveis e a nova ordem de prioridade na sidebar aprovada
+
+## Fechamento do Super Painel
+- [x] Avaliar e aprovar funções finais de alto impacto para reduzir trabalho manual e acelerar a operação diária
+- [x] Criar alertas de listas apenas após falha técnica confirmada, sem alertar por falta de uso dos clientes
+- [x] Exibir no painel alertas de falha confirmada e recuperação de listas, com impacto e rota de correção

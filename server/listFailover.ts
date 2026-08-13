@@ -2,10 +2,16 @@ import { and, asc, eq } from "drizzle-orm";
 import { desc } from "drizzle-orm";
 import { devices, deviceUrls, listFailoverEvents, listFailoverSettings, listHealthChecks, serverMaintenanceBlocks } from "../drizzle/schema";
 import { probeListUrl } from "./listHealth";
+import { syncConfirmedListFailureAlert } from "./listFailureAlerts";
 
 export const LIST_FAILOVER_CRON = "0 */10 * * * *";
 
 type Candidate = { id: number | null; name: string; url: string };
+
+async function recordAutomaticListHealthCheck(db: any, ownerId: number, device: any, candidate: Candidate, result: any) {
+  await db.insert(listHealthChecks).values({ ownerId, deviceId: device.id, deviceUrlId: candidate.id, urlSnapshot: candidate.url, status: result.status, statusCode: result.statusCode, responseTimeMs: result.responseTimeMs, message: result.message });
+  await syncConfirmedListFailureAlert(db, ownerId, { deviceId: device.id, deviceUrlId: candidate.id, deviceName: device.nomeServer, listName: candidate.name, url: candidate.url, status: result.status, message: result.message });
+}
 
 export function orderFailoverCandidates<T extends { id: number | null }>(candidates: T[], activeId: number | null) {
   const active = candidates.find((candidate) => candidate.id === activeId);
@@ -33,7 +39,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     if (current.id !== primary.id) {
       const primaryResult = await probeListUrl(primary.url);
       checked += 1;
-      await db.insert(listHealthChecks).values({ ownerId, deviceId: device.id, deviceUrlId: primary.id, urlSnapshot: primary.url, status: primaryResult.status, statusCode: primaryResult.statusCode, responseTimeMs: primaryResult.responseTimeMs, message: primaryResult.message });
+      await recordAutomaticListHealthCheck(db, ownerId, device, primary, primaryResult);
       if (primaryResult.status === "success") {
         await db.update(devices).set({ activeDeviceUrlId: primary.id }).where(eq(devices.id, device.id));
         await db.insert(listFailoverEvents).values({ ownerId, deviceId: device.id, fromDeviceUrlId: current.id, toDeviceUrlId: primary.id, reason: "Lista 1 recuperada e confirmada no monitoramento automático." });
@@ -43,14 +49,14 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     }
     const currentResult = await probeListUrl(current.url);
     checked += 1;
-    await db.insert(listHealthChecks).values({ ownerId, deviceId: device.id, deviceUrlId: current.id, urlSnapshot: current.url, status: currentResult.status, statusCode: currentResult.statusCode, responseTimeMs: currentResult.responseTimeMs, message: currentResult.message });
+    await recordAutomaticListHealthCheck(db, ownerId, device, current, currentResult);
     if (currentResult.status === "success") return;
 
     let replacement: Candidate | null = null;
     for (const candidate of ordered.slice(1)) {
       const result = await probeListUrl(candidate.url);
       checked += 1;
-      await db.insert(listHealthChecks).values({ ownerId, deviceId: device.id, deviceUrlId: candidate.id, urlSnapshot: candidate.url, status: result.status, statusCode: result.statusCode, responseTimeMs: result.responseTimeMs, message: result.message });
+      await recordAutomaticListHealthCheck(db, ownerId, device, candidate, result);
       if (result.status === "success") { replacement = candidate; break; }
     }
     if (!replacement || replacement.id === current.id) return;
