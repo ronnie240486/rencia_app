@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull, like, or } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
@@ -37,6 +37,7 @@ import { chooseLocalLoginAccount } from "./loginSelection";
 import { addBillingMonths, getResellerBillingStatus } from "./resellerBilling";
 import { cleanupOldOperationalHistory, HISTORY_RETENTION_CRON, HISTORY_RETENTION_DAYS } from "./historyRetention";
 import { LIST_FAILOVER_CRON, recordFailoverRun, runListFailoverSweep } from "./listFailover";
+import { commandExpiresAt, REMOTE_COMMAND_LABELS, REMOTE_COMMAND_TYPES, type RemoteCommandType } from "./remoteCommands";
 
 export const revendaUpdateInputSchema = z.object({
   id: z.number(),
@@ -1203,6 +1204,74 @@ export const appRouter = router({
         await db.delete(auditLogs).where(and(eq(auditLogs.ownerId, ctx.user.id), eq(auditLogs.entityId, input.deviceId)));
         return { success: true };
       }),
+    }),
+  }),
+
+  remoteCommands: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select({
+        id: remoteDeviceCommands.id,
+        deviceId: remoteDeviceCommands.deviceId,
+        command: remoteDeviceCommands.command,
+        payload: remoteDeviceCommands.payload,
+        status: remoteDeviceCommands.status,
+        expiresAt: remoteDeviceCommands.expiresAt,
+        deliveredAt: remoteDeviceCommands.deliveredAt,
+        executedAt: remoteDeviceCommands.executedAt,
+        resultMessage: remoteDeviceCommands.resultMessage,
+        createdAt: remoteDeviceCommands.createdAt,
+        deviceName: devices.nomeServer,
+        deviceMac: devices.mac,
+        deviceApp: devices.app,
+      }).from(remoteDeviceCommands).leftJoin(devices, eq(remoteDeviceCommands.deviceId, devices.id))
+        .where(eq(remoteDeviceCommands.ownerId, ctx.user.id)).orderBy(desc(remoteDeviceCommands.createdAt)).limit(100);
+    }),
+    send: protectedProcedure.input(z.object({
+      deviceId: z.number().positive(),
+      command: z.enum(REMOTE_COMMAND_TYPES),
+      payload: z.object({
+        listIndex: z.number().int().min(1).max(3).optional(),
+        dns: z.string().trim().max(500).optional(),
+        message: z.string().trim().max(500).optional(),
+      }).default({}),
+      expiresInMinutes: z.number().int().min(1).max(60).default(15),
+    })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const device = await getDeviceById(input.deviceId, ctx.user.id);
+      if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
+      if (input.command === "switch_playlist" && !input.payload.listIndex) throw new TRPCError({ code: "BAD_REQUEST", message: "Escolha a Lista 1, 2 ou 3." });
+      if (input.command === "update_dns" && !input.payload.dns) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe a nova DNS." });
+      if (input.command === "show_message" && !input.payload.message) throw new TRPCError({ code: "BAD_REQUEST", message: "Escreva a mensagem que aparecerá no aparelho." });
+
+      const expiresAt = commandExpiresAt(input.expiresInMinutes);
+      const inserted = await db.insert(remoteDeviceCommands).values({
+        ownerId: ctx.user.id,
+        deviceId: input.deviceId,
+        command: input.command,
+        payload: JSON.stringify(input.payload),
+        expiresAt,
+      });
+      const commandId = Number((inserted as any)[0]?.insertId ?? (inserted as any).insertId);
+      await recordAudit({
+        ownerId: ctx.user.id,
+        actorUserId: ctx.user.id,
+        entityType: "remote_command",
+        entityId: commandId,
+        action: "queued",
+        summary: `${REMOTE_COMMAND_LABELS[input.command as RemoteCommandType]} enviado para ${device.nomeServer}.`,
+        afterData: { deviceId: input.deviceId, command: input.command, payload: input.payload, expiresAt },
+      });
+      return { id: commandId, expiresAt };
+    }),
+    cancel: protectedProcedure.input(z.object({ id: z.number().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.update(remoteDeviceCommands).set({ status: "cancelled", resultMessage: "Cancelado pelo painel." })
+        .where(and(eq(remoteDeviceCommands.id, input.id), eq(remoteDeviceCommands.ownerId, ctx.user.id), inArray(remoteDeviceCommands.status, ["queued", "delivered"])));
+      return { success: true };
     }),
   }),
 

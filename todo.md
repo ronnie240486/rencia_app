@@ -518,3 +518,15 @@
 - [x] Avaliar e aprovar funções finais de alto impacto para reduzir trabalho manual e acelerar a operação diária
 - [x] Criar alertas de listas apenas após falha técnica confirmada, sem alertar por falta de uso dos clientes
 - [x] Exibir no painel alertas de falha confirmada e recuperação de listas, com impacto e rota de correção
+
+## Próxima melhoria de alto impacto
+- [x] Avaliar e aprovar a próxima função operacional para agilizar a gestão diária sem duplicar recursos existentes
+
+## Evolução estratégica do painel
+- [x] Avaliar e aprovar uma funcionalidade diferenciada que eleve o painel além de atalhos operacionais
+
+## Central de Comandos Remotos
+- [x] Criar fila segura de comandos remotos por aparelho, com expiração, confirmação e histórico
+- [x] Criar painel para enviar atualização de lista, troca de lista/DNS, mensagem, reinício e bloqueio/liberação
+- [x] Expor endpoints de consulta e confirmação para OuroPro, Ultra Player e Maximus
+- [x] Preparar instrução técnica para os APKs executarem e confirmarem comandos remotos

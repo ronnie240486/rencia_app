@@ -36,6 +36,7 @@ import {
   Search,
   ShieldCheck,
   BellRing,
+  MonitorCog,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -78,6 +79,7 @@ const navGroups: NavGroup[] = [
       { label: "Diagnóstico", href: "/diagnostico", icon: <Activity size={18} />, ownerOnly: true },
       { label: "Manutenção", href: "/manutencao", icon: <Wrench size={18} /> },
       { label: "Alertas", href: "/alertas", icon: <BellRing size={18} /> },
+      { label: "Comandos Remotos", href: "/comandos-remotos", icon: <MonitorCog size={18} /> },
       { label: "Sessões", href: "/sessoes", icon: <Activity size={18} /> },
       { label: "Agenda de Renovação", href: "/agenda-renovacao", icon: <CalendarClock size={18} /> },
     ],

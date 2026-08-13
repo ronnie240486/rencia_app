@@ -30,6 +30,7 @@ import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
 import { buildUltraPlayerConfig, normalizeMacAddress } from "./ultraPlayerConfig";
 import { normalizeHeartbeatContent } from "./heartbeatContent";
+import { acknowledgeRemoteCommand, claimRemoteCommandForMac } from "./remoteCommands";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -3832,10 +3833,50 @@ export function registerApiRoutes(app: Express) {
         ));
       }
 
-      res.json({ success: true, mac, contentUpdated: Boolean(currentContent), timestamp: new Date().toISOString() });
+      const remote = db ? await claimRemoteCommandForMac(db, mac) : { command: null };
+      res.json({ success: true, mac, contentUpdated: Boolean(currentContent), command: remote.command, timestamp: new Date().toISOString() });
     } catch (error) {
       console.error('[API] /api/v5/heartbeat error:', error);
       res.json({ success: false, message: 'Erro ao registrar heartbeat' });
+    }
+  });
+
+  /**
+   * GET /api/v5/remote-commands?mac=AA:BB:CC:DD:EE:FF
+   * O APK consulta esta rota no mesmo ciclo do heartbeat. Um único comando é entregue por vez.
+   */
+  app.get('/api/v5/remote-commands', async (req: Request, res: Response) => {
+    try {
+      const mac = typeof req.query.mac === 'string' ? req.query.mac : '';
+      const db = await getDb();
+      if (!db) { res.status(503).json({ success: false, error: 'Banco indisponível' }); return; }
+      const result = await claimRemoteCommandForMac(db, mac);
+      if (!result.registered) { res.status(404).json({ success: false, error: 'MAC não cadastrado', command: null }); return; }
+      res.json({ success: true, command: result.command });
+    } catch (error) {
+      console.error('[API] /api/v5/remote-commands error:', error);
+      res.status(500).json({ success: false, error: 'Não foi possível consultar comandos' });
+    }
+  });
+
+  /**
+   * POST /api/v5/remote-commands/ack
+   * O APK confirma se executou ou falhou ao processar o comando recebido.
+   */
+  app.post('/api/v5/remote-commands/ack', async (req: Request, res: Response) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      const mac = String(body?.mac ?? '');
+      const commandId = Number(body?.command_id ?? body?.commandId);
+      const status = body?.status === 'executed' || body?.status === 'failed' ? body.status : null;
+      if (!mac || !Number.isInteger(commandId) || commandId <= 0 || !status) { res.status(400).json({ success: false, error: 'mac, command_id e status são obrigatórios' }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ success: false, error: 'Banco indisponível' }); return; }
+      const result = await acknowledgeRemoteCommand(db, mac, commandId, status, typeof body?.result_message === 'string' ? body.result_message : undefined);
+      res.status(result.ok ? 200 : 400).json({ success: result.ok, error: result.ok ? undefined : result.error });
+    } catch (error) {
+      console.error('[API] /api/v5/remote-commands/ack error:', error);
+      res.status(500).json({ success: false, error: 'Não foi possível confirmar o comando' });
     }
   });
 

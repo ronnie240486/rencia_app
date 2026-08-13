@@ -314,6 +314,25 @@ export const internalAlerts = mysqlTable("internal_alerts", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+// Fila de ações enviadas pelo painel e executadas pelo APK quando o aparelho faz heartbeat.
+export const remoteDeviceCommands = mysqlTable("remote_device_commands", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  deviceId: int("deviceId").notNull(),
+  command: mysqlEnum("command", ["refresh_playlist", "switch_playlist", "update_dns", "show_message", "restart_player", "sync_access"]).notNull(),
+  payload: text("payload"),
+  status: mysqlEnum("status", ["queued", "delivered", "executed", "failed", "expired", "cancelled"]).default("queued").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  deliveredAt: timestamp("deliveredAt"),
+  executedAt: timestamp("executedAt"),
+  resultMessage: varchar("resultMessage", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type RemoteDeviceCommand = typeof remoteDeviceCommands.$inferSelect;
+export type InsertRemoteDeviceCommand = typeof remoteDeviceCommands.$inferInsert;
+
 // Cobranças de assinatura das revendas, separadas das cobranças dos clientes finais
 export const resellerBillings = mysqlTable("reseller_billings", {
   id: int("id").autoincrement().primaryKey(),
