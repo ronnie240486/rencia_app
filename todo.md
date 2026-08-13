@@ -481,3 +481,7 @@
 - [x] Programar manutenção com início, término e remoção automática do aviso
 - [x] Exibir avisos de manutenção somente entre o início e o término definidos
 - [ ] Mostrar relatório de impacto antes de troca de DNS ou lista em massa
+
+## Próximas Melhorias Prioritárias
+- [ ] Exibir impacto de clientes, MACs e revendas antes de aplicar alteração em massa
+- [ ] Ativar backup completo diário às 03:00 e registrar cada execução
