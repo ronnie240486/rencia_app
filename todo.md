@@ -491,4 +491,4 @@
 - [x] Registrar o aplicativo atual do cliente com opções OuroPro, Maximus, Ultra Player e Outro
 - [ ] Criar painel de configuração do Ultra Player com banner, ícones, mensagens e API do servidor
 - [ ] Criar endpoints de configuração do Ultra Player para consumo pelo APK
-- [ ] Preparar especificação técnica de integração para o desenvolvedor do Ultra Player
+- [x] Preparar especificação técnica de integração para o desenvolvedor do Ultra Player
