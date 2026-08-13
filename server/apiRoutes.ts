@@ -28,6 +28,7 @@ import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nu
 import { eq, or, and, asc } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
+import { buildUltraPlayerConfig, normalizeMacAddress } from "./ultraPlayerConfig";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -69,6 +70,13 @@ const UPLOAD_FIELD_KEYS: Record<string, string> = {
   icon_series_url: "icon_series_url",
   icon_account_url: "icon_account_url",
   icon_change_playlist_url: "icon_change_playlist_url",
+  ultra_logo_url: "ultra_logo_url",
+  ultra_banner_url: "ultra_banner_url",
+  ultra_background_url: "ultra_background_url",
+  ultra_message_image_url: "ultra_message_image_url",
+  ultra_icon_live_tv_url: "ultra_icon_live_tv_url",
+  ultra_icon_movies_url: "ultra_icon_movies_url",
+  ultra_icon_series_url: "ultra_icon_series_url",
 };
 
 // Cache de configurações para evitar query no banco a cada request
@@ -1166,6 +1174,75 @@ export function registerApiRoutes(app: Express) {
     } catch (error: any) {
       console.error("[API] /api/upload-image error:", error);
       res.status(500).json({ error: error.message || "Erro interno ao fazer upload" });
+    }
+  });
+
+  /**
+   * GET /api/v5/ultra-config?mac=AA:BB:CC:DD:EE:FF
+   *
+   * Configuração pública consumida por aparelhos cadastrados como Ultra Player.
+   */
+  app.get("/api/v5/ultra-config", async (req: Request, res: Response) => {
+    const mac = typeof req.query.mac === "string" ? normalizeMacAddress(req.query.mac) : null;
+    if (!mac) {
+      res.status(400).json({ registered: false, error: "Informe um MAC válido." });
+      return;
+    }
+
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.status(503).json({ registered: false, error: "Banco de dados indisponível." });
+        return;
+      }
+
+      const result = await db.select().from(devices)
+        .where(or(eq(devices.mac, mac.toLowerCase()), eq(devices.mac, mac)))
+        .limit(1);
+      const device = result[0];
+
+      if (!device) {
+        res.status(404).json({ registered: false, error: "MAC não cadastrado." });
+        return;
+      }
+      if (device.app !== "Ultra Player") {
+        res.status(403).json({ registered: true, error: "Este MAC não está vinculado ao Ultra Player." });
+        return;
+      }
+      if (device.status !== "Liberado") {
+        res.status(403).json({ registered: true, allowed: false, error: "Acesso bloqueado ou expirado." });
+        return;
+      }
+
+      const settings = await getSettings();
+      const [logoUrl, bannerUrl, backgroundUrl, messageImageUrl, liveTvIconUrl, moviesIconUrl, seriesIconUrl] = await Promise.all([
+        resolvePublicImageUrl(settings.ultra_logo_url || ""),
+        resolvePublicImageUrl(settings.ultra_banner_url || ""),
+        resolvePublicImageUrl(settings.ultra_background_url || ""),
+        resolvePublicImageUrl(settings.ultra_message_image_url || ""),
+        resolvePublicImageUrl(settings.ultra_icon_live_tv_url || ""),
+        resolvePublicImageUrl(settings.ultra_icon_movies_url || ""),
+        resolvePublicImageUrl(settings.ultra_icon_series_url || ""),
+      ]);
+
+      res.setHeader("Cache-Control", "no-store");
+      res.json({
+        registered: true,
+        allowed: true,
+        mac: device.mac,
+        ...buildUltraPlayerConfig(settings, {
+          logoUrl,
+          bannerUrl,
+          backgroundUrl,
+          messageImageUrl,
+          liveTvIconUrl,
+          moviesIconUrl,
+          seriesIconUrl,
+        }),
+      });
+    } catch (error) {
+      console.error("[API] /api/v5/ultra-config error:", error);
+      res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do Ultra Player." });
     }
   });
 

@@ -15,6 +15,9 @@ const DEFAULTS: Record<string, string> = {
   ultra_banner_url: "",
   ultra_background_url: "",
   ultra_message_image_url: "",
+  ultra_icon_live_tv_url: "",
+  ultra_icon_movies_url: "",
+  ultra_icon_series_url: "",
   ultra_impact_phrase: "",
   ultra_message_title: "",
   ultra_message_text: "",
@@ -74,6 +77,9 @@ export default function SettingsUltra() {
     ["ultra_banner_url", "Banner", "Banner principal do aplicativo"],
     ["ultra_background_url", "Imagem de fundo", "Fundo da tela inicial do aplicativo"],
     ["ultra_message_image_url", "Imagem de mensagem", "Imagem usada nos avisos e mensagens"],
+    ["ultra_icon_live_tv_url", "Ícone de Canais", "Ícone do botão de canais ao vivo"],
+    ["ultra_icon_movies_url", "Ícone de Filmes", "Ícone do botão de filmes"],
+    ["ultra_icon_series_url", "Ícone de Séries", "Ícone do botão de séries"],
   ] as const;
 
   if (isLoading) return <AdminLayout title="Ultra Player"><div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin" /></div></AdminLayout>;
@@ -83,7 +89,7 @@ export default function SettingsUltra() {
         <div><h1 className="text-2xl font-bold">Ultra Player</h1><p className="text-sm text-muted-foreground">Imagens, mensagens e API configuráveis com upload direto.</p></div>
         <Button onClick={() => save.mutate(form)} disabled={save.isPending} className="gap-2 btn-save"><Save size={16} />Salvar alterações</Button>
       </div>
-      <Card><CardHeader><CardTitle>Imagens e ícones</CardTitle><CardDescription>Use o botão de upload em cada campo. A URL será preenchida automaticamente.</CardDescription></CardHeader><CardContent className="grid gap-5 sm:grid-cols-2">
+      <Card><CardHeader><CardTitle>Imagens e ícones</CardTitle><CardDescription>Use o botão de upload para mudar logo, banner, fundo, mensagem e os ícones de Canais, Filmes e Séries. A URL será preenchida automaticamente.</CardDescription></CardHeader><CardContent className="grid gap-5 sm:grid-cols-2">
         {imageFields.map(([field, label, hint]) => <div className="space-y-2" key={field}><Label>{label}</Label><div className="flex gap-2"><Input value={form[field]} onChange={e => update(field, e.target.value)} placeholder="URL da imagem" /><ImageUpload field={field} busy={uploading === field} onUpload={file => upload(field, file)} /></div><p className="text-xs text-muted-foreground">{hint}</p>{form[field] && <img src={form[field]} className="max-h-28 rounded border object-contain" alt={label} />}</div>)}
       </CardContent></Card>
       <Card><CardHeader><CardTitle>Mensagens e conexão</CardTitle><CardDescription>Dados enviados ao APK quando o desenvolvedor integrar a rota do Ultra Player.</CardDescription></CardHeader><CardContent className="space-y-4">

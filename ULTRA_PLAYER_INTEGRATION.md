@@ -21,10 +21,22 @@ O APK deve enviar o MAC normalizado (`AA:BB:CC:DD:EE:FF`) em toda chamada. O pai
 4. Exibir banner, mensagens e telas de bloqueio retornadas pelo painel; não armazenar credenciais em log.
 5. Se o dispositivo estiver bloqueado ou expirado, exibir a mensagem de bloqueio recebida e não iniciar a reprodução.
 
-## Próxima rota específica do Ultra Player
+## Configuração exclusiva do Ultra Player
 
-O painel terá uma rota de configuração dedicada para banner, ícones, mensagens e API do servidor. O desenvolvedor deve deixar a URL base configurável para receber a rota final sem necessidade de nova compilação.
+O APK deve buscar sua aparência e seus textos pela rota `GET /api/v5/ultra-config?mac={MAC}`. Ela aceita o MAC com ou sem separadores e responde apenas para um dispositivo cadastrado como `Ultra Player` e com status `Liberado`.
+
+| Campo retornado | Uso no APK |
+|---|---|
+| `app_name` | Nome exibido do aplicativo. |
+| `logo_url`, `banner_url`, `background_url` | Logo, banner e imagem de fundo configurados no painel. |
+| `message_title`, `message_text`, `message_image_url` | Conteúdo do aviso configurável. |
+| `impact_phrase` | Frase de destaque da tela inicial. |
+| `server_api_url` | API externa definida no campo **API do Servidor**. |
+| `apk_download_url`, `apk_version` | Link e versão da atualização configurada. |
+| `icons.live_tv`, `icons.movies`, `icons.series` | Ícones personalizáveis dos botões **Canais**, **Filmes** e **Séries**. |
+
+Em caso de MAC não cadastrado, aplicativo diferente, bloqueio ou vencimento, a rota devolve `allowed: false` ou uma resposta de erro. O APK deve interromper a reprodução e apresentar a mensagem apropriada nesses casos.
 
 ## Informações para enviar ao desenvolvedor
 
-Forneça a ele o domínio publicado do painel, um MAC de teste cadastrado como `Ultra Player`, esta especificação e a exigência de que todas as chamadas usem HTTPS em produção.
+Forneça ao desenvolvedor o domínio publicado do painel, um MAC de teste cadastrado como `Ultra Player`, esta especificação e a exigência de que todas as chamadas usem HTTPS em produção. A URL base deve ficar configurável no APK para permitir troca de domínio sem nova compilação.

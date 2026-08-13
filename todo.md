@@ -490,9 +490,13 @@
 ## Clientes Externos e Ultra Player
 - [x] Criar gerenciamento de clientes que usam aplicativo externo, preservando MAC e aplicativo atual
 - [x] Registrar o aplicativo atual do cliente com opções OuroPro, Maximus, Ultra Player e Outro
-- [ ] Criar painel de configuração do Ultra Player com banner, ícones, mensagens e API do servidor
-- [ ] Adicionar upload de logo, fundo, banner e imagens de mensagem do Ultra Player
+- [x] Criar painel de configuração do Ultra Player com banner, ícones, mensagens e API do servidor
+- [x] Adicionar upload de logo, fundo, banner e imagens de mensagem do Ultra Player
 - [x] Adicionar o Ultra Player à Loja com o ícone enviado
-- [ ] Adicionar Ultra Player à seleção de listas e aos indicadores do Ranking
-- [ ] Criar endpoints de configuração do Ultra Player para consumo pelo APK
+- [x] Adicionar Ultra Player à seleção de listas e aos indicadores do Ranking
+- [x] Criar endpoints de configuração do Ultra Player para consumo pelo APK
 - [x] Preparar especificação técnica de integração para o desenvolvedor do Ultra Player
+
+## Ajustes Ultra Player — uploads e ícones
+- [x] Corrigir o envio de imagens do Ultra Player, que atualmente exibe a mensagem de falha no upload
+- [x] Adicionar uploads de ícones personalizáveis para Canais, Filmes e Séries no Ultra Player

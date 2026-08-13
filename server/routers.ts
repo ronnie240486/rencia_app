@@ -2331,7 +2331,7 @@ export const appRouter = router({
   ranking: router({
     appStats: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();  
-      if (!db) return { ouropro: 0, maximus: 0, total: 0 };
+      if (!db) return { ouropro: 0, maximus: 0, ultra: 0, total: 0 };
       
       const result = await db.select({
         app: devices.app,
@@ -2348,12 +2348,14 @@ export const appRouter = router({
       }, {});
       
       const ouropro = counts['OuroPro'] || 0;
-      const maximus = counts['Maximus'] || 0;
+      const maximus = (counts['Maximus'] || 0) + (counts['Maximus Player'] || 0);
+      const ultra = counts['Ultra Player'] || 0;
       
       return {
         ouropro,
         maximus,
-        total: ouropro + maximus
+        ultra,
+        total: ouropro + maximus + ultra
       };
     }),
   }),

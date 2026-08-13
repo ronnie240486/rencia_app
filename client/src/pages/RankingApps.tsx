@@ -21,13 +21,14 @@ export default function RankingApps() {
   const appCounts = useMemo(() => {
     return {
       'OuroPro': appStats?.ouropro || 0,
-      'Maximus': appStats?.maximus || 0
+      'Maximus': appStats?.maximus || 0,
+      'Ultra Player': appStats?.ultra || 0,
     };
   }, [appStats]);
 
   const totalUsers = (appStats?.total) || 0;
 
-  // Criar ranking apenas com OuroPro e Maximus
+  // Criar ranking dos aplicativos disponíveis no painel
   const ranking: AppRanking[] = useMemo(() => {
     const apps = [
       {
@@ -41,6 +42,12 @@ export default function RankingApps() {
         logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663162366914/PzXaZFHtEbexAZJA.png",
         color: "purple",
         users: appCounts['Maximus'] || 0,
+      },
+      {
+        name: "Ultra Player",
+        logo: "/manus-storage/ultra-player-logo_efd734bc.png",
+        color: "cyan",
+        users: appCounts['Ultra Player'] || 0,
       },
     ];
 
@@ -56,6 +63,7 @@ export default function RankingApps() {
   const colorClasses = {
     yellow: "border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-yellow-50 via-yellow-50 to-yellow-100/50 dark:from-yellow-950/40 dark:via-yellow-900/20 dark:to-yellow-800/30",
     purple: "border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 via-purple-50 to-purple-100/50 dark:from-purple-950/40 dark:via-purple-900/20 dark:to-purple-800/30",
+    cyan: "border-cyan-200 dark:border-cyan-800 bg-gradient-to-br from-cyan-50 via-cyan-50 to-cyan-100/50 dark:from-cyan-950/40 dark:via-cyan-900/20 dark:to-cyan-800/30",
   };
 
   const positionColors = {
@@ -67,6 +75,7 @@ export default function RankingApps() {
   const badgeColors = {
     yellow: "bg-yellow-500 text-yellow-900 hover:bg-yellow-600",
     purple: "bg-purple-500 text-white hover:bg-purple-600",
+    cyan: "bg-cyan-500 text-cyan-950 hover:bg-cyan-600",
   };
 
   return (
@@ -84,7 +93,7 @@ export default function RankingApps() {
               <Trophy className="w-10 h-10 text-yellow-500 animate-bounce" style={{ animationDelay: "0.2s" }} />
             </div>
             <p className="text-muted-foreground text-lg">
-              Veja quantos clientes estão usando OuroPro e Maximus
+              Veja quantos clientes estão usando OuroPro, Maximus e Ultra Player
             </p>
           </div>
         </div>
@@ -97,7 +106,9 @@ export default function RankingApps() {
               <div className={`absolute inset-0 bg-gradient-to-r ${
                 app.color === "yellow" 
                   ? "from-yellow-400/20 to-yellow-600/20" 
-                  : "from-purple-400/20 to-purple-600/20"
+                  : app.color === "purple"
+                    ? "from-purple-400/20 to-purple-600/20"
+                    : "from-cyan-400/20 to-cyan-600/20"
               } rounded-lg blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
               
               <Card
@@ -156,7 +167,9 @@ export default function RankingApps() {
                           className={`h-full bg-gradient-to-r ${
                             app.color === "yellow"
                               ? "from-yellow-400 to-yellow-600"
-                              : "from-purple-400 to-purple-600"
+                              : app.color === "purple"
+                                ? "from-purple-400 to-purple-600"
+                                : "from-cyan-400 to-cyan-600"
                           } transition-all duration-500`}
                           style={{ width: `${app.percentage}%` }}
                         />
@@ -229,7 +242,9 @@ export default function RankingApps() {
                       className={`h-full bg-gradient-to-r ${
                         app.color === "yellow"
                           ? "from-yellow-400 to-yellow-600"
-                          : "from-purple-400 to-purple-600"
+                              : app.color === "purple"
+                                ? "from-purple-400 to-purple-600"
+                                : "from-cyan-400 to-cyan-600"
                       } transition-all duration-500 flex items-center justify-end pr-2`}
                       style={{ width: `${app.percentage}%` }}
                     >
