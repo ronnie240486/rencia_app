@@ -7,6 +7,17 @@ export type ListHealthResult = {
   message: string;
 };
 
+/**
+ * Alguns provedores bloqueiam HEAD/GET automatizado com 401/403, mesmo quando
+ * a lista funciona no APK autenticado. Isso confirma que o servidor respondeu;
+ * portanto não deve iniciar failover nem gerar alerta de lista fora.
+ */
+export function classifyListHttpStatus(statusCode: number, responseTimeMs: number): ListHealthResult {
+  if (statusCode >= 200 && statusCode < 400) return { status: "success", statusCode, responseTimeMs, message: "Lista disponível" };
+  if (statusCode === 401 || statusCode === 403) return { status: "success", statusCode, responseTimeMs, message: `Servidor protegido (HTTP ${statusCode}); não é falha de lista` };
+  return { status: "error", statusCode, responseTimeMs, message: `Servidor respondeu HTTP ${statusCode}` };
+}
+
 function isPrivateIpv4(address: string) {
   const parts = address.split(".").map(Number);
   if (parts.length !== 4 || parts.some(Number.isNaN)) return false;
@@ -48,13 +59,21 @@ export async function probeListUrl(value: string): Promise<ListHealthResult> {
   const startedAt = Date.now();
   try {
     let response = await fetch(validated.url, { method: "HEAD", redirect: "manual", signal: controller.signal });
-    if (response.status === 405 || response.status === 501) {
-      response = await fetch(validated.url, { method: "GET", redirect: "manual", signal: controller.signal, headers: { Range: "bytes=0-1023" } });
+    if ([401, 403, 405, 501].includes(response.status)) {
+      response = await fetch(validated.url, {
+        method: "GET",
+        redirect: "manual",
+        signal: controller.signal,
+        headers: {
+          Range: "bytes=0-1023",
+          Accept: "application/x-mpegURL, application/vnd.apple.mpegurl, text/plain, */*",
+          "User-Agent": "Mozilla/5.0 (compatible; RenciaListMonitor/1.0)",
+        },
+      });
       await response.body?.cancel();
     }
     const responseTimeMs = Date.now() - startedAt;
-    if (response.status >= 200 && response.status < 400) return { status: "success", statusCode: response.status, responseTimeMs, message: "Lista disponível" };
-    return { status: "error", statusCode: response.status, responseTimeMs, message: `Servidor respondeu HTTP ${response.status}` };
+    return classifyListHttpStatus(response.status, responseTimeMs);
   } catch (error) {
     const message = error instanceof Error && error.name === "AbortError" ? "Tempo limite de 7 segundos excedido" : "Não foi possível conectar ao servidor";
     return { status: "error", statusCode: null, responseTimeMs: Date.now() - startedAt, message };

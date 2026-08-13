@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { cn } from "@/lib/utils";
 import { getVisibleNavigationGroups } from "./sidebarNavigation";
+import { shouldOpenConfirmedListAlert } from "./listAlertDismissal";
 import {
   BarChart3,
   ChevronDown,
@@ -133,6 +134,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openedListAlertId, setOpenedListAlertId] = useState<number | null>(null);
+  const [dismissedListAlertIds, setDismissedListAlertIds] = useState<number[]>([]);
   const [openNavGroups, setOpenNavGroups] = useState<string[]>(() =>
     navGroups.filter(group => group.defaultOpen).map(group => group.label)
   );
@@ -166,14 +168,18 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     alert.type === "critical" &&
     alert.title.startsWith("Falha confirmada de lista:"),
   );
-  const openedListAlert = panelAlerts?.find(alert => alert.id === openedListAlertId && !alert.isRead);
+  const openedListAlert = panelAlerts?.find(alert => alert.id === openedListAlertId && !alert.isRead && !dismissedListAlertIds.includes(alert.id));
 
   useEffect(() => {
-    if (unreadListAlert && openedListAlertId === null) setOpenedListAlertId(unreadListAlert.id);
-  }, [unreadListAlert?.id, openedListAlertId]);
+    if (shouldOpenConfirmedListAlert(unreadListAlert, openedListAlertId, dismissedListAlertIds)) setOpenedListAlertId(unreadListAlert!.id);
+  }, [unreadListAlert?.id, unreadListAlert?.isRead, openedListAlertId, dismissedListAlertIds]);
 
   const dismissListAlert = (openAlerts = false) => {
-    if (openedListAlertId) markAlertRead.mutate({ id: openedListAlertId });
+    if (openedListAlertId) {
+      const alertId = openedListAlertId;
+      setDismissedListAlertIds(current => current.includes(alertId) ? current : [...current, alertId]);
+      markAlertRead.mutate({ id: alertId });
+    }
     setOpenedListAlertId(null);
     if (openAlerts) setLocation("/alertas");
   };

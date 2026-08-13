@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateListUrl } from "./listHealth";
+import { classifyListHttpStatus, validateListUrl } from "./listHealth";
 
 describe("validação segura de URL de lista", () => {
   it("rejeita destinos internos e protocolos não suportados", async () => {
@@ -10,5 +10,15 @@ describe("validação segura de URL de lista", () => {
 
   it("rejeita URL malformada antes de qualquer conexão", async () => {
     await expect(validateListUrl("nao-e-url")).resolves.toMatchObject({ valid: false, message: "URL inválida" });
+  });
+
+  it("não trata HTTP 403 de proteção do servidor como lista indisponível", () => {
+    expect(classifyListHttpStatus(403, 77)).toEqual({
+      status: "success",
+      statusCode: 403,
+      responseTimeMs: 77,
+      message: "Servidor protegido (HTTP 403); não é falha de lista",
+    });
+    expect(classifyListHttpStatus(500, 77).status).toBe("error");
   });
 });

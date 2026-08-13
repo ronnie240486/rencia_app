@@ -530,3 +530,7 @@
 - [x] Criar painel para enviar atualização de lista, troca de lista/DNS, mensagem, reinício e bloqueio/liberação
 - [x] Expor endpoints de consulta e confirmação para OuroPro, Ultra Player e Maximus
 - [x] Preparar instrução técnica para os APKs executarem e confirmarem comandos remotos
+
+## Correções do Monitor e Alertas
+- [x] Evitar falso alerta de lista indisponível quando o servidor responder HTTP 403, mas a lista estiver reproduzindo normalmente
+- [x] Corrigir o botão de arquivar/marcar como lido para fechar o modal de aviso no primeiro toque
