@@ -44,7 +44,7 @@ export async function probeListUrl(value: string): Promise<ListHealthResult> {
   if (!validated.valid) return { status: "error", statusCode: null, responseTimeMs: null, message: validated.message };
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  const timeout = setTimeout(() => controller.abort(), 7_000);
   const startedAt = Date.now();
   try {
     let response = await fetch(validated.url, { method: "HEAD", redirect: "manual", signal: controller.signal });
@@ -56,7 +56,7 @@ export async function probeListUrl(value: string): Promise<ListHealthResult> {
     if (response.status >= 200 && response.status < 400) return { status: "success", statusCode: response.status, responseTimeMs, message: "Lista disponível" };
     return { status: "error", statusCode: response.status, responseTimeMs, message: `Servidor respondeu HTTP ${response.status}` };
   } catch (error) {
-    const message = error instanceof Error && error.name === "AbortError" ? "Tempo limite de 10 segundos excedido" : "Não foi possível conectar ao servidor";
+    const message = error instanceof Error && error.name === "AbortError" ? "Tempo limite de 7 segundos excedido" : "Não foi possível conectar ao servidor";
     return { status: "error", statusCode: null, responseTimeMs: Date.now() - startedAt, message };
   } finally {
     clearTimeout(timeout);

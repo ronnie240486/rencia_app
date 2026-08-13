@@ -19,13 +19,13 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
   let checked = 0;
   let switched = 0;
 
-  for (const device of deviceRows) {
+  await Promise.all(deviceRows.map(async (device: any) => {
     const extras = await db.select().from(deviceUrls).where(and(eq(deviceUrls.deviceId, device.id), eq(deviceUrls.ativo, true))).orderBy(asc(deviceUrls.ordem));
     const candidates: Candidate[] = [
       ...(device.urlM3u8 ? [{ id: null, name: "Lista 1", url: device.urlM3u8 }] : []),
       ...extras.map((list: any): Candidate => ({ id: list.id as number, name: list.nome || `Lista ${list.ordem + 2}`, url: (list.urlM3u8 || list.xtServer || "").trim() })).filter((candidate: Candidate) => Boolean(candidate.url)),
     ].filter((candidate) => !blockedHosts.some((host: string) => candidate.url.startsWith(host)));
-    if (!candidates.length) continue;
+    if (!candidates.length) return;
 
     const ordered = orderFailoverCandidates(candidates, device.activeDeviceUrlId ?? null);
     const current = ordered[0];
@@ -38,13 +38,13 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
         await db.update(devices).set({ activeDeviceUrlId: primary.id }).where(eq(devices.id, device.id));
         await db.insert(listFailoverEvents).values({ ownerId, deviceId: device.id, fromDeviceUrlId: current.id, toDeviceUrlId: primary.id, reason: "Lista 1 recuperada e confirmada no monitoramento automático." });
         switched += 1;
-        continue;
+        return;
       }
     }
     const currentResult = await probeListUrl(current.url);
     checked += 1;
     await db.insert(listHealthChecks).values({ ownerId, deviceId: device.id, deviceUrlId: current.id, urlSnapshot: current.url, status: currentResult.status, statusCode: currentResult.statusCode, responseTimeMs: currentResult.responseTimeMs, message: currentResult.message });
-    if (currentResult.status === "success") continue;
+    if (currentResult.status === "success") return;
 
     let replacement: Candidate | null = null;
     for (const candidate of ordered.slice(1)) {
@@ -53,14 +53,14 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
       await db.insert(listHealthChecks).values({ ownerId, deviceId: device.id, deviceUrlId: candidate.id, urlSnapshot: candidate.url, status: result.status, statusCode: result.statusCode, responseTimeMs: result.responseTimeMs, message: result.message });
       if (result.status === "success") { replacement = candidate; break; }
     }
-    if (!replacement || replacement.id === current.id) continue;
+    if (!replacement || replacement.id === current.id) return;
     const lastEvent = (await db.select().from(listFailoverEvents).where(and(eq(listFailoverEvents.ownerId, ownerId), eq(listFailoverEvents.deviceId, device.id))).orderBy(desc(listFailoverEvents.createdAt)).limit(1))[0];
-    if (lastEvent && Date.now() - new Date(lastEvent.createdAt).getTime() < 30 * 60 * 1000) continue;
+    if (lastEvent && Date.now() - new Date(lastEvent.createdAt).getTime() < 30 * 60 * 1000) return;
 
     await db.update(devices).set({ activeDeviceUrlId: replacement.id }).where(eq(devices.id, device.id));
     await db.insert(listFailoverEvents).values({ ownerId, deviceId: device.id, fromDeviceUrlId: current.id, toDeviceUrlId: replacement.id, reason: `${current.name} falhou; ${replacement.name} passou no teste automático.` });
     switched += 1;
-  }
+  }));
   return { checked, switched };
 }
 
