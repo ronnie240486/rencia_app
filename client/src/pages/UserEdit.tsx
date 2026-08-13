@@ -325,6 +325,8 @@ export default function UserEdit() {
                 <SelectContent>
                   <SelectItem value="OuroPro">OuroPro</SelectItem>
                   <SelectItem value="Maximus">Maximus Player</SelectItem>
+                  <SelectItem value="Ultra Player">Ultra Player</SelectItem>
+                  <SelectItem value="Outro">Outro aplicativo</SelectItem>
                 </SelectContent>
               </Select>
             </div>

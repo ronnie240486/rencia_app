@@ -198,6 +198,8 @@ export default function UserCreate() {
                 <SelectContent>
                   <SelectItem value="OuroPro">OuroPro</SelectItem>
                   <SelectItem value="Maximus">Maximus</SelectItem>
+                  <SelectItem value="Ultra Player">Ultra Player</SelectItem>
+                  <SelectItem value="Outro">Outro aplicativo</SelectItem>
                 </SelectContent>
               </Select>
             </div>

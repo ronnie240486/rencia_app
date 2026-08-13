@@ -485,3 +485,10 @@
 ## Próximas Melhorias Prioritárias
 - [x] Exibir impacto de clientes, MACs e revendas antes de aplicar alteração em massa
 - [ ] Ativar backup completo diário às 03:00 e registrar cada execução
+
+## Clientes Externos e Ultra Player
+- [x] Criar gerenciamento de clientes que usam aplicativo externo, preservando MAC e aplicativo atual
+- [x] Registrar o aplicativo atual do cliente com opções OuroPro, Maximus, Ultra Player e Outro
+- [ ] Criar painel de configuração do Ultra Player com banner, ícones, mensagens e API do servidor
+- [ ] Criar endpoints de configuração do Ultra Player para consumo pelo APK
+- [ ] Preparar especificação técnica de integração para o desenvolvedor do Ultra Player

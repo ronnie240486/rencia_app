@@ -528,6 +528,8 @@ export default function Users() {
                 <option value="">Não alterar</option>
                 <option value="OuroPro">OuroPro</option>
                 <option value="Maximus Player">Maximus Player</option>
+                <option value="Ultra Player">Ultra Player</option>
+                <option value="Outro">Outro aplicativo</option>
               </select>
             </div>
             <div className="space-y-1.5">
