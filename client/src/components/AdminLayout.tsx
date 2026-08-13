@@ -75,6 +75,7 @@ const navItems: NavItem[] = [
   { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true },
   { label: "OuroPro", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Maximus player", href: "/gpcpro", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
+  { label: "Ultra Player", href: "/ultra-player", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
 
   { label: "Configurações do App", href: "/app-settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },

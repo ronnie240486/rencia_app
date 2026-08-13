@@ -46,6 +46,7 @@ import SecurityCenter from "./pages/SecurityCenter";
 import ResellerBilling from "./pages/ResellerBilling";
 import AlertsCenter from "./pages/AlertsCenter";
 import Permissions from "./pages/Permissions";
+import SettingsUltra from "./pages/SettingsUltra";
 
 function Router() {
   return (
@@ -72,6 +73,7 @@ function Router() {
       <Route path={"/configuracoes"} component={Settings} />
       <Route path="/gpcpro" component={SettingsGpcpro} />
       <Route path="/maximus" component={SettingsMaximus} />
+      <Route path="/ultra-player" component={SettingsUltra} />
       <Route path={"/nuvix-config"} component={NuvixConfig} />
       <Route path={"/player"} component={Player} />
       <Route path={"/movie/:id"} component={MovieDetails} />
