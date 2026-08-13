@@ -1938,6 +1938,24 @@ export const appRouter = router({
         await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "dns_group", entityId: target.id, action: "applied", summary: `DNS ${target.titulo} aplicada a ${updated} cliente(s) do grupo ${input.grupo}` });
         return { updated };
       }),
+    groupHealth: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const { listHealthChecks } = await import("../drizzle/schema");
+      const entries = await db.select().from(dnsEntries).where(eq(dnsEntries.ownerId, ctx.user.id));
+      const checks = await db.select().from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id));
+      const groups = new Map<string, { group: string; total: number; errors: number; latestAt: Date | null }>();
+      for (const entry of entries) {
+        const key = entry.grupo || "Padrão";
+        const related = checks.filter((check: any) => check.urlSnapshot.startsWith(entry.host.replace(/\/+$/, "")));
+        const current = groups.get(key) || { group: key, total: 0, errors: 0, latestAt: null };
+        current.total += related.length;
+        current.errors += related.filter((check: any) => check.status === "error").length;
+        for (const check of related) if (!current.latestAt || new Date(check.checkedAt) > current.latestAt) current.latestAt = new Date(check.checkedAt);
+        groups.set(key, current);
+      }
+      return Array.from(groups.values()).map((item) => ({ ...item, health: item.total === 0 ? "unknown" : item.errors / item.total >= 0.5 ? "critical" : item.errors > 0 ? "attention" : "healthy" }));
+    }),
     listServerBlocks: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];

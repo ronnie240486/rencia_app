@@ -36,6 +36,7 @@ export default function DNS() {
   const { data: dnsList = [], isLoading, refetch } = trpc.dns.list.useQuery();
   const { data: uniqueUrls = [], refetch: refetchUrls } = trpc.devices.listUniqueUrls.useQuery();
   const { data: serverBlocks = [], refetch: refetchBlocks } = trpc.dns.listServerBlocks.useQuery();
+  const { data: groupHealth = [] } = trpc.dns.groupHealth.useQuery();
 
   const createMut = trpc.dns.create.useMutation({
     onSuccess: () => { toast.success("DNS cadastrada!"); setShowDialog(false); refetch(); },
@@ -120,6 +121,15 @@ export default function DNS() {
             Cadastrar DNS
           </Button>
         </div>
+
+        {groupHealth.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Saúde dos Grupos DNS</CardTitle><CardDescription>Consolidado pelas verificações recentes das listas.</CardDescription></CardHeader>
+            <CardContent className="grid gap-2 sm:grid-cols-2">
+              {groupHealth.map((group) => <div key={group.group} className="rounded-lg border p-3 flex items-center justify-between"><div><p className="font-medium text-sm">{group.group}</p><p className="text-xs text-muted-foreground">{group.total} teste(s) · {group.errors} falha(s)</p></div><Badge className={group.health === "healthy" ? "bg-emerald-600" : group.health === "critical" ? "bg-red-600" : group.health === "attention" ? "bg-amber-600" : "bg-slate-500"}>{group.health === "healthy" ? "Saudável" : group.health === "critical" ? "Crítico" : group.health === "attention" ? "Atenção" : "Sem testes"}</Badge></div>)}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Lista de DNS cadastradas */}
         <Card>
