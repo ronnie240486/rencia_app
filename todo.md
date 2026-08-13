@@ -509,3 +509,7 @@
 - [x] Exibir o filtro de período selecionado com texto branco e destaque visível no tema escuro
 - [x] Animar o botão de atualizar enquanto a lista de dispositivos conectados é recarregada
 - [x] Preservar e atualizar periodicamente o canal, filme ou série assistido quando o conteúdo não muda
+
+## Organização da barra lateral
+- [x] Propor e aprovar uma reorganização da sidebar, priorizando Usuários, Cadastro, DNS, OuroPro, Ultra Player e Maximus
+- [x] Implementar grupos recolhíveis e a nova ordem de prioridade na sidebar aprovada

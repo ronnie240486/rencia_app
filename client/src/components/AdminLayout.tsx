@@ -2,8 +2,10 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { cn } from "@/lib/utils";
+import { getVisibleNavigationGroups } from "./sidebarNavigation";
 import {
   BarChart3,
+  ChevronDown,
   ChevronRight,
   LayoutDashboard,
   LogOut,
@@ -46,39 +48,77 @@ interface NavItem {
   ownerOnly?: boolean; // Apenas para Ultra Master e dono
 }
 
-const navItems: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={18} /> },
-  { label: "Usuários", href: "/users", icon: <Users size={18} /> },
-  { label: "Cadastrar Usuário", href: "/users/create", icon: <BarChart3 size={18} /> },
-  { label: "Revendas", href: "/revendas", icon: <Store size={18} /> },
-  { label: "Chatbot de Avisos", href: "/chatbot", icon: <MessageCircle size={18} />, ownerOnly: true },
-  { label: "Central de Controle", href: "/central", icon: <ShieldAlert size={18} />, ownerOnly: true },
-  { label: "Busca Global", href: "/busca", icon: <Search size={18} /> },
-  { label: "Segurança", href: "/seguranca", icon: <ShieldCheck size={18} />, ownerOnly: true },
-  { label: "Alertas", href: "/alertas", icon: <BellRing size={18} /> },
-  { label: "Permissões", href: "/permissoes", icon: <Shield size={18} /> },
-  { label: "Cobranças Revendas", href: "/cobrancas-revendas", icon: <WalletCards size={18} />, ownerOnly: true },
-  { label: "Diagnóstico", href: "/diagnostico", icon: <Activity size={18} />, ownerOnly: true },
-  { label: "Pagamentos", href: "/pagamentos", icon: <WalletCards size={18} /> },
-  { label: "Relatórios", href: "/relatorios", icon: <BarChart3 size={18} /> },
-  { label: "Relatório Revendas", href: "/relatorio-revendas", icon: <BarChart3 size={18} />, ownerOnly: true },
-  { label: "Agenda de Renovação", href: "/agenda-renovacao", icon: <CalendarClock size={18} /> },
-  { label: "Manutenção", href: "/manutencao", icon: <Wrench size={18} /> },
-  { label: "Atualizações", href: "/atualizacoes", icon: <Download size={18} /> },
-  { label: "Backups", href: "/backups", icon: <HardDrive size={18} />, ownerOnly: true },
-  { label: "Sessões", href: "/sessoes", icon: <Activity size={18} /> },
-  { label: "Monitor de Listas", href: "/monitor-listas", icon: <Radio size={18} />, ownerOnly: true },
-  { label: "DNS", href: "/dns", icon: <Server size={18} /> },
-  { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} />, ownerOnly: true },
-  { label: "Ranking de Apps", href: "/ranking-apps", icon: <BarChart3 size={18} />, ownerOnly: true },
-  { label: "Sugestões", href: "/sugestoes", icon: <MessageSquare size={18} /> },
-  { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true },
-  { label: "OuroPro", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
-  { label: "Maximus player", href: "/gpcpro", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
-  { label: "Ultra Player", href: "/ultra-player", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
+interface NavGroup {
+  label: string;
+  icon: React.ReactNode;
+  defaultOpen?: boolean;
+  items: NavItem[];
+}
 
-  { label: "Configurações do App", href: "/app-settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
-  { label: "Perfil", href: "/profile", icon: <User size={18} /> },
+const navGroups: NavGroup[] = [
+  {
+    label: "Início e Clientes",
+    icon: <Users size={16} />,
+    defaultOpen: true,
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={18} /> },
+      { label: "Usuários", href: "/users", icon: <Users size={18} /> },
+      { label: "Cadastrar Usuário", href: "/users/create", icon: <BarChart3 size={18} /> },
+      { label: "Revendas", href: "/revendas", icon: <Store size={18} /> },
+      { label: "Busca Global", href: "/busca", icon: <Search size={18} /> },
+    ],
+  },
+  {
+    label: "Operação",
+    icon: <Activity size={16} />,
+    defaultOpen: true,
+    items: [
+      { label: "DNS", href: "/dns", icon: <Server size={18} /> },
+      { label: "Monitor de Listas", href: "/monitor-listas", icon: <Radio size={18} />, ownerOnly: true },
+      { label: "Diagnóstico", href: "/diagnostico", icon: <Activity size={18} />, ownerOnly: true },
+      { label: "Manutenção", href: "/manutencao", icon: <Wrench size={18} /> },
+      { label: "Alertas", href: "/alertas", icon: <BellRing size={18} /> },
+      { label: "Sessões", href: "/sessoes", icon: <Activity size={18} /> },
+      { label: "Agenda de Renovação", href: "/agenda-renovacao", icon: <CalendarClock size={18} /> },
+    ],
+  },
+  {
+    label: "Aplicativos",
+    icon: <SlidersHorizontal size={16} />,
+    defaultOpen: true,
+    items: [
+      { label: "Configurações de OuroPro", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
+      { label: "Ultra Player", href: "/ultra-player", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
+      { label: "Maximus Player", href: "/gpcpro", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
+      { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} />, ownerOnly: true },
+      { label: "Ranking de Apps", href: "/ranking-apps", icon: <BarChart3 size={18} />, ownerOnly: true },
+      { label: "Atualizações", href: "/atualizacoes", icon: <Download size={18} /> },
+    ],
+  },
+  {
+    label: "Financeiro",
+    icon: <WalletCards size={16} />,
+    items: [
+      { label: "Pagamentos", href: "/pagamentos", icon: <WalletCards size={18} /> },
+      { label: "Cobranças Revendas", href: "/cobrancas-revendas", icon: <WalletCards size={18} />, ownerOnly: true },
+      { label: "Relatórios", href: "/relatorios", icon: <BarChart3 size={18} /> },
+      { label: "Relatório Revendas", href: "/relatorio-revendas", icon: <BarChart3 size={18} />, ownerOnly: true },
+    ],
+  },
+  {
+    label: "Administração",
+    icon: <Settings size={16} />,
+    items: [
+      { label: "Chatbot de Avisos", href: "/chatbot", icon: <MessageCircle size={18} />, ownerOnly: true },
+      { label: "Central de Controle", href: "/central", icon: <ShieldAlert size={18} />, ownerOnly: true },
+      { label: "Segurança", href: "/seguranca", icon: <ShieldCheck size={18} />, ownerOnly: true },
+      { label: "Permissões", href: "/permissoes", icon: <Shield size={18} /> },
+      { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true },
+      { label: "Sugestões", href: "/sugestoes", icon: <MessageSquare size={18} /> },
+      { label: "Backups", href: "/backups", icon: <HardDrive size={18} />, ownerOnly: true },
+      { label: "Configurações do Painel", href: "/app-settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
+    ],
+  },
 ];
 
 interface AdminLayoutProps {
@@ -90,6 +130,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openNavGroups, setOpenNavGroups] = useState<string[]>(() =>
+    navGroups.filter(group => group.defaultOpen).map(group => group.label)
+  );
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("theme");
     return saved === "dark";
@@ -229,11 +272,13 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const isAdmin = user?.role === "admin";
   // Dono vê tudo; outros veem apenas itens não ownerOnly
   const isOwner = (user as any)?.isOwner === true;
-  const visibleNavItems = navItems.filter(item => {
-    if (item.adminOnly && !isAdmin) return false;
-    if (item.ownerOnly && !isOwner) return false;
-    return true;
-  });
+  const visibleNavGroups = getVisibleNavigationGroups(navGroups, isAdmin, isOwner);
+  const isItemActive = (item: NavItem) => location === item.href || (item.href !== "/" && location.startsWith(item.href));
+  const toggleNavGroup = (label: string) => {
+    setOpenNavGroups(current => current.includes(label)
+      ? current.filter(group => group !== label)
+      : [...current, label]);
+  };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
@@ -249,35 +294,58 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-4 space-y-1 scrollbar-thin scrollbar-thumb-sidebar-border scrollbar-track-transparent">
+      <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-4 space-y-3 scrollbar-thin scrollbar-thumb-sidebar-border scrollbar-track-transparent">
         <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-3" style={{ color: "oklch(0.60 0.08 55)" }}>
           Menu
         </p>
-        {visibleNavItems.map((item) => {
-          const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
+        {visibleNavGroups.map((group) => {
+          const hasActiveItem = group.items.some(isItemActive);
+          const isOpen = hasActiveItem || openNavGroups.includes(group.label);
           return (
-            <Link key={item.href} href={item.href}>
-              <div
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-                style={{
-                  color: isActive
-                    ? "var(--color-sidebar-accent-foreground)"
-                    : "oklch(0.72 0.05 55)",
-                }}
+            <section key={group.label} className="space-y-1">
+              <button
+                type="button"
+                onClick={() => toggleNavGroup(group.label)}
+                aria-expanded={isOpen}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide transition-colors hover:bg-sidebar-accent"
+                style={{ color: "oklch(0.64 0.07 55)" }}
               >
-                <span className={cn(isActive ? "text-sidebar-primary" : "")} style={{ color: isActive ? "var(--sidebar-primary)" : undefined }}>
-                  {item.icon}
-                </span>
-                <span>{item.label}</span>
-                {isActive && <ChevronRight size={14} className="ml-auto opacity-60" />}
-              </div>
-            </Link>
+                {group.icon}
+                <span className="flex-1">{group.label}</span>
+                <ChevronDown size={15} className={cn("transition-transform duration-200", isOpen ? "rotate-0" : "-rotate-90")} />
+              </button>
+              {isOpen && (
+                <div className="space-y-1 border-l border-sidebar-border ml-3 pl-2">
+                  {group.items.map((item) => {
+                    const isActive = isItemActive(item);
+                    return (
+                      <Link key={item.href} href={item.href}>
+                        <div
+                          onClick={() => setSidebarOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer",
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-sidebar-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          )}
+                          style={{
+                            color: isActive
+                              ? "var(--color-sidebar-accent-foreground)"
+                              : "oklch(0.72 0.05 55)",
+                          }}
+                        >
+                          <span className={cn(isActive ? "text-sidebar-primary" : "")} style={{ color: isActive ? "var(--sidebar-primary)" : undefined }}>
+                            {item.icon}
+                          </span>
+                          <span>{item.label}</span>
+                          {isActive && <ChevronRight size={14} className="ml-auto opacity-60" />}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
           );
         })}
       </nav>
