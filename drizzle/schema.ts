@@ -187,6 +187,8 @@ export const notices = mysqlTable("notices", {
   titulo: varchar("titulo", { length: 255 }).notNull(),
   conteudo: text("conteudo").notNull(),
   ativo: boolean("ativo").default(true).notNull(),
+  startsAt: timestamp("startsAt"),
+  endsAt: timestamp("endsAt"),
   criadoEm: timestamp("criadoEm").defaultNow().notNull(),
   atualizadoEm: timestamp("atualizadoEm").defaultNow().onUpdateNow().notNull(),
 });

@@ -1975,7 +1975,7 @@ export const appRouter = router({
         return { success: true };
       }),
     createMaintenanceNotice: ownerProcedure
-      .input(z.object({ grupo: z.string().min(1), titulo: z.string().min(3).max(255), conteudo: z.string().min(3).max(3000) }))
+      .input(z.object({ grupo: z.string().min(1), titulo: z.string().min(3).max(255), conteudo: z.string().min(3).max(3000), startsAt: z.date().optional(), endsAt: z.date().optional() }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -1985,7 +1985,7 @@ export const appRouter = router({
         const devicesInGroup = await db.select({ ownerId: devices.ownerId, urlM3u8: devices.urlM3u8 }).from(devices).where(eq(devices.ownerId, ctx.user.id));
         const targets = Array.from(new Set(devicesInGroup.filter((device) => !!device.urlM3u8 && hosts.some((host) => device.urlM3u8!.startsWith(host))).map((device) => device.ownerId)));
         if (!targets.length) targets.push(ctx.user.id);
-        await db.insert(notices).values(targets.map((targetOwnerId) => ({ autorId: ctx.user.id, targetOwnerId, titulo: input.titulo, conteudo: input.conteudo, ativo: true })));
+        await db.insert(notices).values(targets.map((targetOwnerId) => ({ autorId: ctx.user.id, targetOwnerId, titulo: input.titulo, conteudo: input.conteudo, ativo: true, startsAt: input.startsAt, endsAt: input.endsAt })));
         await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "maintenance_notice", entityId: 0, action: "created", summary: `Aviso de manutenção enviado ao grupo ${input.grupo} para ${targets.length} painel(is)` });
         return { sent: targets.length };
       }),
@@ -2131,6 +2131,8 @@ export const appRouter = router({
       const result = await db.select().from(notices).where(and(
         eq(notices.ativo, true),
         sql`(${notices.targetOwnerId} IS NULL OR ${notices.targetOwnerId} = ${ctx.user.id})`,
+        sql`(${notices.startsAt} IS NULL OR ${notices.startsAt} <= NOW())`,
+        sql`(${notices.endsAt} IS NULL OR ${notices.endsAt} > NOW())`,
       )).orderBy(desc(notices.criadoEm));
       return result;
     }),
@@ -2139,6 +2141,8 @@ export const appRouter = router({
       .input(z.object({
         titulo: z.string().min(1),
         conteudo: z.string().min(1),
+        startsAt: z.date().optional(),
+        endsAt: z.date().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();

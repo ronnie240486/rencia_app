@@ -479,4 +479,5 @@
 - [x] Bloquear temporariamente um servidor para ele não entrar no failover
 - [x] Exibir painel de saúde por grupo de DNS
 - [ ] Programar manutenção com início, término e remoção automática do aviso
+- [ ] Exibir avisos de manutenção somente entre o início e o término definidos
 - [ ] Mostrar relatório de impacto antes de troca de DNS ou lista em massa
