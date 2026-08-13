@@ -476,7 +476,7 @@
 ## Estabilidade Avançada de Listas
 - [x] Retornar automaticamente à Lista 1 após recuperação estável
 - [x] Proteger contra trocas repetidas de lista em instabilidades curtas
-- [ ] Bloquear temporariamente um servidor para ele não entrar no failover
+- [x] Bloquear temporariamente um servidor para ele não entrar no failover
 - [ ] Exibir painel de saúde por grupo de DNS
 - [ ] Programar manutenção com início, término e remoção automática do aviso
 - [ ] Mostrar relatório de impacto antes de troca de DNS ou lista em massa

@@ -35,6 +35,7 @@ export default function DNS() {
 
   const { data: dnsList = [], isLoading, refetch } = trpc.dns.list.useQuery();
   const { data: uniqueUrls = [], refetch: refetchUrls } = trpc.devices.listUniqueUrls.useQuery();
+  const { data: serverBlocks = [], refetch: refetchBlocks } = trpc.dns.listServerBlocks.useQuery();
 
   const createMut = trpc.dns.create.useMutation({
     onSuccess: () => { toast.success("DNS cadastrada!"); setShowDialog(false); refetch(); },
@@ -54,6 +55,10 @@ export default function DNS() {
   });
   const maintenanceNoticeMut = trpc.dns.createMaintenanceNotice.useMutation({
     onSuccess: (data) => { toast.success(`Aviso preparado para ${data.sent} painel(is).`); setMaintenanceContent(""); },
+    onError: (e) => toast.error(e.message),
+  });
+  const serverBlockMut = trpc.dns.setServerBlock.useMutation({
+    onSuccess: () => { toast.success("Status de manutenção do servidor atualizado."); refetchBlocks(); },
     onError: (e) => toast.error(e.message),
   });
   const swapMut = trpc.devices.bulkSwapDns.useMutation({
@@ -192,6 +197,10 @@ export default function DNS() {
                           <CheckCircle2 size={12} />
                         </Button>
                       )}
+                      {(() => {
+                        const blocked = serverBlocks.some((block) => block.active && block.host === dns.host.replace(/\/+$/, ""));
+                        return <Button size="sm" variant="ghost" className={`h-7 px-2 ${blocked ? "text-amber-600" : "text-slate-500"}`} title={blocked ? "Liberar servidor para failover" : "Bloquear servidor no failover"} disabled={serverBlockMut.isPending} onClick={() => serverBlockMut.mutate({ host: dns.host, active: !blocked, reason: blocked ? undefined : "Bloqueado manualmente para manutenção" })}>{blocked ? "Liberar" : "Manutenção"}</Button>;
+                      })()}
                       <Button
                         size="sm"
                         variant="ghost"

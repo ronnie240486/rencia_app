@@ -1938,6 +1938,24 @@ export const appRouter = router({
         await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "dns_group", entityId: target.id, action: "applied", summary: `DNS ${target.titulo} aplicada a ${updated} cliente(s) do grupo ${input.grupo}` });
         return { updated };
       }),
+    listServerBlocks: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const { serverMaintenanceBlocks } = await import("../drizzle/schema");
+      return db.select().from(serverMaintenanceBlocks).where(eq(serverMaintenanceBlocks.ownerId, ctx.user.id));
+    }),
+    setServerBlock: protectedProcedure
+      .input(z.object({ host: z.string().min(3), reason: z.string().max(500).optional(), active: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { serverMaintenanceBlocks } = await import("../drizzle/schema");
+        const host = input.host.replace(/\/+$/, "");
+        const existing = (await db.select().from(serverMaintenanceBlocks).where(and(eq(serverMaintenanceBlocks.ownerId, ctx.user.id), eq(serverMaintenanceBlocks.host, host))).limit(1))[0];
+        if (existing) await db.update(serverMaintenanceBlocks).set({ active: input.active, reason: input.reason ?? existing.reason }).where(eq(serverMaintenanceBlocks.id, existing.id));
+        else await db.insert(serverMaintenanceBlocks).values({ ownerId: ctx.user.id, host, reason: input.reason, active: input.active });
+        return { success: true };
+      }),
     createMaintenanceNotice: ownerProcedure
       .input(z.object({ grupo: z.string().min(1), titulo: z.string().min(3).max(255), conteudo: z.string().min(3).max(3000) }))
       .mutation(async ({ ctx, input }) => {
