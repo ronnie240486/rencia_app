@@ -464,6 +464,8 @@
 - [x] Monitorar automaticamente a disponibilidade e o tempo de resposta das listas
 - [x] Trocar automaticamente da Lista 1 para Lista 2 ou Lista 3 quando a principal falhar
 - [x] Executar o monitoramento automático de listas a cada 10 minutos
+- [x] Avaliar e aprovar uma evolução estratégica de backend para aumentar resiliência e segurança das listas
+- [x] Criar Piloto Automático por Servidor com falha geral confirmada, impacto consolidado e failover seguro
 - [x] Priorizar Lista 2 e depois Lista 3 quando a lista principal falhar
 - [x] Registrar o histórico de falhas e trocas automáticas de lista
 - [x] Permitir duplicar uma lista para vários clientes de uma vez

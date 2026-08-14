@@ -28,6 +28,7 @@ import { buildMaintenanceOverview } from "./maintenanceCenter";
 import { buildApkUpdateOverview } from "./apkUpdates";
 import { getConnectionState } from "./customerProfile";
 import { hasConfirmedListFailure, probeListUrl } from "./listHealth";
+import { buildServerPilotOverview } from "./serverPilot";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 import { autoBackupSettings, backupSnapshots, historyRetentionSettings } from "../drizzle/schema";
 import { createBackupSnapshot, restoreBackupSnapshot, AUTO_BACKUP_CRON } from "./backupService";
@@ -1401,6 +1402,16 @@ export const appRouter = router({
         grouped.set(check.urlSnapshot, current);
       }
       return Array.from(grouped.values()).map((item) => ({ ...item, errorRate: item.checks ? Math.round((item.errors / item.checks) * 100) : 0, avgResponseMs: item.responseSamples ? Math.round(item.totalResponseMs / item.responseSamples) : null })).sort((a, b) => b.errorRate - a.errorRate || b.errors - a.errors);
+    }),
+
+    serverPilot: ownerProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const [targets, checks] = await Promise.all([
+        getListMonitorTargets(db, ctx.user.id),
+        db.select().from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id)).orderBy(desc(listHealthChecks.checkedAt)).limit(800),
+      ]);
+      return buildServerPilotOverview(targets, checks);
     }),
 
     testMacs: ownerProcedure.query(async ({ ctx }) => {
