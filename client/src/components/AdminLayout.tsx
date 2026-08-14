@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { cn } from "@/lib/utils";
 import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS } from "./sidebarNavigation";
-import { getActiveConfirmedListAlerts } from "./listAlertDismissal";
+import { DISMISSED_LIST_ALERTS_SESSION_KEY, getActiveConfirmedListAlerts, parseDismissedListAlertIds } from "./listAlertDismissal";
 import {
   BarChart3,
   ChevronDown,
@@ -134,7 +134,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isListAlertSummaryOpen, setIsListAlertSummaryOpen] = useState(false);
-  const [dismissedListAlertIds, setDismissedListAlertIds] = useState<number[]>([]);
+  const [dismissedListAlertIds, setDismissedListAlertIds] = useState<number[]>(() =>
+    typeof window === "undefined" ? [] : parseDismissedListAlertIds(window.sessionStorage.getItem(DISMISSED_LIST_ALERTS_SESSION_KEY))
+  );
   const [openNavGroups, setOpenNavGroups] = useState<string[]>(() => [...INITIAL_OPEN_NAV_GROUPS]);
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("theme");
@@ -163,7 +165,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   }, [activeListAlerts.length, isListAlertSummaryOpen]);
 
   const dismissListAlertSummary = (openAlerts = false) => {
-    setDismissedListAlertIds(current => Array.from(new Set([...current, ...activeListAlerts.map(alert => alert.id)])));
+    setDismissedListAlertIds(current => {
+      const next = Array.from(new Set([...current, ...activeListAlerts.map(alert => alert.id)]));
+      window.sessionStorage.setItem(DISMISSED_LIST_ALERTS_SESSION_KEY, JSON.stringify(next));
+      return next;
+    });
     setIsListAlertSummaryOpen(false);
     if (openAlerts) setLocation("/alertas");
   };
