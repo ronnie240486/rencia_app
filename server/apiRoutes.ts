@@ -32,6 +32,7 @@ import { buildUltraPlayerConfig, normalizeMacAddress } from "./ultraPlayerConfig
 import { normalizeHeartbeatContent } from "./heartbeatContent";
 import { acknowledgeRemoteCommand, claimRemoteCommandForMac } from "./remoteCommands";
 import { buildPublicDownloadApps } from "./publicDownloads";
+import { acknowledgeListNotificationForMac, getListNotificationsForMac } from "./apkListNotifications";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -3868,6 +3869,46 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error('[API] /api/v5/remote-commands error:', error);
       res.status(500).json({ success: false, error: 'Não foi possível consultar comandos' });
+    }
+  });
+
+  /**
+   * GET /api/v5/list-notifications?mac=AA:BB:CC:DD:EE:FF
+   * Retorna somente os avisos técnicos confirmados da lista vinculada ao aparelho.
+   */
+  app.get('/api/v5/list-notifications', async (req: Request, res: Response) => {
+    try {
+      const mac = typeof req.query.mac === 'string' ? req.query.mac : '';
+      if (!mac) { res.status(400).json({ success: false, error: 'mac é obrigatório', notifications: [] }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ success: false, error: 'Banco indisponível', notifications: [] }); return; }
+      const result = await getListNotificationsForMac(db, mac);
+      if (!result.registered) { res.status(404).json({ success: false, error: 'MAC não cadastrado', notifications: [] }); return; }
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ success: true, mac: result.device.mac, notifications: result.notifications });
+    } catch (error) {
+      console.error('[API] /api/v5/list-notifications error:', error);
+      res.status(500).json({ success: false, error: 'Não foi possível consultar avisos de lista', notifications: [] });
+    }
+  });
+
+  /**
+   * POST /api/v5/list-notifications/ack
+   * Corpo JSON: { mac: "AA:BB:CC:DD:EE:FF", alert_id: 123 }
+   */
+  app.post('/api/v5/list-notifications/ack', async (req: Request, res: Response) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      const mac = String(body?.mac ?? '');
+      const alertId = Number(body?.alert_id ?? body?.alertId);
+      if (!mac || !Number.isInteger(alertId) || alertId <= 0) { res.status(400).json({ success: false, error: 'mac e alert_id são obrigatórios' }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ success: false, error: 'Banco indisponível' }); return; }
+      const result = await acknowledgeListNotificationForMac(db, mac, alertId);
+      res.status(result.ok ? 200 : 400).json({ success: result.ok, error: result.ok ? undefined : result.error });
+    } catch (error) {
+      console.error('[API] /api/v5/list-notifications/ack error:', error);
+      res.status(500).json({ success: false, error: 'Não foi possível confirmar o aviso de lista' });
     }
   });
 

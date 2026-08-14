@@ -542,6 +542,7 @@
 - [x] Criar página pública /baixar e links diretos /baixar/ouropro, /baixar/ultra e /baixar/maximus
 - [x] Permitir configurar, na Loja privada, os links, versão e disponibilidade dos aplicativos públicos
 - [x] Criar URLs curtas e fáceis de compartilhar para cada download público
+- [ ] Orientar a adoção de domínio próprio curto sem quebrar as rotas e APIs existentes
 
 ## Correções do Monitor e Alertas
 - [x] Evitar falso alerta de lista indisponível quando o servidor responder HTTP 403, mas a lista estiver reproduzindo normalmente
@@ -557,3 +558,8 @@
 - [x] Corrigir o título dos alertas de recuperação para não parecer uma nova falha de lista
 - [x] Impedir que o resumo de falhas confirmadas reapareça após cada clique no painel
 - [x] Garantir que o modal seja avaliado somente ao entrar no painel, sem reabrir durante cliques comuns
+
+## Notificações de Lista nos Aplicativos
+- [x] Preparar a instrução de integração para OuroPro, Ultra Player e Maximus receberem avisos de falha confirmada de lista
+- [x] Criar endpoint por MAC para os aplicativos consultarem falhas confirmadas de listas
+- [x] Permitir que o aplicativo confirme a leitura de um aviso de falha de lista

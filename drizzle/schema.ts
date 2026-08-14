@@ -314,6 +314,14 @@ export const internalAlerts = mysqlTable("internal_alerts", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+// Confirmações do próprio APK. Não alteram a leitura do alerta no painel da revenda.
+export const deviceListNotificationReceipts = mysqlTable("device_list_notification_receipts", {
+  id: int("id").autoincrement().primaryKey(),
+  deviceId: int("deviceId").notNull(),
+  alertId: int("alertId").notNull(),
+  acknowledgedAt: timestamp("acknowledgedAt").defaultNow().notNull(),
+});
+
 // Fila de ações enviadas pelo painel e executadas pelo APK quando o aparelho faz heartbeat.
 export const remoteDeviceCommands = mysqlTable("remote_device_commands", {
   id: int("id").autoincrement().primaryKey(),
