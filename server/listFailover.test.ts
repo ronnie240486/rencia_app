@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { hasConfirmedListFailure } from "./listHealth";
 import { orderFailoverCandidates } from "./listFailover";
 
 describe("troca automática de listas", () => {
@@ -14,5 +15,11 @@ describe("troca automática de listas", () => {
   it("mantém a Lista 1 como prioridade quando não há lista reserva selecionada", () => {
     const result = orderFailoverCandidates([{ id: null }, { id: 22 }, { id: 23 }], null);
     expect(result.map((item) => item.id)).toEqual([null, 22, 23]);
+  });
+
+  it("não considera uma única falha como motivo para ativar a lista reserva", () => {
+    expect(hasConfirmedListFailure([{ status: "error" }])).toBe(false);
+    expect(hasConfirmedListFailure([{ status: "pending" }, { status: "error" }])).toBe(false);
+    expect(hasConfirmedListFailure([{ status: "error" }, { status: "error" }])).toBe(true);
   });
 });

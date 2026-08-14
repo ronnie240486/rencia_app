@@ -83,14 +83,21 @@ export function isDeviceListNotificationTitle(title: string, deviceId: number) {
     : false;
 }
 
+/** O cliente nunca recebe instruções internas do painel nem detalhes técnicos da operação. */
+export function getClientFacingListMessage(status: ApkListNotificationStatus) {
+  return status === "failure"
+    ? "Detectamos uma instabilidade temporária na sua lista. Você não precisa fazer nada; se necessário, uma lista de reserva será ativada automaticamente."
+    : "Sua lista voltou a funcionar normalmente.";
+}
+
 function mapNotification(alert: any, acknowledgedAlertIds: Set<number>) {
   const status: ApkListNotificationStatus = alert.type === "critical" ? "failure" : "recovered";
   return {
     id: alert.id,
     status,
     severity: alert.type,
-    title: alert.title,
-    message: alert.content,
+    title: status === "failure" ? "Aviso sobre sua lista" : "Lista normalizada",
+    message: getClientFacingListMessage(status),
     created_at: alert.createdAt instanceof Date ? alert.createdAt.toISOString() : String(alert.createdAt),
     acknowledged: acknowledgedAlertIds.has(alert.id),
   };

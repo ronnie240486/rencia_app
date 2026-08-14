@@ -573,3 +573,9 @@
 - [x] Sinalizar que o APK deve recarregar automaticamente a lista já escolhida pelo painel
 - [x] Substituir a orientação de fechar o aplicativo por aviso em tela sobre a lista de reserva ativa
 - [x] Informar que a Lista 1 voltará automaticamente após a recuperação do servidor
+
+## Correção de Alerta e Failover Indevidos
+- [x] Investigar o aviso de erro da Lista 1 que apareceu mesmo com a lista funcionando
+- [x] Remover ou corrigir alertas técnicos indevidos do painel para a lista afetada
+- [x] Confirmar que a troca automática só ocorre quando há falha técnica confirmada e lista reserva disponível
+- [x] Impedir que mensagens recebidas pelo cliente citem modal, Monitor de Listas ou qualquer ação interna do painel

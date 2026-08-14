@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildApkFailoverStatus, isDeviceListNotificationTitle } from "./apkListNotifications";
+import { buildApkFailoverStatus, getClientFacingListMessage, isDeviceListNotificationTitle } from "./apkListNotifications";
 
 describe("notificações de lista para APK", () => {
   it("aceita somente alertas de lista pertencentes ao aparelho", () => {
@@ -10,6 +10,12 @@ describe("notificações de lista para APK", () => {
 
   it("ignora alertas que não são eventos técnicos de listas", () => {
     expect(isDeviceListNotificationTitle("Nova tarefa de manutenção", 42)).toBe(false);
+  });
+
+  it("nunca expõe instruções internas do painel ao cliente", () => {
+    expect(getClientFacingListMessage("failure")).toContain("Você não precisa fazer nada");
+    expect(getClientFacingListMessage("failure")).not.toContain("Monitor de Listas");
+    expect(getClientFacingListMessage("recovered")).toBe("Sua lista voltou a funcionar normalmente.");
   });
 
   it("informa quando uma lista de reserva foi ativada automaticamente", () => {

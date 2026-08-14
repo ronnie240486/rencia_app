@@ -30,8 +30,8 @@ O MAC pode ser enviado com ou sem separadores. A resposta possui o seguinte form
       "id": 123,
       "status": "failure",
       "severity": "critical",
-      "title": "Falha confirmada de lista: Lista 1 · Cliente #42",
-      "message": "Falha técnica confirmada em dois testes consecutivos...",
+      "title": "Aviso sobre sua lista",
+      "message": "Detectamos uma instabilidade temporária na sua lista. Você não precisa fazer nada; se necessário, uma lista de reserva será ativada automaticamente.",
       "created_at": "2026-08-14T12:00:00.000Z",
       "acknowledged": false
     }
@@ -49,7 +49,7 @@ O MAC pode ser enviado com ou sem separadores. A resposta possui o seguinte form
 | `playlist_sync_message` | Exibir em banner, toast ou diálogo não bloqueante depois de concluir a atualização automática. |
 | `failover_transition_id` | Salvar este número no armazenamento local. Só executar a troca e mostrar a mensagem se o número for diferente do último já processado. |
 | `reload_required` | Mantido por compatibilidade e permanece `false`; o APK não deve pedir para fechar ou reiniciar. |
-| `status: "failure"` | Exibir o aviso técnico complementar. Caso `failover_active` seja `true`, usar preferencialmente `playlist_sync_message`. |
+| `status: "failure"` | Exibir o aviso simples ao cliente. Caso `failover_active` seja `true`, usar preferencialmente `playlist_sync_message`. Nunca exibir textos internos do painel. |
 | `status: "recovered"` | Exibir opcionalmente a recuperação. Quando `failover_state` for `primary_restored`, usar `playlist_sync_message`. |
 | `acknowledged: false` | O aplicativo pode mostrar a mensagem uma vez e, em seguida, confirmar a leitura. |
 | `message` | Usar como texto técnico complementar. Não montar mensagem com dados de outras contas. |
@@ -74,4 +74,4 @@ Essa confirmação é **por aparelho** e não altera a Central de Alertas do pai
 
 ## Regras obrigatórias
 
-O APK não deve consultar alertas de outro MAC, usar rotas do OuroPro para o Ultra Player ou considerar um timeout isolado como falha de lista. Deve usar HTTPS e não deve decidir a troca por conta própria: o painel é a fonte de verdade para a lista ativa. Quando houver uma nova `failover_transition_id` com `playlist_sync_required: true`, o APK deve consultar novamente sua rota normal de configuração de playlists, substituir a lista carregada em memória pela lista priorizada e continuar sem encerrar o aplicativo. Depois, deve mostrar `playlist_sync_message` como aviso não bloqueante. A confirmação deve ser enviada somente para IDs de alertas recebidos na rota acima.
+O APK não deve consultar alertas de outro MAC, usar rotas do OuroPro para o Ultra Player ou considerar um timeout isolado como falha de lista. Deve usar HTTPS e não deve decidir a troca por conta própria: o painel é a fonte de verdade para a lista ativa. Quando houver uma nova `failover_transition_id` com `playlist_sync_required: true`, o APK deve consultar novamente sua rota normal de configuração de playlists, substituir a lista carregada em memória pela lista priorizada e continuar sem encerrar o aplicativo. Depois, deve mostrar `playlist_sync_message` como aviso não bloqueante. **O cliente nunca deve receber textos como “abra o Monitor de Listas”, “abra o modal”, “painel” ou qualquer outra instrução operacional.** A confirmação deve ser enviada somente para IDs de alertas recebidos na rota acima.

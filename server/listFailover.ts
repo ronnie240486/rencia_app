@@ -1,12 +1,30 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { desc } from "drizzle-orm";
 import { devices, deviceUrls, listFailoverEvents, listFailoverSettings, listHealthChecks, serverMaintenanceBlocks } from "../drizzle/schema";
-import { probeListUrl } from "./listHealth";
+import { hasConfirmedListFailure, probeListUrl } from "./listHealth";
 import { syncConfirmedListFailureAlert } from "./listFailureAlerts";
 
 export const LIST_FAILOVER_CRON = "0 */10 * * * *";
 
 type Candidate = { id: number | null; name: string; url: string };
+
+/** A troca só pode ocorrer depois de dois erros técnicos seguidos na mesma lista. */
+async function hasConfirmedFailoverFailure(db: any, ownerId: number, deviceId: number, candidate: Candidate) {
+  const candidateCondition = candidate.id === null
+    ? isNull(listHealthChecks.deviceUrlId)
+    : eq(listHealthChecks.deviceUrlId, candidate.id);
+  const recentChecks = await db.select({ status: listHealthChecks.status })
+    .from(listHealthChecks)
+    .where(and(
+      eq(listHealthChecks.ownerId, ownerId),
+      eq(listHealthChecks.deviceId, deviceId),
+      candidateCondition,
+      eq(listHealthChecks.urlSnapshot, candidate.url),
+    ))
+    .orderBy(desc(listHealthChecks.checkedAt), desc(listHealthChecks.id))
+    .limit(2);
+  return hasConfirmedListFailure(recentChecks);
+}
 
 async function recordAutomaticListHealthCheck(db: any, ownerId: number, device: any, candidate: Candidate, result: any) {
   await db.insert(listHealthChecks).values({ ownerId, deviceId: device.id, deviceUrlId: candidate.id, urlSnapshot: candidate.url, status: result.status, statusCode: result.statusCode, responseTimeMs: result.responseTimeMs, message: result.message });
@@ -52,6 +70,8 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     await recordAutomaticListHealthCheck(db, ownerId, device, current, currentResult);
     // Resposta lenta fica em observação e não deve causar troca automática.
     if (currentResult.status !== "error") return;
+    // Uma falha isolada não troca a lista. A confirmação exige dois erros seguidos.
+    if (!(await hasConfirmedFailoverFailure(db, ownerId, device.id, current))) return;
 
     let replacement: Candidate | null = null;
     for (const candidate of ordered.slice(1)) {
