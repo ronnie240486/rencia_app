@@ -80,6 +80,24 @@ O objeto `expiration` sempre traz a data que está cadastrada para aquele MAC. O
 
 O aplicativo deve consultar a rota no início e depois junto do heartbeat, a cada **60 segundos**. A falha da consulta não pode interromper a reprodução nem apagar a última lista válida. A atualização automática deve usar `failover_transition_id` para não reaparecer a cada minuto.
 
+## Troca imediata ao parar a reprodução
+
+Quando o player nativo detectar um erro real de reprodução — por exemplo, o stream parou, a conexão caiu ou o player retornou `error` — o APK deve avisar o painel **imediatamente**, sem esperar os 60 segundos do heartbeat:
+
+```http
+POST https://renciaapp.manus.space/api/v5/playback-failure
+Content-Type: application/json
+
+{
+  "mac": "AA:BB:CC:DD:EE:FF",
+  "active_list_number": 1
+}
+```
+
+Em caso de sucesso, o painel responde com `switch_applied: true`, a nova `active_list_number`, `active_list_name`, `failover_transition_id` e `playlist_sync_required: true`. O APK deve consultar imediatamente a rota normal de playlists, trocar a playlist carregada em memória e voltar para a tela de canais sem fechar o aplicativo. Em seguida, deve mostrar a mensagem retornada ao cliente, por exemplo: **“A Lista 2 foi ativada automaticamente. Assim que a principal normalizar, ela voltará.”**
+
+O APK só deve chamar essa rota após erro real emitido pelo player e deve bloquear chamadas duplicadas enquanto a troca estiver em andamento. Se receber `switch_applied: false`, deve manter a playlist atual, pois o painel já processou uma troca ou não existe outra lista disponível.
+
 ## Confirmar a exibição do aviso
 
 Depois de apresentar o aviso ao usuário, o APK deve chamar:

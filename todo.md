@@ -588,6 +588,12 @@
 ## Correção de Acionamento do Failover
 - [x] Investigar a Lista 1 que parou sem ativar a Lista 2 nem mostrar aviso no APK
 - [x] Corrigir a condição que impede a troca automática quando houver Lista 2 válida
-- [ ] Confirmar que o APK recebe o sinal de troca após o failover confirmado
-- [ ] Corrigir o caso de Ronnie celular, cuja Lista 1 parou sem trocar para a Lista 2 nem avisar o aplicativo
+- [x] Confirmar que o APK recebe o sinal de troca após o failover confirmado
+- [x] Corrigir o caso de Ronnie celular, cuja Lista 1 parou sem trocar para a Lista 2 nem avisar o aplicativo
 - [x] Impedir que uma resposta HTTP 403 protegida restaure a Lista 1 sem confirmação real de funcionamento
+
+## Troca Imediata Durante Reprodução
+- [x] Criar uma rota para o APK reportar que a reprodução da lista ativa parou
+- [x] Ativar a próxima lista válida imediatamente após o reporte do APK
+- [x] Atualizar a sessão do aplicativo em segundo plano e mostrar aviso simples ao cliente
+- [x] Remover o import obsoleto que bloqueia a checagem de tipos do aplicativo

@@ -59,6 +59,16 @@ export type MacStatus = {
   raw?: Record<string, unknown>;
 };
 
+export type PlaybackFailoverResponse = {
+  success: boolean;
+  switch_applied?: boolean;
+  message?: string;
+  error?: string;
+  active_list_name?: string;
+  active_list_number?: number;
+  playlist_sync_required?: boolean;
+};
+
 /**
  * Normalizes any of the response shapes the panel emits to a single
  * `MacStatus`. Fields observed so far (mobile UA):
@@ -139,5 +149,20 @@ export async function checkExpire(mac: string): Promise<{ expired: boolean; expi
     return { expired: !!json.expired, expire_date: json.expire_date };
   } catch {
     return { expired: true };
+  }
+}
+
+/** Reporta erro nativo do player para o painel ativar uma lista reserva sem esperar o cron. */
+export async function reportPlaybackFailure(mac: string): Promise<PlaybackFailoverResponse> {
+  try {
+    const res = await fetch(`${PANEL_BASE}/playback-failure`, {
+      method: 'POST',
+      headers: { ...commonHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mac }),
+    });
+    const json = await safeJson<PlaybackFailoverResponse>(res);
+    return json ?? { success: false, error: 'Resposta inválida do painel.' };
+  } catch {
+    return { success: false, error: 'Não foi possível avisar o painel sobre a falha.' };
   }
 }

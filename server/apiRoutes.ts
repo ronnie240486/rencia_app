@@ -24,7 +24,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents } from "../drizzle/schema";
 import { eq, or, and, asc } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
@@ -33,6 +33,8 @@ import { normalizeHeartbeatContent } from "./heartbeatContent";
 import { acknowledgeRemoteCommand, claimRemoteCommandForMac } from "./remoteCommands";
 import { buildPublicDownloadApps } from "./publicDownloads";
 import { acknowledgeListNotificationForMac, getListNotificationsForMac } from "./apkListNotifications";
+import { orderDeviceUrlsForActive } from "./devicePlaylistOrder";
+import { getNextPlaybackFailoverCandidate } from "./playbackFailover";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -1990,11 +1992,14 @@ export function registerApiRoutes(app: Express) {
         .where(eq(deviceUrls.deviceId, device.id))
         .orderBy(deviceUrls.ordem);
 
-      // O APK Maximus espera playlist_url e playlist_name em vez de url/name simples
+      const activeExtra = device.activeDeviceUrlId ? deviceUrlsList.find((item) => item.id === device.activeDeviceUrlId) : undefined;
+      const orderedDeviceUrls = orderDeviceUrlsForActive(deviceUrlsList, device.activeDeviceUrlId);
+
+      // O APK Maximus espera playlist_url e playlist_name em vez de url/name simples.
+      // Durante o failover, a lista reserva ativa precisa ser a primeira resposta.
       const playlists: Array<{ name: string; url: string; playlist_name: string; playlist_url: string; type: string }> = [];
 
-      // Playlist principal do device
-      if (device.urlM3u8) {
+      if (device.urlM3u8 && !activeExtra) {
         playlists.push({
           name: device.nomeServer || "Lista 1",
           url: device.urlM3u8,
@@ -2004,8 +2009,8 @@ export function registerApiRoutes(app: Express) {
         });
       }
 
-      // Playlists extras
-      for (const du of deviceUrlsList) {
+      // Playlists extras, com a lista de reserva ativa em primeiro lugar.
+      for (const du of orderedDeviceUrls) {
         if (!du.ativo) continue;
         if (du.modoSelecao === "XTeamCode") {
           let xtreamUrl = (du.xtServer || "").trim();
@@ -2040,6 +2045,16 @@ export function registerApiRoutes(app: Express) {
             type: "m3u_plus",
           });
         }
+      }
+
+      if (device.urlM3u8 && activeExtra) {
+        playlists.push({
+          name: device.nomeServer || "Lista 1",
+          url: device.urlM3u8,
+          playlist_name: device.nomeServer || "Lista 1",
+          playlist_url: device.urlM3u8,
+          type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
+        });
       }
 
       // Formatar data de expiração
@@ -2306,9 +2321,14 @@ export function registerApiRoutes(app: Express) {
         await db.update(devices).set({ lastSeen: now }).where(eq(devices.id, device.id));
       }
 
+      const deviceUrlsList = await db.select().from(deviceUrls)
+        .where(eq(deviceUrls.deviceId, device.id))
+        .orderBy(deviceUrls.ordem);
+      const activeExtra = device.activeDeviceUrlId ? deviceUrlsList.find((item) => item.id === device.activeDeviceUrlId) : undefined;
+      const orderedDeviceUrls = orderDeviceUrlsForActive(deviceUrlsList, device.activeDeviceUrlId);
       const playlists: Array<{ name: string; url: string; type: string }> = [];
 
-      if (device.urlM3u8) {
+      if (device.urlM3u8 && !activeExtra) {
         playlists.push({
           name: device.nomeServer || "Lista 1",
           url: device.urlM3u8,
@@ -2316,11 +2336,7 @@ export function registerApiRoutes(app: Express) {
         });
       }
 
-      const deviceUrlsList = await db.select().from(deviceUrls)
-        .where(eq(deviceUrls.deviceId, device.id))
-        .orderBy(deviceUrls.ordem);
-
-      for (const du of deviceUrlsList) {
+      for (const du of orderedDeviceUrls) {
         if (!du.ativo) continue;
         if (du.modoSelecao === "XTeamCode" && du.xtServer && du.xtUsername && du.xtPassword) {
           let xtreamUrl = du.xtServer.trim();
@@ -2341,6 +2357,14 @@ export function registerApiRoutes(app: Express) {
             type: "m3u_plus",
           });
         }
+      }
+
+      if (device.urlM3u8 && activeExtra) {
+        playlists.push({
+          name: device.nomeServer || "Lista 1",
+          url: device.urlM3u8,
+          type: "m3u_plus",
+        });
       }
 
       // Formatar expiração
@@ -3915,6 +3939,57 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error('[API] /api/v5/list-notifications/ack error:', error);
       res.status(500).json({ success: false, error: 'Não foi possível confirmar o aviso de lista' });
+    }
+  });
+
+  /**
+   * POST /api/v5/playback-failure
+   * O APK chama assim que o player acusa erro. O painel seleciona a próxima lista
+   * imediatamente, sem esperar o próximo ciclo de monitoramento.
+   */
+  app.post('/api/v5/playback-failure', async (req: Request, res: Response) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      const mac = normalizeMacAddress(String(body?.mac ?? ''));
+      if (!mac) { res.status(400).json({ success: false, error: 'mac válido é obrigatório' }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ success: false, error: 'Banco indisponível' }); return; }
+      const device = (await db.select().from(devices)
+        .where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())))
+        .limit(1))[0];
+      if (!device || !device.listFailoverEnabled) { res.status(404).json({ success: false, error: 'Aparelho sem failover automático ativo' }); return; }
+
+      const extraLists = await db.select().from(deviceUrls)
+        .where(and(eq(deviceUrls.deviceId, device.id), eq(deviceUrls.ativo, true)))
+        .orderBy(asc(deviceUrls.ordem), asc(deviceUrls.id));
+      const candidates = [
+        ...(device.urlM3u8 ? [{ id: null as number | null, name: 'Lista 1' }] : []),
+        ...extraLists.filter((item) => Boolean(item.urlM3u8 || item.xtServer)).map((item) => ({ id: item.id, name: item.nome || `Lista ${item.ordem + 2}` })),
+      ];
+      const currentId = device.activeDeviceUrlId ?? null;
+      const currentPosition = candidates.findIndex((item) => item.id === currentId) + 1;
+      const reportedPosition = Number(body?.active_list_number ?? currentPosition);
+      if (!Number.isInteger(reportedPosition) || reportedPosition !== currentPosition) {
+        const state = await getListNotificationsForMac(db, mac);
+        res.json({ success: true, switch_applied: false, reason: 'lista-já-foi-alterada', ...state.failover });
+        return;
+      }
+      const replacement = getNextPlaybackFailoverCandidate(candidates, currentId);
+      if (!replacement) { res.json({ success: false, switch_applied: false, error: 'Não existe outra lista disponível para este aparelho' }); return; }
+
+      await db.update(devices).set({ activeDeviceUrlId: replacement.id }).where(eq(devices.id, device.id));
+      await db.insert(listFailoverEvents).values({
+        ownerId: device.ownerId,
+        deviceId: device.id,
+        fromDeviceUrlId: currentId,
+        toDeviceUrlId: replacement.id,
+        reason: `${candidates[currentPosition - 1]?.name ?? 'Lista ativa'} reportou falha de reprodução no APK; ${replacement.name} ativada imediatamente.`,
+      });
+      const state = await getListNotificationsForMac(db, mac);
+      res.json({ success: true, switch_applied: true, message: `${replacement.name} foi ativada automaticamente.`, ...state.failover });
+    } catch (error) {
+      console.error('[API] /api/v5/playback-failure error:', error);
+      res.status(500).json({ success: false, error: 'Não foi possível ativar a lista reserva' });
     }
   });
 

@@ -14,6 +14,8 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { colors, spacing } from '@/src/theme';
+import { checkMac, reportPlaybackFailure } from '@/src/api/client';
+import { getSession, saveSession } from '@/src/state/session';
 
 const HIDE_AFTER_MS = 3500;
 
@@ -43,6 +45,7 @@ export default function PlayerScreen() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const switchInProgress = useRef(false);
 
   const isLive = String(params.id || '').startsWith('live-');
 
@@ -61,6 +64,30 @@ export default function PlayerScreen() {
     scheduleHide();
   }, [scheduleHide]);
 
+  const activateBackupImmediately = useCallback(async () => {
+    if (switchInProgress.current) return;
+    const session = getSession();
+    if (!session?.mac) return;
+    switchInProgress.current = true;
+    setBuffering(true);
+    setError('Estamos mudando você automaticamente para a lista reserva.');
+    const switchResult = await reportPlaybackFailure(session.mac);
+    if (!switchResult.success || !switchResult.switch_applied) {
+      setError('Não foi possível trocar automaticamente de lista. Tente novamente em instantes.');
+      switchInProgress.current = false;
+      return;
+    }
+    const refreshed = await checkMac(session.mac);
+    if (!refreshed.authorized || !refreshed.playlists?.length) {
+      setError('A lista reserva foi ativada, mas ainda não foi possível carregá-la.');
+      switchInProgress.current = false;
+      return;
+    }
+    await saveSession(refreshed);
+    setError(null);
+    router.replace('/channels');
+  }, [router]);
+
   useEffect(() => {
     scheduleHide();
     return () => {
@@ -72,7 +99,7 @@ export default function PlayerScreen() {
     const statusSub = player.addListener('statusChange', (s) => {
       setBuffering(s.status === 'loading');
       if (s.status === 'error') {
-        setError('Não foi possível reproduzir esta transmissão.');
+        void activateBackupImmediately();
       } else {
         setError(null);
       }
@@ -84,7 +111,7 @@ export default function PlayerScreen() {
       statusSub.remove();
       playingSub.remove();
     };
-  }, [player]);
+  }, [player, activateBackupImmediately]);
 
   // Poll current time / duration for VOD content.
   useEffect(() => {

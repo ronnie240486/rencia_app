@@ -14,7 +14,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { colors, spacing } from '@/src/theme';
-import { apiClient } from '@/src/api/client';
 
 type Settings = {
   autoLogin: boolean;
