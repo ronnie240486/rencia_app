@@ -466,6 +466,7 @@
 - [x] Executar o monitoramento automático de listas a cada 10 minutos
 - [x] Avaliar e aprovar uma evolução estratégica de backend para aumentar resiliência e segurança das listas
 - [x] Criar Piloto Automático por Servidor com falha geral confirmada, impacto consolidado e failover seguro
+- [x] Posicionar o card do Piloto Automático por Servidor abaixo das listas individuais
 - [x] Priorizar Lista 2 e depois Lista 3 quando a lista principal falhar
 - [x] Registrar o histórico de falhas e trocas automáticas de lista
 - [x] Permitir duplicar uma lista para vários clientes de uma vez
