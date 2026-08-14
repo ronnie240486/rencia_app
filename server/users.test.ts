@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
-import { getDeviceById, updateDevice } from "./db";
+import { getDb, getDeviceById, updateDevice } from "./db";
 
 // Mock the db module with updated function names
 vi.mock("./db", () => ({
@@ -126,6 +126,26 @@ describe("devices.update", () => {
 
     expect(updateDevice).toHaveBeenCalledWith(7, 1, { mac: "BD:33:00:93:DC:7A" });
     expect(result).toEqual({ success: true, device: updated });
+  });
+});
+
+describe("maximus.updateSettings", () => {
+  it("persiste as opções exibidas no formulário do Maximus", async () => {
+    const onDuplicateKeyUpdate = vi.fn().mockResolvedValue(undefined);
+    const values = vi.fn().mockReturnValue({ onDuplicateKeyUpdate });
+    vi.mocked(getDb).mockResolvedValue({ insert: vi.fn().mockReturnValue({ values }) } as any);
+
+    const caller = appRouter.createCaller(createAdminContext());
+    const result = await caller.maximus.updateSettings({
+      qualidade: "4K",
+      mostAssistidos: false,
+      canalAtual: "TV Cultura",
+    });
+
+    expect(result.success).toBe(true);
+    expect(values).toHaveBeenCalledWith({ key: "maximus_qualidade", value: "4K" });
+    expect(values).toHaveBeenCalledWith({ key: "maximus_mostAssistidos", value: "false" });
+    expect(values).toHaveBeenCalledWith({ key: "maximus_canalAtual", value: "TV Cultura" });
   });
 });
 

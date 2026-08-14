@@ -53,25 +53,33 @@ export default function DeviceLists() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [copySourceId, setCopySourceId] = useState<number | null>(null);
   const [copyTargets, setCopyTargets] = useState<number[]>([]);
+  const utils = trpc.useUtils();
 
   const { data: device } = trpc.devices.getById.useQuery({ id: deviceId }, { enabled: !!deviceId });
   const { data: lists, isLoading, refetch } = trpc.deviceUrls.list.useQuery({ deviceId }, { enabled: !!deviceId });
   const { data: availableTargets = [] } = trpc.deviceUrls.copyTargets.useQuery({ deviceId }, { enabled: !!deviceId && copySourceId !== null });
+  const refreshLists = async () => {
+    await Promise.all([
+      refetch(),
+      utils.devices.getById.invalidate({ id: deviceId }),
+      utils.devices.list.invalidate(),
+    ]);
+  };
 
   const addMut = trpc.deviceUrls.add.useMutation({
-    onSuccess: () => { toast.success("Lista adicionada!"); setShowDialog(false); refetch(); },
+    onSuccess: async () => { toast.success("Lista adicionada!"); setShowDialog(false); setForm(emptyForm); await refreshLists(); },
     onError: (e) => toast.error(e.message),
   });
   const updateMut = trpc.deviceUrls.update.useMutation({
-    onSuccess: () => { toast.success("Lista atualizada!"); setShowDialog(false); refetch(); },
+    onSuccess: async () => { toast.success("Lista atualizada!"); setShowDialog(false); setForm(emptyForm); await refreshLists(); },
     onError: (e) => toast.error(e.message),
   });
   const deleteMut = trpc.deviceUrls.delete.useMutation({
-    onSuccess: () => { toast.success("Lista removida!"); setDeleteId(null); refetch(); },
+    onSuccess: async () => { toast.success("Lista removida!"); setDeleteId(null); await refreshLists(); },
     onError: (e) => toast.error(e.message),
   });
   const copyMut = trpc.deviceUrls.duplicateToDevices.useMutation({
-    onSuccess: (result) => { toast.success(`Lista copiada para ${result.copied} cliente(s)!`); setCopySourceId(null); setCopyTargets([]); },
+    onSuccess: async (result) => { toast.success(`Lista copiada para ${result.copied} cliente(s)!`); setCopySourceId(null); setCopyTargets([]); await refreshLists(); },
     onError: (e) => toast.error(e.message),
   });
 

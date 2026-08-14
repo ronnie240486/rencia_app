@@ -45,17 +45,21 @@ export default function SettingsUltra() {
   const save = trpc.settings.updateMany.useMutation({ onSuccess: () => { toast.success("Configurações do Ultra Player salvas!"); refetch(); } });
   const [form, setForm] = useState(DEFAULTS);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const settingsInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (!settings) return;
-    setForm(prev => {
-      const merged = { ...DEFAULTS, ...prev };
-      Object.entries(settings).forEach(([key, value]) => { if (key.startsWith("ultra_") && value != null) merged[key] = String(value); });
-      return merged;
-    });
+    if (!settings || settingsInitializedRef.current) return;
+    const merged = { ...DEFAULTS };
+    Object.entries(settings).forEach(([key, value]) => { if (key.startsWith("ultra_") && value != null) merged[key] = String(value); });
+    setForm(merged);
+    settingsInitializedRef.current = true;
   }, [settings]);
 
-  const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
+  const update = (key: string, value: string) => {
+    setForm(prev => ({ ...prev, [key]: value }));
+    setDirty(true);
+  };
   const upload = async (field: string, file: File) => {
     try {
       setUploading(field);
@@ -68,6 +72,7 @@ export default function SettingsUltra() {
       const next = { ...form, [field]: url };
       setForm(next);
       await save.mutateAsync(next);
+      setDirty(false);
       toast.success("Imagem enviada e salva!");
     } catch (error: any) { toast.error(error.message ?? "Erro no upload"); }
     finally { setUploading(null); }
@@ -87,7 +92,7 @@ export default function SettingsUltra() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div><h1 className="text-2xl font-bold">Ultra Player</h1><p className="text-sm text-muted-foreground">Imagens, mensagens e API configuráveis com upload direto.</p></div>
-        <Button onClick={() => save.mutate(form)} disabled={save.isPending} className="gap-2 btn-save"><Save size={16} />Salvar alterações</Button>
+        <Button onClick={() => save.mutate(form, { onSuccess: () => setDirty(false) })} disabled={!dirty || save.isPending} className="gap-2 btn-save"><Save size={16} />Salvar alterações</Button>
       </div>
       <Card><CardHeader><CardTitle>Imagens e ícones</CardTitle><CardDescription>Use o botão de upload para mudar logo, banner, fundo, mensagem e os ícones de Canais, Filmes e Séries. A URL será preenchida automaticamente.</CardDescription></CardHeader><CardContent className="grid gap-5 sm:grid-cols-2">
         {imageFields.map(([field, label, hint]) => <div className="space-y-2" key={field}><Label>{label}</Label><div className="flex gap-2"><Input value={form[field]} onChange={e => update(field, e.target.value)} placeholder="URL da imagem" /><ImageUpload field={field} busy={uploading === field} onUpload={file => upload(field, file)} /></div><p className="text-xs text-muted-foreground">{hint}</p>{form[field] && <img src={form[field]} className="max-h-28 rounded border object-contain" alt={label} />}</div>)}

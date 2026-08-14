@@ -602,3 +602,10 @@
 - [x] Investigar por que o MAC editado volta ao valor anterior após o primeiro salvamento
 - [x] Garantir que a edição do MAC salve corretamente na primeira tentativa
 - [x] Atualizar a lista e o formulário com o MAC novo logo após salvar
+
+## Persistência Imediata em Todo o Painel
+- [x] Mapear os formulários de edição de usuários, listas, DNS e configurações
+- [x] Impedir que dados carregados tardiamente sobrescrevam alterações já digitadas
+- [x] Atualizar o cache e as listas visíveis logo após cada salvamento
+- [x] Testar alterações de usuário, lista, DNS e configurações na primeira tentativa
+- [x] Substituir o salvamento simulado do Maximus por gravação real no painel

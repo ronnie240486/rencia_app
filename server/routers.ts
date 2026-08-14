@@ -1879,6 +1879,12 @@ export const appRouter = router({
         retryAttempts: z.number().optional(),
         language: z.string().optional(),
         contactEmail: z.string().optional(),
+        qualidade: z.string().optional(),
+        legendas: z.string().optional(),
+        audioTrack: z.string().optional(),
+        mostAssistidos: z.boolean().optional(),
+        recentementeVisto: z.boolean().optional(),
+        canalAtual: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();

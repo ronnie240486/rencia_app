@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
 interface SettingsData {
   autoPlayLastChannel: boolean;
   autoRotate: boolean;
@@ -25,36 +27,46 @@ interface SettingsData {
   canalAtual: string;
 }
 
-export default function SettingsMaximus() {
-  const [isSaving, setIsSaving] = useState(false);
-  const [formData, setFormData] = useState<SettingsData>({
-    autoPlayLastChannel: true,
-    autoRotate: false,
-    currentPlan: 'Premium',
-    imageRatio: '16:9',
-    bufferSize: 'Médio',
-    retryAttempts: 3,
-    language: 'pt-BR',
-    contactEmail: 'support@maximus.com',
-    qualidade: '1080p',
-    legendas: 'Português',
-    audioTrack: 'Português',
-    mostAssistidos: true,
-    recentementeVisto: true,
-    canalAtual: 'SBT',
-  });
+const DEFAULT_SETTINGS: SettingsData = {
+  autoPlayLastChannel: true,
+  autoRotate: false,
+  currentPlan: 'Premium',
+  imageRatio: '16:9',
+  bufferSize: 'Médio',
+  retryAttempts: 3,
+  language: 'pt-BR',
+  contactEmail: 'support@maximus.com',
+  qualidade: '1080p',
+  legendas: 'Português',
+  audioTrack: 'Português',
+  mostAssistidos: true,
+  recentementeVisto: true,
+  canalAtual: 'SBT',
+};
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      // Simular salvamento
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('Configurações salvas com sucesso!');
-    } catch (error) {
-      console.error('Erro ao salvar configurações', error);
-    } finally {
-      setIsSaving(false);
-    }
+export default function SettingsMaximus() {
+  const { data: storedSettings, isLoading } = trpc.maximus.getSettings.useQuery();
+  const save = trpc.maximus.updateSettings.useMutation({
+    onSuccess: () => toast.success('Configurações do Maximus salvas!'),
+    onError: (error) => toast.error(error.message),
+  });
+  const [formData, setFormData] = useState<SettingsData>(DEFAULT_SETTINGS);
+  const [dirty, setDirty] = useState(false);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (initializedRef.current || !storedSettings) return;
+    setFormData({ ...DEFAULT_SETTINGS, ...storedSettings } as SettingsData);
+    initializedRef.current = true;
+  }, [storedSettings]);
+
+  const update = (patch: Partial<SettingsData>) => {
+    setFormData((current) => ({ ...current, ...patch }));
+    setDirty(true);
+  };
+
+  const handleSave = () => {
+    save.mutate(formData, { onSuccess: () => setDirty(false) });
   };
 
   return (
@@ -76,7 +88,7 @@ export default function SettingsMaximus() {
             <Switch
               id="autoPlayLastChannel"
               checked={formData.autoPlayLastChannel}
-              onCheckedChange={(checked) => setFormData({ ...formData, autoPlayLastChannel: checked })}
+              onCheckedChange={(checked) => update({ autoPlayLastChannel: checked })}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -84,12 +96,12 @@ export default function SettingsMaximus() {
             <Switch
               id="autoRotate"
               checked={formData.autoRotate}
-              onCheckedChange={(checked) => setFormData({ ...formData, autoRotate: checked })}
+              onCheckedChange={(checked) => update({ autoRotate: checked })}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="currentPlan">Plano atual</Label>
-            <Select value={formData.currentPlan} onValueChange={(value) => setFormData({ ...formData, currentPlan: value })}>
+            <Select value={formData.currentPlan} onValueChange={(value) => update({ currentPlan: value })}>
               <SelectTrigger id="currentPlan">
                 <SelectValue />
               </SelectTrigger>
@@ -112,7 +124,7 @@ export default function SettingsMaximus() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="qualidade">Qualidade de Vídeo</Label>
-            <Select value={formData.qualidade} onValueChange={(value) => setFormData({ ...formData, qualidade: value })}>
+            <Select value={formData.qualidade} onValueChange={(value) => update({ qualidade: value })}>
               <SelectTrigger id="qualidade">
                 <SelectValue />
               </SelectTrigger>
@@ -126,7 +138,7 @@ export default function SettingsMaximus() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="legendas">Legendas</Label>
-            <Select value={formData.legendas} onValueChange={(value) => setFormData({ ...formData, legendas: value })}>
+            <Select value={formData.legendas} onValueChange={(value) => update({ legendas: value })}>
               <SelectTrigger id="legendas">
                 <SelectValue />
               </SelectTrigger>
@@ -140,7 +152,7 @@ export default function SettingsMaximus() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="audioTrack">Faixa de Áudio</Label>
-            <Select value={formData.audioTrack} onValueChange={(value) => setFormData({ ...formData, audioTrack: value })}>
+            <Select value={formData.audioTrack} onValueChange={(value) => update({ audioTrack: value })}>
               <SelectTrigger id="audioTrack">
                 <SelectValue />
               </SelectTrigger>
@@ -153,7 +165,7 @@ export default function SettingsMaximus() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="imageRatio">Proporção da Imagem Padrão</Label>
-            <Select value={formData.imageRatio} onValueChange={(value) => setFormData({ ...formData, imageRatio: value })}>
+            <Select value={formData.imageRatio} onValueChange={(value) => update({ imageRatio: value })}>
               <SelectTrigger id="imageRatio">
                 <SelectValue />
               </SelectTrigger>
@@ -187,7 +199,7 @@ export default function SettingsMaximus() {
               min="1"
               max="10"
               value={formData.retryAttempts}
-              onChange={(e) => setFormData({ ...formData, retryAttempts: parseInt(e.target.value) })}
+              onChange={(e) => update({ retryAttempts: Math.max(1, Math.min(10, Number(e.target.value) || 1)) })}
             />
           </div>
         </CardContent>
@@ -205,7 +217,7 @@ export default function SettingsMaximus() {
             <Switch
               id="mostAssistidos"
               checked={formData.mostAssistidos}
-              onCheckedChange={(checked) => setFormData({ ...formData, mostAssistidos: checked })}
+              onCheckedChange={(checked) => update({ mostAssistidos: checked })}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -213,7 +225,7 @@ export default function SettingsMaximus() {
             <Switch
               id="recentementeVisto"
               checked={formData.recentementeVisto}
-              onCheckedChange={(checked) => setFormData({ ...formData, recentementeVisto: checked })}
+              onCheckedChange={(checked) => update({ recentementeVisto: checked })}
             />
           </div>
           <div className="space-y-2">
@@ -222,7 +234,7 @@ export default function SettingsMaximus() {
               id="canalAtual"
               type="text"
               value={formData.canalAtual}
-              onChange={(e) => setFormData({ ...formData, canalAtual: e.target.value })}
+              onChange={(e) => update({ canalAtual: e.target.value })}
               placeholder="Ex: SBT"
             />
           </div>
@@ -238,7 +250,7 @@ export default function SettingsMaximus() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="language">Idioma</Label>
-            <Select value={formData.language} onValueChange={(value) => setFormData({ ...formData, language: value })}>
+            <Select value={formData.language} onValueChange={(value) => update({ language: value })}>
               <SelectTrigger id="language">
                 <SelectValue />
               </SelectTrigger>
@@ -255,15 +267,15 @@ export default function SettingsMaximus() {
               id="contactEmail"
               type="email"
               value={formData.contactEmail}
-              onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+              onChange={(e) => update({ contactEmail: e.target.value })}
               placeholder="support@maximus.com"
             />
           </div>
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} disabled={isSaving} className="w-full dark:!text-white dark:!bg-green-600 dark:hover:!bg-green-700">
-        {isSaving ? 'Salvando...' : 'Salvar Tudo'}
+      <Button onClick={handleSave} disabled={isLoading || !dirty || save.isPending} className="w-full dark:!text-white dark:!bg-green-600 dark:hover:!bg-green-700">
+        {save.isPending ? 'Salvando...' : 'Salvar Tudo'}
       </Button>
     </div>
   );

@@ -34,27 +34,38 @@ export default function DNS() {
   const [maintenanceContent, setMaintenanceContent] = useState("");
   const [maintenanceStartsAt, setMaintenanceStartsAt] = useState("");
   const [maintenanceEndsAt, setMaintenanceEndsAt] = useState("");
+  const utils = trpc.useUtils();
 
   const { data: dnsList = [], isLoading, refetch } = trpc.dns.list.useQuery();
   const { data: uniqueUrls = [], refetch: refetchUrls } = trpc.devices.listUniqueUrls.useQuery();
   const { data: serverBlocks = [], refetch: refetchBlocks } = trpc.dns.listServerBlocks.useQuery();
-  const { data: groupHealth = [] } = trpc.dns.groupHealth.useQuery();
+  const { data: groupHealth = [], refetch: refetchGroupHealth } = trpc.dns.groupHealth.useQuery();
   const { data: swapImpact } = trpc.devices.previewBulkSwapDns.useQuery({ oldUrl: oldHost || " " }, { enabled: Boolean(oldHost.trim()) });
+  const refreshDnsData = async () => {
+    await Promise.all([
+      refetch(),
+      refetchUrls(),
+      refetchBlocks(),
+      refetchGroupHealth(),
+      utils.devices.list.invalidate(),
+      utils.devices.stats.invalidate(),
+    ]);
+  };
 
   const createMut = trpc.dns.create.useMutation({
-    onSuccess: () => { toast.success("DNS cadastrada!"); setShowDialog(false); refetch(); },
+    onSuccess: async () => { toast.success("DNS cadastrada!"); setShowDialog(false); setForm(emptyForm); await refreshDnsData(); },
     onError: (e) => toast.error(e.message),
   });
   const updateMut = trpc.dns.update.useMutation({
-    onSuccess: () => { toast.success("DNS atualizada!"); setShowDialog(false); refetch(); },
+    onSuccess: async () => { toast.success("DNS atualizada!"); setShowDialog(false); setForm(emptyForm); await refreshDnsData(); },
     onError: (e) => toast.error(e.message),
   });
   const deleteMut = trpc.dns.delete.useMutation({
-    onSuccess: () => { toast.success("DNS removida!"); setDeleteId(null); refetch(); },
+    onSuccess: async () => { toast.success("DNS removida!"); setDeleteId(null); await refreshDnsData(); },
     onError: (e) => toast.error(e.message),
   });
   const applyGroupMut = trpc.dns.applyGroupToDevices.useMutation({
-    onSuccess: (data) => toast.success(`DNS aplicada a ${data.updated} cliente(s) do grupo.`),
+    onSuccess: async (data) => { toast.success(`DNS aplicada a ${data.updated} cliente(s) do grupo.`); await refreshDnsData(); },
     onError: (e) => toast.error(e.message),
   });
   const maintenanceNoticeMut = trpc.dns.createMaintenanceNotice.useMutation({
@@ -62,18 +73,18 @@ export default function DNS() {
     onError: (e) => toast.error(e.message),
   });
   const serverBlockMut = trpc.dns.setServerBlock.useMutation({
-    onSuccess: () => { toast.success("Status de manutenção do servidor atualizado."); refetchBlocks(); },
+    onSuccess: async () => { toast.success("Status de manutenção do servidor atualizado."); await refreshDnsData(); },
     onError: (e) => toast.error(e.message),
   });
   const swapMut = trpc.devices.bulkSwapDns.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data.count === 0) {
         toast.warning("Nenhum usuário encontrado com essa DNS.");
       } else {
         toast.success(`✅ DNS atualizada em ${data.count} usuário(s) com sucesso!`);
         setOldHost("");
         setNewHost("");
-        refetchUrls();
+        await refreshDnsData();
       }
     },
     onError: (e) => toast.error(e.message),

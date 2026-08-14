@@ -160,17 +160,16 @@ export default function Settings() {
 
   const [form, setForm] = useState<Record<string, string>>(DEFAULT_VALUES);
   const [dirty, setDirty] = useState(false);
+  const settingsInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (settings) {
-      setForm(prev => {
-        const merged = { ...DEFAULT_VALUES, ...prev };
-        for (const [k, v] of Object.entries(settings)) {
-          if (v !== undefined && v !== null) merged[k] = v;
-        }
-        return merged;
-      });
+    if (!settings || settingsInitializedRef.current) return;
+    const merged = { ...DEFAULT_VALUES };
+    for (const [key, value] of Object.entries(settings)) {
+      if (value !== undefined && value !== null) merged[key] = value;
     }
+    setForm(merged);
+    settingsInitializedRef.current = true;
   }, [settings]);
 
   // Aplica cor do texto no painel ao mudar
@@ -220,8 +219,7 @@ export default function Settings() {
   };
 
   const handleSave = () => {
-    updateMany.mutate(form);
-    setDirty(false);
+    updateMany.mutate(form, { onSuccess: () => setDirty(false) });
   };
 
   const handleTestChatbot = async () => {
