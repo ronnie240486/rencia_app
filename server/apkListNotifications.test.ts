@@ -24,10 +24,12 @@ describe("notificações de lista para APK", () => {
       failover_state: "backup_active",
       active_list_name: "Lista 2 · Backup",
       active_list_number: 2,
-      reload_required: true,
+      playlist_sync_required: true,
+      playlist_sync_mode: "background",
+      reload_required: false,
       failover_transition_id: 91,
     });
-    expect(status.reload_message).toContain("Feche e abra o aplicativo");
+    expect(status.playlist_sync_message).toContain("foi mudado automaticamente para Lista 2 · Backup");
   });
 
   it("informa que a Lista 1 foi restaurada após a recuperação", () => {
@@ -42,9 +44,11 @@ describe("notificações de lista para APK", () => {
       failover_state: "primary_restored",
       active_list_name: "Lista 1",
       active_list_number: 1,
-      reload_required: true,
+      playlist_sync_required: true,
+      playlist_sync_mode: "background",
+      reload_required: false,
       failover_transition_id: 92,
     });
-    expect(status.reload_message).toContain("Lista 1 foi restaurada automaticamente");
+    expect(status.playlist_sync_message).toContain("Lista 1 voltou ao normal");
   });
 });

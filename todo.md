@@ -568,3 +568,8 @@
 - [x] Informar na resposta do APK quando uma Lista 2 ou Lista 3 estiver ativa automaticamente
 - [x] Informar na resposta do APK quando a Lista 1 for restaurada automaticamente
 - [x] Instruir o APK a solicitar ao cliente que feche e abra o aplicativo após uma troca de lista
+
+## Troca Silenciosa de Lista nos APKs
+- [x] Sinalizar que o APK deve recarregar automaticamente a lista já escolhida pelo painel
+- [x] Substituir a orientação de fechar o aplicativo por aviso em tela sobre a lista de reserva ativa
+- [x] Informar que a Lista 1 voltará automaticamente após a recuperação do servidor

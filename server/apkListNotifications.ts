@@ -10,8 +10,8 @@ type FailoverList = { id: number; nome: string | null; ordem: number; ativo?: bo
 type FailoverEvent = { id: number; fromDeviceUrlId: number | null; toDeviceUrlId: number | null; createdAt: Date | string } | null;
 
 /**
- * Cria o estado que o APK usa para avisar o cliente da troca automática de lista.
- * O `transition_id` é estável: o APK deve guardá-lo localmente e só mostrar o diálogo uma vez por transição.
+ * Cria o estado que o APK usa para atualizar a lista automaticamente e avisar o cliente.
+ * O `transition_id` é estável: o APK deve guardá-lo localmente e só executar a atualização uma vez por transição.
  */
 export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | null }, extraLists: FailoverList[], latestEvent: FailoverEvent) {
   const activeExtraIndex = device.activeDeviceUrlId
@@ -36,8 +36,11 @@ export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | nul
       failover_state: state,
       active_list_name: activeListName,
       active_list_number: activeListNumber,
-      reload_required: true,
-      reload_message: `${activeListName} foi ativada automaticamente porque a lista anterior apresentou falha técnica confirmada. Feche e abra o aplicativo para carregar a lista de reserva.`,
+      playlist_sync_required: true,
+      playlist_sync_mode: "background",
+      playlist_sync_message: `A Lista 1 apresentou problema e você foi mudado automaticamente para ${activeListName}. Assim que normalizar, sua lista principal voltará automaticamente.`,
+      reload_required: false,
+      reload_message: null,
       failover_transition_id: transitionId,
       changed_at: changedAt,
     };
@@ -49,8 +52,11 @@ export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | nul
       failover_state: state,
       active_list_name: "Lista 1",
       active_list_number: 1,
-      reload_required: true,
-      reload_message: "Lista 1 foi restaurada automaticamente porque voltou a responder ao teste técnico. Feche e abra o aplicativo para voltar à lista principal.",
+      playlist_sync_required: true,
+      playlist_sync_mode: "background",
+      playlist_sync_message: "A Lista 1 voltou ao normal e foi restaurada automaticamente.",
+      reload_required: false,
+      reload_message: null,
       failover_transition_id: transitionId,
       changed_at: changedAt,
     };
@@ -61,6 +67,9 @@ export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | nul
     failover_state: state,
     active_list_name: "Lista 1",
     active_list_number: 1,
+    playlist_sync_required: false,
+    playlist_sync_mode: null,
+    playlist_sync_message: null,
     reload_required: false,
     reload_message: null,
     failover_transition_id: transitionId,

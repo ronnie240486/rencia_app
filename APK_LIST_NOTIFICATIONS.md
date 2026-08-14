@@ -18,8 +18,11 @@ O MAC pode ser enviado com ou sem separadores. A resposta possui o seguinte form
   "failover_state": "backup_active",
   "active_list_name": "Lista 2 · Backup",
   "active_list_number": 2,
-  "reload_required": true,
-  "reload_message": "Lista 2 · Backup foi ativada automaticamente porque a lista anterior apresentou falha técnica confirmada. Feche e abra o aplicativo para carregar a lista de reserva.",
+  "playlist_sync_required": true,
+  "playlist_sync_mode": "background",
+  "playlist_sync_message": "A Lista 1 apresentou problema e você foi mudado automaticamente para Lista 2 · Backup. Assim que normalizar, sua lista principal voltará automaticamente.",
+  "reload_required": false,
+  "reload_message": null,
   "failover_transition_id": 91,
   "changed_at": "2026-08-14T12:00:00.000Z",
   "notifications": [
@@ -38,17 +41,20 @@ O MAC pode ser enviado com ou sem separadores. A resposta possui o seguinte form
 
 | Campo | Regra no APK |
 |---|---|
-| `failover_active: true` | Uma lista de reserva já foi escolhida pelo painel. O APK deve exibir `reload_message` e solicitar que o cliente feche e abra o app. |
-| `failover_state: "backup_active"` | Lista 2 ou Lista 3 está ativa. Ao abrir novamente, o APK deve buscar a configuração principal de listas do painel e iniciar pela lista ativa. |
-| `failover_state: "primary_restored"` | A Lista 1 foi restaurada pelo painel. O APK deve exibir `reload_message`; ao abrir novamente, volta para a Lista 1. |
-| `reload_required: true` | Exibir o aviso uma vez para a transição recebida. Não tentar trocar URL localmente antes de o app reiniciar. |
-| `failover_transition_id` | Salvar este número no armazenamento local. Só mostrar `reload_message` se o número for diferente do último já apresentado. |
-| `status: "failure"` | Exibir o aviso técnico. Caso `failover_active` seja `true`, usar preferencialmente `reload_message`, que confirma a lista de reserva ativa. |
-| `status: "recovered"` | Exibir opcionalmente a recuperação. Quando `failover_state` for `primary_restored`, usar `reload_message`. |
+| `failover_active: true` | Uma lista de reserva já foi escolhida pelo painel. O APK deve atualizar a playlist ativa sem fechar o aplicativo e exibir `playlist_sync_message`. |
+| `failover_state: "backup_active"` | Lista 2 ou Lista 3 está ativa. O APK deve buscar imediatamente sua configuração normal de playlists, aplicar a lista priorizada e continuar a reprodução. |
+| `failover_state: "primary_restored"` | A Lista 1 foi restaurada pelo painel. O APK deve buscar a configuração normal de playlists, reaplicar a Lista 1 e mostrar a mensagem informativa. |
+| `playlist_sync_required: true` | O APK deve executar a atualização automática da playlist em memória, sem sair e sem exigir ação do cliente. |
+| `playlist_sync_mode: "background"` | Fazer a troca sem abrir outra tela ou encerrar o app. Pode manter o último conteúdo visível enquanto recarrega. |
+| `playlist_sync_message` | Exibir em banner, toast ou diálogo não bloqueante depois de concluir a atualização automática. |
+| `failover_transition_id` | Salvar este número no armazenamento local. Só executar a troca e mostrar a mensagem se o número for diferente do último já processado. |
+| `reload_required` | Mantido por compatibilidade e permanece `false`; o APK não deve pedir para fechar ou reiniciar. |
+| `status: "failure"` | Exibir o aviso técnico complementar. Caso `failover_active` seja `true`, usar preferencialmente `playlist_sync_message`. |
+| `status: "recovered"` | Exibir opcionalmente a recuperação. Quando `failover_state` for `primary_restored`, usar `playlist_sync_message`. |
 | `acknowledged: false` | O aplicativo pode mostrar a mensagem uma vez e, em seguida, confirmar a leitura. |
 | `message` | Usar como texto técnico complementar. Não montar mensagem com dados de outras contas. |
 
-O aplicativo deve consultar a rota no início e depois junto do heartbeat, a cada **60 segundos**. A falha da consulta não pode interromper a reprodução nem apagar a última lista válida. O diálogo de reinício deve usar `failover_transition_id` para não reaparecer a cada minuto.
+O aplicativo deve consultar a rota no início e depois junto do heartbeat, a cada **60 segundos**. A falha da consulta não pode interromper a reprodução nem apagar a última lista válida. A atualização automática deve usar `failover_transition_id` para não reaparecer a cada minuto.
 
 ## Confirmar a exibição do aviso
 
@@ -68,4 +74,4 @@ Essa confirmação é **por aparelho** e não altera a Central de Alertas do pai
 
 ## Regras obrigatórias
 
-O APK não deve consultar alertas de outro MAC, usar rotas do OuroPro para o Ultra Player ou considerar um timeout isolado como falha de lista. Deve usar HTTPS e não deve decidir a troca por conta própria: o painel é a fonte de verdade para a lista ativa. Quando houver uma nova `failover_transition_id` com `reload_required: true`, o APK só mostra o aviso; após o cliente fechar e abrir, ele consulta novamente a configuração do dispositivo e carrega a lista já priorizada pelo painel. A confirmação deve ser enviada somente para IDs de alertas recebidos na rota acima.
+O APK não deve consultar alertas de outro MAC, usar rotas do OuroPro para o Ultra Player ou considerar um timeout isolado como falha de lista. Deve usar HTTPS e não deve decidir a troca por conta própria: o painel é a fonte de verdade para a lista ativa. Quando houver uma nova `failover_transition_id` com `playlist_sync_required: true`, o APK deve consultar novamente sua rota normal de configuração de playlists, substituir a lista carregada em memória pela lista priorizada e continuar sem encerrar o aplicativo. Depois, deve mostrar `playlist_sync_message` como aviso não bloqueante. A confirmação deve ser enviada somente para IDs de alertas recebidos na rota acima.
