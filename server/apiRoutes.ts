@@ -34,7 +34,6 @@ import { acknowledgeRemoteCommand, claimRemoteCommandForMac } from "./remoteComm
 import { buildPublicDownloadApps } from "./publicDownloads";
 import { acknowledgeListNotificationForMac, getListNotificationsForMac } from "./apkListNotifications";
 import { resolveOptionalImagesInParallel } from "./parallelImageResolution";
-import { prioritizeOuroProPlaylists } from "./ouroproPlaylistOrder";
 import { orderDeviceUrlsForActive } from "./devicePlaylistOrder";
 import { getNextPlaybackFailoverCandidate } from "./playbackFailover";
 
@@ -755,7 +754,6 @@ export function registerApiRoutes(app: Express) {
       // Montar lista de URLs para o APK
       // IMPORTANTE: o campo 'id' deve ser != '0' para o APK liberar a lista
       const urls: Array<{ id: string; url: string; name: string; type: string; is_protected: string; username?: string; password?: string }> = [];
-
       if (device.urlM3u8 && isAllowed && !device.activeDeviceUrlId) {
         urls.push({
           id: String(device.id),
@@ -766,27 +764,41 @@ export function registerApiRoutes(app: Express) {
         });
       }
 
-      // Todas as listas cadastradas permanecem disponíveis no OuroPro. Durante um
-      // failover, a reserva ativa vem primeiro, sem ocultar as demais listas do cliente.
+      // Buscar listas extras cadastradas no painel (device_urls)
       if (isAllowed) {
         try {
           const extraUrls = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
           const activeExtra = device.activeDeviceUrlId ? extraUrls.find((item) => item.id === device.activeDeviceUrlId) : undefined;
-          const orderedExtraUrls = prioritizeOuroProPlaylists(extraUrls, device.activeDeviceUrlId);
+          const orderedExtraUrls = activeExtra ? [activeExtra, ...extraUrls.filter((item) => item.id !== activeExtra.id)] : extraUrls;
           for (const eu of orderedExtraUrls) {
             if (eu.modoSelecao === "XTeamCode") {
               let xtreamUrl = (eu.xtServer || "").trim();
               if (!xtreamUrl && eu.urlM3u8) xtreamUrl = eu.urlM3u8;
-              if (xtreamUrl && !xtreamUrl.endsWith('/player_api.php') && !xtreamUrl.includes('get.php')) {
-                xtreamUrl = xtreamUrl.replace(/\/+$/, "") + "/player_api.php";
+
+              if (xtreamUrl) {
+                if (!xtreamUrl.endsWith('/player_api.php') && !xtreamUrl.includes('get.php')) {
+                  xtreamUrl = xtreamUrl.replace(/\/+$/, "") + "/player_api.php";
+                }
+                if (eu.xtUsername && eu.xtPassword) {
+                  const separator = xtreamUrl.includes('?') ? '&' : '?';
+                  xtreamUrl += `${separator}username=${encodeURIComponent(eu.xtUsername)}&password=${encodeURIComponent(eu.xtPassword)}`;
+                }
+                urls.push({
+                  id: String(eu.id),
+                  url: xtreamUrl,
+                  name: eu.nome || `Lista ${urls.length + 1}`,
+                  type: "xtream",
+                  is_protected: "1",
+                });
               }
-              if (xtreamUrl && eu.xtUsername && eu.xtPassword) {
-                const separator = xtreamUrl.includes('?') ? '&' : '?';
-                xtreamUrl += `${separator}username=${encodeURIComponent(eu.xtUsername)}&password=${encodeURIComponent(eu.xtPassword)}`;
-              }
-              if (xtreamUrl) urls.push({ id: String(eu.id), url: xtreamUrl, name: eu.nome || `Lista ${urls.length + 1}`, type: "xtream", is_protected: "1" });
             } else if (eu.modoSelecao === "M3U8" && eu.urlM3u8) {
-              urls.push({ id: String(eu.id), url: eu.urlM3u8, name: eu.nome || `Lista ${urls.length + 1}`, type: "m3u_plus", is_protected: "1" });
+              urls.push({
+                id: String(eu.id),
+                url: eu.urlM3u8,
+                name: eu.nome || `Lista ${urls.length + 1}`,
+                type: "m3u_plus",
+                is_protected: "1",
+              });
             }
           }
           if (device.urlM3u8 && activeExtra) {
