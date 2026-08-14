@@ -563,3 +563,8 @@
 - [x] Preparar a instrução de integração para OuroPro, Ultra Player e Maximus receberem avisos de falha confirmada de lista
 - [x] Criar endpoint por MAC para os aplicativos consultarem falhas confirmadas de listas
 - [x] Permitir que o aplicativo confirme a leitura de um aviso de falha de lista
+
+## Comunicação de Failover para os APKs
+- [x] Informar na resposta do APK quando uma Lista 2 ou Lista 3 estiver ativa automaticamente
+- [x] Informar na resposta do APK quando a Lista 1 for restaurada automaticamente
+- [x] Instruir o APK a solicitar ao cliente que feche e abra o aplicativo após uma troca de lista

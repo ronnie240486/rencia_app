@@ -1,9 +1,72 @@
-import { and, desc, eq, like, or } from "drizzle-orm";
-import { deviceListNotificationReceipts, devices, internalAlerts } from "../drizzle/schema";
+import { and, asc, desc, eq, like, or } from "drizzle-orm";
+import { deviceListNotificationReceipts, devices, deviceUrls, internalAlerts, listFailoverEvents } from "../drizzle/schema";
 import { LIST_FAILURE_ALERT_PREFIX, LIST_RECOVERY_ALERT_PREFIX } from "./listFailureAlerts";
 import { normalizeMacAddress } from "./ultraPlayerConfig";
 
 export type ApkListNotificationStatus = "failure" | "recovered";
+export type ApkFailoverState = "primary" | "backup_active" | "primary_restored";
+
+type FailoverList = { id: number; nome: string | null; ordem: number; ativo?: boolean };
+type FailoverEvent = { id: number; fromDeviceUrlId: number | null; toDeviceUrlId: number | null; createdAt: Date | string } | null;
+
+/**
+ * Cria o estado que o APK usa para avisar o cliente da troca automática de lista.
+ * O `transition_id` é estável: o APK deve guardá-lo localmente e só mostrar o diálogo uma vez por transição.
+ */
+export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | null }, extraLists: FailoverList[], latestEvent: FailoverEvent) {
+  const activeExtraIndex = device.activeDeviceUrlId
+    ? extraLists.findIndex((list) => list.id === device.activeDeviceUrlId)
+    : -1;
+  const activeExtra = activeExtraIndex >= 0 ? extraLists[activeExtraIndex] : null;
+  const activeListNumber = activeExtra ? activeExtraIndex + 2 : 1;
+  const activeListName = activeExtra?.nome?.trim() || `Lista ${activeListNumber}`;
+  const primaryWasRestored = !activeExtra
+    && Boolean(latestEvent && latestEvent.fromDeviceUrlId !== null && latestEvent.toDeviceUrlId === null);
+  const state: ApkFailoverState = activeExtra
+    ? "backup_active"
+    : primaryWasRestored ? "primary_restored" : "primary";
+  const transitionId = latestEvent?.id ?? null;
+  const changedAt = latestEvent
+    ? (latestEvent.createdAt instanceof Date ? latestEvent.createdAt.toISOString() : String(latestEvent.createdAt))
+    : null;
+
+  if (state === "backup_active") {
+    return {
+      failover_active: true,
+      failover_state: state,
+      active_list_name: activeListName,
+      active_list_number: activeListNumber,
+      reload_required: true,
+      reload_message: `${activeListName} foi ativada automaticamente porque a lista anterior apresentou falha técnica confirmada. Feche e abra o aplicativo para carregar a lista de reserva.`,
+      failover_transition_id: transitionId,
+      changed_at: changedAt,
+    };
+  }
+
+  if (state === "primary_restored") {
+    return {
+      failover_active: false,
+      failover_state: state,
+      active_list_name: "Lista 1",
+      active_list_number: 1,
+      reload_required: true,
+      reload_message: "Lista 1 foi restaurada automaticamente porque voltou a responder ao teste técnico. Feche e abra o aplicativo para voltar à lista principal.",
+      failover_transition_id: transitionId,
+      changed_at: changedAt,
+    };
+  }
+
+  return {
+    failover_active: false,
+    failover_state: state,
+    active_list_name: "Lista 1",
+    active_list_number: 1,
+    reload_required: false,
+    reload_message: null,
+    failover_transition_id: transitionId,
+    changed_at: changedAt,
+  };
+}
 
 export function isDeviceListNotificationTitle(title: string, deviceId: number) {
   return title.startsWith(LIST_FAILURE_ALERT_PREFIX) || title.startsWith(LIST_RECOVERY_ALERT_PREFIX)
@@ -51,11 +114,19 @@ export async function getListNotificationsForMac(db: any, macInput: string) {
   const receipts = ownAlerts.length === 0 ? [] : await db.select().from(deviceListNotificationReceipts)
     .where(eq(deviceListNotificationReceipts.deviceId, device.id));
   const acknowledgedAlertIds = new Set<number>(receipts.map((receipt: any) => Number(receipt.alertId)));
+  const extraLists = await db.select().from(deviceUrls)
+    .where(and(eq(deviceUrls.deviceId, device.id), eq(deviceUrls.ativo, true)))
+    .orderBy(asc(deviceUrls.ordem), asc(deviceUrls.id));
+  const latestFailoverEvent = (await db.select().from(listFailoverEvents)
+    .where(and(eq(listFailoverEvents.ownerId, device.ownerId), eq(listFailoverEvents.deviceId, device.id)))
+    .orderBy(desc(listFailoverEvents.createdAt), desc(listFailoverEvents.id))
+    .limit(1))[0] ?? null;
 
   return {
     registered: true,
     device,
     notifications: ownAlerts.map((alert: any) => mapNotification(alert, acknowledgedAlertIds)),
+    failover: buildApkFailoverStatus(device, extraLists, latestFailoverEvent),
   };
 }
 

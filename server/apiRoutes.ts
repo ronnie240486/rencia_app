@@ -3885,7 +3885,12 @@ export function registerApiRoutes(app: Express) {
       const result = await getListNotificationsForMac(db, mac);
       if (!result.registered) { res.status(404).json({ success: false, error: 'MAC não cadastrado', notifications: [] }); return; }
       res.setHeader('Cache-Control', 'no-store');
-      res.json({ success: true, mac: result.device.mac, notifications: result.notifications });
+      res.json({
+        success: true,
+        mac: result.device.mac,
+        notifications: result.notifications,
+        ...result.failover,
+      });
     } catch (error) {
       console.error('[API] /api/v5/list-notifications error:', error);
       res.status(500).json({ success: false, error: 'Não foi possível consultar avisos de lista', notifications: [] });
