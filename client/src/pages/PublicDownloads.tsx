@@ -17,6 +17,12 @@ const ACCENT: Record<DownloadApp["accent"], string> = {
   sky: "from-sky-400 to-blue-600",
 };
 
+const SHORT_DOWNLOAD_SLUGS: Record<string, DownloadApp["slug"]> = {
+  "/o": "ouropro",
+  "/u": "ultra",
+  "/m": "maximus",
+};
+
 function AppLogo({ app }: { app: DownloadApp }) {
   const [failed, setFailed] = useState(!app.logoUrl);
   return <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/10 text-xl font-black text-white">
@@ -28,7 +34,7 @@ export default function PublicDownloads() {
   const [location] = useLocation();
   const [apps, setApps] = useState<DownloadApp[]>([]);
   const [loading, setLoading] = useState(true);
-  const slug = useMemo(() => location.split("/")[2] || "", [location]);
+  const slug = useMemo(() => SHORT_DOWNLOAD_SLUGS[location] || location.split("/")[2] || "", [location]);
 
   useEffect(() => {
     let active = true;

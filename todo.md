@@ -541,6 +541,7 @@
 - [x] Propor e aprovar uma página pública de downloads para clientes baixarem OuroPro, Ultra Player e Maximus sem acesso ao painel
 - [x] Criar página pública /baixar e links diretos /baixar/ouropro, /baixar/ultra e /baixar/maximus
 - [x] Permitir configurar, na Loja privada, os links, versão e disponibilidade dos aplicativos públicos
+- [x] Criar URLs curtas e fáceis de compartilhar para cada download público
 
 ## Correções do Monitor e Alertas
 - [x] Evitar falso alerta de lista indisponível quando o servidor responder HTTP 403, mas a lista estiver reproduzindo normalmente

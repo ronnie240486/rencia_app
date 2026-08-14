@@ -53,6 +53,10 @@ import PublicDownloads from "./pages/PublicDownloads";
 function Router() {
   return (
     <Switch>
+      <Route path="/d" component={PublicDownloads} />
+      <Route path="/o" component={PublicDownloads} />
+      <Route path="/u" component={PublicDownloads} />
+      <Route path="/m" component={PublicDownloads} />
       <Route path="/baixar/:app" component={PublicDownloads} />
       <Route path="/baixar" component={PublicDownloads} />
       <Route path={"/"} component={Login} />
@@ -108,7 +112,7 @@ function Router() {
 
 function App() {
   const [location] = useLocation();
-  const isPublicDownload = location === "/baixar" || location.startsWith("/baixar/");
+  const isPublicDownload = ["/d", "/o", "/u", "/m"].includes(location) || location === "/baixar" || location.startsWith("/baixar/");
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light" switchable={true}>

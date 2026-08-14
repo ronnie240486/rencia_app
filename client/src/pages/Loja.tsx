@@ -12,6 +12,12 @@ import { trpc } from "@/lib/trpc";
 
 type PublicSlug = "ouropro" | "ultra" | "maximus";
 
+const PUBLIC_SHORT_PATHS: Record<PublicSlug, string> = {
+  ouropro: "/o",
+  ultra: "/u",
+  maximus: "/m",
+};
+
 interface AppConfig {
   name: string;
   logo: string;
@@ -47,7 +53,7 @@ function AppCard({ app }: { app: AppConfig }) {
     },
     onError: () => toast.error("Não foi possível salvar as configurações."),
   });
-  const publicBaseUrl = typeof window === "undefined" ? "" : `${window.location.origin}/baixar/${app.publicSlug}`;
+  const publicBaseUrl = typeof window === "undefined" ? "" : `${window.location.origin}${PUBLIC_SHORT_PATHS[app.publicSlug]}`;
   const downloadUrl = settings?.[`public_${app.publicSlug}_download_url`] || fallbackDownload(settings, app.publicSlug);
   const version = settings?.[`public_${app.publicSlug}_version`] || fallbackVersion(settings, app.publicSlug) || "Versão atual";
   const active = settings?.[`public_${app.publicSlug}_active`] !== "false";
@@ -109,7 +115,7 @@ function AppCard({ app }: { app: AppConfig }) {
         <div className="flex items-center justify-between rounded-xl border p-3"><div><p className="font-medium">Disponível na loja pública</p><p className="text-xs text-muted-foreground">Quando desligado, o aplicativo não aparece para clientes.</p></div><Switch checked={editActive} onCheckedChange={setEditActive} /></div>
         <div className="flex gap-2"><Button onClick={save} disabled={updateMany.isPending} className={`flex-1 gap-2 text-white ${buttonClasses[app.color]}`}><Save size={16} />{updateMany.isPending ? "Salvando..." : "Salvar"}</Button><Button variant="outline" onClick={() => setEditMode(false)}>Cancelar</Button></div>
       </> : <>
-        <div className="space-y-2"><Label className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider"><Link2 size={12} /> Link para enviar ao cliente</Label><div className="flex gap-2"><div className="flex-1 rounded-lg border bg-white/70 px-3 py-2 dark:bg-black/20"><p className="break-all text-xs font-mono font-bold">{publicBaseUrl}</p></div><Button size="sm" variant="outline" onClick={copyPublicUrl}>{copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}</Button></div></div>
+        <div className="space-y-2"><Label className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider"><Link2 size={12} /> Link curto para enviar ao cliente</Label><div className="flex gap-2"><div className="flex-1 rounded-lg border bg-white/70 px-3 py-2 dark:bg-black/20"><p className="break-all text-xs font-mono font-bold">{publicBaseUrl}</p></div><Button size="sm" variant="outline" onClick={copyPublicUrl}>{copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}</Button></div></div>
         <div className="space-y-2"><Label className="text-xs font-semibold uppercase tracking-wider">Destino atual do download</Label><p className="break-all rounded-lg border bg-white/70 px-3 py-2 text-xs font-mono dark:bg-black/20">{downloadUrl || "Defina o link do APK em Editar"}</p></div>
         <div className="flex gap-2"><a href={publicBaseUrl} target="_blank" rel="noopener noreferrer" className="flex-1"><Button variant="outline" className="w-full gap-2"><ExternalLink size={16} /> Ver página pública</Button></a>{downloadUrl && <a href={downloadUrl} target="_blank" rel="noopener noreferrer"><Button className={`gap-2 text-white ${buttonClasses[app.color]}`}><Download size={16} /> Baixar</Button></a>}</div>
       </>}
