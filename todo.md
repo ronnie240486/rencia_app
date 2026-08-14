@@ -614,3 +614,9 @@
 - [x] Medir o tempo das rotas usadas para carregar cards, configurações e playlists no aplicativo
 - [x] Identificar se algum endpoint do painel está atrasando a abertura do aplicativo
 - [x] Corrigir gargalos encontrados e validar o carregamento após a melhoria
+
+## Conteúdo do OuroPro
+- [x] Investigar e remover séries duplicadas na resposta consumida pelo OuroPro
+- [ ] Medir e otimizar o carregamento de EPG dos canais na TV Box
+- [ ] Medir e otimizar o carregamento de sinopses de filmes e séries
+- [x] Entregar ao OuroPro apenas a playlist ativa do cliente para não misturar lista principal e reservas
