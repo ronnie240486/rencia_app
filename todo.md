@@ -504,6 +504,8 @@
 - [x] Corrigir o envio de imagens do Ultra Player, que atualmente exibe a mensagem de falha no upload
 - [x] Adicionar uploads de ícones personalizáveis para Canais, Filmes e Séries no Ultra Player
 - [x] Corrigir a aplicação da imagem de fundo configurada pelo painel no APK Ultra Player
+- [x] Confirmar o isolamento das rotas e imagens do Ultra Player em relação ao OuroPro
+- [ ] Corrigir a rota GET /api/v5/ultra-config que retorna HTTP 500 para o APK
 
 ## Entrega ao desenvolvedor do APK
 - [x] Preparar texto de integração da rota Ultra Player e dos ícones dinâmicos de Canais, Filmes e Séries

@@ -26,5 +26,8 @@ describe("configuração pública do Ultra Player", () => {
     expect(config.logo_url).toBe("https://cdn.exemplo.com/logo.png");
     expect(config.background_url).toBe("https://cdn.exemplo.com/fundo-atual.jpg");
     expect(config.icons.movies).toBe("https://cdn.exemplo.com/filmes.png");
+    expect(config.ultra_background_url).toBe("https://cdn.exemplo.com/fundo-atual.jpg");
+    expect(config.ultra_logo_url).toBe("https://cdn.exemplo.com/logo.png");
+    expect(config.ultra_icon_movies_url).toBe("https://cdn.exemplo.com/filmes.png");
   });
 });

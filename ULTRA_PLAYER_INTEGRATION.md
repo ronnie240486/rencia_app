@@ -27,9 +27,11 @@ O APK deve buscar sua aparência e seus textos pela rota `GET /api/v5/ultra-conf
 
 | Campo retornado | Uso no APK |
 |---|---|
-| `app_name` | Nome exibido do aplicativo. |
-| `logo_url`, `banner_url`, `background_url` | Logo, banner e imagem de fundo configurados no painel. |
-| `message_title`, `message_text`, `message_image_url` | Conteúdo do aviso configurável. |
+| `app_name` ou `ultra_app_name` | Nome exibido do aplicativo. |
+| `logo_url` ou `ultra_logo_url` | Logo configurado no painel. |
+| `banner_url` ou `ultra_banner_url` | Banner configurado no painel. |
+| `background_url` ou `ultra_background_url` | Imagem de fundo configurada no painel. |
+| `message_title`, `message_text`, `message_image_url` e aliases `ultra_*` | Conteúdo do aviso configurável. |
 | `impact_phrase` | Frase de destaque da tela inicial. |
 | `server_api_url` | API externa definida no campo **API do Servidor**. |
 | `apk_download_url`, `apk_version` | Link e versão da atualização configurada. |
