@@ -609,3 +609,8 @@
 - [x] Atualizar o cache e as listas visíveis logo após cada salvamento
 - [x] Testar alterações de usuário, lista, DNS e configurações na primeira tentativa
 - [x] Substituir o salvamento simulado do Maximus por gravação real no painel
+
+## Desempenho de Carregamento do APK
+- [x] Medir o tempo das rotas usadas para carregar cards, configurações e playlists no aplicativo
+- [x] Identificar se algum endpoint do painel está atrasando a abertura do aplicativo
+- [x] Corrigir gargalos encontrados e validar o carregamento após a melhoria

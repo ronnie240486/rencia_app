@@ -33,6 +33,7 @@ import { normalizeHeartbeatContent } from "./heartbeatContent";
 import { acknowledgeRemoteCommand, claimRemoteCommandForMac } from "./remoteCommands";
 import { buildPublicDownloadApps } from "./publicDownloads";
 import { acknowledgeListNotificationForMac, getListNotificationsForMac } from "./apkListNotifications";
+import { resolveOptionalImagesInParallel } from "./parallelImageResolution";
 import { orderDeviceUrlsForActive } from "./devicePlaylistOrder";
 import { getNextPlaybackFailoverCandidate } from "./playbackFailover";
 
@@ -1970,12 +1971,13 @@ export function registerApiRoutes(app: Express) {
         device.status = "Expirado";
       }
 
-      // Atualizar lastSeen
-      await db.update(devices).set({ lastSeen: now }).where(eq(devices.id, device.id));
+      // Atualizar lastSeen em paralelo com as leituras necessárias para responder ao APK.
+      const lastSeenUpdate = db.update(devices).set({ lastSeen: now }).where(eq(devices.id, device.id));
 
       const isAllowed = device.status === "Liberado";
 
       if (!isAllowed) {
+        await lastSeenUpdate;
         res.json({
           success: false,
           error: "Device blocked",
@@ -1987,10 +1989,14 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
-      // Buscar deviceUrls
-      const deviceUrlsList = await db.select().from(deviceUrls)
-        .where(eq(deviceUrls.deviceId, device.id))
-        .orderBy(deviceUrls.ordem);
+      // Buscar playlists, configurações e registrar atividade ao mesmo tempo.
+      const [deviceUrlsList, cfg] = await Promise.all([
+        db.select().from(deviceUrls)
+          .where(eq(deviceUrls.deviceId, device.id))
+          .orderBy(deviceUrls.ordem),
+        getSettings(),
+        lastSeenUpdate,
+      ]).then(([urls, appSettings]) => [urls, appSettings] as const);
 
       const activeExtra = device.activeDeviceUrlId ? deviceUrlsList.find((item) => item.id === device.activeDeviceUrlId) : undefined;
       const orderedDeviceUrls = orderDeviceUrlsForActive(deviceUrlsList, device.activeDeviceUrlId);
@@ -2067,8 +2073,6 @@ export function registerApiRoutes(app: Express) {
         expireDate = oneYear.toISOString().split("T")[0];
       }
 
-      const cfg = await getSettings();
-
       // Usar chaves gpcpro_ com fallback para OuroPro
       const gpcLogo = (cfg.gpcpro_logo_url || cfg.trial_logo_url || "").trim();
       const gpcBanner = (cfg.gpcpro_banner_url || cfg.trial_banner_url || "").trim();
@@ -2082,9 +2086,10 @@ export function registerApiRoutes(app: Express) {
       const gpcApkLink = (cfg.gpcpro_apk_download_url || cfg.apk_download_url || "").trim();
 
       // Resolver URLs de imagens
-      const resolvedLogo = gpcLogo ? await resolvePublicImageUrl(gpcLogo) : "";
-      const resolvedBanner = gpcBanner ? await resolvePublicImageUrl(gpcBanner) : "";
-      const resolvedBg = gpcBg ? await resolvePublicImageUrl(gpcBg) : "";
+      const [resolvedLogo, resolvedBanner, resolvedBg] = await resolveOptionalImagesInParallel(
+        [gpcLogo, gpcBanner, gpcBg],
+        resolvePublicImageUrl,
+      );
 
       res.json({
         success: true,
