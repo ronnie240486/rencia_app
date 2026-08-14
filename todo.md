@@ -584,3 +584,10 @@
 - [x] Expor a data de vencimento cadastrada no painel para o APK do cliente
 - [x] Informar se o vencimento está próximo, vence hoje ou já venceu
 - [x] Preparar texto de modal simples para renovação sem referências internas ao painel
+
+## Correção de Acionamento do Failover
+- [x] Investigar a Lista 1 que parou sem ativar a Lista 2 nem mostrar aviso no APK
+- [x] Corrigir a condição que impede a troca automática quando houver Lista 2 válida
+- [ ] Confirmar que o APK recebe o sinal de troca após o failover confirmado
+- [ ] Corrigir o caso de Ronnie celular, cuja Lista 1 parou sem trocar para a Lista 2 nem avisar o aplicativo
+- [x] Impedir que uma resposta HTTP 403 protegida restaure a Lista 1 sem confirmação real de funcionamento

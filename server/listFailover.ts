@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { desc } from "drizzle-orm";
 import { devices, deviceUrls, listFailoverEvents, listFailoverSettings, listHealthChecks, serverMaintenanceBlocks } from "../drizzle/schema";
-import { hasConfirmedListFailure, probeListUrl } from "./listHealth";
+import { hasConfirmedListFailure, isConfirmedListResponse, probeListUrl } from "./listHealth";
 import { syncConfirmedListFailureAlert } from "./listFailureAlerts";
 
 export const LIST_FAILOVER_CRON = "0 */10 * * * *";
@@ -28,6 +28,9 @@ async function hasConfirmedFailoverFailure(db: any, ownerId: number, deviceId: n
 
 async function recordAutomaticListHealthCheck(db: any, ownerId: number, device: any, candidate: Candidate, result: any) {
   await db.insert(listHealthChecks).values({ ownerId, deviceId: device.id, deviceUrlId: candidate.id, urlSnapshot: candidate.url, status: result.status, statusCode: result.statusCode, responseTimeMs: result.responseTimeMs, message: result.message });
+  // HTTP 401/403 significa apenas que o servidor protegeu a requisição automática.
+  // Não deve fechar uma falha confirmada nem gerar recuperação no painel.
+  if (result.status === "success" && !result.responseConfirmed) return;
   await syncConfirmedListFailureAlert(db, ownerId, { deviceId: device.id, deviceUrlId: candidate.id, deviceName: device.nomeServer, listName: candidate.name, url: candidate.url, status: result.status, message: result.message });
 }
 
@@ -58,7 +61,8 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
       const primaryResult = await probeListUrl(primary.url);
       checked += 1;
       await recordAutomaticListHealthCheck(db, ownerId, device, primary, primaryResult);
-      if (primaryResult.status === "success") {
+      // A Lista 1 só volta quando uma resposta 2xx/3xx confirma que ela realmente voltou.
+      if (isConfirmedListResponse(primaryResult)) {
         await db.update(devices).set({ activeDeviceUrlId: primary.id }).where(eq(devices.id, device.id));
         await db.insert(listFailoverEvents).values({ ownerId, deviceId: device.id, fromDeviceUrlId: current.id, toDeviceUrlId: primary.id, reason: "Lista 1 recuperada e confirmada no monitoramento automático." });
         switched += 1;

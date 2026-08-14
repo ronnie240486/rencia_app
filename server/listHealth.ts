@@ -5,6 +5,8 @@ export type ListHealthResult = {
   statusCode: number | null;
   responseTimeMs: number | null;
   message: string;
+  /** HTTP 2xx/3xx confirma disponibilidade; 401/403 apenas prova que o host respondeu. */
+  responseConfirmed: boolean;
 };
 
 /**
@@ -13,14 +15,19 @@ export type ListHealthResult = {
  * portanto não deve iniciar failover nem gerar alerta de lista fora.
  */
 export function classifyListHttpStatus(statusCode: number, responseTimeMs: number): ListHealthResult {
-  if (statusCode >= 200 && statusCode < 400) return { status: "success", statusCode, responseTimeMs, message: "Lista disponível" };
-  if (statusCode === 401 || statusCode === 403) return { status: "success", statusCode, responseTimeMs, message: `Servidor protegido (HTTP ${statusCode}); não é falha de lista` };
-  return { status: "error", statusCode, responseTimeMs, message: `Servidor respondeu HTTP ${statusCode}` };
+  if (statusCode >= 200 && statusCode < 400) return { status: "success", statusCode, responseTimeMs, message: "Lista disponível", responseConfirmed: true };
+  if (statusCode === 401 || statusCode === 403) return { status: "success", statusCode, responseTimeMs, message: `Servidor protegido (HTTP ${statusCode}); não é falha de lista`, responseConfirmed: false };
+  return { status: "error", statusCode, responseTimeMs, message: `Servidor respondeu HTTP ${statusCode}`, responseConfirmed: false };
 }
 
 /** Um timeout sozinho não prova que a lista caiu; ele permanece em observação. */
 export function classifyListTimeout(responseTimeMs: number): ListHealthResult {
-  return { status: "pending", statusCode: null, responseTimeMs, message: "Servidor demorou para responder; mantendo em observação" };
+  return { status: "pending", statusCode: null, responseTimeMs, message: "Servidor demorou para responder; mantendo em observação", responseConfirmed: false };
+}
+
+/** Uma resposta protegida não é falha, mas também não basta para restaurar a Lista 1. */
+export function isConfirmedListResponse(result: ListHealthResult) {
+  return result.status === "success" && result.responseConfirmed;
 }
 
 /** Uma resposta isolada não deve assustar o operador nem acionar a troca de lista. */
@@ -86,7 +93,7 @@ async function retryWithPartialGet(url: string, startedAt: number): Promise<List
 
 export async function probeListUrl(value: string): Promise<ListHealthResult> {
   const validated = await validateListUrl(value);
-  if (!validated.valid) return { status: "error", statusCode: null, responseTimeMs: null, message: validated.message };
+  if (!validated.valid) return { status: "error", statusCode: null, responseTimeMs: null, message: validated.message, responseConfirmed: false };
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 7_000);
@@ -114,7 +121,7 @@ export async function probeListUrl(value: string): Promise<ListHealthResult> {
       const retry = await retryWithPartialGet(validated.url, startedAt);
       return retry ?? classifyListTimeout(Date.now() - startedAt);
     }
-    return { status: "error", statusCode: null, responseTimeMs, message: "Não foi possível conectar ao servidor" };
+    return { status: "error", statusCode: null, responseTimeMs, message: "Não foi possível conectar ao servidor", responseConfirmed: false };
   } finally {
     clearTimeout(timeout);
   }
