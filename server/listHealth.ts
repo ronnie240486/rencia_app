@@ -18,6 +18,11 @@ export function classifyListHttpStatus(statusCode: number, responseTimeMs: numbe
   return { status: "error", statusCode, responseTimeMs, message: `Servidor respondeu HTTP ${statusCode}` };
 }
 
+/** Uma resposta isolada não deve assustar o operador nem acionar a troca de lista. */
+export function hasConfirmedListFailure(recentChecks: Array<{ status: string }>) {
+  return recentChecks.length >= 2 && recentChecks[0]?.status === "error" && recentChecks[1]?.status === "error";
+}
+
 function isPrivateIpv4(address: string) {
   const parts = address.split(".").map(Number);
   if (parts.length !== 4 || parts.some(Number.isNaN)) return false;

@@ -27,7 +27,7 @@ import { buildRenewalAgenda } from "./renewalAgenda";
 import { buildMaintenanceOverview } from "./maintenanceCenter";
 import { buildApkUpdateOverview } from "./apkUpdates";
 import { getConnectionState } from "./customerProfile";
-import { probeListUrl } from "./listHealth";
+import { hasConfirmedListFailure, probeListUrl } from "./listHealth";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 import { autoBackupSettings, backupSnapshots, historyRetentionSettings } from "../drizzle/schema";
 import { createBackupSnapshot, restoreBackupSnapshot, AUTO_BACKUP_CRON } from "./backupService";
@@ -1350,11 +1350,23 @@ export const appRouter = router({
         db.select().from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id)).orderBy(desc(listHealthChecks.checkedAt)),
       ]);
       const latestChecks = new Map<string, any>();
+      const recentChecks = new Map<string, any[]>();
       checks.forEach((check: any) => {
         const key = `${check.deviceId}:${check.deviceUrlId ?? "principal"}`;
         if (!latestChecks.has(key)) latestChecks.set(key, check);
+        const history = recentChecks.get(key) ?? [];
+        if (history.length < 2) history.push(check);
+        recentChecks.set(key, history);
       });
-      return targets.map((target) => ({ ...target, lastCheck: latestChecks.get(`${target.deviceId}:${target.deviceUrlId ?? "principal"}`) ?? null }));
+      return targets.map((target) => {
+        const key = `${target.deviceId}:${target.deviceUrlId ?? "principal"}`;
+        const history = recentChecks.get(key) ?? [];
+        return {
+          ...target,
+          lastCheck: latestChecks.get(key) ?? null,
+          failureConfirmed: hasConfirmedListFailure(history),
+        };
+      });
     }),
 
     check: ownerProcedure.input(z.object({ deviceId: z.number(), deviceUrlId: z.number().nullable() })).mutation(async ({ ctx, input }) => {

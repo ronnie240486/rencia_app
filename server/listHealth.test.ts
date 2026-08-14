@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyListHttpStatus, validateListUrl } from "./listHealth";
+import { classifyListHttpStatus, hasConfirmedListFailure, validateListUrl } from "./listHealth";
 
 describe("validação segura de URL de lista", () => {
   it("rejeita destinos internos e protocolos não suportados", async () => {
@@ -20,5 +20,11 @@ describe("validação segura de URL de lista", () => {
       message: "Servidor protegido (HTTP 403); não é falha de lista",
     });
     expect(classifyListHttpStatus(500, 77).status).toBe("error");
+  });
+
+  it("só confirma falha depois de dois erros consecutivos", () => {
+    expect(hasConfirmedListFailure([{ status: "error" }])).toBe(false);
+    expect(hasConfirmedListFailure([{ status: "error" }, { status: "success" }])).toBe(false);
+    expect(hasConfirmedListFailure([{ status: "error" }, { status: "error" }])).toBe(true);
   });
 });

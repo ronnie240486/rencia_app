@@ -535,6 +535,7 @@
 ## Correções do Monitor e Alertas
 - [x] Evitar falso alerta de lista indisponível quando o servidor responder HTTP 403, mas a lista estiver reproduzindo normalmente
 - [x] Corrigir o botão de arquivar/marcar como lido para fechar o modal de aviso no primeiro toque
+- [x] Não exibir timeout ou lentidão isolada como erro visual enquanto a falha não for confirmada
 
 ## Resumo de Alertas Técnicos
 - [x] Consolidar múltiplas falhas confirmadas em um único modal de resumo na abertura do painel
