@@ -579,3 +579,8 @@
 - [x] Remover ou corrigir alertas técnicos indevidos do painel para a lista afetada
 - [x] Confirmar que a troca automática só ocorre quando há falha técnica confirmada e lista reserva disponível
 - [x] Impedir que mensagens recebidas pelo cliente citem modal, Monitor de Listas ou qualquer ação interna do painel
+
+## Modal de Vencimento nos Aplicativos
+- [x] Expor a data de vencimento cadastrada no painel para o APK do cliente
+- [x] Informar se o vencimento está próximo, vence hoje ou já venceu
+- [x] Preparar texto de modal simples para renovação sem referências internas ao painel

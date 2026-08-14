@@ -1,4 +1,4 @@
-# Notificações e failover automático de listas para OuroPro, Ultra Player e Maximus
+# Notificações de listas, failover e vencimento para OuroPro, Ultra Player e Maximus
 
 O painel confirma falha de uma lista somente após **dois testes técnicos consecutivos**. Lentidão isolada, resposta HTTP 403 e problemas de uma única conta não geram essa notificação. Quando houver uma Lista 2 ou Lista 3 válida, o painel já a ativa automaticamente. Quando a Lista 1 voltar a responder, o painel a restaura automaticamente. Cada APK deve consultar apenas os avisos do MAC que está em uso.
 
@@ -25,6 +25,16 @@ O MAC pode ser enviado com ou sem separadores. A resposta possui o seguinte form
   "reload_message": null,
   "failover_transition_id": 91,
   "changed_at": "2026-08-14T12:00:00.000Z",
+  "expiration": {
+    "expiration_date": "2026-08-15",
+    "expiration_display": "15/08/2026",
+    "days_remaining": 1,
+    "expiration_state": "expires_tomorrow",
+    "show_modal": true,
+    "modal_key": "expiration:2026-08-15:expires_tomorrow",
+    "modal_title": "Seu acesso vence amanhã",
+    "modal_message": "Seu acesso vence amanhã (15/08/2026). Renove para evitar interrupção."
+  },
   "notifications": [
     {
       "id": 123,
@@ -53,6 +63,20 @@ O MAC pode ser enviado com ou sem separadores. A resposta possui o seguinte form
 | `status: "recovered"` | Exibir opcionalmente a recuperação. Quando `failover_state` for `primary_restored`, usar `playlist_sync_message`. |
 | `acknowledged: false` | O aplicativo pode mostrar a mensagem uma vez e, em seguida, confirmar a leitura. |
 | `message` | Usar como texto técnico complementar. Não montar mensagem com dados de outras contas. |
+
+## Modal de vencimento
+
+O objeto `expiration` sempre traz a data que está cadastrada para aquele MAC. O APK deve consultar essa mesma rota ao iniciar e depois junto do heartbeat. Assim, se a data for alterada no painel, o aviso se ajusta automaticamente no aplicativo.
+
+| Campo | Regra no APK |
+|---|---|
+| `expiration_date` | Data de vencimento no formato `AAAA-MM-DD`. Pode ser `null` se o cliente ainda não tiver data cadastrada. |
+| `expiration_display` | Data pronta para exibir ao cliente, no formato `DD/MM/AAAA`. |
+| `days_remaining` | Dias até o vencimento. Valor negativo significa acesso vencido. |
+| `expiration_state` | Pode ser `upcoming`, `expires_tomorrow`, `expires_today`, `expired` ou `none`. |
+| `show_modal: true` | Exibir o modal somente para amanhã, hoje ou vencido. |
+| `modal_key` | Guardar localmente. Mostrar o modal uma vez por chave, evitando repetição a cada minuto. |
+| `modal_title` e `modal_message` | Usar diretamente na tela do cliente. Não acrescentar palavras sobre painel, modal interno ou monitoramento. |
 
 O aplicativo deve consultar a rota no início e depois junto do heartbeat, a cada **60 segundos**. A falha da consulta não pode interromper a reprodução nem apagar a última lista válida. A atualização automática deve usar `failover_transition_id` para não reaparecer a cada minuto.
 

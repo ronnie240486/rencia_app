@@ -3890,6 +3890,7 @@ export function registerApiRoutes(app: Express) {
         mac: result.device.mac,
         notifications: result.notifications,
         ...result.failover,
+        expiration: result.expiration,
       });
     } catch (error) {
       console.error('[API] /api/v5/list-notifications error:', error);

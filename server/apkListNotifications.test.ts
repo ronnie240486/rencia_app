@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildApkFailoverStatus, getClientFacingListMessage, isDeviceListNotificationTitle } from "./apkListNotifications";
+import { buildApkExpirationNotice, buildApkFailoverStatus, getClientFacingListMessage, isDeviceListNotificationTitle } from "./apkListNotifications";
 
 describe("notificações de lista para APK", () => {
   it("aceita somente alertas de lista pertencentes ao aparelho", () => {
@@ -16,6 +16,36 @@ describe("notificações de lista para APK", () => {
     expect(getClientFacingListMessage("failure")).toContain("Você não precisa fazer nada");
     expect(getClientFacingListMessage("failure")).not.toContain("Monitor de Listas");
     expect(getClientFacingListMessage("recovered")).toBe("Sua lista voltou a funcionar normalmente.");
+  });
+
+  it("prepara o modal de vencimento somente quando a renovação exige atenção", () => {
+    const tomorrow = buildApkExpirationNotice(
+      { dataExpiracao: "2026-08-15", status: "Liberado" },
+      new Date(2026, 7, 14, 10),
+    );
+    expect(tomorrow).toMatchObject({
+      expiration_display: "15/08/2026",
+      days_remaining: 1,
+      expiration_state: "expires_tomorrow",
+      show_modal: true,
+      modal_title: "Seu acesso vence amanhã",
+    });
+    expect(tomorrow.modal_message).toContain("Renove para evitar interrupção");
+
+    const upcoming = buildApkExpirationNotice(
+      { dataExpiracao: "2026-08-20", status: "Liberado" },
+      new Date(2026, 7, 14, 10),
+    );
+    expect(upcoming).toMatchObject({ expiration_state: "upcoming", show_modal: false, modal_message: null });
+  });
+
+  it("mostra aviso de acesso vencido para a data já expirada", () => {
+    const expired = buildApkExpirationNotice(
+      { dataExpiracao: "2026-08-10", status: "Expirado" },
+      new Date(2026, 7, 14, 10),
+    );
+    expect(expired).toMatchObject({ expiration_state: "expired", show_modal: true, modal_title: "Seu acesso venceu" });
+    expect(expired.modal_message).toContain("10/08/2026");
   });
 
   it("informa quando uma lista de reserva foi ativada automaticamente", () => {
