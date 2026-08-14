@@ -620,3 +620,8 @@
 - [ ] Medir e otimizar o carregamento de EPG dos canais na TV Box
 - [ ] Medir e otimizar o carregamento de sinopses de filmes e séries
 - [x] Entregar ao OuroPro apenas a playlist ativa do cliente para não misturar lista principal e reservas
+
+## Restauração de Listas do OuroPro
+- [x] Confirmar que todas as listas cadastradas permanecem salvas no banco
+- [x] Restaurar o envio de Lista 1, Lista 2, Lista 3 e demais listas ao OuroPro
+- [x] Preservar a prioridade do failover sem ocultar listas cadastradas
