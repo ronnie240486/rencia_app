@@ -31,6 +31,7 @@ import { exportBackup, importBackup, previewBackupImport } from "./exportImport"
 import { buildUltraPlayerConfig, normalizeMacAddress } from "./ultraPlayerConfig";
 import { normalizeHeartbeatContent } from "./heartbeatContent";
 import { acknowledgeRemoteCommand, claimRemoteCommandForMac } from "./remoteCommands";
+import { buildPublicDownloadApps } from "./publicDownloads";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -364,6 +365,17 @@ export function registerApiRoutes(app: Express) {
     }
     
     next();
+  });
+
+  /** Aplicativos publicamente visíveis na Loja de Downloads, sem exigir login. */
+  app.get("/api/public/apps", async (_req: Request, res: Response) => {
+    try {
+      const settings = await getSettings();
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ apps: buildPublicDownloadApps(settings) });
+    } catch {
+      res.status(500).json({ apps: [], error: "Não foi possível carregar os aplicativos." });
+    }
   });
 
 

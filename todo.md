@@ -505,7 +505,7 @@
 - [x] Adicionar uploads de ícones personalizáveis para Canais, Filmes e Séries no Ultra Player
 - [x] Corrigir a aplicação da imagem de fundo configurada pelo painel no APK Ultra Player
 - [x] Confirmar o isolamento das rotas e imagens do Ultra Player em relação ao OuroPro
-- [ ] Corrigir a rota GET /api/v5/ultra-config que retorna HTTP 500 para o APK
+- [x] Corrigir a rota GET /api/v5/ultra-config que retorna HTTP 500 para o APK
 
 ## Entrega ao desenvolvedor do APK
 - [x] Preparar texto de integração da rota Ultra Player e dos ícones dinâmicos de Canais, Filmes e Séries
@@ -536,6 +536,11 @@
 - [x] Criar painel para enviar atualização de lista, troca de lista/DNS, mensagem, reinício e bloqueio/liberação
 - [x] Expor endpoints de consulta e confirmação para OuroPro, Ultra Player e Maximus
 - [x] Preparar instrução técnica para os APKs executarem e confirmarem comandos remotos
+
+## Loja Pública de Aplicativos
+- [x] Propor e aprovar uma página pública de downloads para clientes baixarem OuroPro, Ultra Player e Maximus sem acesso ao painel
+- [x] Criar página pública /baixar e links diretos /baixar/ouropro, /baixar/ultra e /baixar/maximus
+- [x] Permitir configurar, na Loja privada, os links, versão e disponibilidade dos aplicativos públicos
 
 ## Correções do Monitor e Alertas
 - [x] Evitar falso alerta de lista indisponível quando o servidor responder HTTP 403, mas a lista estiver reproduzindo normalmente

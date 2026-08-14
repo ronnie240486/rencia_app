@@ -48,10 +48,13 @@ import AlertsCenter from "./pages/AlertsCenter";
 import Permissions from "./pages/Permissions";
 import SettingsUltra from "./pages/SettingsUltra";
 import RemoteCommands from "./pages/RemoteCommands";
+import PublicDownloads from "./pages/PublicDownloads";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/baixar/:app" component={PublicDownloads} />
+      <Route path="/baixar" component={PublicDownloads} />
       <Route path={"/"} component={Login} />
       <Route path={"/login"} component={Login} />
       <Route path={"/dashboard"} component={Dashboard} />
@@ -104,12 +107,14 @@ function Router() {
 }
 
 function App() {
+  const [location] = useLocation();
+  const isPublicDownload = location === "/baixar" || location.startsWith("/baixar/");
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light" switchable={true}>
         <TooltipProvider>
           <Toaster richColors position="top-right" />
-          <NoticesModal />
+          {!isPublicDownload && <NoticesModal />}
           <Router />
         </TooltipProvider>
       </ThemeProvider>
