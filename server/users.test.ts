@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+import { getDeviceById, updateDevice } from "./db";
 
 // Mock the db module with updated function names
 vi.mock("./db", () => ({
@@ -108,6 +109,23 @@ describe("devices.list", () => {
     const result = await caller.devices.list({});
     expect(result.total).toBe(0);
     expect(result.data).toHaveLength(0);
+  });
+});
+
+describe("devices.update", () => {
+  it("salva o MAC normalizado e devolve o registro atualizado na primeira alteração", async () => {
+    const previous = { id: 7, ownerId: 1, mac: "AA:AA:AA:AA:AA:AA", nomeServer: "Cliente" };
+    const updated = { ...previous, mac: "BD:33:00:93:DC:7A" };
+    vi.mocked(getDeviceById)
+      .mockResolvedValueOnce(previous as any)
+      .mockResolvedValueOnce(updated as any);
+    vi.mocked(updateDevice).mockResolvedValueOnce(undefined);
+
+    const caller = appRouter.createCaller(createAdminContext());
+    const result = await caller.devices.update({ id: 7, mac: "bd330093dc7a" });
+
+    expect(updateDevice).toHaveBeenCalledWith(7, 1, { mac: "BD:33:00:93:DC:7A" });
+    expect(result).toEqual({ success: true, device: updated });
   });
 });
 

@@ -45,7 +45,7 @@ export default function UserEdit() {
   const { data: appsData } = trpc.apps.list.useQuery();
   const { data: device, isLoading, error } = trpc.devices.getById.useQuery(
     { id: deviceId },
-    { enabled: !isNaN(deviceId) && deviceId > 0 }
+    { enabled: !isNaN(deviceId) && deviceId > 0, refetchOnMount: "always" }
   );
 
   const [form, setForm] = useState({
@@ -71,10 +71,10 @@ export default function UserEdit() {
 
   // formKey força re-render dos Select quando os dados chegam do servidor
   const [formKey, setFormKey] = useState(0);
-  const [initialized, setInitialized] = useState(false);
+  const [hasUserEdited, setHasUserEdited] = useState(false);
 
   useEffect(() => {
-    if (device && !initialized) {
+    if (device && !hasUserEdited) {
       const modo = (device.modoSelecao as "XTeamCode" | "M3U8") ?? "XTeamCode";
       let xtServer = "", xtUsername = "", xtPassword = "";
       if (modo === "XTeamCode" && device.urlM3u8) {
@@ -104,14 +104,16 @@ export default function UserEdit() {
       });
       // Incrementar formKey força os Select a re-renderizarem com os novos valores
       setFormKey(k => k + 1);
-      setInitialized(true);
     }
-  }, [device, initialized]);
+  }, [device, hasUserEdited]);
 
   const utils = trpc.useUtils();
 
   const updateMutation = trpc.devices.update.useMutation({
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result.device) {
+        utils.devices.getById.setData({ id: deviceId }, result.device);
+      }
       toast.success("Usuário atualizado com sucesso!");
       utils.devices.list.invalidate();
       utils.devices.stats.invalidate();
@@ -124,6 +126,7 @@ export default function UserEdit() {
   const handleMacChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 12);
     const formatted = raw.match(/.{1,2}/g)?.join(":") ?? raw;
+    setHasUserEdited(true);
     setForm(f => ({ ...f, mac: formatted }));
   };
 
@@ -200,7 +203,7 @@ export default function UserEdit() {
           </div>
         ) : (
           /* key={formKey} garante que todos os Select re-renderizam quando os dados chegam */
-          <form key={formKey} onSubmit={handleSubmit} className="bg-card rounded-xl border shadow-sm p-6 space-y-5">
+          <form key={formKey} onSubmit={handleSubmit} onChangeCapture={() => setHasUserEdited(true)} className="bg-card rounded-xl border shadow-sm p-6 space-y-5">
 
             {/* MAC */}
             <div className="space-y-1.5">

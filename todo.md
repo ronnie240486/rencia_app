@@ -597,3 +597,8 @@
 - [x] Ativar a próxima lista válida imediatamente após o reporte do APK
 - [x] Atualizar a sessão do aplicativo em segundo plano e mostrar aviso simples ao cliente
 - [x] Remover o import obsoleto que bloqueia a checagem de tipos do aplicativo
+
+## Correção de Persistência do MAC
+- [x] Investigar por que o MAC editado volta ao valor anterior após o primeiro salvamento
+- [x] Garantir que a edição do MAC salve corretamente na primeira tentativa
+- [x] Atualizar a lista e o formulário com o MAC novo logo após salvar

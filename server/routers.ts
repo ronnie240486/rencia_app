@@ -17,6 +17,7 @@ import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, ca
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
+import { normalizeMacForStorage } from "../shared/mac";
 import { getEnforcedDeviceLimit } from "./deviceLimit";
 import { getEffectivePaymentStatus } from "./payments";
 import { buildFinancialReport } from "./financialReport";
@@ -482,7 +483,12 @@ export const appRouter = router({
         maxConcurrentConnections: z.number().int().min(1).max(10).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const { id, ...data } = input;
+        const { id, mac, ...rest } = input;
+        const normalizedMac = mac === undefined ? undefined : normalizeMacForStorage(mac);
+        if (mac !== undefined && !normalizedMac) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "MAC inválido. Informe os 12 caracteres do aparelho." });
+        }
+        const data = { ...rest, ...(normalizedMac ? { mac: normalizedMac } : {}) };
         const device = await getDeviceById(id, ctx.user.id);
         if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
         await updateDevice(id, ctx.user.id, data);
@@ -505,7 +511,8 @@ export const appRouter = router({
           });
         }
         
-        return { success: true };
+        const updatedDevice = await getDeviceById(id, ctx.user.id);
+        return { success: true, device: updatedDevice };
       }),
 
     bulkUpdate: protectedProcedure
