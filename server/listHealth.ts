@@ -1,7 +1,7 @@
 import { lookup } from "node:dns/promises";
 
 export type ListHealthResult = {
-  status: "success" | "error";
+  status: "success" | "error" | "pending";
   statusCode: number | null;
   responseTimeMs: number | null;
   message: string;
@@ -16,6 +16,11 @@ export function classifyListHttpStatus(statusCode: number, responseTimeMs: numbe
   if (statusCode >= 200 && statusCode < 400) return { status: "success", statusCode, responseTimeMs, message: "Lista disponível" };
   if (statusCode === 401 || statusCode === 403) return { status: "success", statusCode, responseTimeMs, message: `Servidor protegido (HTTP ${statusCode}); não é falha de lista` };
   return { status: "error", statusCode, responseTimeMs, message: `Servidor respondeu HTTP ${statusCode}` };
+}
+
+/** Um timeout sozinho não prova que a lista caiu; ele permanece em observação. */
+export function classifyListTimeout(responseTimeMs: number): ListHealthResult {
+  return { status: "pending", statusCode: null, responseTimeMs, message: "Servidor demorou para responder; mantendo em observação" };
 }
 
 /** Uma resposta isolada não deve assustar o operador nem acionar a troca de lista. */
@@ -55,6 +60,30 @@ export async function validateListUrl(value: string) {
   return { valid: true as const, url: url.toString() };
 }
 
+async function retryWithPartialGet(url: string, startedAt: number): Promise<ListHealthResult | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      redirect: "manual",
+      signal: controller.signal,
+      headers: {
+        Range: "bytes=0-1023",
+        Accept: "application/x-mpegURL, application/vnd.apple.mpegurl, text/plain, */*",
+        "User-Agent": "Mozilla/5.0 (compatible; RenciaListMonitor/1.0)",
+      },
+    });
+    await response.body?.cancel();
+    const result = classifyListHttpStatus(response.status, Date.now() - startedAt);
+    return result.status === "success" ? { ...result, message: "Lista disponível após resposta lenta" } : result;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function probeListUrl(value: string): Promise<ListHealthResult> {
   const validated = await validateListUrl(value);
   if (!validated.valid) return { status: "error", statusCode: null, responseTimeMs: null, message: validated.message };
@@ -80,8 +109,12 @@ export async function probeListUrl(value: string): Promise<ListHealthResult> {
     const responseTimeMs = Date.now() - startedAt;
     return classifyListHttpStatus(response.status, responseTimeMs);
   } catch (error) {
-    const message = error instanceof Error && error.name === "AbortError" ? "Tempo limite de 7 segundos excedido" : "Não foi possível conectar ao servidor";
-    return { status: "error", statusCode: null, responseTimeMs: Date.now() - startedAt, message };
+    const responseTimeMs = Date.now() - startedAt;
+    if (error instanceof Error && error.name === "AbortError") {
+      const retry = await retryWithPartialGet(validated.url, startedAt);
+      return retry ?? classifyListTimeout(Date.now() - startedAt);
+    }
+    return { status: "error", statusCode: null, responseTimeMs, message: "Não foi possível conectar ao servidor" };
   } finally {
     clearTimeout(timeout);
   }

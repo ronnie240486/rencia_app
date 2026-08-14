@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyListHttpStatus, hasConfirmedListFailure, validateListUrl } from "./listHealth";
+import { classifyListHttpStatus, classifyListTimeout, hasConfirmedListFailure, validateListUrl } from "./listHealth";
 
 describe("validação segura de URL de lista", () => {
   it("rejeita destinos internos e protocolos não suportados", async () => {
@@ -26,5 +26,10 @@ describe("validação segura de URL de lista", () => {
     expect(hasConfirmedListFailure([{ status: "error" }])).toBe(false);
     expect(hasConfirmedListFailure([{ status: "error" }, { status: "success" }])).toBe(false);
     expect(hasConfirmedListFailure([{ status: "error" }, { status: "error" }])).toBe(true);
+  });
+
+  it("mantém timeout como observação, sem confirmar lista fora", () => {
+    expect(classifyListTimeout(17002)).toMatchObject({ status: "pending", responseTimeMs: 17002 });
+    expect(hasConfirmedListFailure([{ status: "pending" }, { status: "error" }])).toBe(false);
   });
 });

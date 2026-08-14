@@ -50,7 +50,8 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     const currentResult = await probeListUrl(current.url);
     checked += 1;
     await recordAutomaticListHealthCheck(db, ownerId, device, current, currentResult);
-    if (currentResult.status === "success") return;
+    // Resposta lenta fica em observação e não deve causar troca automática.
+    if (currentResult.status !== "error") return;
 
     let replacement: Candidate | null = null;
     for (const candidate of ordered.slice(1)) {
