@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { cn } from "@/lib/utils";
 import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS } from "./sidebarNavigation";
-import { DISMISSED_LIST_ALERTS_SESSION_KEY, getActiveConfirmedListAlerts, parseDismissedListAlertIds } from "./listAlertDismissal";
+import { DISMISSED_LIST_ALERTS_SESSION_KEY, getActiveConfirmedListAlerts, hasPresentedListAlertSummary, LIST_ALERT_SUMMARY_PRESENTED_SESSION_KEY, parseDismissedListAlertIds } from "./listAlertDismissal";
 import {
   BarChart3,
   ChevronDown,
@@ -137,6 +137,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const [dismissedListAlertIds, setDismissedListAlertIds] = useState<number[]>(() =>
     typeof window === "undefined" ? [] : parseDismissedListAlertIds(window.sessionStorage.getItem(DISMISSED_LIST_ALERTS_SESSION_KEY))
   );
+  const [hasPresentedSummary, setHasPresentedSummary] = useState(() =>
+    typeof window === "undefined" ? false : hasPresentedListAlertSummary(window.sessionStorage.getItem(LIST_ALERT_SUMMARY_PRESENTED_SESSION_KEY))
+  );
   const [openNavGroups, setOpenNavGroups] = useState<string[]>(() => [...INITIAL_OPEN_NAV_GROUPS]);
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("theme");
@@ -161,15 +164,17 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const activeListAlerts = getActiveConfirmedListAlerts(panelAlerts, dismissedListAlertIds);
 
   useEffect(() => {
-    if (activeListAlerts.length > 0 && !isListAlertSummaryOpen) setIsListAlertSummaryOpen(true);
-  }, [activeListAlerts.length, isListAlertSummaryOpen]);
+    if (activeListAlerts.length > 0 && !hasPresentedSummary) {
+      window.sessionStorage.setItem(LIST_ALERT_SUMMARY_PRESENTED_SESSION_KEY, "1");
+      setHasPresentedSummary(true);
+      setIsListAlertSummaryOpen(true);
+    }
+  }, [activeListAlerts.length, hasPresentedSummary]);
 
   const dismissListAlertSummary = (openAlerts = false) => {
-    setDismissedListAlertIds(current => {
-      const next = Array.from(new Set([...current, ...activeListAlerts.map(alert => alert.id)]));
-      window.sessionStorage.setItem(DISMISSED_LIST_ALERTS_SESSION_KEY, JSON.stringify(next));
-      return next;
-    });
+    const next = Array.from(new Set([...dismissedListAlertIds, ...activeListAlerts.map(alert => alert.id)]));
+    window.sessionStorage.setItem(DISMISSED_LIST_ALERTS_SESSION_KEY, JSON.stringify(next));
+    setDismissedListAlertIds(next);
     setIsListAlertSummaryOpen(false);
     if (openAlerts) setLocation("/alertas");
   };

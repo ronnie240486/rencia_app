@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getActiveConfirmedListAlerts, parseDismissedListAlertIds } from "./listAlertDismissal";
+import { getActiveConfirmedListAlerts, hasPresentedListAlertSummary, parseDismissedListAlertIds } from "./listAlertDismissal";
 
 describe("fechamento de alerta técnico confirmado", () => {
   const alert = { id: 25, isRead: false, type: "critical", title: "Falha confirmada de lista: Lista 1" };
@@ -13,5 +13,10 @@ describe("fechamento de alerta técnico confirmado", () => {
   it("recupera somente identificadores válidos já reconhecidos na sessão", () => {
     expect(parseDismissedListAlertIds("[25, 25, 0, \"26\", 31]")).toEqual([25, 31]);
     expect(parseDismissedListAlertIds("conteúdo inválido")).toEqual([]);
+  });
+
+  it("apresenta o resumo apenas uma vez na sessão", () => {
+    expect(hasPresentedListAlertSummary(null)).toBe(false);
+    expect(hasPresentedListAlertSummary("1")).toBe(true);
   });
 });
