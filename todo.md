@@ -647,3 +647,11 @@
 ## Organização da URL do OuroPro
 - [x] Mover a URL e a versão de atualização do OuroPro para a tela de configurações do OuroPro
 - [x] Remover esses campos da aba Configurações do App sem alterar a configuração já salva
+
+## Atualização da Tela Publicada
+- [ ] Verificar por que a sessão do celular ainda mostra a aba APK antiga
+- [ ] Confirmar o carregamento da nova organização de configurações do OuroPro
+
+## Guia de Backend para Novos Aplicativos
+- [x] Consolidar rotas de listas, imagens, ícones, avisos, comandos, conteúdo assistido e atualizações
+- [x] Preparar guia técnico e PDF prontos para os desenvolvedores
