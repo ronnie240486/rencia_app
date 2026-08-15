@@ -614,3 +614,16 @@
 - [x] Medir o tempo das rotas usadas para carregar cards, configurações e playlists no aplicativo
 - [x] Identificar se algum endpoint do painel está atrasando a abertura do aplicativo
 - [x] Corrigir gargalos encontrados e validar o carregamento após a melhoria
+
+## Restauração de Avisos nos Aplicativos
+- [ ] Verificar a rota por MAC que entrega avisos de vencimento e de listas ao APK
+- [ ] Restaurar os avisos de vencimento e falha de lista sem alterar playlists cadastradas
+- [ ] Validar o texto de modal recebido pelo aplicativo do cliente
+
+## Avisos de Vencimento no Painel
+- [x] Verificar por que os alertas de vencimento não aparecem na tela do backend
+- [x] Restaurar a geração e a exibição de avisos para o responsável pelo cliente
+- [x] Validar os avisos de cliente que vence amanhã, vence hoje e vencido
+- [x] Exibir um novo aviso mesmo quando o administrador já fechou outro modal no mesmo dia
+- [x] Atualizar automaticamente a consulta de avisos enquanto o painel estiver aberto
+- [x] Alinhar as colunas de avisos no banco para permitir criar novos alertas

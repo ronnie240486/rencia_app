@@ -3,29 +3,28 @@ import { X, AlertCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "./ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getUnseenNoticeIds, parseSeenNoticeIds } from "./noticeSeen";
 
 export default function NoticesModal() {
   const [isOpen, setIsOpen] = useState(false);
-  const [hasSeenToday, setHasSeenToday] = useState(false);
   const { user } = useAuth();
-  const { data: notices } = trpc.notices.list.useQuery(undefined, { enabled: Boolean(user?.id) });
+  const { data: notices } = trpc.notices.list.useQuery(undefined, {
+    enabled: Boolean(user?.id),
+    refetchInterval: 30_000,
+  });
 
   useEffect(() => {
-    // Verificar se o usuário já viu os avisos hoje
-    const lastSeenDate = user?.id ? localStorage.getItem(`noticesLastSeen:${user.id}`) : null;
-    const today = new Date().toDateString();
-
-    if (lastSeenDate !== today && notices && notices.length > 0) {
-      setIsOpen(true);
-    } else if (lastSeenDate === today) {
-      setHasSeenToday(true);
-    }
+    if (!user?.id || !notices?.length) return;
+    const storageKey = `noticesSeenIds:${user.id}`;
+    const seenIds = parseSeenNoticeIds(localStorage.getItem(storageKey));
+    setIsOpen(getUnseenNoticeIds(notices, seenIds).length > 0);
   }, [notices, user?.id]);
 
   const handleClose = () => {
     setIsOpen(false);
-    if (user?.id) localStorage.setItem(`noticesLastSeen:${user.id}`, new Date().toDateString());
-    setHasSeenToday(true);
+    if (user?.id && notices) {
+      localStorage.setItem(`noticesSeenIds:${user.id}`, JSON.stringify(notices.map((notice: any) => String(notice.id))));
+    }
   };
 
   if (!isOpen || !notices || notices.length === 0) {

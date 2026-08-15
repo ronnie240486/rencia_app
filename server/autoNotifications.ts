@@ -7,10 +7,40 @@ export function isExpirationNoticeDue(dataExpiracao: string | Date, reference = 
   return daysUntilDateOnly(dataExpiracao, reference) === 1;
 }
 
+export function buildPanelExpirationNotice(device: { nomeServer: string | null; dataExpiracao: string | Date | null; status: string }, reference = new Date()) {
+  if (!device.dataExpiracao) return null;
+  const daysUntilExpire = daysUntilDateOnly(device.dataExpiracao, reference);
+  const date = formatDateOnlyPtBr(device.dataExpiracao);
+  const name = device.nomeServer?.trim() || "Cliente";
+
+  if (daysUntilExpire === 1) {
+    return {
+      title: "Aviso de Vencimento",
+      content: `${name} vence amanhã (${date}).`,
+      reason: "expires-tomorrow" as const,
+    };
+  }
+  if (daysUntilExpire === 0) {
+    return {
+      title: "Vencimento Hoje",
+      content: `${name} vence hoje (${date}).`,
+      reason: "expires-today" as const,
+    };
+  }
+  if (daysUntilExpire < 0 || device.status === "Expirado") {
+    return {
+      title: "Acesso Vencido",
+      content: `${name} está com acesso vencido desde ${date}.`,
+      reason: "expired" as const,
+    };
+  }
+  return null;
+}
+
 /**
  * Verifica se um usuário está próximo de vencer e manda aviso automático
  */
-export async function checkAndSendExpirationNotice(deviceId: number, dataExpiracao?: string | null) {
+export async function checkAndSendExpirationNotice(deviceId: number, dataExpiracao?: string | Date | null) {
   if (!dataExpiracao) return { created: false, reason: "no-expiration-date" as const };
 
   try {
@@ -20,19 +50,16 @@ export async function checkAndSendExpirationNotice(deviceId: number, dataExpirac
     const [device] = await db.select().from(devices).where(eq(devices.id, deviceId)).limit(1);
     if (!device) return { created: false, reason: "device-not-found" as const };
 
-    const daysUntilExpire = daysUntilDateOnly(dataExpiracao);
-
-    // Manda notificação SOMENTE quando faltar exatamente 1 dia
-    if (isExpirationNoticeDue(dataExpiracao)) {
-      const message = `⚠️ ${device.nomeServer} vence em 1 dia! Data: ${formatDateOnlyPtBr(dataExpiracao)}.`;
+    const notice = buildPanelExpirationNotice(device);
+    if (notice) {
 
       const [existingNotice] = await db
         .select({ id: notices.id })
         .from(notices)
         .where(and(
           eq(notices.targetOwnerId, device.ownerId),
-          eq(notices.titulo, "Aviso de Vencimento"),
-          eq(notices.conteudo, message),
+          eq(notices.titulo, notice.title),
+          eq(notices.conteudo, notice.content),
           eq(notices.ativo, true),
         ))
         .limit(1);
@@ -45,15 +72,15 @@ export async function checkAndSendExpirationNotice(deviceId: number, dataExpirac
       await db.insert(notices).values({
         autorId: device.ownerId,
         targetOwnerId: device.ownerId,
-        titulo: "Aviso de Vencimento",
-        conteudo: message,
+        titulo: notice.title,
+        conteudo: notice.content,
         ativo: true,
       });
 
-      console.log(`[Auto-Notification] Aviso criado para device ${deviceId}: ${message}`);
-      return { created: true, reason: "expires-tomorrow" as const };
+      console.log(`[Auto-Notification] Aviso criado para device ${deviceId}: ${notice.content}`);
+      return { created: true, reason: notice.reason };
     }
-    return { created: false, reason: "not-due-tomorrow" as const };
+    return { created: false, reason: "not-due" as const };
   } catch (error) {
     console.error("[Auto-Notification] Erro:", error);
     return { created: false, reason: "error" as const };

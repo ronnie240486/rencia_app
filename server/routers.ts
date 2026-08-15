@@ -2244,6 +2244,15 @@ export const appRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const expiringDevices = await db.select({ id: devices.id, dataExpiracao: devices.dataExpiracao })
+        .from(devices)
+        .where(and(eq(devices.ownerId, ctx.user.id), sql`${devices.dataExpiracao} IS NOT NULL`));
+      const { checkAndSendExpirationNotice } = await import("./autoNotifications");
+      await Promise.all(expiringDevices.map((device) =>
+        checkAndSendExpirationNotice(device.id, device.dataExpiracao).catch((error) =>
+          console.error("[notices.list] Aviso de vencimento:", error),
+        ),
+      ));
       const result = await db.select().from(notices).where(and(
         eq(notices.ativo, true),
         sql`(${notices.targetOwnerId} IS NULL OR ${notices.targetOwnerId} = ${ctx.user.id})`,
