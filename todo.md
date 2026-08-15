@@ -627,3 +627,6 @@
 - [x] Exibir um novo aviso mesmo quando o administrador já fechou outro modal no mesmo dia
 - [x] Atualizar automaticamente a consulta de avisos enquanto o painel estiver aberto
 - [x] Alinhar as colunas de avisos no banco para permitir criar novos alertas
+
+## Instrução para Desenvolvedores dos APKs
+- [x] Preparar uma mensagem unificada de integração de vencimento, falhas de lista e troca automática
