@@ -630,3 +630,10 @@
 
 ## Instrução para Desenvolvedores dos APKs
 - [x] Preparar uma mensagem unificada de integração de vencimento, falhas de lista e troca automática
+
+## Conteúdo Assistido no Ultra Player
+- [x] Confirmar a rota e os campos para o Ultra Player informar canal, filme ou série em reprodução
+- [x] Entregar o formato da requisição para celular e TV
+
+## PDF para Desenvolvedor do Ultra Player
+- [x] Gerar PDF com a rota de conteúdo assistido para celular e TV
