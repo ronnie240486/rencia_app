@@ -1885,6 +1885,8 @@ export const appRouter = router({
         mostAssistidos: z.boolean().optional(),
         recentementeVisto: z.boolean().optional(),
         canalAtual: z.string().optional(),
+        apkUpdateUrl: z.string().url().or(z.literal("")).optional(),
+        apkVersion: z.string().max(80).optional(),
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();

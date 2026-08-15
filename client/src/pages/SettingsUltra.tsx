@@ -103,7 +103,8 @@ export default function SettingsUltra() {
         <div><Label>Título da mensagem</Label><Input value={form.ultra_message_title} onChange={e => update("ultra_message_title", e.target.value)} /></div>
         <div><Label>Mensagem</Label><Textarea value={form.ultra_message_text} onChange={e => update("ultra_message_text", e.target.value)} /></div>
         <div><Label>API do Servidor</Label><Input value={form.ultra_server_api_url} onChange={e => update("ultra_server_api_url", e.target.value)} placeholder="https://..." /></div>
-        <div><Label>Link de download do APK</Label><Input value={form.ultra_apk_download_url} onChange={e => update("ultra_apk_download_url", e.target.value)} placeholder="https://...apk" /></div>
+        <div><Label>URL de atualização do Ultra Player</Label><Input value={form.ultra_apk_download_url} onChange={e => update("ultra_apk_download_url", e.target.value)} placeholder="https://...apk" /><p className="text-xs text-muted-foreground">Usada somente pelo botão de atualização do Ultra Player.</p></div>
+        <div><Label>Versão do Ultra Player</Label><Input value={form.ultra_apk_version} onChange={e => update("ultra_apk_version", e.target.value)} placeholder="Ex.: 1.0.0" /></div>
       </CardContent></Card>
     </div>
   </AdminLayout>;

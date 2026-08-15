@@ -25,6 +25,8 @@ interface SettingsData {
   mostAssistidos: boolean;
   recentementeVisto: boolean;
   canalAtual: string;
+  apkUpdateUrl: string;
+  apkVersion: string;
 }
 
 const DEFAULT_SETTINGS: SettingsData = {
@@ -42,6 +44,8 @@ const DEFAULT_SETTINGS: SettingsData = {
   mostAssistidos: true,
   recentementeVisto: true,
   canalAtual: 'SBT',
+  apkUpdateUrl: '',
+  apkVersion: '',
 };
 
 export default function SettingsMaximus() {
@@ -236,6 +240,35 @@ export default function SettingsMaximus() {
               value={formData.canalAtual}
               onChange={(e) => update({ canalAtual: e.target.value })}
               placeholder="Ex: SBT"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* INFORMAÇÃO */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Atualização do Maximus</CardTitle>
+          <CardDescription>Esta URL é usada somente pelo Maximus Player quando o cliente tocar em atualizar.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="apkUpdateUrl">URL de atualização do Maximus</Label>
+            <Input
+              id="apkUpdateUrl"
+              type="url"
+              value={formData.apkUpdateUrl}
+              onChange={(e) => update({ apkUpdateUrl: e.target.value })}
+              placeholder="https://exemplo.com/maximus.apk"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="apkVersion">Versão do Maximus</Label>
+            <Input
+              id="apkVersion"
+              value={formData.apkVersion}
+              onChange={(e) => update({ apkVersion: e.target.value })}
+              placeholder="Ex.: 1.0.0"
             />
           </div>
         </CardContent>

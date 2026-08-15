@@ -36,6 +36,7 @@ import { acknowledgeListNotificationForMac, getListNotificationsForMac } from ".
 import { resolveOptionalImagesInParallel } from "./parallelImageResolution";
 import { orderDeviceUrlsForActive } from "./devicePlaylistOrder";
 import { getNextPlaybackFailoverCandidate } from "./playbackFailover";
+import { buildAppUpdateResponse } from "./appUpdateResponse";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -1261,6 +1262,86 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error("[API] /api/v5/ultra-config error:", error);
       res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do Ultra Player." });
+    }
+  });
+
+  /**
+   * GET /api/v5/ultra-update?mac=AA:BB:CC:DD:EE:FF
+   * Retorna exclusivamente a URL configurada para atualizar o Ultra Player.
+   */
+  app.get("/api/v5/ultra-update", async (req: Request, res: Response) => {
+    const mac = typeof req.query.mac === "string" ? normalizeMacAddress(req.query.mac) : null;
+    if (!mac) {
+      res.status(400).json({ registered: false, error: "Informe um MAC válido." });
+      return;
+    }
+
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.status(503).json({ registered: false, error: "Banco de dados indisponível." });
+        return;
+      }
+      const [device] = await db.select().from(devices)
+        .where(or(eq(devices.mac, mac.toLowerCase()), eq(devices.mac, mac)))
+        .limit(1);
+      if (!device) {
+        res.status(404).json({ registered: false, error: "MAC não cadastrado." });
+        return;
+      }
+      if (device.app !== "Ultra Player") {
+        res.status(403).json({ registered: true, error: "Este MAC não está vinculado ao Ultra Player." });
+        return;
+      }
+
+      const settings = await getSettings();
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.json({ registered: true, allowed: device.status === "Liberado", ...buildAppUpdateResponse("Ultra Player", settings.ultra_apk_download_url || "", settings.ultra_apk_version || "1.0.0") });
+    } catch (error) {
+      console.error("[API] /api/v5/ultra-update error:", error);
+      res.status(500).json({ error: "Não foi possível obter a atualização do Ultra Player." });
+    }
+  });
+
+  /**
+   * GET /api/v5/maximus-update?mac=AA:BB:CC:DD:EE:FF
+   * Retorna exclusivamente a URL configurada para atualizar o Maximus.
+   */
+  app.get("/api/v5/maximus-update", async (req: Request, res: Response) => {
+    const mac = typeof req.query.mac === "string" ? normalizeMacAddress(req.query.mac) : null;
+    if (!mac) {
+      res.status(400).json({ registered: false, error: "Informe um MAC válido." });
+      return;
+    }
+
+    try {
+      const db = await getDb();
+      if (!db) {
+        res.status(503).json({ registered: false, error: "Banco de dados indisponível." });
+        return;
+      }
+      const [device] = await db.select().from(devices)
+        .where(or(eq(devices.mac, mac.toLowerCase()), eq(devices.mac, mac)))
+        .limit(1);
+      if (!device) {
+        res.status(404).json({ registered: false, error: "MAC não cadastrado." });
+        return;
+      }
+      if (!device.app?.toLowerCase().includes("maximus")) {
+        res.status(403).json({ registered: true, error: "Este MAC não está vinculado ao Maximus." });
+        return;
+      }
+
+      const rows = await db.select().from(appSettings).where(or(
+        eq(appSettings.key, "maximus_apkUpdateUrl"),
+        eq(appSettings.key, "maximus_apkVersion"),
+      ));
+      const settings = Object.fromEntries(rows.map((row) => [row.key, row.value || ""]));
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.json({ registered: true, allowed: device.status === "Liberado", ...buildAppUpdateResponse("Maximus", settings.maximus_apkUpdateUrl || "", settings.maximus_apkVersion || "1.0.0") });
+    } catch (error) {
+      console.error("[API] /api/v5/maximus-update error:", error);
+      res.status(500).json({ error: "Não foi possível obter a atualização do Maximus." });
     }
   });
 

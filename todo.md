@@ -637,3 +637,9 @@
 
 ## PDF para Desenvolvedor do Ultra Player
 - [x] Gerar PDF com a rota de conteúdo assistido para celular e TV
+
+## URL Unificada de Atualização dos Aplicativos
+- [x] Mapear os campos e as rotas de atualização próprios de OuroPro, Ultra Player e Maximus
+- [x] Criar respostas isoladas de atualização, cada uma retornando somente a URL do respectivo aplicativo
+- [x] Documentar os endpoints separados de atualização para os três aplicativos
+- [x] Manter a URL existente do OuroPro e adicionar um campo próprio de URL no Ultra Player e no Maximus
