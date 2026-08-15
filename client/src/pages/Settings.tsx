@@ -496,6 +496,32 @@ export default function Settings() {
                       </div>
                     </CardContent>
                   </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2"><Smartphone size={16} /> Atualização do OuroPro</CardTitle>
+                      <CardDescription>Configure somente a URL e a versão usadas pelo botão de atualização do OuroPro.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-5">
+                      <div className="space-y-2">
+                        <Label className="font-semibold">URL de atualização do OuroPro</Label>
+                        <Input
+                          value={form.apk_download_url}
+                          onChange={e => handleChange("apk_download_url", e.target.value)}
+                          placeholder="https://exemplo.com/oupro.apk"
+                        />
+                        <p className="text-xs text-muted-foreground">Esta URL é retornada somente ao OuroPro pela rota <code>/api/v4/update.php</code>.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-semibold">Versão do OuroPro</Label>
+                        <Input
+                          value={form.apk_version}
+                          onChange={e => handleChange("apk_version", e.target.value)}
+                          placeholder="Ex.: 8.0"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
 
                 {/* ─── Aba Ícones ────────────────────────────────────────────────────── */}
@@ -559,7 +585,7 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="painel">
-                <TabsList className="grid grid-cols-4 w-full">
+                <TabsList className="grid grid-cols-3 w-full">
                   <TabsTrigger value="painel" className="gap-1 text-xs">
                     🎨 Painel
                   </TabsTrigger>
@@ -568,9 +594,6 @@ export default function Settings() {
                   </TabsTrigger>
                   <TabsTrigger value="chatbot" className="gap-1 text-xs">
                     <MessageCircle size={13} /> Chatbot
-                  </TabsTrigger>
-                  <TabsTrigger value="apk" className="gap-1 text-xs">
-                    <Smartphone size={13} /> APK
                   </TabsTrigger>
                 </TabsList>
 
@@ -790,51 +813,6 @@ export default function Settings() {
                   </Card>
                 </TabsContent>
 
-                {/* ─── Aba APK ────────────────────────────────────────────────────────── */}
-                <TabsContent value="apk" className="space-y-4 mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Smartphone size={16} /> Configurações do APK
-                      </CardTitle>
-                      <CardDescription>
-                        Gerencie versões e links de download do aplicativo.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-5">
-                      <div className="space-y-2">
-                        <Label className="font-semibold">URL de Download do APK</Label>
-                        <Input
-                          value={form.apk_download_url}
-                          onChange={e => handleChange("apk_download_url", e.target.value)}
-                          placeholder="https://exemplo.com/app.apk"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Link direto para o arquivo APK. Será retornado no endpoint <code>/api/update.php</code>.
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="font-semibold">Versão Atual do APK</Label>
-                        <Input
-                          value={form.apk_version}
-                          onChange={e => handleChange("apk_version", e.target.value)}
-                          placeholder="1.0.0"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Versão do APK. O app compara com sua versão local para oferecer atualização.
-                        </p>
-                      </div>
-
-                      <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 p-3 text-xs text-blue-800 dark:text-blue-200 space-y-1">
-                        <p className="font-semibold">Endpoints de Atualização:</p>
-                        <p><code>/api/update.php</code> — Retorna URL e versão do APK</p>
-                        <p><code>/api/v4/bg.php</code> — Retorna imagem de fundo</p>
-                        <p><code>/api/v4/icon/:nome</code> — Retorna ícone específico</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
               </Tabs>
             </CardContent>
           </Card>

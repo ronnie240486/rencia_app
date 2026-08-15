@@ -643,3 +643,7 @@
 - [x] Criar respostas isoladas de atualização, cada uma retornando somente a URL do respectivo aplicativo
 - [x] Documentar os endpoints separados de atualização para os três aplicativos
 - [x] Manter a URL existente do OuroPro e adicionar um campo próprio de URL no Ultra Player e no Maximus
+
+## Organização da URL do OuroPro
+- [x] Mover a URL e a versão de atualização do OuroPro para a tela de configurações do OuroPro
+- [x] Remover esses campos da aba Configurações do App sem alterar a configuração já salva
