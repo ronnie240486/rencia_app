@@ -655,3 +655,23 @@
 ## Guia de Backend para Novos Aplicativos
 - [x] Consolidar rotas de listas, imagens, ícones, avisos, comandos, conteúdo assistido e atualizações
 - [x] Preparar guia técnico e PDF prontos para os desenvolvedores
+
+## Correção de Atualização do OuroPro
+- [ ] Verificar por que a rota de atualização não está acionando o indicador amarelo do OuroPro
+- [ ] Restaurar o contrato compatível com o botão Atualizar agora do aplicativo
+- [ ] Validar URL e versão retornadas para o OuroPro
+
+## Atualização do OuroPro na TV Box
+- [ ] Comparar versão e resposta de atualização recebidas pelo celular e pela TV Box
+- [ ] Corrigir qualquer incompatibilidade do backend que impeça o indicador e o download na TV Box
+- [ ] Restaurar a rota compatível /api/update.php usada pelas versões antigas da TV Box
+
+## Diagnóstico NULL do OuroPro
+- [ ] Localizar a tela de diagnóstico de categoria ausente do OuroPro
+- [ ] Impedir a exibição de Diagnóstico NULL quando um canal não tiver categoria
+- [ ] Usar uma categoria padrão sem interromper a reprodução
+
+## Avisos Antigos Após Renovação
+- [x] Identificar avisos de vencimento antigos que permanecem ativos após mudar a data do cliente
+- [x] Arquivar avisos antigos ao renovar ou alterar a data de vencimento
+- [x] Mostrar somente o aviso referente ao vencimento atual no modal

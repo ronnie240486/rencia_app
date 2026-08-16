@@ -1,6 +1,6 @@
 import { getDb } from "./db";
 import { devices, notices } from "../drizzle/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { daysUntilDateOnly, formatDateOnlyPtBr } from "../shared/dateOnly";
 
 export function isExpirationNoticeDue(dataExpiracao: string | Date, reference = new Date()): boolean {
@@ -37,6 +37,18 @@ export function buildPanelExpirationNotice(device: { nomeServer: string | null; 
   return null;
 }
 
+type ActiveExpirationNotice = { id: number; titulo: string; conteudo: string };
+
+/** Mantém somente o aviso correspondente à data de vencimento atual do aparelho. */
+export function getStaleExpirationNoticeIds(
+  activeNotices: ActiveExpirationNotice[],
+  currentNotice: { title: string; content: string } | null,
+) {
+  return activeNotices
+    .filter((notice) => !currentNotice || notice.titulo !== currentNotice.title || notice.conteudo !== currentNotice.content)
+    .map((notice) => notice.id);
+}
+
 /**
  * Verifica se um usuário está próximo de vencer e manda aviso automático
  */
@@ -51,18 +63,23 @@ export async function checkAndSendExpirationNotice(deviceId: number, dataExpirac
     if (!device) return { created: false, reason: "device-not-found" as const };
 
     const notice = buildPanelExpirationNotice(device);
-    if (notice) {
+    const activeNotices = await db
+      .select({ id: notices.id, titulo: notices.titulo, conteudo: notices.conteudo })
+      .from(notices)
+      .where(and(
+        eq(notices.targetDeviceId, device.id),
+        eq(notices.ativo, true),
+      ));
 
-      const [existingNotice] = await db
-        .select({ id: notices.id })
-        .from(notices)
-        .where(and(
-          eq(notices.targetOwnerId, device.ownerId),
-          eq(notices.titulo, notice.title),
-          eq(notices.conteudo, notice.content),
-          eq(notices.ativo, true),
-        ))
-        .limit(1);
+    const staleNoticeIds = getStaleExpirationNoticeIds(activeNotices, notice);
+    if (staleNoticeIds.length > 0) {
+      await db.update(notices)
+        .set({ ativo: false, endsAt: new Date() })
+        .where(inArray(notices.id, staleNoticeIds));
+    }
+
+    if (notice) {
+      const existingNotice = activeNotices.find((item) => item.titulo === notice.title && item.conteudo === notice.content);
 
       if (existingNotice) {
         return { created: false, reason: "already-created" as const };
@@ -72,6 +89,7 @@ export async function checkAndSendExpirationNotice(deviceId: number, dataExpirac
       await db.insert(notices).values({
         autorId: device.ownerId,
         targetOwnerId: device.ownerId,
+        targetDeviceId: device.id,
         titulo: notice.title,
         conteudo: notice.content,
         ativo: true,

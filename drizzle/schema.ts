@@ -200,6 +200,7 @@ export const notices = mysqlTable("notices", {
   id: int("id").autoincrement().primaryKey(),
   autorId: int("autorId").notNull(),
   targetOwnerId: int("targetOwnerId"),
+  targetDeviceId: int("targetDeviceId"),
   titulo: varchar("titulo", { length: 255 }).notNull(),
   conteudo: text("conteudo").notNull(),
   ativo: boolean("ativo").default(true).notNull(),

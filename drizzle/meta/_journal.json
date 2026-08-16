@@ -323,6 +323,13 @@
       "when": 1786680407453,
       "tag": "0045_mixed_tarot",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "5",
+      "when": 1786844279359,
+      "tag": "0046_stale_miss_america",
+      "breakpoints": true
     }
   ]
 }
