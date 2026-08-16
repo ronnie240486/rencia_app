@@ -2,6 +2,7 @@ import { and, asc, desc, eq, like, or } from "drizzle-orm";
 import { deviceListNotificationReceipts, devices, deviceUrls, internalAlerts, listFailoverEvents } from "../drizzle/schema";
 import { daysUntilDateOnly, formatDateOnlyPtBr, toDateOnly } from "../shared/dateOnly";
 import { LIST_FAILURE_ALERT_PREFIX, LIST_RECOVERY_ALERT_PREFIX } from "./listFailureAlerts";
+import { safeApkText } from "./apkSafeValues";
 import { normalizeMacAddress } from "./ultraPlayerConfig";
 
 export type ApkListNotificationStatus = "failure" | "recovered";
@@ -17,14 +18,14 @@ export function buildApkExpirationNotice(device: ExpirationDevice, reference = n
   const expirationDate = toDateOnly(device.dataExpiracao);
   if (!expirationDate) {
     return {
-      expiration_date: null,
-      expiration_display: null,
-      days_remaining: null,
+      expiration_date: "",
+      expiration_display: "",
+      days_remaining: 0,
       expiration_state: "none" as ApkExpirationState,
       show_modal: false,
-      modal_key: null,
-      modal_title: null,
-      modal_message: null,
+      modal_key: "",
+      modal_title: "",
+      modal_message: "",
     };
   }
 
@@ -38,11 +39,11 @@ export function buildApkExpirationNotice(device: ExpirationDevice, reference = n
   const modalTitle = state === "expired"
     ? "Seu acesso venceu"
     : state === "expires_today" ? "Seu acesso vence hoje"
-      : state === "expires_tomorrow" ? "Seu acesso vence amanhã" : null;
+      : state === "expires_tomorrow" ? "Seu acesso vence amanhã" : "";
   const modalMessage = state === "expired"
     ? `Seu acesso venceu em ${expirationDisplay}. Procure seu revendedor para renovar.`
     : state === "expires_today" ? `Seu acesso vence hoje (${expirationDisplay}). Renove para evitar interrupção.`
-      : state === "expires_tomorrow" ? `Seu acesso vence amanhã (${expirationDisplay}). Renove para evitar interrupção.` : null;
+      : state === "expires_tomorrow" ? `Seu acesso vence amanhã (${expirationDisplay}). Renove para evitar interrupção.` : "";
 
   return {
     expiration_date: expirationDate,
@@ -50,7 +51,7 @@ export function buildApkExpirationNotice(device: ExpirationDevice, reference = n
     days_remaining: daysRemaining,
     expiration_state: state,
     show_modal: showModal,
-    modal_key: showModal ? `expiration:${expirationDate}:${state}` : null,
+    modal_key: showModal ? `expiration:${expirationDate}:${state}` : "",
     modal_title: modalTitle,
     modal_message: modalMessage,
   };
@@ -66,7 +67,7 @@ export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | nul
     : -1;
   const activeExtra = activeExtraIndex >= 0 ? extraLists[activeExtraIndex] : null;
   const activeListNumber = activeExtra ? activeExtraIndex + 2 : 1;
-  const activeListName = activeExtra?.nome?.trim() || `Lista ${activeListNumber}`;
+  const activeListName = safeApkText(activeExtra?.nome).trim() || `Lista ${activeListNumber}`;
   const primaryWasRestored = !activeExtra
     && Boolean(latestEvent && latestEvent.fromDeviceUrlId !== null && latestEvent.toDeviceUrlId === null);
   const state: ApkFailoverState = activeExtra
@@ -75,7 +76,7 @@ export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | nul
   const transitionId = latestEvent?.id ?? null;
   const changedAt = latestEvent
     ? (latestEvent.createdAt instanceof Date ? latestEvent.createdAt.toISOString() : String(latestEvent.createdAt))
-    : null;
+    : "";
 
   if (state === "backup_active") {
     return {
@@ -87,7 +88,7 @@ export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | nul
       playlist_sync_mode: "background",
       playlist_sync_message: `A Lista 1 apresentou problema e você foi mudado automaticamente para ${activeListName}. Assim que normalizar, sua lista principal voltará automaticamente.`,
       reload_required: false,
-      reload_message: null,
+      reload_message: "",
       failover_transition_id: transitionId,
       changed_at: changedAt,
     };
@@ -103,7 +104,7 @@ export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | nul
       playlist_sync_mode: "background",
       playlist_sync_message: "A Lista 1 voltou ao normal e foi restaurada automaticamente.",
       reload_required: false,
-      reload_message: null,
+      reload_message: "",
       failover_transition_id: transitionId,
       changed_at: changedAt,
     };
@@ -115,10 +116,10 @@ export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | nul
     active_list_name: "Lista 1",
     active_list_number: 1,
     playlist_sync_required: false,
-    playlist_sync_mode: null,
-    playlist_sync_message: null,
+    playlist_sync_mode: "",
+    playlist_sync_message: "",
     reload_required: false,
-    reload_message: null,
+    reload_message: "",
     failover_transition_id: transitionId,
     changed_at: changedAt,
   };
@@ -145,7 +146,7 @@ function mapNotification(alert: any, acknowledgedAlertIds: Set<number>) {
     severity: alert.type,
     title: status === "failure" ? "Aviso sobre sua lista" : "Lista normalizada",
     message: getClientFacingListMessage(status),
-    created_at: alert.createdAt instanceof Date ? alert.createdAt.toISOString() : String(alert.createdAt),
+    created_at: safeApkText(alert.createdAt instanceof Date ? alert.createdAt.toISOString() : alert.createdAt),
     acknowledged: acknowledgedAlertIds.has(alert.id),
   };
 }

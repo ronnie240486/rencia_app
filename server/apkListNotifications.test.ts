@@ -36,7 +36,7 @@ describe("notificações de lista para APK", () => {
       { dataExpiracao: "2026-08-20", status: "Liberado" },
       new Date(2026, 7, 14, 10),
     );
-    expect(upcoming).toMatchObject({ expiration_state: "upcoming", show_modal: false, modal_message: null });
+    expect(upcoming).toMatchObject({ expiration_state: "upcoming", show_modal: false, modal_message: "" });
   });
 
   it("mostra aviso de acesso vencido para a data já expirada", () => {
@@ -86,5 +86,27 @@ describe("notificações de lista para APK", () => {
       failover_transition_id: 92,
     });
     expect(status.playlist_sync_message).toContain("Lista 1 voltou ao normal");
+  });
+
+  it("não envia texto null ao aplicativo quando não há aviso nem troca de lista", () => {
+    const expiration = buildApkExpirationNotice(
+      { dataExpiracao: null, status: "Liberado" },
+      new Date(2026, 7, 14, 10),
+    );
+    const failover = buildApkFailoverStatus({ activeDeviceUrlId: null }, [], null);
+
+    expect(expiration).toMatchObject({
+      show_modal: false,
+      modal_key: "",
+      modal_title: "",
+      modal_message: "",
+    });
+    expect(failover).toMatchObject({
+      playlist_sync_required: false,
+      playlist_sync_mode: "",
+      playlist_sync_message: "",
+      reload_message: "",
+      changed_at: "",
+    });
   });
 });

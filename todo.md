@@ -681,3 +681,8 @@
 - [x] Substituir valores nulos por textos ou valores seguros no backend
 - [x] Validar as respostas de OuroPro, Ultra Player e Maximus sem null visível
 - [x] Retornar conteúdo vazio em vez de null na rota compartilhada de conteúdo assistido
+
+## Bolha Periódica Null no OuroPro
+- [x] Rastrear a resposta periódica que faz o OuroPro exibir uma bolha com texto null
+- [x] Impedir que o painel entregue mensagem nula, vazia ou inválida ao APK
+- [x] Validar que a sincronização periódica continua ativa sem bolha null
