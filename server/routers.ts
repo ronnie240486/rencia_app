@@ -29,6 +29,7 @@ import { buildMaintenanceOverview } from "./maintenanceCenter";
 import { buildApkUpdateOverview } from "./apkUpdates";
 import { getConnectionState } from "./customerProfile";
 import { hasConfirmedListFailure, probeListUrl } from "./listHealth";
+import { lookupPlaylistExpiration } from "./playlistExpiration";
 import { buildServerPilotOverview } from "./serverPilot";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 import { autoBackupSettings, backupSnapshots, historyRetentionSettings } from "../drizzle/schema";
@@ -418,6 +419,16 @@ export const appRouter = router({
     stats: protectedProcedure.query(async ({ ctx }) => {
       return getDeviceStats(ctx.user.id);
     }),
+
+    lookupExpiration: protectedProcedure
+      .input(z.object({
+        modoSelecao: z.enum(["XTeamCode", "M3U8"]),
+        urlM3u8: z.string().optional(),
+        xtServer: z.string().optional(),
+        xtUsername: z.string().optional(),
+        xtPassword: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => lookupPlaylistExpiration(input)),
 
     create: protectedProcedure
       .input(z.object({

@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { AlertTriangle, ArrowLeft, Save } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarSearch, Loader2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
@@ -108,6 +108,31 @@ export default function UserEdit() {
   }, [device, hasUserEdited]);
 
   const utils = trpc.useUtils();
+
+  const lookupExpirationMutation = trpc.devices.lookupExpiration.useMutation({
+    onSuccess: (result) => {
+      if (!result.found || !result.expirationDate) {
+        toast.message(result.message);
+        return;
+      }
+      setHasUserEdited(true);
+      setForm((current) => ({ ...current, dataExpiracao: result.expirationDate! }));
+      toast.success(`${result.message} Clique em Salvar Alterações para confirmar.`);
+    },
+    onError: (error) => toast.error(error.message || "Não foi possível consultar a validade da lista."),
+  });
+
+  const consultExpiration = () => {
+    if (form.modoSelecao === "XTeamCode" && (!form.xtServer.trim() || !form.xtUsername.trim() || !form.xtPassword.trim())) return;
+    if (form.modoSelecao === "M3U8" && !form.urlM3u8.trim()) return;
+    lookupExpirationMutation.mutate({
+      modoSelecao: form.modoSelecao,
+      urlM3u8: form.urlM3u8.trim() || undefined,
+      xtServer: form.xtServer.trim() || undefined,
+      xtUsername: form.xtUsername.trim() || undefined,
+      xtPassword: form.xtPassword.trim() || undefined,
+    });
+  };
 
   const updateMutation = trpc.devices.update.useMutation({
     onSuccess: (result) => {
@@ -282,12 +307,13 @@ export default function UserEdit() {
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       SENHA: <span className="text-red-500">*</span>
                     </Label>
-                    <Input
-                      placeholder="password"
-                      value={form.xtPassword}
-                      onChange={e => setForm(f => ({ ...f, xtPassword: e.target.value }))}
-                      className="h-10"
-                    />
+                        <Input
+                          placeholder="password"
+                          value={form.xtPassword}
+                          onChange={e => setForm(f => ({ ...f, xtPassword: e.target.value }))}
+                          onBlur={consultExpiration}
+                          className="h-10"
+                        />
                   </div>
                 </div>
                 {form.xtServer && form.xtUsername && form.xtPassword && (
@@ -306,14 +332,30 @@ export default function UserEdit() {
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   LISTA M3U8: <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  placeholder="http://servidor.com:porta/get.php?username=...&password=...&type=m3u_plus"
-                  value={form.urlM3u8}
-                  onChange={e => setForm(f => ({ ...f, urlM3u8: e.target.value }))}
-                  className="h-10 font-mono text-sm"
-                />
-              </div>
-            )}
+                  <Input
+                    placeholder="http://servidor.com:porta/get.php?username=...&password=...&type=m3u_plus"
+                    value={form.urlM3u8}
+                    onChange={e => setForm(f => ({ ...f, urlM3u8: e.target.value }))}
+                    onBlur={consultExpiration}
+                    className="h-10 font-mono text-sm"
+                  />
+                </div>
+              )}
+
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed bg-muted/40 px-3 py-2">
+              <p className="text-xs text-muted-foreground">A validade é consultada ao terminar de preencher a lista e não altera a data se o provedor não informar uma validade.</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 dark:!text-white"
+                disabled={lookupExpirationMutation.isPending}
+                onClick={consultExpiration}
+              >
+                {lookupExpirationMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CalendarSearch className="h-3.5 w-3.5" />}
+                Consultar validade
+              </Button>
+            </div>
 
             {/* App - Selecionável entre OuroPro e Maximus */}
             <div className="space-y-1.5">

@@ -6,7 +6,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarSearch, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
@@ -60,6 +60,18 @@ export default function UserCreate() {
   const [listas, setListas] = useState<ListaItem[]>([newLista(true)]);
   const [dnsList, setDnsList] = useState<Array<{ id: string; titulo: string; host: string }>>([]);
 
+  const lookupExpirationMutation = trpc.devices.lookupExpiration.useMutation({
+    onSuccess: (result) => {
+      if (!result.found || !result.expirationDate) {
+        toast.message(result.message);
+        return;
+      }
+      setForm((current) => ({ ...current, dataExpiracao: result.expirationDate! }));
+      toast.success(`${result.message} A data será salva ao cadastrar o cliente.`);
+    },
+    onError: (error) => toast.error(error.message || "Não foi possível consultar a validade da lista."),
+  });
+
   const createMutation = trpc.devices.create.useMutation({
     onSuccess: async (data) => {
       // Adicionar listas extras (além da principal)
@@ -107,6 +119,18 @@ export default function UserCreate() {
 
   const updateLista = (id: string, patch: Partial<ListaItem>) => {
     setListas(ls => ls.map(l => l.id === id ? { ...l, ...patch } : l));
+  };
+
+  const consultExpiration = (lista: ListaItem) => {
+    if (lista.modo === "XTeamCode" && (!lista.xtServer.trim() || !lista.xtUsername.trim() || !lista.xtPassword.trim())) return;
+    if (lista.modo === "M3U8" && !lista.urlM3u8.trim()) return;
+    lookupExpirationMutation.mutate({
+      modoSelecao: lista.modo,
+      urlM3u8: lista.urlM3u8.trim() || undefined,
+      xtServer: lista.xtServer.trim() || undefined,
+      xtUsername: lista.xtUsername.trim() || undefined,
+      xtPassword: lista.xtPassword.trim() || undefined,
+    });
   };
 
   const removeLista = (id: string) => {
@@ -390,6 +414,7 @@ export default function UserCreate() {
                           placeholder="password"
                           value={lista.xtPassword}
                           onChange={e => updateLista(lista.id, { xtPassword: e.target.value })}
+                          onBlur={() => consultExpiration(lista)}
                           className="h-9"
                         />
                       </div>
@@ -413,10 +438,26 @@ export default function UserCreate() {
                       placeholder="http://servidor.com:porta/get.php?username=...&password=..."
                       value={lista.urlM3u8}
                       onChange={e => updateLista(lista.id, { urlM3u8: e.target.value })}
+                      onBlur={() => consultExpiration(lista)}
                       className="h-9 font-mono text-sm"
                     />
                   </div>
                 )}
+
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed bg-muted/40 px-3 py-2">
+                  <p className="text-xs text-muted-foreground">A validade é consultada automaticamente ao terminar de informar a lista.</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 dark:!text-white"
+                    disabled={lookupExpirationMutation.isPending}
+                    onClick={() => consultExpiration(lista)}
+                  >
+                    {lookupExpirationMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CalendarSearch className="h-3.5 w-3.5" />}
+                    Consultar validade
+                  </Button>
+                </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">URL EPG (opcional):</Label>

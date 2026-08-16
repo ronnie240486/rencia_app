@@ -690,3 +690,9 @@
 ## Auditoria de Avisos e Validade de Listas
 - [x] Confirmar que avisos de vencimento, manutenção e failover permanecem ativos após a correção do OuroPro
 - [x] Verificar se a validade pode ser lida automaticamente de listas M3U e XTeam ao cadastrar um usuário
+
+## Validade Automática da Lista
+- [x] Consultar a validade informada pelo provedor ao cadastrar ou editar uma lista
+- [x] Preencher a data de vencimento somente quando o provedor retornar uma data válida
+- [x] Manter a data manual intacta quando a lista não informar validade ou a consulta falhar
+- [x] Adicionar botão de consultar validade nos formulários de cliente
