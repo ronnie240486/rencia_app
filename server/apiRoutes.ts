@@ -1473,11 +1473,11 @@ export function registerApiRoutes(app: Express) {
   };
 
   /**
-   * GET /api/v4/update.php
+   * GET /api/v4/update.php e GET /api/update.php
    * Retorna informações da última versão do APK para atualização automática.
-   * O APK consome este endpoint ao clicar em "Atualizar Aplicativo".
+   * A rota sem /v4 é mantida para versões antigas do OuroPro em TV Box.
    */
-  app.get("/api/v4/update.php", async (_req: Request, res: Response) => {
+  app.get(["/api/v4/update.php", "/api/update.php"], async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
       // SEMPRE usar URL completa (não encurtada) para evitar problemas com o OuroPro

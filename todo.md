@@ -657,14 +657,14 @@
 - [x] Preparar guia técnico e PDF prontos para os desenvolvedores
 
 ## Correção de Atualização do OuroPro
-- [ ] Verificar por que a rota de atualização não está acionando o indicador amarelo do OuroPro
-- [ ] Restaurar o contrato compatível com o botão Atualizar agora do aplicativo
-- [ ] Validar URL e versão retornadas para o OuroPro
+- [x] Verificar por que a rota de atualização não está acionando o indicador amarelo do OuroPro
+- [x] Restaurar o contrato compatível com o botão Atualizar agora do aplicativo
+- [x] Validar URL e versão retornadas para o OuroPro
 
 ## Atualização do OuroPro na TV Box
-- [ ] Comparar versão e resposta de atualização recebidas pelo celular e pela TV Box
-- [ ] Corrigir qualquer incompatibilidade do backend que impeça o indicador e o download na TV Box
-- [ ] Restaurar a rota compatível /api/update.php usada pelas versões antigas da TV Box
+- [x] Comparar versão e resposta de atualização recebidas pelo celular e pela TV Box
+- [x] Corrigir qualquer incompatibilidade do backend que impeça o indicador e o download na TV Box
+- [x] Restaurar a rota compatível /api/update.php usada pelas versões antigas da TV Box
 
 ## Diagnóstico NULL do OuroPro
 - [ ] Localizar a tela de diagnóstico de categoria ausente do OuroPro
