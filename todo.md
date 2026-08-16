@@ -675,3 +675,9 @@
 - [x] Identificar avisos de vencimento antigos que permanecem ativos após mudar a data do cliente
 - [x] Arquivar avisos antigos ao renovar ou alterar a data de vencimento
 - [x] Mostrar somente o aviso referente ao vencimento atual no modal
+
+## Texto Null nos Aplicativos
+- [x] Identificar os campos comuns que chegam nulos na tela principal dos APKs
+- [x] Substituir valores nulos por textos ou valores seguros no backend
+- [x] Validar as respostas de OuroPro, Ultra Player e Maximus sem null visível
+- [x] Retornar conteúdo vazio em vez de null na rota compartilhada de conteúdo assistido

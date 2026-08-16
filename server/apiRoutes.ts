@@ -37,6 +37,7 @@ import { resolveOptionalImagesInParallel } from "./parallelImageResolution";
 import { orderDeviceUrlsForActive } from "./devicePlaylistOrder";
 import { getNextPlaybackFailoverCandidate } from "./playbackFailover";
 import { buildAppUpdateResponse } from "./appUpdateResponse";
+import { safeApkText } from "./apkSafeValues";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -4195,13 +4196,13 @@ export function registerApiRoutes(app: Express) {
     try {
       const db = await getDb();
       if (!db) {
-        res.json({ content: null, error: 'server unavailable' });
+        res.json({ content: '', lastSeen: '', registered: false, error: 'server unavailable' });
         return;
       }
 
       const mac = req.query.mac ? String(req.query.mac).trim() : null;
       if (!mac) {
-        res.json({ content: null, error: 'mac required' });
+        res.json({ content: '', lastSeen: '', registered: false, error: 'mac required' });
         return;
       }
 
@@ -4221,19 +4222,20 @@ export function registerApiRoutes(app: Express) {
         .limit(1);
 
       if (result.length === 0) {
-        res.json({ content: null, mac: macWithColons, registered: false });
+        res.json({ content: '', mac: macWithColons, lastSeen: '', registered: false });
         return;
       }
 
       const device = result[0];
       res.json({
-        content: device.currentContent || null,
+        content: safeApkText(device.currentContent),
         mac: device.mac,
-        lastSeen: device.lastSeen?.toISOString() || null,
+        lastSeen: safeApkText(device.lastSeen?.toISOString()),
+        registered: true,
         device: {
           id: device.id,
-          nome: device.nomeServer,
-          tipo: device.tipo,
+          nome: safeApkText(device.nomeServer),
+          tipo: safeApkText(device.tipo),
         },
       });
     } catch (error) {
