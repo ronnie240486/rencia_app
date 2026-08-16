@@ -686,3 +686,7 @@
 - [x] Rastrear a resposta periódica que faz o OuroPro exibir uma bolha com texto null
 - [x] Impedir que o painel entregue mensagem nula, vazia ou inválida ao APK
 - [x] Validar que a sincronização periódica continua ativa sem bolha null
+
+## Auditoria de Avisos e Validade de Listas
+- [x] Confirmar que avisos de vencimento, manutenção e failover permanecem ativos após a correção do OuroPro
+- [x] Verificar se a validade pode ser lida automaticamente de listas M3U e XTeam ao cadastrar um usuário
