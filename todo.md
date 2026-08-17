@@ -765,8 +765,12 @@
 - [x] Exibir logo, versão, disponibilidade e botão de baixar em cada aplicativo
 
 ## Acesso Público à Loja
-- [ ] Remover o redirecionamento para login da rota pública da Loja de Todos os Aplicativos
-- [ ] Validar que somente a loja abre sem login e o painel continua protegido
+- [x] Remover o redirecionamento para login da rota pública da Loja de Todos os Aplicativos — resolvido por página pública estática separada
+- [x] Validar que somente a loja abre sem login e o painel continua protegido
+
+## Loja sem Login
+- [x] Disponibilizar um endereço de loja que não passe pela autenticação da hospedagem
+- [x] Manter o painel administrativo acessível somente com login próprio
 
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
