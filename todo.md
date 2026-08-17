@@ -746,3 +746,13 @@
 - [x] Exibir os seis aplicativos na Loja Pública com link, versão e ativação próprios
 - [x] Incluir os seis aplicativos no Ranking de Aplicativos
 - [x] Criar configurações equivalentes de imagens, ícones, mensagens, listas, MAC e atualização para cada aplicativo
+
+## Tela Completa dos Novos Aplicativos
+- [x] Reproduzir as seções completas da configuração do Maximus para Prestige, Optimus, Império Play, Infinitus, Supremus e Evolux
+- [x] Incluir uploads, prévias e tamanhos de banner, logo e imagem de fundo em cada tela
+- [x] Incluir mensagens, bloqueio, renovação, API, atualização e demais recursos do padrão Maximus
+
+## Guia Unificado de Rotas dos Aplicativos
+- [ ] Inventariar as rotas de Ouro Pro, Fusion, Maximus e novos aplicativos
+- [ ] Documentar mensagens, vencimento, failover, listas, atualizações, comandos e testes
+- [ ] Gerar um único PDF técnico pronto para os desenvolvedores

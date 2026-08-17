@@ -3,87 +3,92 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "@shared/appCatalog";
-import { Loader2, Save, Upload } from "lucide-react";
+import { ExternalLink, Image as ImageIcon, Loader2, Save, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "wouter";
 import { toast } from "sonner";
 
-const assetSuffixes = ["logo_url", "banner_url", "background_url", "message_image_url", "icon_live_tv_url", "icon_movies_url", "icon_series_url"] as const;
-const assetLabels: Record<(typeof assetSuffixes)[number], string> = {
-  logo_url: "Logo / ícone",
-  banner_url: "Banner",
-  background_url: "Imagem de fundo",
-  message_image_url: "Imagem de mensagem",
-  icon_live_tv_url: "Ícone de Canais",
-  icon_movies_url: "Ícone de Filmes",
-  icon_series_url: "Ícone de Séries",
-};
+const visualFields = [
+  ["banner_url", "Banner", "320×180px"],
+  ["logo_url", "Logo", "quadrado"],
+  ["background_url", "Imagem de fundo", "960×540px"],
+  ["message_image_url", "Imagem de mensagem", "opcional"],
+  ["icon_live_tv_url", "Ícone de Canais", "opcional"],
+  ["icon_movies_url", "Ícone de Filmes", "opcional"],
+  ["icon_series_url", "Ícone de Séries", "opcional"],
+] as const;
 
-function makeDefaults(appId: string, appName: string): Record<string, string> {
-  const prefix = `${appId}_`;
+function defaultsFor(appId: string, name: string): Record<string, string> {
+  const p = `${appId}_`;
   return {
-    [`${prefix}app_name`]: appName,
-    [`${prefix}impact_phrase`]: "",
-    [`${prefix}message_title`]: "",
-    [`${prefix}message_text`]: "",
-    [`${prefix}server_api_url`]: "",
-    [`${prefix}apk_download_url`]: "",
-    [`${prefix}apk_version`]: "",
-    ...Object.fromEntries(assetSuffixes.map((suffix) => [`${prefix}${suffix}`, ""])),
+    [`${p}app_name`]: name, [`${p}impact_phrase`]: "", [`${p}message_title`]: "", [`${p}message_text`]: "",
+    [`${p}block_title`]: `${name} - Acesso bloqueado`, [`${p}block_message`]: "Seu acesso está bloqueado ou expirado. Entre em contato com seu revendedor.",
+    [`${p}renew_button_text`]: "Renovar agora", [`${p}renew_button_url`]: "", [`${p}server_api_url`]: "", [`${p}reseller_email`]: "",
+    [`${p}apk_download_url`]: "", [`${p}apk_version`]: "", [`${p}auto_play_last_channel`]: "true", [`${p}auto_rotate`]: "false",
+    [`${p}current_plan`]: "Premium", [`${p}quality`]: "1080p", [`${p}subtitles`]: "Português", [`${p}audio_track`]: "Português",
+    [`${p}image_ratio`]: "16:9", [`${p}buffer_size`]: "Médio", [`${p}retry_attempts`]: "3", [`${p}show_most_watched`]: "true",
+    [`${p}show_recently_watched`]: "true", [`${p}language`]: "pt-BR", [`${p}contact_email`]: "",
+    ...Object.fromEntries(visualFields.map(([field]) => [`${p}${field}`, ""])),
   };
 }
 
-function AssetUpload({ field, busy, onUpload }: { field: string; busy: boolean; onUpload: (file: File) => void }) {
-  const ref = useRef<HTMLInputElement>(null);
-  return <><input ref={ref} className="hidden" type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) onUpload(file); event.target.value = ""; }} /><Button type="button" size="icon" variant="outline" disabled={busy} onClick={() => ref.current?.click()} title="Enviar imagem">{busy ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}</Button></>;
+function UploadButton({ field, busy, onFile }: { field: string; busy: boolean; onFile: (file: File) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return <><input ref={inputRef} className="hidden" type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) onFile(file); e.target.value = ""; }} /><Button type="button" size="icon" variant="outline" onClick={() => inputRef.current?.click()} disabled={busy} title="Enviar imagem">{busy ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}</Button></>;
 }
 
 export default function GenericAppSettings() {
-  const params = useParams<{ appId: string }>();
-  const appId = params.appId || "";
+  const { appId = "" } = useParams<{ appId: string }>();
   const app = isManagedAppId(appId) && NEW_MANAGED_APP_IDS.includes(appId) ? MANAGED_APP_CATALOG[appId] : null;
-  const { data: settings, isLoading, refetch } = trpc.settings.getAll.useQuery();
+  const { data: allSettings, isLoading, refetch } = trpc.settings.getAll.useQuery();
   const [form, setForm] = useState<Record<string, string>>({});
-  const [ready, setReady] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const save = trpc.settings.updateMany.useMutation({ onSuccess: () => { toast.success("Configurações salvas!"); setDirty(false); refetch(); }, onError: (error) => toast.error(error.message) });
 
   useEffect(() => {
-    if (!app || !settings || ready) return;
-    const next = makeDefaults(app.id, app.displayName);
-    Object.keys(next).forEach((key) => { if (settings[key] != null) next[key] = String(settings[key]); });
-    setForm(next);
-    setReady(true);
-  }, [app, ready, settings]);
+    if (!app || !allSettings || initialized) return;
+    const values = defaultsFor(app.id, app.displayName);
+    Object.keys(values).forEach((key) => { if (allSettings[key] !== undefined && allSettings[key] !== null) values[key] = String(allSettings[key]); });
+    setForm(values); setInitialized(true);
+  }, [app, allSettings, initialized]);
 
   if (!app) return <AdminLayout title="Aplicativo"><div className="p-6 text-muted-foreground">Aplicativo não encontrado.</div></AdminLayout>;
-  const prefix = `${app.id}_`;
-  const update = (key: string, value: string) => { setForm((current) => ({ ...current, [key]: value })); setDirty(true); };
-  const upload = async (field: string, file: File) => {
-    try {
-      setUploading(field);
-      const body = new FormData();
-      body.append("image", file);
-      body.append("field", field);
-      const response = await fetch("/api/upload-image", { method: "POST", body, credentials: "include" });
-      if (!response.ok) throw new Error("Não foi possível enviar a imagem.");
-      const { url } = await response.json() as { url: string };
-      const next = { ...form, [field]: url };
-      setForm(next);
-      await save.mutateAsync(next);
-      toast.success("Imagem enviada e salva!");
-    } catch (error: any) { toast.error(error.message || "Erro no upload."); } finally { setUploading(null); }
+  const p = `${app.id}_`;
+  const field = (key: string) => `${p}${key}`;
+  const change = (key: string, value: string) => { setForm((current) => ({ ...current, [key]: value })); setDirty(true); };
+  const toggle = (key: string, checked: boolean) => change(key, checked ? "true" : "false");
+  const isOn = (key: string) => form[key] === "true";
+  const uploadImage = async (key: string, file: File) => {
+    try { setUploading(key); const body = new FormData(); body.append("image", file); body.append("field", key); const response = await fetch("/api/upload-image", { method: "POST", body, credentials: "include" }); if (!response.ok) throw new Error("Não foi possível enviar a imagem."); const { url } = await response.json() as { url: string }; const values = { ...form, [key]: url }; setForm(values); await save.mutateAsync(values); toast.success("Imagem enviada e salva!"); } catch (error: any) { toast.error(error.message || "Erro no upload."); } finally { setUploading(null); }
   };
+  const selection = (label: string, key: string, values: string[]) => <div className="space-y-2"><Label>{label}</Label><Select value={form[field(key)] || values[0]} onValueChange={(value) => change(field(key), value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{values.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>;
+  const textInput = (label: string, key: string, type = "text", placeholder = "") => <div className="space-y-2"><Label>{label}</Label><Input type={type} value={form[field(key)] || ""} onChange={(e) => change(field(key), e.target.value)} placeholder={placeholder} /></div>;
 
-  return <AdminLayout title={app.displayName}>
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h1 className="text-2xl font-bold">{app.displayName}</h1><p className="text-sm text-muted-foreground">Personalize imagens, mensagens, listas, integração por MAC e atualização deste aplicativo.</p></div><Button className="gap-2 btn-save" onClick={() => save.mutate(form)} disabled={!dirty || save.isPending}>{save.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Salvar alterações</Button></div>
-      <Card><CardHeader><CardTitle>Imagens e ícones</CardTitle><CardDescription>Use upload para logo, banner, fundo, avisos e os ícones do conteúdo.</CardDescription></CardHeader><CardContent className="grid gap-5 sm:grid-cols-2">{assetSuffixes.map((suffix) => { const field = `${prefix}${suffix}`; return <div key={field} className="space-y-2"><Label>{assetLabels[suffix]}</Label><div className="flex gap-2"><Input value={form[field] || ""} onChange={(event) => update(field, event.target.value)} placeholder="URL da imagem" /><AssetUpload field={field} busy={uploading === field} onUpload={(file) => upload(field, file)} /></div>{form[field] && <img src={form[field]} alt={assetLabels[suffix]} className="max-h-28 rounded border object-contain" />}</div>; })}</CardContent></Card>
-      <Card><CardHeader><CardTitle>Mensagens, integração e atualização</CardTitle><CardDescription>As configurações são entregues ao APK pelo endpoint próprio do aplicativo usando o MAC.</CardDescription></CardHeader><CardContent className="space-y-4"><div><Label>Nome do aplicativo</Label><Input value={form[`${prefix}app_name`] || ""} onChange={(event) => update(`${prefix}app_name`, event.target.value)} /></div><div><Label>Frase de impacto</Label><Textarea value={form[`${prefix}impact_phrase`] || ""} onChange={(event) => update(`${prefix}impact_phrase`, event.target.value)} /></div><div><Label>Título da mensagem</Label><Input value={form[`${prefix}message_title`] || ""} onChange={(event) => update(`${prefix}message_title`, event.target.value)} /></div><div><Label>Mensagem</Label><Textarea value={form[`${prefix}message_text`] || ""} onChange={(event) => update(`${prefix}message_text`, event.target.value)} /></div><div><Label>API do Servidor</Label><Input value={form[`${prefix}server_api_url`] || ""} onChange={(event) => update(`${prefix}server_api_url`, event.target.value)} placeholder="https://..." /></div><div><Label>URL de atualização do APK</Label><Input value={form[`${prefix}apk_download_url`] || ""} onChange={(event) => update(`${prefix}apk_download_url`, event.target.value)} placeholder="https://...apk" /></div><div><Label>Versão do APK</Label><Input value={form[`${prefix}apk_version`] || ""} onChange={(event) => update(`${prefix}apk_version`, event.target.value)} placeholder="Ex.: 1.0.0" /></div></CardContent></Card>
-    </div>
-  </AdminLayout>;
+  return <AdminLayout title={app.displayName}><div className="mx-auto max-w-5xl space-y-6 p-1 sm:p-3">
+    <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-primary">Aplicativo personalizado</p><h1 className="mt-1 text-3xl font-black">{app.displayName}</h1><p className="mt-1 text-sm text-muted-foreground">A mesma estrutura completa de personalização do Maximus Player.</p></div><Button onClick={() => save.mutate(form)} disabled={!dirty || save.isPending || isLoading} className="gap-2 btn-save">{save.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Salvar tudo</Button></div>
+
+    <Card><CardHeader><CardTitle>{app.displayName} — Imagens</CardTitle><CardDescription>Personalize banner, logo, fundo, avisos e os ícones mostrados no aplicativo.</CardDescription></CardHeader><CardContent className="grid gap-6 md:grid-cols-2">{visualFields.map(([key, label, hint]) => { const full = field(key); const url = form[full]; return <div key={key} className="space-y-2"><Label>{label} <span className="text-muted-foreground">({hint})</span></Label><div className="flex gap-2"><Input value={url || ""} onChange={(e) => change(full, e.target.value)} placeholder="https://..." /><UploadButton field={full} busy={uploading === full} onFile={(file) => uploadImage(full, file)} /></div><div className="flex h-28 w-full items-center justify-center overflow-hidden rounded-lg border bg-muted/30">{url ? <img src={url} alt={label} className="h-full w-full object-contain" /> : <ImageIcon className="text-muted-foreground" size={24} />}</div></div>; })}</CardContent></Card>
+
+    <Card><CardHeader><CardTitle>Tela de Bloqueio / Expirado</CardTitle><CardDescription>Defina o texto e o botão que aparecem quando o cliente estiver bloqueado ou vencido.</CardDescription></CardHeader><CardContent className="grid gap-4 md:grid-cols-2">{textInput("Título da tela de bloqueio", "block_title")}<div className="space-y-2"><Label>Mensagem de bloqueio</Label><Textarea value={form[field("block_message")] || ""} onChange={(e) => change(field("block_message"), e.target.value)} /></div>{textInput("Texto do botão de renovação", "renew_button_text")} {textInput("URL do botão de renovação", "renew_button_url", "url", "https://...")}</CardContent></Card>
+
+    <Card><CardHeader><CardTitle>Configurações Gerais</CardTitle><CardDescription>Comportamento inicial e plano exibido no aplicativo.</CardDescription></CardHeader><CardContent className="grid gap-5 md:grid-cols-2"><div className="flex items-center justify-between rounded-lg border p-3"><Label>Reproduzir último canal automaticamente</Label><Switch checked={isOn(field("auto_play_last_channel"))} onCheckedChange={(checked) => toggle(field("auto_play_last_channel"), checked)} /></div><div className="flex items-center justify-between rounded-lg border p-3"><Label>Rotação automática</Label><Switch checked={isOn(field("auto_rotate"))} onCheckedChange={(checked) => toggle(field("auto_rotate"), checked)} /></div>{selection("Plano atual", "current_plan", ["Gratuito", "Premium", "Pro"])}</CardContent></Card>
+
+    <Card><CardHeader><CardTitle>Configurações do Reprodutor</CardTitle><CardDescription>Qualidade, legenda, áudio, imagem, buffer e tentativas de reprodução.</CardDescription></CardHeader><CardContent className="grid gap-4 md:grid-cols-2">{selection("Qualidade de vídeo", "quality", ["480p", "720p", "1080p", "4K"])}{selection("Legendas", "subtitles", ["Desativado", "Português", "Inglês", "Espanhol"])}{selection("Faixa de áudio", "audio_track", ["Português", "Inglês", "Espanhol"])}{selection("Proporção da imagem", "image_ratio", ["Preenchimento", "Ajuste", "Esticamento", "16:9", "4:3"])}{selection("Tamanho do buffer", "buffer_size", ["Pequeno", "Médio", "Grande"])}{textInput("Tentar novamente (1 a 10)", "retry_attempts", "number")}</CardContent></Card>
+
+    <Card><CardHeader><CardTitle>Conteúdo Assistido</CardTitle><CardDescription>Defina quais seções de histórico serão visíveis no aplicativo.</CardDescription></CardHeader><CardContent className="grid gap-5 md:grid-cols-2"><div className="flex items-center justify-between rounded-lg border p-3"><Label>Mostrar mais assistidos</Label><Switch checked={isOn(field("show_most_watched"))} onCheckedChange={(checked) => toggle(field("show_most_watched"), checked)} /></div><div className="flex items-center justify-between rounded-lg border p-3"><Label>Mostrar recentemente visto</Label><Switch checked={isOn(field("show_recently_watched"))} onCheckedChange={(checked) => toggle(field("show_recently_watched"), checked)} /></div><div className="md:col-span-2 space-y-2"><Label>Frase de impacto</Label><Textarea value={form[field("impact_phrase")] || ""} onChange={(e) => change(field("impact_phrase"), e.target.value)} /></div></CardContent></Card>
+
+    <Card><CardHeader><CardTitle>Mensagens, API e Renovação</CardTitle><CardDescription>Integração com o painel, comunicação e contato do revendedor.</CardDescription></CardHeader><CardContent className="grid gap-4 md:grid-cols-2"><div className="space-y-2"><Label>Título da mensagem</Label><Input value={form[field("message_title")] || ""} onChange={(e) => change(field("message_title"), e.target.value)} /></div>{textInput("API do Servidor", "server_api_url", "url", "https://...")}{textInput("Email do revendedor", "reseller_email", "email")}<div className="space-y-2"><Label>Mensagem do aplicativo</Label><Textarea value={form[field("message_text")] || ""} onChange={(e) => change(field("message_text"), e.target.value)} /></div></CardContent></Card>
+
+    <Card><CardHeader><CardTitle>Atualização do {app.displayName}</CardTitle><CardDescription>URL exclusiva de atualização usada somente por este aplicativo.</CardDescription></CardHeader><CardContent className="grid gap-4 md:grid-cols-2">{textInput("URL de atualização do APK", "apk_download_url", "url", "https://...apk")}{textInput("Versão do APK", "apk_version", "text", "Ex.: 1.0.0")}</CardContent></Card>
+
+    <Card><CardHeader><CardTitle>Integração por MAC e listas</CardTitle><CardDescription>O APK recebe o visual, as listas ativas e os recursos desta página pelo MAC cadastrado.</CardDescription></CardHeader><CardContent className="space-y-3"><code className="block break-all rounded bg-muted p-3 text-xs">GET /api/v5/apps/{app.id}/config?mac={'{MAC}'}</code><code className="block break-all rounded bg-muted p-3 text-xs">GET /api/v5/apps/{app.id}/update?mac={'{MAC}'}</code><p className="text-sm text-muted-foreground">As listas são cadastradas no cliente. Quando a Lista 1 falhar, o aplicativo deve consultar os avisos do painel, recarregar a playlist em segundo plano e manter a reprodução ativa.</p><a href="/device-lists" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"><ExternalLink size={15} /> Gerenciar listas de clientes</a></CardContent></Card>
+    <Button onClick={() => save.mutate(form)} disabled={!dirty || save.isPending || isLoading} className="w-full gap-2 btn-save">{save.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Salvar todas as configurações</Button>
+  </div></AdminLayout>;
 }

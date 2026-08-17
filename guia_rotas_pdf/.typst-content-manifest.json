@@ -1,0 +1,11 @@
+{
+  "task_kind": "new-document",
+  "output": "pdf",
+  "signals": [],
+  "hard_constraints": ["technical integration reference", "Brazilian Portuguese", "single PDF"],
+  "content_features": {
+    "code_blocks": 18,
+    "defined_terms": 14,
+    "portrait_images": 0
+  }
+}
