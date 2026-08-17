@@ -700,3 +700,8 @@
 ## API do Servidor por Aplicativo
 - [x] Confirmar qual aplicativo recebe a URL de API configurada no Maximus
 - [x] Verificar se a URL é enviada indevidamente ao OuroPro ou se o OuroPro não possui integração para consumi-la
+
+## Auditoria do Teste Maximus
+- [x] Confirmar os endpoints que o OuroPro deve chamar no painel
+- [x] Rastrear o destino de nome e telefone informados durante o teste do Maximus
+- [x] Confirmar se o painel grava ou encaminha os dados do formulário de teste
