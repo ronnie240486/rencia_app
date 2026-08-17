@@ -751,6 +751,10 @@
 - [x] Aplicar os logos corretos na Loja, Ranking, cards e abas de configuração
 - [x] Preservar o logo já configurado do Ouro Pro
 
+## Logo Atualizado do Império Play
+- [x] Substituir o logo anterior do Império Play pelo novo arquivo enviado
+- [x] Aplicar o novo logo na Loja, Ranking, página pública e configurações
+
 ## Troca do Logo Ultra para Fusion
 - [x] Substituir o logo legado do Ultra pelo logo Fusion em configurações e respostas públicas
 - [x] Atualizar o valor salvo do logo Ultra para impedir que ele sobrescreva o Fusion

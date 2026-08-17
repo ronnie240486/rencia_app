@@ -51,7 +51,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/imperio",
     publicSlug: "imperio",
     deviceAliases: ["Império Play", "Imperio Play"],
-    defaultLogoUrl: "/manus-storage/imperio-play_a4070253.jpg",
+    defaultLogoUrl: "/manus-storage/imperio-play_cf24839c.png",
   },
   infinitus: {
     id: "infinitus",
