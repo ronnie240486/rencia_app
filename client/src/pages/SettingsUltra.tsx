@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import AdminLayout from "@/components/AdminLayout";
 
 const DEFAULTS: Record<string, string> = {
-  ultra_app_name: "Ultra Player",
+  ultra_app_name: "Fusion",
   ultra_logo_url: "/manus-storage/ultra-player-logo_efd734bc.png",
   ultra_banner_url: "",
   ultra_background_url: "",
@@ -42,7 +42,7 @@ function ImageUpload({ field, busy, onUpload }: { field: string; busy: boolean; 
 
 export default function SettingsUltra() {
   const { data: settings, isLoading, refetch } = trpc.settings.getAll.useQuery();
-  const save = trpc.settings.updateMany.useMutation({ onSuccess: () => { toast.success("Configurações do Ultra Player salvas!"); refetch(); } });
+  const save = trpc.settings.updateMany.useMutation({ onSuccess: () => { toast.success("Configurações do Fusion salvas!"); refetch(); } });
   const [form, setForm] = useState(DEFAULTS);
   const [uploading, setUploading] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -52,6 +52,7 @@ export default function SettingsUltra() {
     if (!settings || settingsInitializedRef.current) return;
     const merged = { ...DEFAULTS };
     Object.entries(settings).forEach(([key, value]) => { if (key.startsWith("ultra_") && value != null) merged[key] = String(value); });
+    if (merged.ultra_app_name === "Ultra Player") merged.ultra_app_name = "Fusion";
     setForm(merged);
     settingsInitializedRef.current = true;
   }, [settings]);
@@ -78,7 +79,7 @@ export default function SettingsUltra() {
     finally { setUploading(null); }
   };
   const imageFields = [
-    ["ultra_logo_url", "Logo / ícone do Ultra Player", "Ícone exibido na Loja e no aplicativo"],
+    ["ultra_logo_url", "Logo / ícone do Fusion", "Ícone exibido na Loja e no aplicativo"],
     ["ultra_banner_url", "Banner", "Banner principal do aplicativo"],
     ["ultra_background_url", "Imagem de fundo", "Fundo da tela inicial do aplicativo"],
     ["ultra_message_image_url", "Imagem de mensagem", "Imagem usada nos avisos e mensagens"],
@@ -87,24 +88,24 @@ export default function SettingsUltra() {
     ["ultra_icon_series_url", "Ícone de Séries", "Ícone do botão de séries"],
   ] as const;
 
-  if (isLoading) return <AdminLayout title="Ultra Player"><div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin" /></div></AdminLayout>;
-  return <AdminLayout title="Ultra Player">
+  if (isLoading) return <AdminLayout title="Fusion"><div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin" /></div></AdminLayout>;
+  return <AdminLayout title="Fusion">
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div><h1 className="text-2xl font-bold">Ultra Player</h1><p className="text-sm text-muted-foreground">Imagens, mensagens e API configuráveis com upload direto.</p></div>
+        <div><h1 className="text-2xl font-bold">Fusion</h1><p className="text-sm text-muted-foreground">Imagens, mensagens e API configuráveis com upload direto.</p></div>
         <Button onClick={() => save.mutate(form, { onSuccess: () => setDirty(false) })} disabled={!dirty || save.isPending} className="gap-2 btn-save"><Save size={16} />Salvar alterações</Button>
       </div>
       <Card><CardHeader><CardTitle>Imagens e ícones</CardTitle><CardDescription>Use o botão de upload para mudar logo, banner, fundo, mensagem e os ícones de Canais, Filmes e Séries. A URL será preenchida automaticamente.</CardDescription></CardHeader><CardContent className="grid gap-5 sm:grid-cols-2">
         {imageFields.map(([field, label, hint]) => <div className="space-y-2" key={field}><Label>{label}</Label><div className="flex gap-2"><Input value={form[field]} onChange={e => update(field, e.target.value)} placeholder="URL da imagem" /><ImageUpload field={field} busy={uploading === field} onUpload={file => upload(field, file)} /></div><p className="text-xs text-muted-foreground">{hint}</p>{form[field] && <img src={form[field]} className="max-h-28 rounded border object-contain" alt={label} />}</div>)}
       </CardContent></Card>
-      <Card><CardHeader><CardTitle>Mensagens e conexão</CardTitle><CardDescription>Dados enviados ao APK quando o desenvolvedor integrar a rota do Ultra Player.</CardDescription></CardHeader><CardContent className="space-y-4">
+      <Card><CardHeader><CardTitle>Mensagens e conexão</CardTitle><CardDescription>Dados enviados ao APK quando o desenvolvedor integrar a rota do Fusion.</CardDescription></CardHeader><CardContent className="space-y-4">
         <div><Label>Nome do aplicativo</Label><Input value={form.ultra_app_name} onChange={e => update("ultra_app_name", e.target.value)} /></div>
         <div><Label>Frase de impacto</Label><Textarea value={form.ultra_impact_phrase} onChange={e => update("ultra_impact_phrase", e.target.value)} /></div>
         <div><Label>Título da mensagem</Label><Input value={form.ultra_message_title} onChange={e => update("ultra_message_title", e.target.value)} /></div>
         <div><Label>Mensagem</Label><Textarea value={form.ultra_message_text} onChange={e => update("ultra_message_text", e.target.value)} /></div>
         <div><Label>API do Servidor</Label><Input value={form.ultra_server_api_url} onChange={e => update("ultra_server_api_url", e.target.value)} placeholder="https://..." /></div>
-        <div><Label>URL de atualização do Ultra Player</Label><Input value={form.ultra_apk_download_url} onChange={e => update("ultra_apk_download_url", e.target.value)} placeholder="https://...apk" /><p className="text-xs text-muted-foreground">Usada somente pelo botão de atualização do Ultra Player.</p></div>
-        <div><Label>Versão do Ultra Player</Label><Input value={form.ultra_apk_version} onChange={e => update("ultra_apk_version", e.target.value)} placeholder="Ex.: 1.0.0" /></div>
+        <div><Label>URL de atualização do Fusion</Label><Input value={form.ultra_apk_download_url} onChange={e => update("ultra_apk_download_url", e.target.value)} placeholder="https://...apk" /><p className="text-xs text-muted-foreground">Usada somente pelo botão de atualização do Fusion.</p></div>
+        <div><Label>Versão do Fusion</Label><Input value={form.ultra_apk_version} onChange={e => update("ultra_apk_version", e.target.value)} placeholder="Ex.: 1.0.0" /></div>
       </CardContent></Card>
     </div>
   </AdminLayout>;

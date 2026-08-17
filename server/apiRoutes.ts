@@ -1227,8 +1227,8 @@ export function registerApiRoutes(app: Express) {
         res.status(404).json({ registered: false, error: "MAC não cadastrado." });
         return;
       }
-      if (device.app !== "Ultra Player") {
-        res.status(403).json({ registered: true, error: "Este MAC não está vinculado ao Ultra Player." });
+      if (device.app !== "Ultra Player" && device.app !== "Fusion") {
+        res.status(403).json({ registered: true, error: "Este MAC não está vinculado ao Fusion." });
         return;
       }
       if (device.status !== "Liberado") {
@@ -1264,7 +1264,7 @@ export function registerApiRoutes(app: Express) {
       });
     } catch (error) {
       console.error("[API] /api/v5/ultra-config error:", error);
-      res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do Ultra Player." });
+      res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do Fusion." });
     }
   });
 
@@ -1292,17 +1292,17 @@ export function registerApiRoutes(app: Express) {
         res.status(404).json({ registered: false, error: "MAC não cadastrado." });
         return;
       }
-      if (device.app !== "Ultra Player") {
-        res.status(403).json({ registered: true, error: "Este MAC não está vinculado ao Ultra Player." });
+      if (device.app !== "Ultra Player" && device.app !== "Fusion") {
+        res.status(403).json({ registered: true, error: "Este MAC não está vinculado ao Fusion." });
         return;
       }
 
       const settings = await getSettings();
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.json({ registered: true, allowed: device.status === "Liberado", ...buildAppUpdateResponse("Ultra Player", settings.ultra_apk_download_url || "", settings.ultra_apk_version || "1.0.0") });
+      res.json({ registered: true, allowed: device.status === "Liberado", ...buildAppUpdateResponse("Fusion", settings.ultra_apk_download_url || "", settings.ultra_apk_version || "1.0.0") });
     } catch (error) {
       console.error("[API] /api/v5/ultra-update error:", error);
-      res.status(500).json({ error: "Não foi possível obter a atualização do Ultra Player." });
+      res.status(500).json({ error: "Não foi possível obter a atualização do Fusion." });
     }
   });
 

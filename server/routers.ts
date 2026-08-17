@@ -2476,7 +2476,7 @@ export const appRouter = router({
       
       const ouropro = counts['OuroPro'] || 0;
       const maximus = (counts['Maximus'] || 0) + (counts['Maximus Player'] || 0);
-      const ultra = counts['Ultra Player'] || 0;
+      const ultra = (counts['Ultra Player'] || 0) + (counts['Fusion'] || 0);
       
       return {
         ouropro,

@@ -220,9 +220,9 @@ export default function UserCreate() {
                   <SelectValue placeholder="Selecione um app" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="OuroPro">OuroPro</SelectItem>
+                  <SelectItem value="OuroPro">Ouro Pro</SelectItem>
                   <SelectItem value="Maximus">Maximus</SelectItem>
-                  <SelectItem value="Ultra Player">Ultra Player</SelectItem>
+                  <SelectItem value="Ultra Player">Fusion</SelectItem>
                   <SelectItem value="Outro">Outro aplicativo</SelectItem>
                 </SelectContent>
               </Select>

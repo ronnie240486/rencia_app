@@ -246,7 +246,7 @@ export default function Settings() {
 
   if (isLoading) {
     return (
-      <AdminLayout title="OuroPro">
+      <AdminLayout title="Ouro Pro">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="animate-spin text-muted-foreground" size={32} />
         </div>
@@ -255,7 +255,7 @@ export default function Settings() {
   }
 
   return (
-    <AdminLayout title="OuroPro">
+    <AdminLayout title="Ouro Pro">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-muted-foreground text-sm">
@@ -268,11 +268,11 @@ export default function Settings() {
         </div>
 
         <div className="space-y-6">
-          {/* ═══ SEÇÃO 1: OuroPro (Banner + Ícones) ═══ */}
+          {/* ═══ SEÇÃO 1: Ouro Pro (Banner + Ícones) ═══ */}
           {isOuroPro && (
           <Card>
             <CardHeader>
-              <CardTitle>OuroPro</CardTitle>
+              <CardTitle>Ouro Pro</CardTitle>
               <CardDescription>Personalize banner, logo e ícones do seu painel</CardDescription>
             </CardHeader>
             <CardContent>

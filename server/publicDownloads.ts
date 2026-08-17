@@ -38,7 +38,7 @@ export function buildPublicDownloadApps(settings: Settings): PublicDownloadApp[]
   }> = [
     {
       slug: "ouropro",
-      name: "OuroPro",
+      name: "Ouro Pro",
       accent: "gold",
       fallbackDownload: settings.apk_download_url,
       fallbackVersion: settings.apk_version,
@@ -46,7 +46,7 @@ export function buildPublicDownloadApps(settings: Settings): PublicDownloadApp[]
     },
     {
       slug: "ultra",
-      name: "Ultra Player",
+      name: "Fusion",
       accent: "violet",
       fallbackDownload: settings.ultra_apk_download_url,
       fallbackVersion: settings.ultra_apk_version,

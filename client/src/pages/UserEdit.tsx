@@ -368,9 +368,9 @@ export default function UserEdit() {
                   <SelectValue placeholder="Selecione o app" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="OuroPro">OuroPro</SelectItem>
+                  <SelectItem value="OuroPro">Ouro Pro</SelectItem>
                   <SelectItem value="Maximus">Maximus Player</SelectItem>
-                  <SelectItem value="Ultra Player">Ultra Player</SelectItem>
+                  <SelectItem value="Ultra Player">Fusion</SelectItem>
                   <SelectItem value="Outro">Outro aplicativo</SelectItem>
                 </SelectContent>
               </Select>

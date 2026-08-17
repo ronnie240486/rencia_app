@@ -733,3 +733,9 @@
 ## Contrato de Configuração do Maximus
 - [x] Documentar a rota check_mac.php como a única fonte de dns_url para o aplicativo
 - [x] Diferenciar a rota de provisionamento externo da rota de configuração do painel
+
+## Organização de Aplicativos
+- [x] Renomear Configurações do Ouro para Ouro Pro na navegação e nas telas
+- [x] Renomear Ultra Player para Fusion preservando todas as configurações atuais
+- [x] Preparar a base de recursos comuns para cadastrar próximos aplicativos
+- [x] Manter para cada aplicativo imagens, ícones, mensagens, listas, atualização e integração por MAC

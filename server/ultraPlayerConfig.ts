@@ -20,7 +20,7 @@ export function normalizeMacAddress(value: string): string | null {
 /** Converte as chaves administrativas em um contrato estável para o APK. */
 export function buildUltraPlayerConfig(settings: UltraSettings, images: UltraImageUrls = {}) {
   const config = {
-    app_name: settings.ultra_app_name || "Ultra Player",
+    app_name: settings.ultra_app_name === "Ultra Player" ? "Fusion" : (settings.ultra_app_name || "Fusion"),
     impact_phrase: settings.ultra_impact_phrase || "",
     message_title: settings.ultra_message_title || "",
     message_text: settings.ultra_message_text || "",

@@ -526,9 +526,9 @@ export default function Users() {
               <Label>Aplicativo</Label>
               <select value={bulkApp} onChange={e => setBulkApp(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">Não alterar</option>
-                <option value="OuroPro">OuroPro</option>
+                <option value="OuroPro">Ouro Pro</option>
                 <option value="Maximus Player">Maximus Player</option>
-                <option value="Ultra Player">Ultra Player</option>
+                <option value="Ultra Player">Fusion</option>
                 <option value="Outro">Outro aplicativo</option>
               </select>
             </div>

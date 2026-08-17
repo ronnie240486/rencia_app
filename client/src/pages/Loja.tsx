@@ -26,8 +26,8 @@ interface AppConfig {
 }
 
 const APPS: AppConfig[] = [
-  { name: "OuroPro", logo: "/manus-storage/ouropro_logo_c0c3caef.png", color: "yellow", publicSlug: "ouropro" },
-  { name: "Ultra Player", logo: "/manus-storage/ultra-player-logo_efd734bc.png", color: "purple", publicSlug: "ultra" },
+  { name: "Ouro Pro", logo: "/manus-storage/ouropro_logo_c0c3caef.png", color: "yellow", publicSlug: "ouropro" },
+  { name: "Fusion", logo: "/manus-storage/ultra-player-logo_efd734bc.png", color: "purple", publicSlug: "ultra" },
   { name: "Maximus Player", logo: "", color: "blue", publicSlug: "maximus" },
 ];
 

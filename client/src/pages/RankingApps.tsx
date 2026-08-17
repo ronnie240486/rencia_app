@@ -20,9 +20,9 @@ export default function RankingApps() {
   
   const appCounts = useMemo(() => {
     return {
-      'OuroPro': appStats?.ouropro || 0,
+      'Ouro Pro': appStats?.ouropro || 0,
       'Maximus': appStats?.maximus || 0,
-      'Ultra Player': appStats?.ultra || 0,
+      'Fusion': appStats?.ultra || 0,
     };
   }, [appStats]);
 
@@ -32,10 +32,10 @@ export default function RankingApps() {
   const ranking: AppRanking[] = useMemo(() => {
     const apps = [
       {
-        name: "OuroPro",
+        name: "Ouro Pro",
         logo: "/manus-storage/ouropro_logo_c0c3caef.png",
         color: "yellow",
-        users: appCounts['OuroPro'] || 0,
+        users: appCounts['Ouro Pro'] || 0,
       },
       {
         name: "Maximus",
@@ -44,10 +44,10 @@ export default function RankingApps() {
         users: appCounts['Maximus'] || 0,
       },
       {
-        name: "Ultra Player",
+        name: "Fusion",
         logo: "/manus-storage/ultra-player-logo_efd734bc.png",
         color: "cyan",
-        users: appCounts['Ultra Player'] || 0,
+        users: appCounts['Fusion'] || 0,
       },
     ];
 
@@ -93,7 +93,7 @@ export default function RankingApps() {
               <Trophy className="w-10 h-10 text-yellow-500 animate-bounce" style={{ animationDelay: "0.2s" }} />
             </div>
             <p className="text-muted-foreground text-lg">
-              Veja quantos clientes estão usando OuroPro, Maximus e Ultra Player
+              Veja quantos clientes estão usando Ouro Pro, Maximus e Fusion
             </p>
           </div>
         </div>

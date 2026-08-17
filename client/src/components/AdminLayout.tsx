@@ -38,6 +38,7 @@ import {
   ShieldCheck,
   BellRing,
   MonitorCog,
+  Box,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -90,8 +91,9 @@ const navGroups: NavGroup[] = [
     icon: <SlidersHorizontal size={16} />,
     defaultOpen: true,
     items: [
-      { label: "Configurações de OuroPro", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
-      { label: "Ultra Player", href: "/ultra-player", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
+      { label: "Gerenciar aplicativos", href: "/aplicativos", icon: <Box size={18} />, ownerOnly: true },
+      { label: "Ouro Pro", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
+      { label: "Fusion", href: "/ultra-player", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
       { label: "Maximus Player", href: "/gpcpro", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
       { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} />, ownerOnly: true },
       { label: "Ranking de Apps", href: "/ranking-apps", icon: <BarChart3 size={18} />, ownerOnly: true },
