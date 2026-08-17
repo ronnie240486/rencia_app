@@ -714,12 +714,21 @@
 - [x] Criar rota segura para o Maximus registrar um teste concluído no painel
 - [x] Registrar o cliente pelo nome informado seguido de (teste)
 - [x] Evitar testes duplicados para o mesmo aparelho e tentativa
-- [ ] Enviar o resultado automaticamente pelo aplicativo após concluir o teste
+- [x] Enviar o resultado automaticamente pelo aplicativo após concluir o teste
 
 ## Correção do Fluxo de Teste Externo
-- [ ] Fazer o Maximus consumir a URL da API de bot recebida no campo dns_url
-- [ ] Extrair o resultado de teste da resposta da API externa sem adivinhar campos
-- [ ] Encaminhar nome, telefone e MAC ao painel somente após o teste concluir
+- [x] Fazer o Maximus consumir a URL da API de bot recebida no campo dns_url
+- [x] Extrair o resultado de teste da resposta da API externa sem adivinhar campos
+- [x] Encaminhar nome, telefone e MAC ao painel somente após o teste concluir
+
+## Contrato POST da API de Teste
+- [ ] Separar no contrato do Maximus o endpoint da API de teste e a URL de DNS que será analisada
+- [x] Enviar action=test_dns, source=maximus, MAC, nome e versão conforme o contrato recebido
+- [x] Interpretar test.status e registration.registered retornados pela API externa
+
+## URL Cadastrada como Teste do Maximus
+- [x] Entregar a URL de API cadastrada também no campo explícito test_api_url
+- [x] Enviar a mesma URL como destino do POST e como dns_url conforme a regra confirmada
 
 ## Contrato de Configuração do Maximus
 - [x] Documentar a rota check_mac.php como a única fonte de dns_url para o aplicativo

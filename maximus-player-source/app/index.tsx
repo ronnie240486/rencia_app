@@ -6,6 +6,7 @@ import {
   Pressable,
   ActivityIndicator,
   ImageBackground,
+  TextInput,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { colors, spacing } from '@/src/theme';
 import { getDeviceMac } from '@/src/lib/device';
-import { checkMac, MacStatus } from '@/src/api/client';
+import { checkMac, MacStatus, registerCompletedTest, runConfiguredDnsTest } from '@/src/api/client';
 import { saveSession, loadSession } from '@/src/state/session';
 
 const POLL_MS = 5000;
@@ -28,6 +29,10 @@ export default function MacLoginScreen() {
   const [pollCount, setPollCount] = useState(0);
   const [checking, setChecking] = useState(false);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
+  const [testName, setTestName] = useState('');
+  const [testPhone, setTestPhone] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [testFeedback, setTestFeedback] = useState('');
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
@@ -91,6 +96,23 @@ export default function MacLoginScreen() {
     if (mountedRef.current && !status?.authorized) {
       pollRef.current = setTimeout(() => runPoll(mac), POLL_MS);
     }
+  };
+
+  const onRunExternalTest = async () => {
+    const name = testName.trim();
+    const testApiUrl = status?.test_api_url || status?.dns_url;
+    if (!mac || !name || !testApiUrl || testing) return;
+
+    setTesting(true);
+    setTestFeedback('Executando teste...');
+    const result = await runConfiguredDnsTest({ testApiUrl, mac, name });
+    if (result.success && result.test?.status !== 'offline') {
+      const registration = await registerCompletedTest({ mac, name, phone: testPhone });
+      setTestFeedback(registration.success ? `Teste concluído: ${registration.name || `${name} (teste)`}` : (registration.error || 'Teste concluído, mas não foi possível registrar no painel.'));
+    } else {
+      setTestFeedback(result.message || result.test?.error || 'A URL não respondeu ao teste.');
+    }
+    setTesting(false);
   };
 
   const bg = status?.bg_url;
@@ -174,6 +196,18 @@ export default function MacLoginScreen() {
             Envie o ID acima para seu revendedor.{'\n'}
             Assim que ativado, o acesso abre automaticamente.
           </Text>
+
+          {!status?.authorized && !!(status?.test_api_url || status?.dns_url) && (
+            <View style={styles.testBox}>
+              <Text style={styles.testTitle}>TESTAR ACESSO</Text>
+              <TextInput value={testName} onChangeText={setTestName} placeholder="Seu nome" placeholderTextColor={colors.textMuted} style={styles.testInput} maxLength={80} />
+              <TextInput value={testPhone} onChangeText={setTestPhone} placeholder="Telefone (opcional)" placeholderTextColor={colors.textMuted} style={styles.testInput} keyboardType="phone-pad" maxLength={24} />
+              <Pressable onPress={onRunExternalTest} disabled={testing || !testName.trim()} style={[styles.testBtn, (testing || !testName.trim()) && { opacity: 0.5 }]} testID="maximus-run-external-test">
+                {testing ? <ActivityIndicator color={colors.black} /> : <Text style={styles.testBtnText}>FAZER TESTE</Text>}
+              </Pressable>
+              {!!testFeedback && <Text style={styles.testFeedback}>{testFeedback}</Text>}
+            </View>
+          )}
 
           {!!status?.reseller_whatsapp && (
             <View style={styles.resellerBox}>
@@ -302,6 +336,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   resellerText: { color: colors.accentCyan, fontSize: 13, fontWeight: '700' },
+  testBox: { width: '100%', marginTop: spacing.lg, gap: spacing.sm },
+  testTitle: { color: colors.textSecondary, fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
+  testInput: { width: '100%', backgroundColor: colors.darkSurfaceAlt, color: colors.white, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15 },
+  testBtn: { backgroundColor: colors.accentCyan, borderRadius: 10, alignItems: 'center', justifyContent: 'center', minHeight: 44 },
+  testBtnText: { color: colors.black, fontWeight: '800', letterSpacing: 1.2 },
+  testFeedback: { color: colors.textSecondary, fontSize: 12, lineHeight: 17 },
   diagBtn: {
     flexDirection: 'row',
     alignItems: 'center',

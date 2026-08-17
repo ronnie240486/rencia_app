@@ -20,6 +20,8 @@ Exemplo de parte relevante da resposta:
 
 `dns_url` é a URL da API externa de provisionamento/teste. O APK não deve fazer `GET` direto nela para descobrir a configuração: ela aceita o próprio contrato `POST` do fornecedor.
 
+No Maximus, a tela de ativação exibe **Testar acesso** quando esse campo estiver disponível. O aplicativo envia à mesma URL o JSON do contrato com `action: "test_dns"`, `source: "maximus"`, o MAC, o nome informado e a própria URL em `dns_url`.
+
 ## 2. Registrar o teste concluído no painel
 
 Depois que a API externa concluir o teste e devolver os dados informados pelo cliente, o Maximus deve chamar a função `registerCompletedTest` já disponível em `src/api/client.ts`.

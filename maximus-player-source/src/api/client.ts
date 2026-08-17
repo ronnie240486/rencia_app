@@ -55,6 +55,8 @@ export type MacStatus = {
   apk_link?: string;
   message?: string;
   server_name?: string;
+  dns_url?: string;
+  test_api_url?: string;
   tipo?: string;
   raw?: Record<string, unknown>;
 };
@@ -83,6 +85,13 @@ export type CompletedMaximusTestResponse = {
   device_id?: number;
   name?: string;
   error?: string;
+};
+
+export type ExternalDnsTestResult = {
+  success: boolean;
+  test?: { status?: 'online' | 'offline' | string; dns_url?: string; latency_ms?: number; error?: string };
+  registration?: { registered?: boolean; name?: string; mac?: string };
+  message?: string;
 };
 
 /**
@@ -139,6 +148,8 @@ function normalize(json: any, macFallback: string): MacStatus {
     apk_link: json.apk_link,
     message: json.error || json.message || json.mensagem,
     server_name: json.nomeServer,
+    dns_url: json.dns_url,
+    test_api_url: json.test_api_url || json.dns_url,
     tipo: json.tipo,
     raw: json,
   };
@@ -179,6 +190,35 @@ export async function registerCompletedTest(input: CompletedMaximusTest): Promis
     return (await safeJson<CompletedMaximusTestResponse>(response)) ?? { success: false, error: "Resposta inválida do painel." };
   } catch {
     return { success: false, error: "Não foi possível registrar o teste no painel." };
+  }
+}
+
+/** Executa o contrato POST da API cadastrada em Configurações do Maximus → API do Servidor. */
+export async function runConfiguredDnsTest(input: {
+  testApiUrl: string;
+  mac: string;
+  name: string;
+  appVersion?: string;
+}): Promise<ExternalDnsTestResult> {
+  if (!/^https?:\/\//i.test(input.testApiUrl)) {
+    return { success: false, message: 'URL de API de teste inválida.' };
+  }
+  try {
+    const response = await fetch(input.testApiUrl, {
+      method: 'POST',
+      headers: { ...commonHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'test_dns',
+        source: 'maximus',
+        dns_url: input.testApiUrl,
+        mac: input.mac,
+        name: `${input.name.trim().replace(/\s*\(teste\)\s*$/i, '')} (teste)`,
+        app_version: input.appVersion || '1.0.0',
+      }),
+    });
+    return (await safeJson<ExternalDnsTestResult>(response)) ?? { success: false, message: 'A API de teste não retornou JSON.' };
+  } catch {
+    return { success: false, message: 'Não foi possível chamar a API de teste.' };
   }
 }
 

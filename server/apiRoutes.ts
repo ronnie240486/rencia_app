@@ -39,6 +39,7 @@ import { getNextPlaybackFailoverCandidate } from "./playbackFailover";
 import { buildAppUpdateResponse } from "./appUpdateResponse";
 import { safeApkText } from "./apkSafeValues";
 import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistration";
+import { maximusTestConfiguration } from "./maximusTestApi";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -2030,6 +2031,8 @@ export function registerApiRoutes(app: Express) {
         .limit(1);
 
       console.log(`[API-V5-CHECK-MAC] Query result: ${result.length} device(s) found`);
+      const maximusSettings = await getSettings();
+      const testConfig = maximusTestConfiguration(maximusSettings);
       if (result.length > 0) {
         console.log(`[API-V5-CHECK-MAC] Device found: MAC=${result[0].mac}, Status=${result[0].status}`);
       }
@@ -2040,6 +2043,7 @@ export function registerApiRoutes(app: Express) {
           error: "Device not found",
           mac: macWithColons,
           registered: false,
+          ...testConfig,
         });
         return;
       }
@@ -2068,6 +2072,7 @@ export function registerApiRoutes(app: Express) {
           mac: device.mac,
           expire_date: device.dataExpiracao ? new Date(device.dataExpiracao).toISOString().split("T")[0] : null,
           registered: true,
+          ...testConfig,
         });
         return;
       }
@@ -2182,6 +2187,7 @@ export function registerApiRoutes(app: Express) {
         expire_date: expireDate,
         playlists,
         dns_url: gpcDnsUrl,
+        test_api_url: gpcDnsUrl,
         logo_url: resolvedLogo || resolvedBanner,
         bg_url: resolvedBg,
         banner_url: resolvedBanner,
