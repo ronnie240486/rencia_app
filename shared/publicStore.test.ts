@@ -3,7 +3,7 @@ import { PUBLIC_STORE_URL } from "./publicStore";
 
 describe("PUBLIC_STORE_URL", () => {
   it("usa uma URL HTTPS curta e pública para a loja", () => {
-    expect(PUBLIC_STORE_URL).toBe("https://rb.gy/m52y0r");
+    expect(PUBLIC_STORE_URL).toBe("https://ulvis.net/tKZf");
     expect(new URL(PUBLIC_STORE_URL).protocol).toBe("https:");
   });
 });

@@ -807,6 +807,16 @@
 - [x] Executar 135 testes e checagem TypeScript sem erros
 - [ ] Salvar checkpoint do link menor
 
+## Parte Final Reduzida do Link
+- [x] Verificar o encurtador atual: ele fixa uma parte final automática de seis caracteres e não libera alias personalizado sem conta
+- [x] Testar o primeiro encurtador alternativo: ele exige pelo menos cinco caracteres e não conseguiu reservar o alias renci
+- [x] Verificar o segundo encurtador alternativo: aliases personalizados exigem cadastro de conta
+- [x] Criar uma parte final automática de quatro caracteres sem cadastro — https://ulvis.net/tKZf
+- [x] Validar: o link de quatro caracteres abre diretamente a loja completa sem login
+- [x] Atualizar o botão interno para o novo link mais curto
+- [x] Executar 135 testes e checagem TypeScript sem erros
+- [ ] Salvar checkpoint do link de quatro caracteres
+
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
 - [x] Mover a configuração administrativa da loja para uma rota interna protegida
