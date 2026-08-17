@@ -764,6 +764,9 @@
 - [x] Criar página pública com todos os aplicativos em lista vertical de download
 - [x] Exibir logo, versão, disponibilidade e botão de baixar em cada aplicativo
 
+## Contraste do Botão da Loja Completa
+- [x] Garantir texto legível no botão Loja de Todos os Aplicativos em temas claro e escuro
+
 ## Novos Aplicativos do Painel
 - [x] Cadastrar Prestige, Optimus, Império Play, Infinitus, Supremus e Evolux no catálogo comum
 - [x] Adicionar os seis aplicativos ao cadastro e à edição de clientes
