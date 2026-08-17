@@ -84,7 +84,7 @@ export default function PublicDownloads() {
   const [apps, setApps] = useState<DownloadApp[]>([]);
   const [loading, setLoading] = useState(true);
   const slug = useMemo(() => SHORT_DOWNLOAD_SLUGS[location] || location.split("/")[2] || "", [location]);
-  const allAppsStore = location === "/d";
+  const allAppsStore = location === "/d" || location === "/loja";
 
   useEffect(() => {
     let active = true;

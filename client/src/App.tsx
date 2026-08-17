@@ -64,6 +64,7 @@ function Router() {
       <Route path="/n" component={PublicDownloads} />
       <Route path="/s" component={PublicDownloads} />
       <Route path="/e" component={PublicDownloads} />
+      <Route path="/loja" component={PublicDownloads} />
       <Route path="/baixar/:app" component={PublicDownloads} />
       <Route path="/baixar" component={PublicDownloads} />
       <Route path={"/"} component={Login} />
@@ -81,7 +82,7 @@ function Router() {
       <Route path={"/dns"} component={DNS} />
       <Route path={"/chatbot"} component={Chatbot} />
       <Route path={"/aplicativos/:appId"} component={GenericAppSettings} />
-      <Route path={"/loja"} component={Loja} />
+      <Route path={"/loja-painel"} component={Loja} />
       <Route path={"/carousel"} component={CarouselManager} />
       <Route path={"/panel-functions"} component={PanelFunctions} />
       <Route path={"/sugestoes"} component={Suggestions} />
@@ -120,7 +121,7 @@ function Router() {
 
 function App() {
   const [location] = useLocation();
-  const isPublicDownload = ["/d", "/o", "/u", "/m", "/p", "/x", "/i", "/n", "/s", "/e"].includes(location) || location === "/baixar" || location.startsWith("/baixar/");
+  const isPublicDownload = ["/d", "/o", "/u", "/m", "/p", "/x", "/i", "/n", "/s", "/e", "/loja"].includes(location) || location === "/baixar" || location.startsWith("/baixar/");
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light" switchable={true}>

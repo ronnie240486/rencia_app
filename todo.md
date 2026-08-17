@@ -764,6 +764,14 @@
 - [x] Criar página pública com todos os aplicativos em lista vertical de download
 - [x] Exibir logo, versão, disponibilidade e botão de baixar em cada aplicativo
 
+## Acesso Público à Loja
+- [ ] Remover o redirecionamento para login da rota pública da Loja de Todos os Aplicativos
+- [ ] Validar que somente a loja abre sem login e o painel continua protegido
+
+## Endereço Público da Loja
+- [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
+- [x] Mover a configuração administrativa da loja para uma rota interna protegida
+
 ## Contraste do Botão da Loja Completa
 - [x] Garantir texto legível no botão Loja de Todos os Aplicativos em temas claro e escuro
 

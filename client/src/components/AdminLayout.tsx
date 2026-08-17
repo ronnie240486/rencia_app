@@ -103,7 +103,7 @@ const navGroups: NavGroup[] = [
       { label: "Infinitus", href: "/aplicativos/infinitus", icon: <Infinity size={18} />, ownerOnly: true },
       { label: "Supremus", href: "/aplicativos/supremus", icon: <Shield size={18} />, ownerOnly: true },
       { label: "Evolux", href: "/aplicativos/evolux", icon: <Zap size={18} />, ownerOnly: true },
-      { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} />, ownerOnly: true },
+      { label: "Loja", href: "/loja-painel", icon: <ShoppingBag size={18} />, ownerOnly: true },
       { label: "Ranking de Apps", href: "/ranking-apps", icon: <BarChart3 size={18} />, ownerOnly: true },
       { label: "Atualizações", href: "/atualizacoes", icon: <Download size={18} /> },
     ],
