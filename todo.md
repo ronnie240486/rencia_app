@@ -781,7 +781,7 @@
 - [x] Trocar o botão Loja de Todos os Aplicativos para usar a URL pública curta
 - [x] Validar a URL em acesso anônimo: TinyURL abre a loja estática no CDN sem tela de login
 - [x] Executar 135 testes e checagem TypeScript sem erros
-- [ ] Salvar checkpoint da alteração
+- [x] Salvar checkpoint da alteração
 
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
