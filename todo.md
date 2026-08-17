@@ -772,6 +772,17 @@
 - [x] Disponibilizar um endereço de loja que não passe pela autenticação da hospedagem
 - [x] Manter o painel administrativo acessível somente com login próprio
 
+## Loja Pública no Domínio Principal
+- [ ] Alterar a visibilidade da hospedagem para tornar renciaapp.manus.space/loja acessível sem login Manus
+- [ ] Confirmar que o painel interno continua solicitando o login próprio após a alteração de visibilidade
+
+## URL Pública Externa da Loja
+- [x] Criar uma URL pública curta que encaminhe para a loja estática sem exigir login — https://tinyurl.com/2yd22mgj
+- [x] Trocar o botão Loja de Todos os Aplicativos para usar a URL pública curta
+- [x] Validar a URL em acesso anônimo: TinyURL abre a loja estática no CDN sem tela de login
+- [x] Executar 135 testes e checagem TypeScript sem erros
+- [ ] Salvar checkpoint da alteração
+
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
 - [x] Mover a configuração administrativa da loja para uma rota interna protegida

@@ -10,6 +10,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
+import { PUBLIC_STORE_URL } from "@shared/publicStore";
 
 type PublicSlug = "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux";
 
@@ -168,5 +169,5 @@ function AppCard({ app }: { app: AppConfig }) {
 }
 
 export default function Loja() {
-  return <AdminLayout title="Loja de Aplicativos"><div className="mx-auto max-w-6xl space-y-6"><div className="py-6 text-center"><h1 className="text-3xl font-bold tracking-tight">Loja de Aplicativos</h1><p className="mt-2 text-muted-foreground">Configure o link público de cada aplicativo para enviar aos seus clientes.</p><a href="https://files.manuscdn.com/user_upload_by_module/session_file/310519663162366914/iqYtGYNZnpUPnTWE.html" target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex"><Button className="gap-2 bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"><Store size={18} /> Loja de Todos os Aplicativos <ExternalLink size={16} /></Button></a></div><div className="grid grid-cols-1 gap-6 md:grid-cols-2">{APPS.map(app => <AppCard key={app.publicSlug} app={app} />)}</div></div></AdminLayout>;
+  return <AdminLayout title="Loja de Aplicativos"><div className="mx-auto max-w-6xl space-y-6"><div className="py-6 text-center"><h1 className="text-3xl font-bold tracking-tight">Loja de Aplicativos</h1><p className="mt-2 text-muted-foreground">Configure o link público de cada aplicativo para enviar aos seus clientes.</p><a href={PUBLIC_STORE_URL} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex"><Button className="gap-2 bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"><Store size={18} /> Loja de Todos os Aplicativos <ExternalLink size={16} /></Button></a></div><div className="grid grid-cols-1 gap-6 md:grid-cols-2">{APPS.map(app => <AppCard key={app.publicSlug} app={app} />)}</div></div></AdminLayout>;
 }
