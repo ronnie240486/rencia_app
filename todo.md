@@ -696,3 +696,7 @@
 - [x] Preencher a data de vencimento somente quando o provedor retornar uma data válida
 - [x] Manter a data manual intacta quando a lista não informar validade ou a consulta falhar
 - [x] Adicionar botão de consultar validade nos formulários de cliente
+
+## API do Servidor por Aplicativo
+- [x] Confirmar qual aplicativo recebe a URL de API configurada no Maximus
+- [x] Verificar se a URL é enviada indevidamente ao OuroPro ou se o OuroPro não possui integração para consumi-la
