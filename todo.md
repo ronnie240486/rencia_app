@@ -709,3 +709,9 @@
 ## API Externa do Maximus
 - [x] Confirmar que a URL configurada é entregue somente como configuração ao Maximus
 - [x] Verificar se nome e telefone preenchidos na API externa retornam ao painel
+
+## Registro Automático de Testes do Maximus
+- [x] Criar rota segura para o Maximus registrar um teste concluído no painel
+- [x] Registrar o cliente pelo nome informado seguido de (teste)
+- [x] Evitar testes duplicados para o mesmo aparelho e tentativa
+- [ ] Enviar o resultado automaticamente pelo aplicativo após concluir o teste

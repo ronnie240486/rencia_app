@@ -38,6 +38,7 @@ import { orderDeviceUrlsForActive } from "./devicePlaylistOrder";
 import { getNextPlaybackFailoverCandidate } from "./playbackFailover";
 import { buildAppUpdateResponse } from "./appUpdateResponse";
 import { safeApkText } from "./apkSafeValues";
+import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistration";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -2687,6 +2688,73 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error("[API] /api/v5/user_register error:", error);
       res.status(500).json({ success: false, error: "Internal error" });
+    }
+  });
+
+  /**
+   * POST /api/v5/maximus-test-result
+   * Recebe um teste concluído no Maximus depois que a API externa confirmar
+   * o nome e telefone informados pelo interessado.
+   */
+  app.post("/api/v5/maximus-test-result", async (req: Request, res: Response) => {
+    try {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const rawName = typeof body.name === "string" ? body.name : "";
+      const rawMac = typeof body.mac === "string" ? body.mac : "";
+      const rawPhone = typeof body.phone === "string" ? body.phone : typeof body.telefone === "string" ? body.telefone : undefined;
+      const test = normalizeCompletedTest({ mac: rawMac, name: rawName, phone: rawPhone });
+
+      if (!test.mac) {
+        res.status(400).json({ success: false, error: "MAC inválido." });
+        return;
+      }
+      if (!rawName.trim()) {
+        res.status(400).json({ success: false, error: "Nome do teste é obrigatório." });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.status(503).json({ success: false, error: "Banco indisponível." });
+        return;
+      }
+
+      const existing = (await db.select().from(devices).where(eq(devices.mac, test.mac)).limit(1))[0];
+      const now = new Date();
+      if (existing) {
+        if (!isPanelTestName(existing.nomeServer)) {
+          await db.update(devices).set({ lastSeen: now }).where(eq(devices.id, existing.id));
+          res.json({ success: true, created: false, protected_existing_client: true, device_id: existing.id, name: existing.nomeServer });
+          return;
+        }
+
+        await db.update(devices).set({ nomeServer: test.name, telefone: test.phone, app: "Maximus", lastSeen: now }).where(eq(devices.id, existing.id));
+        res.json({ success: true, created: false, updated: true, device_id: existing.id, name: test.name });
+        return;
+      }
+
+      const owner = (await db.select({ id: users.id }).from(users).where(eq(users.isOwner, true)).limit(1))[0];
+      if (!owner) {
+        res.status(503).json({ success: false, error: "Proprietário do painel não encontrado." });
+        return;
+      }
+
+      const result = await db.insert(devices).values({
+        ownerId: owner.id,
+        mac: test.mac,
+        nomeServer: test.name,
+        tipo: "Usuario",
+        modoSelecao: "M3U8",
+        app: "Maximus",
+        status: "Bloqueado",
+        telefone: test.phone,
+        lastSeen: now,
+      });
+      const deviceId = Number((result as any)[0]?.insertId ?? (result as any).insertId);
+      res.status(201).json({ success: true, created: true, device_id: deviceId, name: test.name, status: "Bloqueado" });
+    } catch (error) {
+      console.error("[API] /api/v5/maximus-test-result error:", error);
+      res.status(500).json({ success: false, error: "Erro interno." });
     }
   });
 

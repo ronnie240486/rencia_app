@@ -69,6 +69,22 @@ export type PlaybackFailoverResponse = {
   playlist_sync_required?: boolean;
 };
 
+export type CompletedMaximusTest = {
+  mac: string;
+  name: string;
+  phone?: string;
+};
+
+export type CompletedMaximusTestResponse = {
+  success: boolean;
+  created?: boolean;
+  updated?: boolean;
+  protected_existing_client?: boolean;
+  device_id?: number;
+  name?: string;
+  error?: string;
+};
+
 /**
  * Normalizes any of the response shapes the panel emits to a single
  * `MacStatus`. Fields observed so far (mobile UA):
@@ -149,6 +165,20 @@ export async function checkExpire(mac: string): Promise<{ expired: boolean; expi
     return { expired: !!json.expired, expire_date: json.expire_date };
   } catch {
     return { expired: true };
+  }
+}
+
+/** Deve ser chamada após a API externa concluir um teste e devolver os dados do interessado. */
+export async function registerCompletedTest(input: CompletedMaximusTest): Promise<CompletedMaximusTestResponse> {
+  try {
+    const response = await fetch(`${PANEL_BASE}/maximus-test-result`, {
+      method: "POST",
+      headers: { ...commonHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    return (await safeJson<CompletedMaximusTestResponse>(response)) ?? { success: false, error: "Resposta inválida do painel." };
+  } catch {
+    return { success: false, error: "Não foi possível registrar o teste no painel." };
   }
 }
 
