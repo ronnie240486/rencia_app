@@ -40,6 +40,8 @@ import { buildAppUpdateResponse } from "./appUpdateResponse";
 import { safeApkText } from "./apkSafeValues";
 import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistration";
 import { maximusTestConfiguration } from "./maximusTestApi";
+import { buildGenericAppConfig } from "./genericAppConfig";
+import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -89,6 +91,8 @@ const UPLOAD_FIELD_KEYS: Record<string, string> = {
   ultra_icon_movies_url: "ultra_icon_movies_url",
   ultra_icon_series_url: "ultra_icon_series_url",
 };
+
+const GENERIC_APP_UPLOAD_FIELD = /^(prestige|optimus|imperio|infinitus|supremus|evolux)_(logo_url|banner_url|background_url|message_image_url|icon_live_tv_url|icon_movies_url|icon_series_url)$/;
 
 // Cache de configurações para evitar query no banco a cada request
 let settingsCache: Record<string, string> = {};
@@ -1157,7 +1161,7 @@ export function registerApiRoutes(app: Express) {
       }
 
       const field = req.body?.field as string;
-      if (!field || !UPLOAD_FIELD_KEYS[field]) {
+      if (!field || (!UPLOAD_FIELD_KEYS[field] && !GENERIC_APP_UPLOAD_FIELD.test(field))) {
         res.status(400).json({ error: "Campo inválido: " + field });
         return;
       }
@@ -1445,6 +1449,54 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error("[API] /api/app-config error:", error);
       res.status(500).json({ error: "Erro interno do servidor." });
+    }
+  });
+
+  /**
+   * GET /api/v5/apps/:appId/config?mac=AA:BB:CC:DD:EE:FF
+   * Contrato comum de listas, imagens, mensagens e atualização para os novos APKs.
+   */
+  app.get("/api/v5/apps/:appId/config", async (req: Request, res: Response) => {
+    const appId = String(req.params.appId || "").trim().toLowerCase();
+    const mac = typeof req.query.mac === "string" ? normalizeMacAddress(req.query.mac) : null;
+    if (!isManagedAppId(appId) || !NEW_MANAGED_APP_IDS.includes(appId) || !mac) {
+      res.status(400).json({ registered: false, error: "Aplicativo ou MAC inválido." });
+      return;
+    }
+    try {
+      const db = await getDb();
+      if (!db) { res.status(503).json({ registered: false, error: "Banco de dados indisponível." }); return; }
+      const [device] = await db.select().from(devices).where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase()))).limit(1);
+      if (!device) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
+      const appDef = MANAGED_APP_CATALOG[appId];
+      if (!appDef.deviceAliases.some((alias) => alias === (device.app || ""))) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
+      const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
+      const settings = await getSettings();
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ registered: true, allowed: device.status === "Liberado", mac: device.mac, ...buildGenericAppConfig(appId, appDef.displayName, settings, [device.urlM3u8 || "", ...extras.map((item) => item.url || "")]) });
+    } catch (error) {
+      console.error("[API] configuração de aplicativo genérico", error);
+      res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do aplicativo." });
+    }
+  });
+
+  /** GET /api/v5/apps/:appId/update?mac=... — atualização exclusiva de cada novo APK. */
+  app.get("/api/v5/apps/:appId/update", async (req: Request, res: Response) => {
+    const appId = String(req.params.appId || "").trim().toLowerCase();
+    const mac = typeof req.query.mac === "string" ? normalizeMacAddress(req.query.mac) : null;
+    if (!isManagedAppId(appId) || !NEW_MANAGED_APP_IDS.includes(appId) || !mac) { res.status(400).json({ error: "Aplicativo ou MAC inválido." }); return; }
+    try {
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "Banco de dados indisponível." }); return; }
+      const [device] = await db.select().from(devices).where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase()))).limit(1);
+      if (!device) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
+      const appDef = MANAGED_APP_CATALOG[appId];
+      if (!appDef.deviceAliases.some((alias) => alias === (device.app || ""))) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
+      const settings = await getSettings();
+      res.json({ registered: true, allowed: device.status === "Liberado", ...buildAppUpdateResponse(appDef.displayName, settings[`${appId}_apk_download_url`] || "", settings[`${appId}_apk_version`] || "1.0.0") });
+    } catch (error) {
+      console.error("[API] atualização de aplicativo genérico", error);
+      res.status(500).json({ error: "Não foi possível obter a atualização do aplicativo." });
     }
   });
 

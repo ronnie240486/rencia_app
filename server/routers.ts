@@ -2458,7 +2458,7 @@ export const appRouter = router({
   ranking: router({
     appStats: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();  
-      if (!db) return { ouropro: 0, maximus: 0, ultra: 0, total: 0 };
+      if (!db) return { ouropro: 0, maximus: 0, ultra: 0, prestige: 0, optimus: 0, imperio: 0, infinitus: 0, supremus: 0, evolux: 0, total: 0 };
       
       const result = await db.select({
         app: devices.app,
@@ -2477,12 +2477,24 @@ export const appRouter = router({
       const ouropro = counts['OuroPro'] || 0;
       const maximus = (counts['Maximus'] || 0) + (counts['Maximus Player'] || 0);
       const ultra = (counts['Ultra Player'] || 0) + (counts['Fusion'] || 0);
+      const prestige = counts['Prestige'] || 0;
+      const optimus = counts['Optimus'] || 0;
+      const imperio = (counts['Império Play'] || 0) + (counts['Imperio Play'] || 0);
+      const infinitus = counts['Infinitus'] || 0;
+      const supremus = counts['Supremus'] || 0;
+      const evolux = counts['Evolux'] || 0;
       
       return {
         ouropro,
         maximus,
         ultra,
-        total: ouropro + maximus + ultra
+        prestige,
+        optimus,
+        imperio,
+        infinitus,
+        supremus,
+        evolux,
+        total: ouropro + maximus + ultra + prestige + optimus + imperio + infinitus + supremus + evolux
       };
     }),
   }),

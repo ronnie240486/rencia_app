@@ -23,6 +23,12 @@ export default function RankingApps() {
       'Ouro Pro': appStats?.ouropro || 0,
       'Maximus': appStats?.maximus || 0,
       'Fusion': appStats?.ultra || 0,
+      'Prestige': appStats?.prestige || 0,
+      'Optimus': appStats?.optimus || 0,
+      'Império Play': appStats?.imperio || 0,
+      'Infinitus': appStats?.infinitus || 0,
+      'Supremus': appStats?.supremus || 0,
+      'Evolux': appStats?.evolux || 0,
     };
   }, [appStats]);
 
@@ -49,6 +55,12 @@ export default function RankingApps() {
         color: "cyan",
         users: appCounts['Fusion'] || 0,
       },
+      { name: "Prestige", logo: "", color: "purple", users: appCounts['Prestige'] || 0 },
+      { name: "Optimus", logo: "", color: "cyan", users: appCounts['Optimus'] || 0 },
+      { name: "Império Play", logo: "", color: "yellow", users: appCounts['Império Play'] || 0 },
+      { name: "Infinitus", logo: "", color: "purple", users: appCounts['Infinitus'] || 0 },
+      { name: "Supremus", logo: "", color: "yellow", users: appCounts['Supremus'] || 0 },
+      { name: "Evolux", logo: "", color: "cyan", users: appCounts['Evolux'] || 0 },
     ];
 
     return apps
@@ -93,7 +105,7 @@ export default function RankingApps() {
               <Trophy className="w-10 h-10 text-yellow-500 animate-bounce" style={{ animationDelay: "0.2s" }} />
             </div>
             <p className="text-muted-foreground text-lg">
-              Veja quantos clientes estão usando Ouro Pro, Maximus e Fusion
+              Veja quantos clientes estão usando todos os aplicativos cadastrados no painel
             </p>
           </div>
         </div>

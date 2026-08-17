@@ -1,4 +1,4 @@
-export type PublicAppSlug = "ouropro" | "ultra" | "maximus";
+export type PublicAppSlug = "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux";
 
 export interface PublicDownloadApp {
   slug: PublicAppSlug;
@@ -6,7 +6,7 @@ export interface PublicDownloadApp {
   version: string;
   downloadUrl: string;
   logoUrl: string;
-  accent: "gold" | "violet" | "sky";
+  accent: "gold" | "violet" | "sky" | "rose" | "emerald" | "orange" | "indigo" | "pink" | "cyan";
 }
 
 type Settings = Record<string, string | undefined>;
@@ -15,6 +15,12 @@ const FALLBACK_LOGOS: Record<PublicAppSlug, string> = {
   ouropro: "/manus-storage/ouropro_logo_c0c3caef.png",
   ultra: "/manus-storage/ultra-player-logo_efd734bc.png",
   maximus: "",
+  prestige: "",
+  optimus: "",
+  imperio: "",
+  infinitus: "",
+  supremus: "",
+  evolux: "",
 };
 
 function safePublicUrl(value: string | undefined): string {
@@ -60,6 +66,12 @@ export function buildPublicDownloadApps(settings: Settings): PublicDownloadApp[]
       fallbackVersion: settings.maximus_version || settings.gpcpro_apk_version,
       fallbackLogo: settings.maximus_logo_url,
     },
+    { slug: "prestige", name: "Prestige", accent: "rose", fallbackDownload: settings.prestige_apk_download_url, fallbackVersion: settings.prestige_apk_version, fallbackLogo: settings.prestige_logo_url },
+    { slug: "optimus", name: "Optimus", accent: "emerald", fallbackDownload: settings.optimus_apk_download_url, fallbackVersion: settings.optimus_apk_version, fallbackLogo: settings.optimus_logo_url },
+    { slug: "imperio", name: "Império Play", accent: "orange", fallbackDownload: settings.imperio_apk_download_url, fallbackVersion: settings.imperio_apk_version, fallbackLogo: settings.imperio_logo_url },
+    { slug: "infinitus", name: "Infinitus", accent: "indigo", fallbackDownload: settings.infinitus_apk_download_url, fallbackVersion: settings.infinitus_apk_version, fallbackLogo: settings.infinitus_logo_url },
+    { slug: "supremus", name: "Supremus", accent: "pink", fallbackDownload: settings.supremus_apk_download_url, fallbackVersion: settings.supremus_apk_version, fallbackLogo: settings.supremus_logo_url },
+    { slug: "evolux", name: "Evolux", accent: "cyan", fallbackDownload: settings.evolux_apk_download_url, fallbackVersion: settings.evolux_apk_version, fallbackLogo: settings.evolux_logo_url },
   ];
 
   return definitions.flatMap((definition) => {

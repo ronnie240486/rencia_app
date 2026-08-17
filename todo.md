@@ -739,3 +739,10 @@
 - [x] Renomear Ultra Player para Fusion preservando todas as configurações atuais
 - [x] Preparar a base de recursos comuns para cadastrar próximos aplicativos
 - [x] Manter para cada aplicativo imagens, ícones, mensagens, listas, atualização e integração por MAC
+
+## Novos Aplicativos do Painel
+- [x] Cadastrar Prestige, Optimus, Império Play, Infinitus, Supremus e Evolux no catálogo comum
+- [x] Adicionar os seis aplicativos ao cadastro e à edição de clientes
+- [x] Exibir os seis aplicativos na Loja Pública com link, versão e ativação próprios
+- [x] Incluir os seis aplicativos no Ranking de Aplicativos
+- [x] Criar configurações equivalentes de imagens, ícones, mensagens, listas, MAC e atualização para cada aplicativo

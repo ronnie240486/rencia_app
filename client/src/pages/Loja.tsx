@@ -10,18 +10,24 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
-type PublicSlug = "ouropro" | "ultra" | "maximus";
+type PublicSlug = "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux";
 
 const PUBLIC_SHORT_PATHS: Record<PublicSlug, string> = {
   ouropro: "/o",
   ultra: "/u",
   maximus: "/m",
+  prestige: "/p",
+  optimus: "/x",
+  imperio: "/i",
+  infinitus: "/n",
+  supremus: "/s",
+  evolux: "/e",
 };
 
 interface AppConfig {
   name: string;
   logo: string;
-  color: "yellow" | "blue" | "purple";
+  color: "yellow" | "blue" | "purple" | "rose" | "emerald" | "orange" | "indigo" | "pink" | "cyan";
   publicSlug: PublicSlug;
 }
 
@@ -29,17 +35,35 @@ const APPS: AppConfig[] = [
   { name: "Ouro Pro", logo: "/manus-storage/ouropro_logo_c0c3caef.png", color: "yellow", publicSlug: "ouropro" },
   { name: "Fusion", logo: "/manus-storage/ultra-player-logo_efd734bc.png", color: "purple", publicSlug: "ultra" },
   { name: "Maximus Player", logo: "", color: "blue", publicSlug: "maximus" },
+  { name: "Prestige", logo: "", color: "rose", publicSlug: "prestige" },
+  { name: "Optimus", logo: "", color: "emerald", publicSlug: "optimus" },
+  { name: "Império Play", logo: "", color: "orange", publicSlug: "imperio" },
+  { name: "Infinitus", logo: "", color: "indigo", publicSlug: "infinitus" },
+  { name: "Supremus", logo: "", color: "pink", publicSlug: "supremus" },
+  { name: "Evolux", logo: "", color: "cyan", publicSlug: "evolux" },
 ];
 
 function fallbackDownload(settings: Record<string, string> | undefined, slug: PublicSlug) {
   if (slug === "ouropro") return settings?.apk_download_url || "";
   if (slug === "ultra") return settings?.ultra_apk_download_url || "";
+  if (slug === "prestige") return settings?.prestige_apk_download_url || "";
+  if (slug === "optimus") return settings?.optimus_apk_download_url || "";
+  if (slug === "imperio") return settings?.imperio_apk_download_url || "";
+  if (slug === "infinitus") return settings?.infinitus_apk_download_url || "";
+  if (slug === "supremus") return settings?.supremus_apk_download_url || "";
+  if (slug === "evolux") return settings?.evolux_apk_download_url || "";
   return settings?.maximus_download_url || settings?.gpcpro_apk_download_url || "";
 }
 
 function fallbackVersion(settings: Record<string, string> | undefined, slug: PublicSlug) {
   if (slug === "ouropro") return settings?.apk_version || "";
   if (slug === "ultra") return settings?.ultra_apk_version || "";
+  if (slug === "prestige") return settings?.prestige_apk_version || "";
+  if (slug === "optimus") return settings?.optimus_apk_version || "";
+  if (slug === "imperio") return settings?.imperio_apk_version || "";
+  if (slug === "infinitus") return settings?.infinitus_apk_version || "";
+  if (slug === "supremus") return settings?.supremus_apk_version || "";
+  if (slug === "evolux") return settings?.evolux_apk_version || "";
   return settings?.maximus_version || settings?.gpcpro_apk_version || "";
 }
 
@@ -93,8 +117,15 @@ function AppCard({ app }: { app: AppConfig }) {
     yellow: "border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20",
     blue: "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20",
     purple: "border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/20",
+    rose: "border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/20",
+    emerald: "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20",
+    orange: "border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20",
+    indigo: "border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/20",
+    pink: "border-pink-200 dark:border-pink-800 bg-pink-50 dark:bg-pink-950/20",
+    cyan: "border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950/20",
   };
   const buttonClasses = { yellow: "bg-yellow-600 hover:bg-yellow-700", blue: "bg-blue-600 hover:bg-blue-700", purple: "bg-violet-600 hover:bg-violet-700" };
+  const extendedButtonClasses = { ...buttonClasses, rose: "bg-rose-600 hover:bg-rose-700", emerald: "bg-emerald-600 hover:bg-emerald-700", orange: "bg-orange-600 hover:bg-orange-700", indigo: "bg-indigo-600 hover:bg-indigo-700", pink: "bg-pink-600 hover:bg-pink-700", cyan: "bg-cyan-600 hover:bg-cyan-700" };
 
   return <Card className={cardClasses[app.color]}>
     <CardHeader>
@@ -113,11 +144,11 @@ function AppCard({ app }: { app: AppConfig }) {
         <div className="space-y-2"><Label>Link final do APK</Label><Input value={editDownloadUrl} onChange={event => setEditDownloadUrl(event.target.value)} placeholder="https://.../meu-aplicativo.apk" className="font-mono text-sm" /></div>
         <div className="space-y-2"><Label>Versão exibida ao cliente</Label><Input value={editVersion} onChange={event => setEditVersion(event.target.value)} placeholder="Ex.: 7.1.0" /></div>
         <div className="flex items-center justify-between rounded-xl border p-3"><div><p className="font-medium">Disponível na loja pública</p><p className="text-xs text-muted-foreground">Quando desligado, o aplicativo não aparece para clientes.</p></div><Switch checked={editActive} onCheckedChange={setEditActive} /></div>
-        <div className="flex gap-2"><Button onClick={save} disabled={updateMany.isPending} className={`flex-1 gap-2 text-white ${buttonClasses[app.color]}`}><Save size={16} />{updateMany.isPending ? "Salvando..." : "Salvar"}</Button><Button variant="outline" onClick={() => setEditMode(false)}>Cancelar</Button></div>
+        <div className="flex gap-2"><Button onClick={save} disabled={updateMany.isPending} className={`flex-1 gap-2 text-white ${extendedButtonClasses[app.color]}`}><Save size={16} />{updateMany.isPending ? "Salvando..." : "Salvar"}</Button><Button variant="outline" onClick={() => setEditMode(false)}>Cancelar</Button></div>
       </> : <>
         <div className="space-y-2"><Label className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider"><Link2 size={12} /> Link curto para enviar ao cliente</Label><div className="flex gap-2"><div className="flex-1 rounded-lg border bg-white/70 px-3 py-2 dark:bg-black/20"><p className="break-all text-xs font-mono font-bold">{publicBaseUrl}</p></div><Button size="sm" variant="outline" onClick={copyPublicUrl}>{copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}</Button></div></div>
         <div className="space-y-2"><Label className="text-xs font-semibold uppercase tracking-wider">Destino atual do download</Label><p className="break-all rounded-lg border bg-white/70 px-3 py-2 text-xs font-mono dark:bg-black/20">{downloadUrl || "Defina o link do APK em Editar"}</p></div>
-        <div className="flex gap-2"><a href={publicBaseUrl} target="_blank" rel="noopener noreferrer" className="flex-1"><Button variant="outline" className="w-full gap-2"><ExternalLink size={16} /> Ver página pública</Button></a>{downloadUrl && <a href={downloadUrl} target="_blank" rel="noopener noreferrer"><Button className={`gap-2 text-white ${buttonClasses[app.color]}`}><Download size={16} /> Baixar</Button></a>}</div>
+        <div className="flex gap-2"><a href={publicBaseUrl} target="_blank" rel="noopener noreferrer" className="flex-1"><Button variant="outline" className="w-full gap-2"><ExternalLink size={16} /> Ver página pública</Button></a>{downloadUrl && <a href={downloadUrl} target="_blank" rel="noopener noreferrer"><Button className={`gap-2 text-white ${extendedButtonClasses[app.color]}`}><Download size={16} /> Baixar</Button></a>}</div>
       </>}
     </CardContent>
   </Card>;

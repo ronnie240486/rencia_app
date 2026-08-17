@@ -223,6 +223,12 @@ export default function UserCreate() {
                   <SelectItem value="OuroPro">Ouro Pro</SelectItem>
                   <SelectItem value="Maximus">Maximus</SelectItem>
                   <SelectItem value="Ultra Player">Fusion</SelectItem>
+                  <SelectItem value="Prestige">Prestige</SelectItem>
+                  <SelectItem value="Optimus">Optimus</SelectItem>
+                  <SelectItem value="Império Play">Império Play</SelectItem>
+                  <SelectItem value="Infinitus">Infinitus</SelectItem>
+                  <SelectItem value="Supremus">Supremus</SelectItem>
+                  <SelectItem value="Evolux">Evolux</SelectItem>
                   <SelectItem value="Outro">Outro aplicativo</SelectItem>
                 </SelectContent>
               </Select>

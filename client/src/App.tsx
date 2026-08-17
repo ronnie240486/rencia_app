@@ -50,6 +50,7 @@ import SettingsUltra from "./pages/SettingsUltra";
 import RemoteCommands from "./pages/RemoteCommands";
 import PublicDownloads from "./pages/PublicDownloads";
 import AppsHub from "./pages/AppsHub";
+import GenericAppSettings from "./pages/GenericAppSettings";
 
 function Router() {
   return (
@@ -58,6 +59,12 @@ function Router() {
       <Route path="/o" component={PublicDownloads} />
       <Route path="/u" component={PublicDownloads} />
       <Route path="/m" component={PublicDownloads} />
+      <Route path="/p" component={PublicDownloads} />
+      <Route path="/x" component={PublicDownloads} />
+      <Route path="/i" component={PublicDownloads} />
+      <Route path="/n" component={PublicDownloads} />
+      <Route path="/s" component={PublicDownloads} />
+      <Route path="/e" component={PublicDownloads} />
       <Route path="/baixar/:app" component={PublicDownloads} />
       <Route path="/baixar" component={PublicDownloads} />
       <Route path={"/"} component={Login} />
@@ -75,6 +82,7 @@ function Router() {
       <Route path={"/dns"} component={DNS} />
       <Route path={"/chatbot"} component={Chatbot} />
       <Route path={"/aplicativos"} component={AppsHub} />
+      <Route path={"/aplicativos/:appId"} component={GenericAppSettings} />
       <Route path={"/loja"} component={Loja} />
       <Route path={"/carousel"} component={CarouselManager} />
       <Route path={"/panel-functions"} component={PanelFunctions} />
@@ -114,7 +122,7 @@ function Router() {
 
 function App() {
   const [location] = useLocation();
-  const isPublicDownload = ["/d", "/o", "/u", "/m"].includes(location) || location === "/baixar" || location.startsWith("/baixar/");
+  const isPublicDownload = ["/d", "/o", "/u", "/m", "/p", "/x", "/i", "/n", "/s", "/e"].includes(location) || location === "/baixar" || location.startsWith("/baixar/");
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light" switchable={true}>

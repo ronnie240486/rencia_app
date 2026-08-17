@@ -21,6 +21,12 @@ const appIcons = {
   ouropro: ShieldCheck,
   fusion: Image,
   maximus: Smartphone,
+  prestige: Box,
+  optimus: Box,
+  imperio: Box,
+  infinitus: Box,
+  supremus: Box,
+  evolux: Box,
 };
 
 export default function AppsHub() {

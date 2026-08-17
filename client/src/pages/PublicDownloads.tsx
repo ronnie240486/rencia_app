@@ -3,24 +3,36 @@ import { useLocation } from "wouter";
 import { Download, Loader2, PackageOpen, ShieldCheck, Smartphone } from "lucide-react";
 
 type DownloadApp = {
-  slug: "ouropro" | "ultra" | "maximus";
+  slug: "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux";
   name: string;
   version: string;
   downloadUrl: string;
   logoUrl: string;
-  accent: "gold" | "violet" | "sky";
+  accent: "gold" | "violet" | "sky" | "rose" | "emerald" | "orange" | "indigo" | "pink" | "cyan";
 };
 
 const ACCENT: Record<DownloadApp["accent"], string> = {
   gold: "from-amber-400 to-yellow-600",
   violet: "from-violet-400 to-fuchsia-600",
   sky: "from-sky-400 to-blue-600",
+  rose: "from-rose-400 to-red-600",
+  emerald: "from-emerald-400 to-teal-600",
+  orange: "from-orange-400 to-amber-600",
+  indigo: "from-indigo-400 to-violet-600",
+  pink: "from-pink-400 to-fuchsia-600",
+  cyan: "from-cyan-400 to-sky-600",
 };
 
 const SHORT_DOWNLOAD_SLUGS: Record<string, DownloadApp["slug"]> = {
   "/o": "ouropro",
   "/u": "ultra",
   "/m": "maximus",
+  "/p": "prestige",
+  "/x": "optimus",
+  "/i": "imperio",
+  "/n": "infinitus",
+  "/s": "supremus",
+  "/e": "evolux",
 };
 
 function AppLogo({ app }: { app: DownloadApp }) {

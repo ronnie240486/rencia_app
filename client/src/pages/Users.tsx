@@ -529,6 +529,12 @@ export default function Users() {
                 <option value="OuroPro">Ouro Pro</option>
                 <option value="Maximus Player">Maximus Player</option>
                 <option value="Ultra Player">Fusion</option>
+                <option value="Prestige">Prestige</option>
+                <option value="Optimus">Optimus</option>
+                <option value="Império Play">Império Play</option>
+                <option value="Infinitus">Infinitus</option>
+                <option value="Supremus">Supremus</option>
+                <option value="Evolux">Evolux</option>
                 <option value="Outro">Outro aplicativo</option>
               </select>
             </div>
