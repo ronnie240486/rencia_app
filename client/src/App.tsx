@@ -49,7 +49,6 @@ import Permissions from "./pages/Permissions";
 import SettingsUltra from "./pages/SettingsUltra";
 import RemoteCommands from "./pages/RemoteCommands";
 import PublicDownloads from "./pages/PublicDownloads";
-import AppsHub from "./pages/AppsHub";
 import GenericAppSettings from "./pages/GenericAppSettings";
 
 function Router() {
@@ -81,7 +80,6 @@ function Router() {
       <Route path={"/dns-massa"} component={DnsMassa} />
       <Route path={"/dns"} component={DNS} />
       <Route path={"/chatbot"} component={Chatbot} />
-      <Route path={"/aplicativos"} component={AppsHub} />
       <Route path={"/aplicativos/:appId"} component={GenericAppSettings} />
       <Route path={"/loja"} component={Loja} />
       <Route path={"/carousel"} component={CarouselManager} />

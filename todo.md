@@ -740,6 +740,12 @@
 - [x] Preparar a base de recursos comuns para cadastrar próximos aplicativos
 - [x] Manter para cada aplicativo imagens, ícones, mensagens, listas, atualização e integração por MAC
 
+## Abas Individuais de Aplicativos
+- [x] Remover a entrada Gerenciar Aplicativos da navegação
+- [x] Criar uma aba individual de configuração para Prestige, Optimus, Império Play, Infinitus, Supremus e Evolux
+- [x] Garantir que cada aba individual abra a tela completa de configurações
+- [x] Manter Ouro Pro, Fusion e Maximus como abas individuais com suas configurações próprias
+
 ## Novos Aplicativos do Painel
 - [x] Cadastrar Prestige, Optimus, Império Play, Infinitus, Supremus e Evolux no catálogo comum
 - [x] Adicionar os seis aplicativos ao cadastro e à edição de clientes

@@ -38,7 +38,10 @@ import {
   ShieldCheck,
   BellRing,
   MonitorCog,
-  Box,
+  Crown,
+  Infinity,
+  Star,
+  Zap,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -91,10 +94,15 @@ const navGroups: NavGroup[] = [
     icon: <SlidersHorizontal size={16} />,
     defaultOpen: true,
     items: [
-      { label: "Gerenciar aplicativos", href: "/aplicativos", icon: <Box size={18} />, ownerOnly: true },
       { label: "Ouro Pro", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
       { label: "Fusion", href: "/ultra-player", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
       { label: "Maximus Player", href: "/gpcpro", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
+      { label: "Prestige", href: "/aplicativos/prestige", icon: <Star size={18} />, ownerOnly: true },
+      { label: "Optimus", href: "/aplicativos/optimus", icon: <Radio size={18} />, ownerOnly: true },
+      { label: "Império Play", href: "/aplicativos/imperio", icon: <Crown size={18} />, ownerOnly: true },
+      { label: "Infinitus", href: "/aplicativos/infinitus", icon: <Infinity size={18} />, ownerOnly: true },
+      { label: "Supremus", href: "/aplicativos/supremus", icon: <Shield size={18} />, ownerOnly: true },
+      { label: "Evolux", href: "/aplicativos/evolux", icon: <Zap size={18} />, ownerOnly: true },
       { label: "Loja", href: "/loja", icon: <ShoppingBag size={18} />, ownerOnly: true },
       { label: "Ranking de Apps", href: "/ranking-apps", icon: <BarChart3 size={18} />, ownerOnly: true },
       { label: "Atualizações", href: "/atualizacoes", icon: <Download size={18} /> },
