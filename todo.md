@@ -705,3 +705,7 @@
 - [x] Confirmar os endpoints que o OuroPro deve chamar no painel
 - [x] Rastrear o destino de nome e telefone informados durante o teste do Maximus
 - [x] Confirmar se o painel grava ou encaminha os dados do formulário de teste
+
+## API Externa do Maximus
+- [x] Confirmar que a URL configurada é entregue somente como configuração ao Maximus
+- [x] Verificar se nome e telefone preenchidos na API externa retornam ao painel
