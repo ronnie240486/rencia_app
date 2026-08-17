@@ -777,11 +777,22 @@
 - [ ] Confirmar que o painel interno continua solicitando o login próprio após a alteração de visibilidade
 
 ## URL Pública Externa da Loja
-- [x] Criar uma URL pública curta que encaminhe para a loja estática sem exigir login — https://tinyurl.com/2yd22mgj
-- [x] Trocar o botão Loja de Todos os Aplicativos para usar a URL pública curta
-- [x] Validar a URL em acesso anônimo: TinyURL abre a loja estática no CDN sem tela de login
+- [x] Tentativa inicial: criar URL curta externa — substituída porque levava a uma página intermediária e à loja simplificada
+- [x] Tentativa inicial: trocar o botão Loja de Todos os Aplicativos para usar a URL curta — substituída pela loja completa
+- [x] Tentativa inicial validada tecnicamente, mas rejeitada por não reproduzir a loja montada
 - [x] Executar 135 testes e checagem TypeScript sem erros
 - [x] Salvar checkpoint da alteração
+
+## Correção da URL Pública Externa
+- [x] Substituir o encurtador que exibe página intermediária por URL pública com abertura direta da loja
+- [x] Atualizar o botão interno para usar a nova loja externa completa
+
+## Loja Pública Externa Completa
+- [x] Recriar a página externa com o mesmo layout, cards, logos, downloads, códigos e carrossel da loja montada
+- [x] Publicar a versão completa sem login e substituir o link público anterior — https://files.manuscdn.com/user_upload_by_module/session_file/310519663162366914/QHtPZdpabRVHrGkJ.html
+- [x] Validar visual e conteúdo em acesso anônimo: Ouro Pro, Fusion, downloads, AFTV, códigos e carrossel exibidos
+- [x] Executar 135 testes e checagem TypeScript sem erros
+- [ ] Salvar checkpoint da correção
 
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
