@@ -800,6 +800,13 @@
 - [x] Executar 135 testes e checagem TypeScript sem erros
 - [ ] Salvar checkpoint do caminho curto
 
+## Encurtamento Estilo Bitly
+- [x] Verificar integração Bitly: indisponível sem autorização, usar encurtador público equivalente ao Bitly
+- [x] Criar e validar o link no estilo Bitly: https://rb.gy/m52y0r abre diretamente a loja completa
+- [x] Atualizar o botão do painel para usar o link menor
+- [x] Executar 135 testes e checagem TypeScript sem erros
+- [ ] Salvar checkpoint do link menor
+
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
 - [x] Mover a configuração administrativa da loja para uma rota interna protegida
