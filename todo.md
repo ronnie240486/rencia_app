@@ -715,3 +715,12 @@
 - [x] Registrar o cliente pelo nome informado seguido de (teste)
 - [x] Evitar testes duplicados para o mesmo aparelho e tentativa
 - [ ] Enviar o resultado automaticamente pelo aplicativo após concluir o teste
+
+## Correção do Fluxo de Teste Externo
+- [ ] Fazer o Maximus consumir a URL da API de bot recebida no campo dns_url
+- [ ] Extrair o resultado de teste da resposta da API externa sem adivinhar campos
+- [ ] Encaminhar nome, telefone e MAC ao painel somente após o teste concluir
+
+## Contrato de Configuração do Maximus
+- [x] Documentar a rota check_mac.php como a única fonte de dns_url para o aplicativo
+- [x] Diferenciar a rota de provisionamento externo da rota de configuração do painel
