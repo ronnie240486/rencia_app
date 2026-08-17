@@ -751,6 +751,10 @@
 - [x] Aplicar os logos corretos na Loja, Ranking, cards e abas de configuração
 - [x] Preservar o logo já configurado do Ouro Pro
 
+## Troca do Logo Ultra para Fusion
+- [x] Substituir o logo legado do Ultra pelo logo Fusion em configurações e respostas públicas
+- [x] Atualizar o valor salvo do logo Ultra para impedir que ele sobrescreva o Fusion
+
 ## Novos Aplicativos do Painel
 - [x] Cadastrar Prestige, Optimus, Império Play, Infinitus, Supremus e Evolux no catálogo comum
 - [x] Adicionar os seis aplicativos ao cadastro e à edição de clientes
