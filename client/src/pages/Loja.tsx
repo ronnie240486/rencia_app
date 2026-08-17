@@ -9,6 +9,7 @@ import { Download, Copy, Check, ExternalLink, Save, Edit2, Store, Link2 } from "
 import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
 
 type PublicSlug = "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux";
 
@@ -32,15 +33,15 @@ interface AppConfig {
 }
 
 const APPS: AppConfig[] = [
-  { name: "Ouro Pro", logo: "/manus-storage/ouropro_logo_c0c3caef.png", color: "yellow", publicSlug: "ouropro" },
-  { name: "Fusion", logo: "/manus-storage/ultra-player-logo_efd734bc.png", color: "purple", publicSlug: "ultra" },
-  { name: "Maximus Player", logo: "", color: "blue", publicSlug: "maximus" },
-  { name: "Prestige", logo: "", color: "rose", publicSlug: "prestige" },
-  { name: "Optimus", logo: "", color: "emerald", publicSlug: "optimus" },
-  { name: "Império Play", logo: "", color: "orange", publicSlug: "imperio" },
-  { name: "Infinitus", logo: "", color: "indigo", publicSlug: "infinitus" },
-  { name: "Supremus", logo: "", color: "pink", publicSlug: "supremus" },
-  { name: "Evolux", logo: "", color: "cyan", publicSlug: "evolux" },
+  { name: "Ouro Pro", logo: MANAGED_APP_CATALOG.ouropro.defaultLogoUrl, color: "yellow", publicSlug: "ouropro" },
+  { name: "Fusion", logo: MANAGED_APP_CATALOG.fusion.defaultLogoUrl, color: "purple", publicSlug: "ultra" },
+  { name: "Maximus Player", logo: MANAGED_APP_CATALOG.maximus.defaultLogoUrl, color: "blue", publicSlug: "maximus" },
+  { name: "Prestige", logo: MANAGED_APP_CATALOG.prestige.defaultLogoUrl, color: "rose", publicSlug: "prestige" },
+  { name: "Optimus", logo: MANAGED_APP_CATALOG.optimus.defaultLogoUrl, color: "emerald", publicSlug: "optimus" },
+  { name: "Império Play", logo: MANAGED_APP_CATALOG.imperio.defaultLogoUrl, color: "orange", publicSlug: "imperio" },
+  { name: "Infinitus", logo: MANAGED_APP_CATALOG.infinitus.defaultLogoUrl, color: "indigo", publicSlug: "infinitus" },
+  { name: "Supremus", logo: MANAGED_APP_CATALOG.supremus.defaultLogoUrl, color: "pink", publicSlug: "supremus" },
+  { name: "Evolux", logo: MANAGED_APP_CATALOG.evolux.defaultLogoUrl, color: "cyan", publicSlug: "evolux" },
 ];
 
 function fallbackDownload(settings: Record<string, string> | undefined, slug: PublicSlug) {

@@ -13,14 +13,14 @@ type Settings = Record<string, string | undefined>;
 
 const FALLBACK_LOGOS: Record<PublicAppSlug, string> = {
   ouropro: "/manus-storage/ouropro_logo_c0c3caef.png",
-  ultra: "/manus-storage/ultra-player-logo_efd734bc.png",
-  maximus: "",
-  prestige: "",
-  optimus: "",
-  imperio: "",
-  infinitus: "",
-  supremus: "",
-  evolux: "",
+  ultra: "/manus-storage/fusion_80fa0de0.png",
+  maximus: "/manus-storage/maximus-player_0f899c06.png",
+  prestige: "/manus-storage/prestige_60f80d9e.jpg",
+  optimus: "/manus-storage/optimus_7d8289c6.png",
+  imperio: "/manus-storage/imperio-play_a4070253.jpg",
+  infinitus: "/manus-storage/infinitus_eee744db.webp",
+  supremus: "/manus-storage/supremus_9e4e9049.jpg",
+  evolux: "/manus-storage/evolux_7ea8a0fc.png",
 };
 
 function safePublicUrl(value: string | undefined): string {

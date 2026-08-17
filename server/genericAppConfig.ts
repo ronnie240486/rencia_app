@@ -1,8 +1,11 @@
+import { isManagedAppId, MANAGED_APP_CATALOG } from "../shared/appCatalog";
+
 export type GenericAppSettings = Record<string, string | undefined>;
 
 export function buildGenericAppConfig(appId: string, displayName: string, settings: GenericAppSettings, playlistUrls: string[]) {
   const prefix = `${appId}_`;
   const text = (suffix: string, fallback = "") => settings[`${prefix}${suffix}`] || fallback;
+  const defaultLogoUrl = isManagedAppId(appId) ? MANAGED_APP_CATALOG[appId].defaultLogoUrl : "";
   return {
     app_id: appId,
     app_name: text("app_name", displayName),
@@ -17,7 +20,7 @@ export function buildGenericAppConfig(appId: string, displayName: string, settin
     renew_button_text: text("renew_button_text"),
     renew_button_url: text("renew_button_url"),
     reseller_email: text("reseller_email"),
-    logo_url: text("logo_url"),
+    logo_url: text("logo_url", defaultLogoUrl),
     banner_url: text("banner_url"),
     background_url: text("background_url"),
     message_image_url: text("message_image_url"),

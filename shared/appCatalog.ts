@@ -11,6 +11,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/settings",
     publicSlug: "ouropro",
     deviceAliases: ["OuroPro", "Ouro Pro"],
+    defaultLogoUrl: "/manus-storage/ouropro_logo_c0c3caef.png",
   },
   fusion: {
     id: "fusion",
@@ -18,6 +19,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/ultra-player",
     publicSlug: "ultra",
     deviceAliases: ["Ultra Player", "Fusion"],
+    defaultLogoUrl: "/manus-storage/fusion_80fa0de0.png",
   },
   maximus: {
     id: "maximus",
@@ -25,6 +27,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/gpcpro",
     publicSlug: "maximus",
     deviceAliases: ["Maximus", "Maximus Player"],
+    defaultLogoUrl: "/manus-storage/maximus-player_0f899c06.png",
   },
   prestige: {
     id: "prestige",
@@ -32,6 +35,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/prestige",
     publicSlug: "prestige",
     deviceAliases: ["Prestige"],
+    defaultLogoUrl: "/manus-storage/prestige_60f80d9e.jpg",
   },
   optimus: {
     id: "optimus",
@@ -39,6 +43,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/optimus",
     publicSlug: "optimus",
     deviceAliases: ["Optimus"],
+    defaultLogoUrl: "/manus-storage/optimus_7d8289c6.png",
   },
   imperio: {
     id: "imperio",
@@ -46,6 +51,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/imperio",
     publicSlug: "imperio",
     deviceAliases: ["Império Play", "Imperio Play"],
+    defaultLogoUrl: "/manus-storage/imperio-play_a4070253.jpg",
   },
   infinitus: {
     id: "infinitus",
@@ -53,6 +59,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/infinitus",
     publicSlug: "infinitus",
     deviceAliases: ["Infinitus"],
+    defaultLogoUrl: "/manus-storage/infinitus_eee744db.webp",
   },
   supremus: {
     id: "supremus",
@@ -60,6 +67,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/supremus",
     publicSlug: "supremus",
     deviceAliases: ["Supremus"],
+    defaultLogoUrl: "/manus-storage/supremus_9e4e9049.jpg",
   },
   evolux: {
     id: "evolux",
@@ -67,6 +75,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/evolux",
     publicSlug: "evolux",
     deviceAliases: ["Evolux"],
+    defaultLogoUrl: "/manus-storage/evolux_7ea8a0fc.png",
   },
 } as const;
 

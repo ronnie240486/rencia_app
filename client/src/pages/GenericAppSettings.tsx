@@ -23,7 +23,7 @@ const visualFields = [
   ["icon_series_url", "Ícone de Séries", "opcional"],
 ] as const;
 
-function defaultsFor(appId: string, name: string): Record<string, string> {
+function defaultsFor(appId: string, name: string, defaultLogoUrl: string): Record<string, string> {
   const p = `${appId}_`;
   return {
     [`${p}app_name`]: name, [`${p}impact_phrase`]: "", [`${p}message_title`]: "", [`${p}message_text`]: "",
@@ -33,7 +33,7 @@ function defaultsFor(appId: string, name: string): Record<string, string> {
     [`${p}current_plan`]: "Premium", [`${p}quality`]: "1080p", [`${p}subtitles`]: "Português", [`${p}audio_track`]: "Português",
     [`${p}image_ratio`]: "16:9", [`${p}buffer_size`]: "Médio", [`${p}retry_attempts`]: "3", [`${p}show_most_watched`]: "true",
     [`${p}show_recently_watched`]: "true", [`${p}language`]: "pt-BR", [`${p}contact_email`]: "",
-    ...Object.fromEntries(visualFields.map(([field]) => [`${p}${field}`, ""])),
+    ...Object.fromEntries(visualFields.map(([visualField]) => [`${p}${visualField}`, visualField === "logo_url" ? defaultLogoUrl : ""])),
   };
 }
 
@@ -54,7 +54,7 @@ export default function GenericAppSettings() {
 
   useEffect(() => {
     if (!app || !allSettings || initialized) return;
-    const values = defaultsFor(app.id, app.displayName);
+    const values = defaultsFor(app.id, app.displayName, app.defaultLogoUrl);
     Object.keys(values).forEach((key) => { if (allSettings[key] !== undefined && allSettings[key] !== null) values[key] = String(allSettings[key]); });
     setForm(values); setInitialized(true);
   }, [app, allSettings, initialized]);
@@ -72,7 +72,7 @@ export default function GenericAppSettings() {
   const textInput = (label: string, key: string, type = "text", placeholder = "") => <div className="space-y-2"><Label>{label}</Label><Input type={type} value={form[field(key)] || ""} onChange={(e) => change(field(key), e.target.value)} placeholder={placeholder} /></div>;
 
   return <AdminLayout title={app.displayName}><div className="mx-auto max-w-5xl space-y-6 p-1 sm:p-3">
-    <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-primary">Aplicativo personalizado</p><h1 className="mt-1 text-3xl font-black">{app.displayName}</h1><p className="mt-1 text-sm text-muted-foreground">A mesma estrutura completa de personalização do Maximus Player.</p></div><Button onClick={() => save.mutate(form)} disabled={!dirty || save.isPending || isLoading} className="gap-2 btn-save">{save.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Salvar tudo</Button></div>
+    <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-4"><img src={form[field("logo_url")] || app.defaultLogoUrl} alt={app.displayName} className="h-16 w-16 rounded-2xl object-contain bg-black/5 p-1" /><div><p className="text-xs font-bold uppercase tracking-widest text-primary">Aplicativo personalizado</p><h1 className="mt-1 text-3xl font-black">{app.displayName}</h1><p className="mt-1 text-sm text-muted-foreground">A mesma estrutura completa de personalização do Maximus Player.</p></div></div><Button onClick={() => save.mutate(form)} disabled={!dirty || save.isPending || isLoading} className="gap-2 btn-save">{save.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Salvar tudo</Button></div>
 
     <Card><CardHeader><CardTitle>{app.displayName} — Imagens</CardTitle><CardDescription>Personalize banner, logo, fundo, avisos e os ícones mostrados no aplicativo.</CardDescription></CardHeader><CardContent className="grid gap-6 md:grid-cols-2">{visualFields.map(([key, label, hint]) => { const full = field(key); const url = form[full]; return <div key={key} className="space-y-2"><Label>{label} <span className="text-muted-foreground">({hint})</span></Label><div className="flex gap-2"><Input value={url || ""} onChange={(e) => change(full, e.target.value)} placeholder="https://..." /><UploadButton field={full} busy={uploading === full} onFile={(file) => uploadImage(full, file)} /></div><div className="flex h-28 w-full items-center justify-center overflow-hidden rounded-lg border bg-muted/30">{url ? <img src={url} alt={label} className="h-full w-full object-contain" /> : <ImageIcon className="text-muted-foreground" size={24} />}</div></div>; })}</CardContent></Card>
 

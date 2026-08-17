@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, TrendingUp, Users, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
 import { useMemo } from "react";
 
 interface AppRanking {
@@ -39,28 +40,28 @@ export default function RankingApps() {
     const apps = [
       {
         name: "Ouro Pro",
-        logo: "/manus-storage/ouropro_logo_c0c3caef.png",
+        logo: MANAGED_APP_CATALOG.ouropro.defaultLogoUrl,
         color: "yellow",
         users: appCounts['Ouro Pro'] || 0,
       },
       {
         name: "Maximus",
-        logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663162366914/PzXaZFHtEbexAZJA.png",
+        logo: MANAGED_APP_CATALOG.maximus.defaultLogoUrl,
         color: "purple",
         users: appCounts['Maximus'] || 0,
       },
       {
         name: "Fusion",
-        logo: "/manus-storage/ultra-player-logo_efd734bc.png",
+        logo: MANAGED_APP_CATALOG.fusion.defaultLogoUrl,
         color: "cyan",
         users: appCounts['Fusion'] || 0,
       },
-      { name: "Prestige", logo: "", color: "purple", users: appCounts['Prestige'] || 0 },
-      { name: "Optimus", logo: "", color: "cyan", users: appCounts['Optimus'] || 0 },
-      { name: "Império Play", logo: "", color: "yellow", users: appCounts['Império Play'] || 0 },
-      { name: "Infinitus", logo: "", color: "purple", users: appCounts['Infinitus'] || 0 },
-      { name: "Supremus", logo: "", color: "yellow", users: appCounts['Supremus'] || 0 },
-      { name: "Evolux", logo: "", color: "cyan", users: appCounts['Evolux'] || 0 },
+      { name: "Prestige", logo: MANAGED_APP_CATALOG.prestige.defaultLogoUrl, color: "purple", users: appCounts['Prestige'] || 0 },
+      { name: "Optimus", logo: MANAGED_APP_CATALOG.optimus.defaultLogoUrl, color: "cyan", users: appCounts['Optimus'] || 0 },
+      { name: "Império Play", logo: MANAGED_APP_CATALOG.imperio.defaultLogoUrl, color: "yellow", users: appCounts['Império Play'] || 0 },
+      { name: "Infinitus", logo: MANAGED_APP_CATALOG.infinitus.defaultLogoUrl, color: "purple", users: appCounts['Infinitus'] || 0 },
+      { name: "Supremus", logo: MANAGED_APP_CATALOG.supremus.defaultLogoUrl, color: "yellow", users: appCounts['Supremus'] || 0 },
+      { name: "Evolux", logo: MANAGED_APP_CATALOG.evolux.defaultLogoUrl, color: "cyan", users: appCounts['Evolux'] || 0 },
     ];
 
     return apps

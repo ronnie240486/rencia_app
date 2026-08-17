@@ -746,6 +746,11 @@
 - [x] Garantir que cada aba individual abra a tela completa de configurações
 - [x] Manter Ouro Pro, Fusion e Maximus como abas individuais com suas configurações próprias
 
+## Logos dos Aplicativos
+- [x] Preparar os logos enviados de Optimus, Maximus, Infinitus, Fusion, Evolux, Império Play, Supremus e Prestige
+- [x] Aplicar os logos corretos na Loja, Ranking, cards e abas de configuração
+- [x] Preservar o logo já configurado do Ouro Pro
+
 ## Novos Aplicativos do Painel
 - [x] Cadastrar Prestige, Optimus, Império Play, Infinitus, Supremus e Evolux no catálogo comum
 - [x] Adicionar os seis aplicativos ao cadastro e à edição de clientes
