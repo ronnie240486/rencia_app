@@ -755,6 +755,11 @@
 - [x] Substituir o logo legado do Ultra pelo logo Fusion em configurações e respostas públicas
 - [x] Atualizar o valor salvo do logo Ultra para impedir que ele sobrescreva o Fusion
 
+## Loja de Todos os Aplicativos
+- [x] Adicionar botão no topo da Loja privada para abrir a loja completa
+- [x] Criar página pública com todos os aplicativos em lista vertical de download
+- [x] Exibir logo, versão, disponibilidade e botão de baixar em cada aplicativo
+
 ## Novos Aplicativos do Painel
 - [x] Cadastrar Prestige, Optimus, Império Play, Infinitus, Supremus e Evolux no catálogo comum
 - [x] Adicionar os seis aplicativos ao cadastro e à edição de clientes

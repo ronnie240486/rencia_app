@@ -47,6 +47,7 @@ export default function PublicDownloads() {
   const [apps, setApps] = useState<DownloadApp[]>([]);
   const [loading, setLoading] = useState(true);
   const slug = useMemo(() => SHORT_DOWNLOAD_SLUGS[location] || location.split("/")[2] || "", [location]);
+  const allAppsStore = location === "/d";
 
   useEffect(() => {
     let active = true;
@@ -69,13 +70,13 @@ export default function PublicDownloads() {
         <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-300">Escolha o aplicativo informado pelo seu revendedor. Esta página é pública e não dá acesso ao painel.</p>
       </header>
 
-      {loading ? <div className="flex justify-center py-20 text-amber-300"><Loader2 className="animate-spin" size={30} /></div> : visibleApps.length ? <div className="grid gap-5 md:grid-cols-2">
+      {loading ? <div className="flex justify-center py-20 text-amber-300"><Loader2 className="animate-spin" size={30} /></div> : visibleApps.length ? <div className={allAppsStore ? "space-y-5" : "grid gap-5 md:grid-cols-2"}>
         {visibleApps.map(app => <article key={app.slug} className="overflow-hidden rounded-3xl border border-white/10 bg-slate-950/80 shadow-2xl backdrop-blur">
           <div className={`h-2 bg-gradient-to-r ${ACCENT[app.accent]}`} />
-          <div className="p-6 sm:p-8">
-            <div className="flex items-center gap-4"><AppLogo app={app} /><div><h2 className="text-xl font-bold">{app.name}</h2><p className="mt-1 text-sm text-slate-400">{app.version}</p></div></div>
-            <a href={app.downloadUrl} target="_blank" rel="noopener noreferrer" className={`mt-7 flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r ${ACCENT[app.accent]} px-5 text-base font-black text-slate-950 shadow-lg transition-transform hover:scale-[1.02]`}><Download size={20} /> BAIXAR AGORA</a>
-            <div className="mt-6 space-y-3 text-xs text-slate-400"><p className="flex gap-2"><ShieldCheck size={16} className="shrink-0 text-emerald-400" />Baixe somente pelo link enviado pelo seu revendedor.</p><p className="flex gap-2"><Smartphone size={16} className="shrink-0 text-amber-300" />Se o Android solicitar, permita a instalação do aplicativo baixado.</p></div>
+          <div className={allAppsStore ? "flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8" : "p-6 sm:p-8"}>
+            <div className={allAppsStore ? "flex items-center gap-4" : "flex items-center gap-4"}><AppLogo app={app} /><div><h2 className="text-xl font-bold">{app.name}</h2><p className="mt-1 text-sm text-slate-400">{app.version}</p></div></div>
+            <a href={app.downloadUrl} target="_blank" rel="noopener noreferrer" className={`${allAppsStore ? "sm:min-w-56" : "mt-7"} flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r ${ACCENT[app.accent]} px-5 text-base font-black text-slate-950 shadow-lg transition-transform hover:scale-[1.02]`}><Download size={20} /> BAIXAR AGORA</a>
+            {!allAppsStore && <div className="mt-6 space-y-3 text-xs text-slate-400"><p className="flex gap-2"><ShieldCheck size={16} className="shrink-0 text-emerald-400" />Baixe somente pelo link enviado pelo seu revendedor.</p><p className="flex gap-2"><Smartphone size={16} className="shrink-0 text-amber-300" />Se o Android solicitar, permita a instalação do aplicativo baixado.</p></div>}
           </div>
         </article>)}
       </div> : <div className="rounded-3xl border border-white/10 bg-slate-950/80 px-6 py-16 text-center"><PackageOpen className="mx-auto mb-4 text-slate-500" size={36} /><h2 className="text-xl font-bold">Aplicativo indisponível</h2><p className="mt-2 text-sm text-slate-400">Peça ao seu revendedor o link correto para download.</p></div>}
