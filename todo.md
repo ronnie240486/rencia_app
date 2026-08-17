@@ -772,6 +772,10 @@
 - [x] Adicionar as cinco imagens enviadas ao carrossel de apresentação do Ouro Pro
 - [x] Preparar os demais aplicativos para receber seus próprios carrosséis
 
+## Códigos Numéricos do Downloader
+- [x] Confirmar como gerar códigos numéricos usando os links finais dos APKs
+- [x] Orientar o uso de um código por aplicativo para download direto no Downloader
+
 ## Novos Aplicativos do Painel
 - [x] Cadastrar Prestige, Optimus, Império Play, Infinitus, Supremus e Evolux no catálogo comum
 - [x] Adicionar os seis aplicativos ao cadastro e à edição de clientes
