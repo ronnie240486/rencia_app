@@ -752,7 +752,15 @@
 - [x] Incluir uploads, prévias e tamanhos de banner, logo e imagem de fundo em cada tela
 - [x] Incluir mensagens, bloqueio, renovação, API, atualização e demais recursos do padrão Maximus
 
+## Abertura e Conteúdo do Evolux Player
+- [x] Trocar o movimento lateral do logo por efeito de brilho/pulso — descartado a pedido do usuário
+- [x] Exibir Evolux Player com animação de máquina de escrever e fonte atualizada — descartado a pedido do usuário
+- [x] Garantir a seção Séries na tela inicial do aplicativo — descartado a pedido do usuário
+
+## Retomada do Guia Técnico
+- [x] Concluir o PDF unificado de todas as rotas após descartar o ajuste visual do Evolux solicitado por engano
+
 ## Guia Unificado de Rotas dos Aplicativos
-- [ ] Inventariar as rotas de Ouro Pro, Fusion, Maximus e novos aplicativos
-- [ ] Documentar mensagens, vencimento, failover, listas, atualizações, comandos e testes
-- [ ] Gerar um único PDF técnico pronto para os desenvolvedores
+- [x] Inventariar as rotas de Ouro Pro, Fusion, Maximus e novos aplicativos
+- [x] Documentar mensagens, vencimento, failover, listas, atualizações, comandos e testes
+- [x] Gerar um único PDF técnico pronto para os desenvolvedores
