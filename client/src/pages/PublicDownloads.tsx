@@ -8,6 +8,7 @@ type DownloadApp = {
   name: string;
   version: string;
   downloadUrl: string;
+  downloaderCode: string;
   logoUrl: string;
   accent: "gold" | "violet" | "sky" | "rose" | "emerald" | "orange" | "indigo" | "pink" | "cyan";
 };
@@ -110,6 +111,7 @@ export default function PublicDownloads() {
           <div className={`h-2 bg-gradient-to-r ${ACCENT[app.accent]}`} />
           <div className={allAppsStore ? "flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8" : "p-6 sm:p-8"}>
             <div className={allAppsStore ? "flex items-center gap-4" : "flex items-center gap-4"}><AppLogo app={app} /><div><h2 className="text-xl font-bold">{app.name}</h2><p className="mt-1 text-sm text-slate-400">{app.version}</p></div></div>
+            {app.downloaderCode && <div className="rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-center"><p className="text-[10px] font-bold uppercase tracking-wider text-amber-200">Código Downloader</p><p className="mt-1 text-xl font-black tracking-[.12em] text-amber-300">{app.downloaderCode}</p></div>}
             <a href={app.downloadUrl} target="_blank" rel="noopener noreferrer" className={`${allAppsStore ? "sm:min-w-56" : "mt-7"} flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r ${ACCENT[app.accent]} px-5 text-base font-black text-slate-950 shadow-lg transition-transform hover:scale-[1.02]`}><Download size={20} /> BAIXAR AGORA</a>
             {!allAppsStore && <div className="mt-6 space-y-3 text-xs text-slate-400"><p className="flex gap-2"><ShieldCheck size={16} className="shrink-0 text-emerald-400" />Baixe somente pelo link enviado pelo seu revendedor.</p><p className="flex gap-2"><Smartphone size={16} className="shrink-0 text-amber-300" />Se o Android solicitar, permita a instalação do aplicativo baixado.</p></div>}
           </div>

@@ -776,6 +776,10 @@
 - [x] Confirmar como gerar códigos numéricos usando os links finais dos APKs
 - [x] Orientar o uso de um código por aplicativo para download direto no Downloader
 
+## Código Downloader do Ouro Pro
+- [x] Salvar o código 7469834 do Ouro Pro nas configurações de download
+- [x] Exibir o código Downloader do Ouro Pro na loja privada e na página pública
+
 ## Novos Aplicativos do Painel
 - [x] Cadastrar Prestige, Optimus, Império Play, Infinitus, Supremus e Evolux no catálogo comum
 - [x] Adicionar os seis aplicativos ao cadastro e à edição de clientes

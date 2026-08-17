@@ -81,17 +81,20 @@ function AppCard({ app }: { app: AppConfig }) {
   const publicBaseUrl = typeof window === "undefined" ? "" : `${window.location.origin}${PUBLIC_SHORT_PATHS[app.publicSlug]}`;
   const downloadUrl = settings?.[`public_${app.publicSlug}_download_url`] || fallbackDownload(settings, app.publicSlug);
   const version = settings?.[`public_${app.publicSlug}_version`] || fallbackVersion(settings, app.publicSlug) || "Versão atual";
+  const downloaderCode = settings?.[`public_${app.publicSlug}_downloader_code`] || "";
   const active = settings?.[`public_${app.publicSlug}_active`] !== "false";
 
   const [editMode, setEditMode] = useState(false);
   const [editDownloadUrl, setEditDownloadUrl] = useState("");
   const [editVersion, setEditVersion] = useState("");
+  const [editDownloaderCode, setEditDownloaderCode] = useState("");
   const [editActive, setEditActive] = useState(true);
   const [copied, setCopied] = useState(false);
 
   const beginEdit = () => {
     setEditDownloadUrl(downloadUrl);
     setEditVersion(version === "Versão atual" ? "" : version);
+    setEditDownloaderCode(downloaderCode);
     setEditActive(active);
     setEditMode(true);
   };
@@ -110,6 +113,7 @@ function AppCard({ app }: { app: AppConfig }) {
     updateMany.mutate({
       [`public_${app.publicSlug}_download_url`]: editDownloadUrl.trim(),
       [`public_${app.publicSlug}_version`]: editVersion.trim(),
+      [`public_${app.publicSlug}_downloader_code`]: editDownloaderCode.trim(),
       [`public_${app.publicSlug}_active`]: String(editActive),
     });
   };
@@ -144,11 +148,13 @@ function AppCard({ app }: { app: AppConfig }) {
       {editMode ? <>
         <div className="space-y-2"><Label>Link final do APK</Label><Input value={editDownloadUrl} onChange={event => setEditDownloadUrl(event.target.value)} placeholder="https://.../meu-aplicativo.apk" className="font-mono text-sm" /></div>
         <div className="space-y-2"><Label>Versão exibida ao cliente</Label><Input value={editVersion} onChange={event => setEditVersion(event.target.value)} placeholder="Ex.: 7.1.0" /></div>
+        <div className="space-y-2"><Label>Código numérico do Downloader</Label><Input value={editDownloaderCode} onChange={event => setEditDownloaderCode(event.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="Ex.: 7469834" /></div>
         <div className="flex items-center justify-between rounded-xl border p-3"><div><p className="font-medium">Disponível na loja pública</p><p className="text-xs text-muted-foreground">Quando desligado, o aplicativo não aparece para clientes.</p></div><Switch checked={editActive} onCheckedChange={setEditActive} /></div>
         <div className="flex gap-2"><Button onClick={save} disabled={updateMany.isPending} className={`flex-1 gap-2 text-white ${extendedButtonClasses[app.color]}`}><Save size={16} />{updateMany.isPending ? "Salvando..." : "Salvar"}</Button><Button variant="outline" onClick={() => setEditMode(false)}>Cancelar</Button></div>
       </> : <>
         <div className="space-y-2"><Label className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider"><Link2 size={12} /> Link curto para enviar ao cliente</Label><div className="flex gap-2"><div className="flex-1 rounded-lg border bg-white/70 px-3 py-2 dark:bg-black/20"><p className="break-all text-xs font-mono font-bold">{publicBaseUrl}</p></div><Button size="sm" variant="outline" onClick={copyPublicUrl}>{copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}</Button></div></div>
         <div className="space-y-2"><Label className="text-xs font-semibold uppercase tracking-wider">Destino atual do download</Label><p className="break-all rounded-lg border bg-white/70 px-3 py-2 text-xs font-mono dark:bg-black/20">{downloadUrl || "Defina o link do APK em Editar"}</p></div>
+        {downloaderCode && <div className="rounded-xl border border-amber-400/30 bg-amber-50 p-3 text-center dark:bg-amber-400/10"><p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-200">Código Downloader</p><p className="mt-1 text-2xl font-black tracking-[.18em] text-amber-700 dark:text-amber-300">{downloaderCode}</p></div>}
         <div className="flex gap-2"><a href={publicBaseUrl} target="_blank" rel="noopener noreferrer" className="flex-1"><Button variant="outline" className="w-full gap-2"><ExternalLink size={16} /> Ver página pública</Button></a>{downloadUrl && <a href={downloadUrl} target="_blank" rel="noopener noreferrer"><Button className={`gap-2 text-white ${extendedButtonClasses[app.color]}`}><Download size={16} /> Baixar</Button></a>}</div>
       </>}
     </CardContent>
