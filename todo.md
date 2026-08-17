@@ -780,6 +780,14 @@
 - [x] Salvar o código 7469834 do Ouro Pro nas configurações de download
 - [x] Exibir o código Downloader do Ouro Pro na loja privada e na página pública
 
+## Código Downloader do Fusion
+- [x] Salvar o código 8461304 do Fusion nas configurações de download
+- [x] Exibir o código Downloader do Fusion na loja privada e na página pública
+
+## Links Curtos AFTV
+- [x] Salvar os links aftv.news/7469834 do Ouro Pro e aftv.news/8461304 do Fusion
+- [x] Exibir links AFTV clicáveis nas lojas privada e pública
+
 ## Novos Aplicativos do Painel
 - [x] Cadastrar Prestige, Optimus, Império Play, Infinitus, Supremus e Evolux no catálogo comum
 - [x] Adicionar os seis aplicativos ao cadastro e à edição de clientes

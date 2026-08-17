@@ -6,6 +6,7 @@ export interface PublicDownloadApp {
   version: string;
   downloadUrl: string;
   downloaderCode: string;
+  aftvUrl: string;
   logoUrl: string;
   accent: "gold" | "violet" | "sky" | "rose" | "emerald" | "orange" | "indigo" | "pink" | "cyan";
 }
@@ -38,7 +39,7 @@ function safePublicUrl(value: string | undefined): string {
 
 /** Constrói somente os aplicativos que podem ser exibidos sem autenticação. */
 export function buildPublicDownloadApps(settings: Settings): PublicDownloadApp[] {
-  const definitions: Array<Omit<PublicDownloadApp, "version" | "downloadUrl" | "downloaderCode" | "logoUrl"> & {
+  const definitions: Array<Omit<PublicDownloadApp, "version" | "downloadUrl" | "downloaderCode" | "aftvUrl" | "logoUrl"> & {
     fallbackDownload?: string;
     fallbackVersion?: string;
     fallbackLogo?: string;
@@ -86,6 +87,7 @@ export function buildPublicDownloadApps(settings: Settings): PublicDownloadApp[]
       version: (settings[`public_${definition.slug}_version`] || definition.fallbackVersion || "Versão atual").trim(),
       downloadUrl,
       downloaderCode: (settings[`public_${definition.slug}_downloader_code`] || "").trim(),
+      aftvUrl: safePublicUrl(settings[`public_${definition.slug}_aftv_url`]),
       logoUrl: safePublicUrl(settings[`public_${definition.slug}_logo_url`] || definition.fallbackLogo) || FALLBACK_LOGOS[definition.slug],
     }];
   });
