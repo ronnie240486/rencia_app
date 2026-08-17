@@ -767,6 +767,11 @@
 ## Contraste do Botão da Loja Completa
 - [x] Garantir texto legível no botão Loja de Todos os Aplicativos em temas claro e escuro
 
+## Carrosséis da Loja de Aplicativos
+- [x] Criar carrossel reutilizável de imagens na página pública de cada aplicativo
+- [x] Adicionar as cinco imagens enviadas ao carrossel de apresentação do Ouro Pro
+- [x] Preparar os demais aplicativos para receber seus próprios carrosséis
+
 ## Novos Aplicativos do Painel
 - [x] Cadastrar Prestige, Optimus, Império Play, Infinitus, Supremus e Evolux no catálogo comum
 - [x] Adicionar os seis aplicativos ao cadastro e à edição de clientes

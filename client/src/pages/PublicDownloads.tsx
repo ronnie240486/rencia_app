@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Download, Loader2, PackageOpen, ShieldCheck, Smartphone } from "lucide-react";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 type DownloadApp = {
   slug: "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux";
@@ -35,11 +36,45 @@ const SHORT_DOWNLOAD_SLUGS: Record<string, DownloadApp["slug"]> = {
   "/e": "evolux",
 };
 
+const APP_SHOWCASES: Partial<Record<DownloadApp["slug"], { title: string; images: Array<{ url: string; label: string }> }>> = {
+  ouropro: {
+    title: "Conheça o Ouro Pro",
+    images: [
+      { url: "/manus-storage/03-inicio_579dda8d.webp", label: "Tela inicial" },
+      { url: "/manus-storage/02-canais_4f59d933.webp", label: "Canais ao vivo" },
+      { url: "/manus-storage/05-filmes_e4a96396.webp", label: "Filmes" },
+      { url: "/manus-storage/04-radios_35e9e2b4.webp", label: "Rádios" },
+      { url: "/manus-storage/01-configuracoes_14ff9f34.webp", label: "Configurações" },
+    ],
+  },
+};
+
 function AppLogo({ app }: { app: DownloadApp }) {
   const [failed, setFailed] = useState(!app.logoUrl);
   return <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/10 text-xl font-black text-white">
     {!failed ? <img src={app.logoUrl} alt={app.name} className="h-full w-full object-cover" onError={() => setFailed(true)} /> : app.name.slice(0, 1)}
   </div>;
+}
+
+function AppShowcase({ app }: { app: DownloadApp }) {
+  const showcase = APP_SHOWCASES[app.slug];
+  if (!showcase) return null;
+
+  return <section className="border-t border-white/10 bg-black/20 px-6 py-6 sm:px-8">
+    <p className="mb-4 text-sm font-bold text-white">{showcase.title}</p>
+    <Carousel opts={{ loop: true }} className="mx-auto w-full max-w-3xl px-10">
+      <CarouselContent>
+        {showcase.images.map((image) => <CarouselItem key={image.url}>
+          <figure className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-xl">
+            <img src={image.url} alt={`${app.name} — ${image.label}`} className="aspect-video w-full object-cover" loading="lazy" />
+            <figcaption className="border-t border-white/10 px-4 py-3 text-center text-sm font-medium text-slate-200">{image.label}</figcaption>
+          </figure>
+        </CarouselItem>)}
+      </CarouselContent>
+      <CarouselPrevious className="left-1 border-white/20 bg-slate-950/90 text-white hover:bg-slate-800 hover:text-white" />
+      <CarouselNext className="right-1 border-white/20 bg-slate-950/90 text-white hover:bg-slate-800 hover:text-white" />
+    </Carousel>
+  </section>;
 }
 
 export default function PublicDownloads() {
@@ -78,6 +113,7 @@ export default function PublicDownloads() {
             <a href={app.downloadUrl} target="_blank" rel="noopener noreferrer" className={`${allAppsStore ? "sm:min-w-56" : "mt-7"} flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r ${ACCENT[app.accent]} px-5 text-base font-black text-slate-950 shadow-lg transition-transform hover:scale-[1.02]`}><Download size={20} /> BAIXAR AGORA</a>
             {!allAppsStore && <div className="mt-6 space-y-3 text-xs text-slate-400"><p className="flex gap-2"><ShieldCheck size={16} className="shrink-0 text-emerald-400" />Baixe somente pelo link enviado pelo seu revendedor.</p><p className="flex gap-2"><Smartphone size={16} className="shrink-0 text-amber-300" />Se o Android solicitar, permita a instalação do aplicativo baixado.</p></div>}
           </div>
+          <AppShowcase app={app} />
         </article>)}
       </div> : <div className="rounded-3xl border border-white/10 bg-slate-950/80 px-6 py-16 text-center"><PackageOpen className="mx-auto mb-4 text-slate-500" size={36} /><h2 className="text-xl font-bold">Aplicativo indisponível</h2><p className="mt-2 text-sm text-slate-400">Peça ao seu revendedor o link correto para download.</p></div>}
     </section>
