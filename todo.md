@@ -794,6 +794,12 @@
 - [x] Executar 135 testes e checagem TypeScript sem erros
 - [ ] Salvar checkpoint da correção
 
+## Caminho Curto da Loja Completa
+- [x] Criar um endereço curto para a loja pública completa — https://clck.ru/3VGecb
+- [x] Atualizar o botão interno e validar: o endereço abre diretamente a loja completa sem login ou tela intermediária
+- [x] Executar 135 testes e checagem TypeScript sem erros
+- [ ] Salvar checkpoint do caminho curto
+
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
 - [x] Mover a configuração administrativa da loja para uma rota interna protegida
