@@ -1292,6 +1292,25 @@ export const appRouter = router({
         .where(and(eq(remoteDeviceCommands.id, input.id), eq(remoteDeviceCommands.ownerId, ctx.user.id), inArray(remoteDeviceCommands.status, ["queued", "delivered"])));
       return { success: true };
     }),
+    delete: protectedProcedure.input(z.object({ id: z.number().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.delete(remoteDeviceCommands).where(and(
+        eq(remoteDeviceCommands.id, input.id),
+        eq(remoteDeviceCommands.ownerId, ctx.user.id),
+        inArray(remoteDeviceCommands.status, ["executed", "failed", "expired", "cancelled"]),
+      ));
+      return { success: true };
+    }),
+    clearHistory: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await db.delete(remoteDeviceCommands).where(and(
+        eq(remoteDeviceCommands.ownerId, ctx.user.id),
+        inArray(remoteDeviceCommands.status, ["executed", "failed", "expired", "cancelled"]),
+      ));
+      return { success: true };
+    }),
   }),
 
   alerts: router({

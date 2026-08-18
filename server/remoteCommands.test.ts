@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commandExpiresAt, parseRemotePayload, REMOTE_COMMAND_LABELS, selectDeviceForRemoteCommand } from "./remoteCommands";
+import { commandExpiresAt, isFinalRemoteCommandStatus, parseRemotePayload, REMOTE_COMMAND_LABELS, selectDeviceForRemoteCommand } from "./remoteCommands";
 
 describe("Central de Comandos Remotos", () => {
   it("define uma expiração segura de quinze minutos por padrão", () => {
@@ -20,5 +20,12 @@ describe("Central de Comandos Remotos", () => {
   it("seleciona o cadastro vinculado ao comando quando o mesmo MAC está duplicado", () => {
     const cadastros = [{ id: 300001 }, { id: 1020017 }];
     expect(selectDeviceForRemoteCommand(cadastros, { deviceId: 1020017 })).toEqual({ id: 1020017 });
+  });
+
+  it("permite limpar somente comandos que já terminaram", () => {
+    expect(isFinalRemoteCommandStatus("executed")).toBe(true);
+    expect(isFinalRemoteCommandStatus("failed")).toBe(true);
+    expect(isFinalRemoteCommandStatus("queued")).toBe(false);
+    expect(isFinalRemoteCommandStatus("delivered")).toBe(false);
   });
 });

@@ -907,6 +907,18 @@
 - [x] Criar teste de regressão para MAC duplicado e validar 137 testes e TypeScript sem erros
 - [ ] Salvar checkpoint e repetir o teste de entrega no Ouro Pro
 
+## Lixeira de Avisos e Comandos Remotos
+- [x] Adicionar exclusão individual de avisos/comandos finalizados do histórico
+- [x] Adicionar limpeza de todos os comandos finalizados do histórico
+- [x] Executar 138 testes e checagem TypeScript sem erros
+- [x] Validar o fluxo por testes; prévia visual exige login do painel
+- [ ] Salvar checkpoint da lixeira de comandos
+
+## Retorno command=null no Ouro Pro
+- [ ] Comparar o MAC que o APK está consultando com o dispositivo e a ordem pendente
+- [ ] Corrigir a seleção da fila que ainda responde command=null
+- [ ] Validar o retorno com um aviso novo sem cancelar a ordem
+
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
 - [x] Mover a configuração administrativa da loja para uma rota interna protegida

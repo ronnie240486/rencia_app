@@ -6,6 +6,12 @@ export const REMOTE_COMMAND_TYPES = ["refresh_playlist", "switch_playlist", "upd
 export const REMOTE_COMMAND_STATUSES = ["queued", "delivered", "executed", "failed", "expired", "cancelled"] as const;
 export type RemoteCommandType = typeof REMOTE_COMMAND_TYPES[number];
 export type RemoteCommandStatus = typeof REMOTE_COMMAND_STATUSES[number];
+export const FINAL_REMOTE_COMMAND_STATUSES = ["executed", "failed", "expired", "cancelled"] as const;
+
+/** Ordens em estado final podem sair do histórico; as pendentes só podem ser canceladas. */
+export function isFinalRemoteCommandStatus(status: string): boolean {
+  return (FINAL_REMOTE_COMMAND_STATUSES as readonly string[]).includes(status);
+}
 
 export const REMOTE_COMMAND_LABELS: Record<RemoteCommandType, string> = {
   refresh_playlist: "Atualizar lista",
