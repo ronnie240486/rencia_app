@@ -922,6 +922,13 @@
 - [x] Executar 140 testes e checagem TypeScript sem erros
 - [ ] Salvar checkpoint do envio por DNS
 
+## Correção de Destinos por DNS e Todos os MACs
+- [x] Listar DNS extraídas diretamente das listas M3U/Xtream cadastradas dos clientes
+- [x] Adicionar destino para todos os MACs cadastrados do painel
+- [x] Mostrar quantidade de aparelhos e pedir confirmação antes do envio em massa
+- [x] Executar 141 testes e checagem TypeScript sem erros
+- [ ] Salvar checkpoint da correção de destinos
+
 ## Retorno command=null no Ouro Pro
 - [ ] Comparar o MAC que o APK está consultando com o dispositivo e a ordem pendente
 - [ ] Corrigir a seleção da fila que ainda responde command=null

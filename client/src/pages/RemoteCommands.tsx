@@ -114,6 +114,7 @@ export default function RemoteCommands() {
     </Card>
 
     <DnsCommandCard />
+    <AllMacsCommandCard />
 
     <Card>
       <CardHeader><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><CardTitle className="flex items-center gap-2 text-base"><MonitorCog size={18} /> Histórico e confirmação</CardTitle><CardDescription className="mt-1">O APK consulta os comandos junto do heartbeat e confirma a execução. Não há confirmação falsa: a ordem fica pendente até o aparelho responder.</CardDescription></div><Button variant="outline" size="sm" className="w-fit gap-2 border-destructive/40 text-destructive hover:bg-destructive hover:text-destructive-foreground" disabled={!completedRows.length || clearHistory.isPending} onClick={() => { if (window.confirm(`Excluir ${completedRows.length} comando(s) finalizado(s) do histórico?`)) clearHistory.mutate(); }}><Trash2 size={15} /> Limpar histórico</Button></div></CardHeader>
@@ -133,7 +134,7 @@ export default function RemoteCommands() {
 }
 
 function DnsCommandCard() {
-  const [dnsId, setDnsId] = useState("");
+  const [dnsHost, setDnsHost] = useState("");
   const [command, setCommand] = useState<CommandType>("refresh_playlist");
   const [listIndex, setListIndex] = useState("1");
   const [dns, setDns] = useState("");
@@ -141,7 +142,7 @@ function DnsCommandCard() {
   const [expiresInMinutes, setExpiresInMinutes] = useState("15");
   const utils = trpc.useUtils();
   const targets = trpc.remoteCommands.dnsTargets.useQuery();
-  const selectedDns = targets.data?.find(item => String(item.id) === dnsId);
+  const selectedDns = targets.data?.find(item => item.host === dnsHost);
   const sendToDns = trpc.remoteCommands.sendToDns.useMutation({
     onSuccess: async result => {
       await utils.remoteCommands.list.invalidate();
@@ -154,19 +155,56 @@ function DnsCommandCard() {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (!dnsId || !selectedDns) return toast.error("Escolha a DNS que receberá o comando.");
+    if (!dnsHost || !selectedDns) return toast.error("Escolha a DNS que receberá o comando.");
     if (!selectedDns.deviceCount) return toast.error("Nenhum cliente está vinculado a esta DNS.");
     const option = commandOptions.find(item => item.value === command)!;
     if (!window.confirm(`Enviar “${option.label}” para os ${selectedDns.deviceCount} cliente(s) da DNS ${selectedDns.titulo}?`)) return;
-    sendToDns.mutate({ dnsId: Number(dnsId), command, payload: buildPayload(command, listIndex, dns, message), expiresInMinutes: Number(expiresInMinutes) });
+    sendToDns.mutate({ dnsHost, command, payload: buildPayload(command, listIndex, dns, message), expiresInMinutes: Number(expiresInMinutes) });
   }
 
   return <Card className="border-amber-500/30">
     <CardHeader><CardTitle className="flex items-center gap-2 text-base"><MonitorCog size={17} /> Enviar por DNS / servidor</CardTitle><CardDescription>O painel localiza todas as listas que usam a DNS escolhida e enfileira o comando somente para esses clientes.</CardDescription></CardHeader>
     <CardContent><form onSubmit={submit} className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      <label className="grid gap-1.5 text-sm font-medium xl:col-span-2">DNS / servidor<select value={dnsId} onChange={event => setDnsId(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Selecione a DNS</option>{targets.data?.map(target => <option key={target.id} value={target.id}>{target.titulo} · {target.deviceCount} cliente(s)</option>)}</select>{selectedDns && <span className="text-xs text-muted-foreground">{selectedDns.host} · Comando para {selectedDns.deviceCount} cliente(s).</span>}</label>
+      <label className="grid gap-1.5 text-sm font-medium xl:col-span-2">DNS / servidor<select value={dnsHost} onChange={event => setDnsHost(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Selecione a DNS encontrada nas listas</option>{targets.data?.map(target => <option key={target.host} value={target.host}>{target.titulo} · {target.deviceCount} cliente(s)</option>)}</select>{selectedDns && <span className="text-xs text-muted-foreground">{selectedDns.host} · Comando para {selectedDns.deviceCount} cliente(s.</span>}</label>
       <CommandControls command={command} setCommand={setCommand} listIndex={listIndex} setListIndex={setListIndex} dns={dns} setDns={setDns} message={message} setMessage={setMessage} expiresInMinutes={expiresInMinutes} setExpiresInMinutes={setExpiresInMinutes} />
       <div className="flex items-end xl:col-span-4"><Button type="submit" disabled={sendToDns.isPending || !selectedDns?.deviceCount} className="gap-2 text-black dark:text-white">{sendToDns.isPending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} Enviar para a DNS</Button></div>
+    </form></CardContent>
+  </Card>;
+}
+
+function AllMacsCommandCard() {
+  const [command, setCommand] = useState<CommandType>("refresh_playlist");
+  const [listIndex, setListIndex] = useState("1");
+  const [dns, setDns] = useState("");
+  const [message, setMessage] = useState("");
+  const [expiresInMinutes, setExpiresInMinutes] = useState("15");
+  const utils = trpc.useUtils();
+  const allTargets = trpc.remoteCommands.allTargets.useQuery();
+  const sendToAll = trpc.remoteCommands.sendToAll.useMutation({
+    onSuccess: async result => {
+      await utils.remoteCommands.list.invalidate();
+      toast.success(`Comando enviado para todos os ${result.count} MACs cadastrados.`);
+      setMessage("");
+      setDns("");
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const count = allTargets.data?.deviceCount ?? 0;
+    if (!count) return toast.error("Não há MACs cadastrados para receber o comando.");
+    const option = commandOptions.find(item => item.value === command)!;
+    if (!window.confirm(`Atenção: enviar “${option.label}” para TODOS os ${count} MACs cadastrados?`)) return;
+    sendToAll.mutate({ command, payload: buildPayload(command, listIndex, dns, message), expiresInMinutes: Number(expiresInMinutes) });
+  }
+
+  return <Card className="border-destructive/30">
+    <CardHeader><CardTitle className="flex items-center gap-2 text-base"><MonitorCog size={17} /> Enviar para todos os MACs</CardTitle><CardDescription>Use somente quando o comando deve chegar a todos os aparelhos cadastrados. O painel sempre pede confirmação da quantidade.</CardDescription></CardHeader>
+    <CardContent><form onSubmit={submit} className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm xl:col-span-2"><strong>{allTargets.data?.deviceCount ?? 0} MAC(s)</strong> receberão este comando.</div>
+      <CommandControls command={command} setCommand={setCommand} listIndex={listIndex} setListIndex={setListIndex} dns={dns} setDns={setDns} message={message} setMessage={setMessage} expiresInMinutes={expiresInMinutes} setExpiresInMinutes={setExpiresInMinutes} />
+      <div className="flex items-end xl:col-span-4"><Button type="submit" variant="destructive" disabled={sendToAll.isPending || !(allTargets.data?.deviceCount)} className="gap-2">{sendToAll.isPending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} Enviar para todos os MACs</Button></div>
     </form></CardContent>
   </Card>;
 }

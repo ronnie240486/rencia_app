@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectDnsTargetDeviceIds, urlUsesDnsHost } from "./remoteCommandDns";
+import { buildDnsTargets, collectDnsTargetDeviceIds, urlUsesDnsHost } from "./remoteCommandDns";
 
 describe("remoteCommandDns", () => {
   it("reconhece URLs vinculadas à DNS sem confundir hosts parecidos", () => {
@@ -17,5 +17,15 @@ describe("remoteCommandDns", () => {
       "https://fenix.example",
     );
     expect(targetIds.sort()).toEqual([10, 11]);
+  });
+
+  it("cria destinos a partir das listas cadastradas mesmo sem DNS manual", () => {
+    expect(buildDnsTargets(
+      [{ id: 1, urlM3u8: "https://lista-a.example:8080/get.php" }],
+      [{ deviceId: 2, xtServer: "http://lista-b.example:9090" }],
+    )).toEqual([
+      { host: "lista-a.example:8080", titulo: "lista-a.example:8080", deviceCount: 1 },
+      { host: "lista-b.example:9090", titulo: "lista-b.example:9090", deviceCount: 1 },
+    ]);
   });
 });
