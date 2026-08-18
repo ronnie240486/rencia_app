@@ -832,7 +832,7 @@
 - [x] Validar visualmente o card público: logo, versão 5.5.0, botão de download e primeira tela do carrossel exibidos
 - [x] Validar avanço do carrossel: a tela de carregamento aparece ao avançar
 - [x] Executar 136 testes e checagem TypeScript sem erros
-- [ ] Salvar checkpoint da atualização
+- [x] Salvar checkpoint da atualização
 
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
