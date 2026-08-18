@@ -41,6 +41,7 @@ import { addBillingMonths, getResellerBillingStatus } from "./resellerBilling";
 import { cleanupOldOperationalHistory, HISTORY_RETENTION_CRON, HISTORY_RETENTION_DAYS } from "./historyRetention";
 import { LIST_FAILOVER_CRON, recordFailoverRun, runListFailoverSweep } from "./listFailover";
 import { commandExpiresAt, REMOTE_COMMAND_LABELS, REMOTE_COMMAND_TYPES, type RemoteCommandType } from "./remoteCommands";
+import { collectDnsTargetDeviceIds } from "./remoteCommandDns";
 
 export const revendaUpdateInputSchema = z.object({
   id: z.number(),
@@ -1227,6 +1228,24 @@ export const appRouter = router({
   }),
 
   remoteCommands: router({
+    dnsTargets: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const [dnsRows, ownerDevices] = await Promise.all([
+        db.select({ id: dnsEntries.id, titulo: dnsEntries.titulo, grupo: dnsEntries.grupo, host: dnsEntries.host })
+          .from(dnsEntries).where(and(eq(dnsEntries.ownerId, ctx.user.id), eq(dnsEntries.ativo, true))),
+        db.select({ id: devices.id, urlM3u8: devices.urlM3u8 }).from(devices).where(eq(devices.ownerId, ctx.user.id)),
+      ]);
+      const deviceIds = ownerDevices.map(device => device.id);
+      const extraLists = deviceIds.length
+        ? await db.select({ deviceId: deviceUrls.deviceId, urlM3u8: deviceUrls.urlM3u8, xtServer: deviceUrls.xtServer })
+          .from(deviceUrls).where(inArray(deviceUrls.deviceId, deviceIds))
+        : [];
+      return dnsRows.map(dns => ({
+        ...dns,
+        deviceCount: collectDnsTargetDeviceIds(ownerDevices, extraLists, dns.host).length,
+      }));
+    }),
     list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
@@ -1284,6 +1303,57 @@ export const appRouter = router({
         afterData: { deviceId: input.deviceId, command: input.command, payload: input.payload, expiresAt },
       });
       return { id: commandId, expiresAt };
+    }),
+    sendToDns: protectedProcedure.input(z.object({
+      dnsId: z.number().positive(),
+      command: z.enum(REMOTE_COMMAND_TYPES),
+      payload: z.object({
+        listIndex: z.number().int().min(1).max(3).optional(),
+        dns: z.string().trim().max(500).optional(),
+        message: z.string().trim().max(500).optional(),
+      }).default({}),
+      expiresInMinutes: z.number().int().min(1).max(60).default(15),
+    })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const [dns] = await db.select().from(dnsEntries).where(and(
+        eq(dnsEntries.id, input.dnsId),
+        eq(dnsEntries.ownerId, ctx.user.id),
+        eq(dnsEntries.ativo, true),
+      )).limit(1);
+      if (!dns) throw new TRPCError({ code: "NOT_FOUND", message: "DNS não encontrada ou inativa." });
+      if (input.command === "switch_playlist" && !input.payload.listIndex) throw new TRPCError({ code: "BAD_REQUEST", message: "Escolha a Lista 1, 2 ou 3." });
+      if (input.command === "update_dns" && !input.payload.dns) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe a nova DNS." });
+      if (input.command === "show_message" && !input.payload.message) throw new TRPCError({ code: "BAD_REQUEST", message: "Escreva a mensagem que aparecerá no aparelho." });
+
+      const ownerDevices = await db.select({ id: devices.id, urlM3u8: devices.urlM3u8 })
+        .from(devices).where(eq(devices.ownerId, ctx.user.id));
+      const deviceIds = ownerDevices.map(device => device.id);
+      const extraLists = deviceIds.length
+        ? await db.select({ deviceId: deviceUrls.deviceId, urlM3u8: deviceUrls.urlM3u8, xtServer: deviceUrls.xtServer })
+          .from(deviceUrls).where(inArray(deviceUrls.deviceId, deviceIds))
+        : [];
+      const targetDeviceIds = collectDnsTargetDeviceIds(ownerDevices, extraLists, dns.host);
+      if (!targetDeviceIds.length) throw new TRPCError({ code: "NOT_FOUND", message: "Nenhum cliente usa esta DNS." });
+
+      const expiresAt = commandExpiresAt(input.expiresInMinutes);
+      await db.insert(remoteDeviceCommands).values(targetDeviceIds.map(deviceId => ({
+        ownerId: ctx.user.id,
+        deviceId,
+        command: input.command,
+        payload: JSON.stringify(input.payload),
+        expiresAt,
+      })));
+      await recordAudit({
+        ownerId: ctx.user.id,
+        actorUserId: ctx.user.id,
+        entityType: "remote_command",
+        entityId: input.dnsId,
+        action: "queued_by_dns",
+        summary: `${REMOTE_COMMAND_LABELS[input.command as RemoteCommandType]} enviado para ${targetDeviceIds.length} cliente(s) da DNS ${dns.titulo}.`,
+        afterData: { dnsId: dns.id, host: dns.host, deviceIds: targetDeviceIds, command: input.command, payload: input.payload, expiresAt },
+      });
+      return { count: targetDeviceIds.length, expiresAt, dnsTitle: dns.titulo };
     }),
     cancel: protectedProcedure.input(z.object({ id: z.number().positive() })).mutation(async ({ ctx, input }) => {
       const db = await getDb();

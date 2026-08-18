@@ -914,6 +914,14 @@
 - [x] Validar o fluxo por testes; prévia visual exige login do painel
 - [ ] Salvar checkpoint da lixeira de comandos
 
+## Comandos Remotos por DNS
+- [x] Listar as DNS/servidores cadastrados e a quantidade de clientes vinculados
+- [x] Permitir escolher destino por MAC individual ou por grupo de DNS
+- [x] Enfileirar o comando apenas para os clientes vinculados à DNS selecionada
+- [x] Exibir confirmação com quantidade de clientes antes de enfileirar o comando por DNS
+- [x] Executar 140 testes e checagem TypeScript sem erros
+- [ ] Salvar checkpoint do envio por DNS
+
 ## Retorno command=null no Ouro Pro
 - [ ] Comparar o MAC que o APK está consultando com o dispositivo e a ordem pendente
 - [ ] Corrigir a seleção da fila que ainda responde command=null
