@@ -839,7 +839,7 @@
 - [x] Atualizar a loja pública externa com o código e o botão AFTV
 - [x] Validar os atalhos: código 7132543, download e botão AFTV exibidos na loja pública
 - [x] Executar 136 testes e checagem TypeScript sem erros
-- [ ] Salvar checkpoint da atualização
+- [x] Salvar checkpoint da atualização
 
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
