@@ -19,4 +19,18 @@ describe("loja pública de downloads", () => {
     const apps = buildPublicDownloadApps({ apk_download_url: "/ouropro", apk_version: "7.0" });
     expect(apps[0]).toMatchObject({ slug: "ouropro", downloadUrl: "/ouropro", version: "7.0" });
   });
+
+  it("expõe o Império Play com o APK e a versão configurados", () => {
+    const apps = buildPublicDownloadApps({
+      imperio_apk_download_url: "https://files.exemplo.com/imperio-play.apk",
+      imperio_apk_version: "5.5.0",
+    });
+
+    expect(apps).toEqual([expect.objectContaining({
+      slug: "imperio",
+      name: "Império Play",
+      downloadUrl: "https://files.exemplo.com/imperio-play.apk",
+      version: "5.5.0",
+    })]);
+  });
 });

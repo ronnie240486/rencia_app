@@ -817,6 +817,23 @@
 - [x] Executar 135 testes e checagem TypeScript sem erros
 - [ ] Salvar checkpoint do link de quatro caracteres
 
+## URL Curta nos Dois Lados
+- [x] Identificar 1pt.co como domínio curto com alias personalizado, capaz de formar 1pt.co/loja
+- [x] Criar o alias 1pt.co/loja, mas descartar seu uso: o redirecionamento depende de servidor com certificado expirado e não conclui a abertura
+- [x] Encontrar t.ly como alternativa de domínio curto, gratuita e sem tela intermediária
+- [x] Testar a criação no t.ly: o formulário fica em processamento sem concluir no ambiente atual
+- [ ] Procurar outra alternativa pública de domínio curto com redirecionamento funcional
+- [ ] Validar a nova URL, atualizar o botão interno e salvar checkpoint
+
+## Império Play na Loja
+- [x] Publicar o APK recebido do Império Play como download da loja — versão 5.5.0
+- [x] Publicar as oito telas recebidas para o carrossel do Império Play
+- [x] Atualizar a loja pública completa com o card e o carrossel do Império Play
+- [x] Validar visualmente o card público: logo, versão 5.5.0, botão de download e primeira tela do carrossel exibidos
+- [x] Validar avanço do carrossel: a tela de carregamento aparece ao avançar
+- [x] Executar 136 testes e checagem TypeScript sem erros
+- [ ] Salvar checkpoint da atualização
+
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
 - [x] Mover a configuração administrativa da loja para uma rota interna protegida

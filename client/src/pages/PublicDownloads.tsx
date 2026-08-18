@@ -49,6 +49,19 @@ const APP_SHOWCASES: Partial<Record<DownloadApp["slug"], { title: string; images
       { url: "/manus-storage/01-configuracoes_14ff9f34.webp", label: "Configurações" },
     ],
   },
+  imperio: {
+    title: "Conheça o Império Play",
+    images: [
+      { url: "/manus-storage/inicio_6c8f5a8a.webp", label: "Tela inicial" },
+      { url: "/manus-storage/carregamento_622c7c52.webp", label: "Carregamento" },
+      { url: "/manus-storage/canais_300b3ebd.webp", label: "Canais" },
+      { url: "/manus-storage/filmes_ecdc5436.webp", label: "Filmes" },
+      { url: "/manus-storage/kids_0ccd0621.webp", label: "Conteúdo infantil" },
+      { url: "/manus-storage/jogos_9e4301b9.webp", label: "Jogos do dia" },
+      { url: "/manus-storage/conta_c84226b9.webp", label: "Conta" },
+      { url: "/manus-storage/acesso_39d59359.webp", label: "Acesso autorizado" },
+    ],
+  },
 };
 
 function AppLogo({ app }: { app: DownloadApp }) {
