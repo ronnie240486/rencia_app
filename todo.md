@@ -834,6 +834,13 @@
 - [x] Executar 136 testes e checagem TypeScript sem erros
 - [x] Salvar checkpoint da atualização
 
+## Código Downloader do Império Play
+- [x] Cadastrar o código Downloader 7132543 e o link aftv.news/7132543
+- [x] Atualizar a loja pública externa com o código e o botão AFTV
+- [x] Validar os atalhos: código 7132543, download e botão AFTV exibidos na loja pública
+- [x] Executar 136 testes e checagem TypeScript sem erros
+- [ ] Salvar checkpoint da atualização
+
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
 - [x] Mover a configuração administrativa da loja para uma rota interna protegida
