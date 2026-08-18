@@ -841,6 +841,72 @@
 - [x] Executar 136 testes e checagem TypeScript sem erros
 - [x] Salvar checkpoint da atualização
 
+## Análise de Logo Individual por MAC
+- [x] Assistir ao vídeo completo e mapear o fluxo de escolha de logo por MAC, sem modificar o painel
+- [x] Verificar a relação com o painel atual: a consulta valida o MAC, mas o logo configurado é compartilhado por aplicativo
+- [x] Explicar o funcionamento observado ao usuário, sem alterar nenhuma configuração
+
+## Orientação sobre Layouts do Aplicativo
+- [x] Verificar os layouts existentes: não há seletor de Tema HTV ou de modelos completos de navegação no painel atual
+- [x] Confirmar recursos atuais: cada aplicativo permite alterar logo, banner, fundo, imagem de mensagem, ícones e ajustes do reprodutor
+- [ ] Explicar como aplicar os recursos visuais disponíveis hoje e o que seria necessário para um Tema HTV completo
+
+## Múltiplos Layouts em um Único APK
+- [ ] Definir os oito layouts internos do APK e seus identificadores técnicos
+- [ ] Criar seleção de layout no cadastro/edição do MAC e retorno do layout escolhido na configuração do aplicativo
+- [ ] Fazer o APK renderizar o layout escolhido ao consultar sua configuração por MAC
+
+## Tutorial de Oito Layouts para Desenvolvedor
+- [ ] Documentar os oito layouts, o seletor por MAC, a resposta JSON e a implementação no APK
+- [ ] Entregar um tutorial técnico completo para o desenvolvedor do aplicativo
+
+## Comando Remoto Não Entregue no Ouro Pro
+- [ ] Verificar por que o comando Sincronizar acesso ficou na fila e expirou sem aparecer no Ouro Pro
+- [ ] Confirmar se o APK consulta e confirma as rotas de comandos remotos
+- [ ] Informar a causa e a correção necessária, sem alterar o painel antes do diagnóstico
+
+## Novo Teste de Comando Remoto do Ouro Pro
+- [x] Enviar novo comando Sincronizar acesso ao MAC 58:04:54:49:77:56 — comando 30001, válido até 17:48
+- [ ] Verificar se o comando é entregue e orientar o teste no Ouro Pro
+
+## Aviso Visível de Teste no Ouro Pro
+- [x] Enviar comando Exibir aviso 60001 ao MAC 58:04:54:49:77:56, válido até 17:55
+- [x] Cancelar o comando silencioso 30001 para não atrasar a entrega do aviso visível
+- [ ] Orientar a confirmação do aviso na tela do aplicativo
+
+## Ouro Pro Não Consulta Comandos Remotos
+- [ ] Confirmar nos registros a ausência de consulta à rota /api/v5/remote-commands pelo Ouro Pro aberto
+- [ ] Preparar a integração de consulta, exibição e confirmação que falta no APK Ouro Pro
+- [ ] Informar ao usuário a causa confirmada e o material para o desenvolvedor
+
+## Comandos Remotos Silenciosos no Ouro Pro
+- [ ] Garantir que reiniciar player, atualizar lista, trocar lista, DNS e sincronizar acesso sejam executados sem modal
+- [ ] Reservar aviso visível somente quando o painel enviar explicitamente um comunicado ao cliente
+- [ ] Atualizar a orientação técnica do desenvolvedor com esse comportamento
+
+## Exibir Aviso no Ouro Pro
+- [ ] Fazer o APK consultar a fila de comandos e abrir o aviso enviado pelo painel
+- [ ] Confirmar ao painel que a mensagem foi mostrada para retirar o comando da fila
+
+## Comandos Remotos para Todos os MACs
+- [ ] Garantir que cada Ouro Pro consulte a fila usando o próprio MAC, sem receber comandos de outro aparelho
+- [ ] Explicitar no guia que a mesma integração vale para todos os MACs cadastrados
+
+## Fila Persistente de Comandos no Ouro Pro
+- [ ] Atualizar o APK Ouro Pro para consultar a fila de comandos antes de novos testes
+- [ ] Repetir o teste apenas após instalar a versão do APK com consulta e confirmação implementadas
+
+## Compatibilidade da Integração de Comandos do Ouro Pro
+- [ ] Identificar a rota e o formato usados pela integração já implementada no APK Ouro Pro
+- [ ] Comparar a chamada real do APK com /api/v5/remote-commands e /api/v5/remote-commands/ack
+- [ ] Corrigir a incompatibilidade encontrada e repetir o teste de entrega
+
+## Correção de Comandos com MAC Duplicado
+- [x] Identificar a causa: o MAC 98:C9:7C:D2:C5:AA possui dois cadastros e a fila estava sendo consultada no cadastro errado
+- [x] Ajustar a busca e a confirmação de comandos para localizar o cadastro que possui a ordem pendente
+- [x] Criar teste de regressão para MAC duplicado e validar 137 testes e TypeScript sem erros
+- [ ] Salvar checkpoint e repetir o teste de entrega no Ouro Pro
+
 ## Endereço Público da Loja
 - [x] Usar /loja como endereço público da Loja de Todos os Aplicativos
 - [x] Mover a configuração administrativa da loja para uma rota interna protegida

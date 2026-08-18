@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, lt, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { devices, remoteDeviceCommands } from "../drizzle/schema";
 import { normalizeMacAddress } from "./ultraPlayerConfig";
 
@@ -42,6 +42,13 @@ export function mapRemoteCommand(command: any) {
   };
 }
 
+/** Seleciona o cadastro ligado à ordem, mesmo se existir mais de um registro para o mesmo MAC. */
+export function selectDeviceForRemoteCommand<T extends { id: number }>(candidates: T[], command: { deviceId: number } | null | undefined): T | null {
+  if (!candidates.length) return null;
+  if (!command) return candidates[0];
+  return candidates.find((device) => device.id === command.deviceId) ?? candidates[0];
+}
+
 export async function expireRemoteCommands(db: any, now = new Date(), deviceId?: number) {
   const conditions = [inArray(remoteDeviceCommands.status, ["queued", "delivered"]), lt(remoteDeviceCommands.expiresAt, now)];
   if (deviceId) conditions.push(eq(remoteDeviceCommands.deviceId, deviceId));
@@ -52,23 +59,22 @@ export async function expireRemoteCommands(db: any, now = new Date(), deviceId?:
 export async function claimRemoteCommandForMac(db: any, macInput: string) {
   const mac = normalizeMacAddress(macInput);
   if (!mac) return { registered: false, command: null };
-  const device = (await db.select().from(devices)
+  const candidateDevices = await db.select().from(devices)
     .where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())))
-    .limit(1))[0];
-  if (!device) return { registered: false, command: null };
+    .orderBy(desc(devices.updatedAt), desc(devices.id));
+  if (!candidateDevices.length) return { registered: false, command: null };
 
   const now = new Date();
-  await expireRemoteCommands(db, now, device.id);
+  await Promise.all(candidateDevices.map((device: { id: number }) => expireRemoteCommands(db, now, device.id)));
   const command = (await db.select().from(remoteDeviceCommands)
     .where(and(
-      eq(remoteDeviceCommands.ownerId, device.ownerId),
-      eq(remoteDeviceCommands.deviceId, device.id),
+      inArray(remoteDeviceCommands.deviceId, candidateDevices.map((device: { id: number }) => device.id)),
       inArray(remoteDeviceCommands.status, ["queued", "delivered"]),
     ))
     .orderBy(asc(remoteDeviceCommands.createdAt), asc(remoteDeviceCommands.id))
     .limit(1))[0];
-
-  if (!command) return { registered: true, device, command: null };
+  const device = selectDeviceForRemoteCommand(candidateDevices, command);
+  if (!command || !device) return { registered: true, device: candidateDevices[0], command: null };
   if (command.status === "queued") {
     await db.update(remoteDeviceCommands).set({ status: "delivered", deliveredAt: now }).where(eq(remoteDeviceCommands.id, command.id));
     command.status = "delivered";
@@ -80,13 +86,13 @@ export async function claimRemoteCommandForMac(db: any, macInput: string) {
 export async function acknowledgeRemoteCommand(db: any, macInput: string, commandId: number, status: "executed" | "failed", resultMessage?: string) {
   const mac = normalizeMacAddress(macInput);
   if (!mac) return { ok: false, error: "MAC inválido" };
-  const device = (await db.select().from(devices)
+  const candidateDevices = await db.select().from(devices)
     .where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())))
-    .limit(1))[0];
-  if (!device) return { ok: false, error: "Dispositivo não encontrado" };
+    .orderBy(desc(devices.updatedAt), desc(devices.id));
+  if (!candidateDevices.length) return { ok: false, error: "Dispositivo não encontrado" };
 
   const command = (await db.select().from(remoteDeviceCommands)
-    .where(and(eq(remoteDeviceCommands.id, commandId), eq(remoteDeviceCommands.ownerId, device.ownerId), eq(remoteDeviceCommands.deviceId, device.id)))
+    .where(and(eq(remoteDeviceCommands.id, commandId), inArray(remoteDeviceCommands.deviceId, candidateDevices.map((device: { id: number }) => device.id))))
     .limit(1))[0];
   if (!command) return { ok: false, error: "Comando não encontrado para este aparelho" };
   if (!["queued", "delivered"].includes(command.status)) return { ok: false, error: `Comando já está ${command.status}` };
