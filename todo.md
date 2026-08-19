@@ -942,6 +942,17 @@
 - [x] Identificar a causa: o mesmo MAC tinha cadastro Ouro Pro e Optimus, mas a rota selecionava o primeiro registro
 - [x] Preparar a instrução técnica corrigida para o desenvolvedor do Optimus
 
+## Nome Incorreto no Optimus
+- [ ] Verificar por que o APK está exibindo New em vez de Optimus
+- [ ] Corrigir o campo de nome entregue ao Optimus e validar a resposta
+
+## Dashboard com MAC Duplicado entre Aplicativos
+- [x] Corrigir a atividade no cadastro do aplicativo consultado quando o mesmo MAC existe em Ouro Pro e Optimus
+- [x] Mostrar Nome do servidor e aplicativo do registro correto no Dashboard
+- [x] Validar: a consulta do Optimus atualizou o cadastro Optimus, enquanto o registro antigo New permaneceu sem atividade nova
+- [x] Executar 142 testes e checagem TypeScript sem erros
+- [ ] Salvar checkpoint da correção do Dashboard
+
 ## Correção de MAC Duplicado entre Aplicativos
 - [x] Identificar a causa: o MAC 07:80:C8:3C:53:15 tem cadastro Ouro Pro e cadastro Optimus, e a rota escolhia o Ouro Pro primeiro
 - [x] Fazer a rota do Optimus selecionar o cadastro compatível com o próprio aplicativo

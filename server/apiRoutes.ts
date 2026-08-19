@@ -1471,6 +1471,9 @@ export function registerApiRoutes(app: Express) {
       if (!macDevices.length) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
       const device = findDeviceForManagedApp(macDevices, appDef.deviceAliases);
       if (!device) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
+      // Marca atividade no cadastro do aplicativo consultado, inclusive quando o MAC
+      // também existe em outro app (por exemplo, Ouro Pro e Optimus).
+      await db.update(devices).set({ lastSeen: new Date() }).where(eq(devices.id, device.id));
       const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
       const settings = await getSettings();
       res.setHeader("Cache-Control", "no-store");

@@ -482,6 +482,7 @@ export async function getConnectedDevices(ownerId: number, minutesAgo = 30) {
     id: devices.id,
     mac: devices.mac,
     nomeServer: devices.nomeServer,
+    app: devices.app,
     tipo: devices.tipo,
     status: devices.status,
     lastSeen: devices.lastSeen,

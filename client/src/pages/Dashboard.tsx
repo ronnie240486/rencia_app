@@ -246,14 +246,14 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* ─── Dispositivos Conectados (OuroPro Online) ─── */}
+        {/* ─── Dispositivos Conectados ─── */}
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                 <CardTitle className="text-sm font-semibold">
-                  <span>{"Dispositivos Conectados no OuroPro"}</span>
+                  <span>{"Dispositivos Conectados"}</span>
                 </CardTitle>
                 {!connectedLoading && (
                   <Badge className="text-xs bg-green-100 text-green-700 border-green-200" variant="outline">
@@ -314,6 +314,7 @@ export default function Dashboard() {
                     <TableHead className="text-xs"><span>{"STATUS"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"MAC"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"NOME DO SERVER"}</span></TableHead>
+                    <TableHead className="text-xs"><span>{"APLICATIVO"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"TIPO"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"ASSISTINDO"}</span></TableHead>
                     <TableHead className="text-xs"><span>{"FORÇAR CANAL"}</span></TableHead>
@@ -340,6 +341,7 @@ export default function Dashboard() {
                         </TableCell>
                         <TableCell className="text-xs font-mono"><span>{d.mac}</span></TableCell>
                         <TableCell className="text-xs"><span>{d.nomeServer}</span></TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs"><span>{d.app || "—"}</span></Badge></TableCell>
                         <TableCell>
                           <Badge variant="secondary" className="text-xs"><span>{d.tipo}</span></Badge>
                         </TableCell>
