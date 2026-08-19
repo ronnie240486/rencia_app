@@ -40,7 +40,7 @@ import { buildAppUpdateResponse } from "./appUpdateResponse";
 import { safeApkText } from "./apkSafeValues";
 import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistration";
 import { maximusTestConfiguration } from "./maximusTestApi";
-import { buildGenericAppConfig } from "./genericAppConfig";
+import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 
 // Multer: armazena em memória para depois enviar ao S3
@@ -1466,10 +1466,11 @@ export function registerApiRoutes(app: Express) {
     try {
       const db = await getDb();
       if (!db) { res.status(503).json({ registered: false, error: "Banco de dados indisponível." }); return; }
-      const [device] = await db.select().from(devices).where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase()))).limit(1);
-      if (!device) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
       const appDef = MANAGED_APP_CATALOG[appId];
-      if (!appDef.deviceAliases.some((alias) => alias === (device.app || ""))) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
+      const macDevices = await db.select().from(devices).where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())));
+      if (!macDevices.length) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
+      const device = findDeviceForManagedApp(macDevices, appDef.deviceAliases);
+      if (!device) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
       const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
       const settings = await getSettings();
       res.setHeader("Cache-Control", "no-store");
@@ -1488,10 +1489,11 @@ export function registerApiRoutes(app: Express) {
     try {
       const db = await getDb();
       if (!db) { res.status(503).json({ error: "Banco de dados indisponível." }); return; }
-      const [device] = await db.select().from(devices).where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase()))).limit(1);
-      if (!device) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
       const appDef = MANAGED_APP_CATALOG[appId];
-      if (!appDef.deviceAliases.some((alias) => alias === (device.app || ""))) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
+      const macDevices = await db.select().from(devices).where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())));
+      if (!macDevices.length) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
+      const device = findDeviceForManagedApp(macDevices, appDef.deviceAliases);
+      if (!device) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
       const settings = await getSettings();
       res.json({ registered: true, allowed: device.status === "Liberado", ...buildAppUpdateResponse(appDef.displayName, settings[`${appId}_apk_download_url`] || "", settings[`${appId}_apk_version`] || "1.0.0") });
     } catch (error) {

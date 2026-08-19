@@ -937,6 +937,17 @@
 - [x] Executar 141 testes e checagem TypeScript sem erros
 - [ ] Salvar checkpoint do carrossel do Fusion
 
+## Conexão do Optimus com o Painel
+- [x] Confirmar rota, parâmetros por MAC e configuração entregue ao Optimus
+- [x] Identificar a causa: o mesmo MAC tinha cadastro Ouro Pro e Optimus, mas a rota selecionava o primeiro registro
+- [x] Preparar a instrução técnica corrigida para o desenvolvedor do Optimus
+
+## Correção de MAC Duplicado entre Aplicativos
+- [x] Identificar a causa: o MAC 07:80:C8:3C:53:15 tem cadastro Ouro Pro e cadastro Optimus, e a rota escolhia o Ouro Pro primeiro
+- [x] Fazer a rota do Optimus selecionar o cadastro compatível com o próprio aplicativo
+- [x] Criar teste de regressão para o mesmo MAC usado em aplicativos diferentes
+- [ ] Validar a rota do Optimus com o MAC cadastrado e salvar checkpoint
+
 ## Retorno command=null no Ouro Pro
 - [ ] Comparar o MAC que o APK está consultando com o dispositivo e a ordem pendente
 - [ ] Corrigir a seleção da fila que ainda responde command=null

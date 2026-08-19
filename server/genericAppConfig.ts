@@ -2,6 +2,18 @@ import { isManagedAppId, MANAGED_APP_CATALOG } from "../shared/appCatalog";
 
 export type GenericAppSettings = Record<string, string | undefined>;
 
+export type AppBoundDevice = { app: string | null };
+
+/**
+ * Um mesmo aparelho pode permanecer cadastrado em mais de um aplicativo.
+ * A rota do APK deve usar o cadastro correspondente ao app que fez a consulta,
+ * e não simplesmente o primeiro MAC encontrado.
+ */
+export function findDeviceForManagedApp<T extends AppBoundDevice>(devices: T[], aliases: readonly string[]): T | undefined {
+  const normalizedAliases = new Set(aliases.map(alias => alias.trim().toLocaleLowerCase("pt-BR")));
+  return devices.find(device => normalizedAliases.has((device.app || "").trim().toLocaleLowerCase("pt-BR")));
+}
+
 export function buildGenericAppConfig(appId: string, displayName: string, settings: GenericAppSettings, playlistUrls: string[]) {
   const prefix = `${appId}_`;
   const text = (suffix: string, fallback = "") => settings[`${prefix}${suffix}`] || fallback;
