@@ -929,6 +929,14 @@
 - [x] Executar 141 testes e checagem TypeScript sem erros
 - [ ] Salvar checkpoint da correção de destinos
 
+## Carrossel do Fusion na Loja
+- [x] Publicar as oito imagens recebidas do Fusion em URLs permanentes
+- [x] Adicionar as imagens ao carrossel do Fusion na loja pública
+- [x] Validar visualmente a primeira tela do Fusion, seus controles de carrossel, download e AFTV na loja pública
+- [x] Confirmar que o carrossel do Fusion mostra os controles de navegação entre as oito telas
+- [x] Executar 141 testes e checagem TypeScript sem erros
+- [ ] Salvar checkpoint do carrossel do Fusion
+
 ## Retorno command=null no Ouro Pro
 - [ ] Comparar o MAC que o APK está consultando com o dispositivo e a ordem pendente
 - [ ] Corrigir a seleção da fila que ainda responde command=null
