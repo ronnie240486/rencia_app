@@ -953,6 +953,21 @@
 - [x] Executar 142 testes e checagem TypeScript sem erros
 - [ ] Salvar checkpoint da correção do Dashboard
 
+## Lista Retornando HTML em Vez de M3U/JSON
+- [ ] Localizar o MAC e a URL de lista que aponta para onixspeed.shop
+- [ ] Confirmar se o painel entrega a URL cadastrada ou uma rota antiga/incorreta
+- [ ] Informar a correção segura sem substituir listas válidas
+
+## Erro JSON no New Vision — MAC 07:80:C8:3C:53:15
+- [ ] Inspecionar os dois cadastros e todas as listas vinculadas ao MAC afetado
+- [ ] Identificar qual URL de séries devolve HTML XUI ao aplicativo
+- [ ] Corrigir a entrega sem remover listas válidas e validar o novo retorno
+
+## PDF Universal de Rotas dos Aplicativos
+- [x] Consolidar as rotas de conexão, configuração, listas, mensagens, comandos, atualização e monitoramento
+- [x] Incluir exemplos corretos para Ouro Pro, Fusion, Maximus, Optimus e os demais aplicativos
+- [x] Gerar PDF de nove páginas, compilar sem avisos e validar com verificação determinística e revisão visual
+
 ## Correção de MAC Duplicado entre Aplicativos
 - [x] Identificar a causa: o MAC 07:80:C8:3C:53:15 tem cadastro Ouro Pro e cadastro Optimus, e a rota escolhia o Ouro Pro primeiro
 - [x] Fazer a rota do Optimus selecionar o cadastro compatível com o próprio aplicativo
