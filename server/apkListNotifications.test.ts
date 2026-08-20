@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildApkExpirationNotice, buildApkFailoverStatus, getClientFacingListMessage, isDeviceListNotificationTitle } from "./apkListNotifications";
+import { buildApkExpirationNotice, buildApkExpirationResponseFields, buildApkFailoverStatus, getClientFacingListMessage, isDeviceListNotificationTitle } from "./apkListNotifications";
 
 describe("notificações de lista para APK", () => {
   it("aceita somente alertas de lista pertencentes ao aparelho", () => {
@@ -46,6 +46,20 @@ describe("notificações de lista para APK", () => {
     );
     expect(expired).toMatchObject({ expiration_state: "expired", show_modal: true, modal_title: "Seu acesso venceu" });
     expect(expired.modal_message).toContain("10/08/2026");
+  });
+
+  it("expõe campos planos compatíveis para a resposta principal do Max Play", () => {
+    const expiration = buildApkExpirationNotice(
+      { dataExpiracao: "2026-08-15", status: "Liberado" },
+      new Date(2026, 7, 15, 10),
+    );
+    const fields = buildApkExpirationResponseFields(expiration);
+    expect(fields).toMatchObject({
+      expiration_state: "expires_today",
+      expiration_show_modal: true,
+      expiration_modal_title: "Seu acesso vence hoje",
+    });
+    expect(fields.expiration_modal_message).toContain("Renove para evitar interrupção");
   });
 
   it("informa quando uma lista de reserva foi ativada automaticamente", () => {

@@ -32,12 +32,13 @@ import { buildUltraPlayerConfig, normalizeMacAddress } from "./ultraPlayerConfig
 import { normalizeHeartbeatContent } from "./heartbeatContent";
 import { acknowledgeRemoteCommand, claimRemoteCommandForMac } from "./remoteCommands";
 import { buildPublicDownloadApps } from "./publicDownloads";
-import { acknowledgeListNotificationForMac, getListNotificationsForMac } from "./apkListNotifications";
+import { acknowledgeListNotificationForMac, buildApkExpirationNotice, buildApkExpirationResponseFields, getListNotificationsForMac } from "./apkListNotifications";
 import { resolveOptionalImagesInParallel } from "./parallelImageResolution";
 import { orderDeviceUrlsForActive } from "./devicePlaylistOrder";
 import { getNextPlaybackFailoverCandidate } from "./playbackFailover";
 import { buildAppUpdateResponse } from "./appUpdateResponse";
 import { safeApkText } from "./apkSafeValues";
+import { daysUntilDateOnly } from "../shared/dateOnly";
 import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistration";
 import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
@@ -2145,8 +2146,10 @@ export function registerApiRoutes(app: Express) {
 
   /**
    * GET /api/v5/check_mac.php?mac=XX:XX:XX:XX:XX:XX
-    * Endpoint usado pelo Maximus (Flutter) para verificar e autenticar um MAC.
+   * Endpoint usado pelo Maximus (Flutter) para verificar e autenticar um MAC.
    * Retorna dados do dispositivo e playlist para loginByMac.
+   * Com o APK aberto, consulte novamente a cada 60 segundos para receber
+   * expiration_show_modal e os campos expiration_modal_* de vencimento.
    */
   app.get("/api/v5/check_mac.php", async (req: Request, res: Response) => {
     try {
@@ -2200,7 +2203,8 @@ export function registerApiRoutes(app: Express) {
 
       const device = result[0];
       const now = new Date();
-      const expired = device.dataExpiracao != null && new Date(device.dataExpiracao) < now;
+      const expired = device.dataExpiracao != null && daysUntilDateOnly(device.dataExpiracao, now) < 0;
+      const expirationNotice = buildApkExpirationNotice(device, now);
 
       // Atualizar status se expirado
       if (expired && device.status !== "Expirado") {
@@ -2221,6 +2225,7 @@ export function registerApiRoutes(app: Express) {
           status: device.status,
           mac: device.mac,
           expire_date: device.dataExpiracao ? new Date(device.dataExpiracao).toISOString().split("T")[0] : null,
+          ...buildApkExpirationResponseFields(expirationNotice),
           registered: true,
           ...testConfig,
         });
@@ -2335,6 +2340,7 @@ export function registerApiRoutes(app: Express) {
         mac: device.mac,
         status: device.status,
         expire_date: expireDate,
+        ...buildApkExpirationResponseFields(expirationNotice),
         playlists,
         dns_url: gpcDnsUrl,
         test_api_url: gpcDnsUrl,

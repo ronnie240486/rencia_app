@@ -18,6 +18,14 @@
 - [x] Invalidar credenciais antigas sem DNS XTeam para que não autentiquem no APK
 - [x] Testar a rejeição de cadastro legado e de redefinição manual de senha
 
+## Entrega de Avisos de Vencimento ao APK
+- [x] Rastrear a notificação de vencimento do cliente Max Play até a fila do APK
+- [x] Corrigir a entrega de alerta de vencimento quando o cliente estiver com o aplicativo aberto
+- [x] Adicionar teste de regressão para envio de vencimento ao dispositivo
+- [x] Cobrir a rota GET /api/v5/check_mac.php com payload de vencimento do Max Play
+- [x] Documentar que o Max Play deve consultar a rota de configuração periodicamente enquanto estiver aberto
+- [x] Criar guia consumível para o desenvolvedor do Max Play com polling e campos de vencimento
+
 ## Backend
 - [x] Schema do banco de dados com tabela users (já existe, verificar campos)
 - [x] Procedure: listar todos os usuários (admin only)

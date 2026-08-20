@@ -57,6 +57,18 @@ export function buildApkExpirationNotice(device: ExpirationDevice, reference = n
   };
 }
 
+/** Campos planos compatíveis com APKs que não leem o objeto `expiration`. */
+export function buildApkExpirationResponseFields(expiration: ReturnType<typeof buildApkExpirationNotice>) {
+  return {
+    expiration,
+    expiration_state: expiration.expiration_state,
+    expiration_show_modal: expiration.show_modal,
+    expiration_modal_key: expiration.modal_key,
+    expiration_modal_title: expiration.modal_title,
+    expiration_modal_message: expiration.modal_message,
+  };
+}
+
 /**
  * Cria o estado que o APK usa para atualizar a lista automaticamente e avisar o cliente.
  * O `transition_id` é estável: o APK deve guardá-lo localmente e só executar a atualização uma vez por transição.
