@@ -62,8 +62,6 @@ export default function UserCreate() {
   const [form, setForm] = useState({
     accessMode: "MAC" as "MAC" | "LOGIN_PASSWORD",
     mac: "",
-    loginUsername: "",
-    loginPassword: "",
     nomeServer: "",
     app: "OuroPro",
     valor: "",
@@ -165,8 +163,6 @@ export default function UserCreate() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (form.accessMode === "MAC" && !form.mac.trim()) { toast.error("MAC do dispositivo é obrigatório."); return; }
-    if (form.accessMode === "LOGIN_PASSWORD" && !form.loginUsername.trim()) { toast.error("Login do cliente é obrigatório."); return; }
-    if (form.accessMode === "LOGIN_PASSWORD" && form.loginPassword.length < 6) { toast.error("A senha do cliente precisa ter pelo menos 6 caracteres."); return; }
     if (!form.nomeServer.trim()) { toast.error("Nome do server é obrigatório."); return; }
 
     const principal = listas[0];
@@ -185,14 +181,14 @@ export default function UserCreate() {
     if (form.accessMode === "LOGIN_PASSWORD") {
       const appId = APP_ID_BY_NAME[form.app];
       if (!appId) { toast.error("Selecione um aplicativo válido para o acesso por login."); return; }
+      if (principal.modo !== "XTeamCode") { toast.error("O acesso por login usa obrigatoriamente os dados XTeam da Lista Principal."); return; }
       credentialMutation.mutate({
-        username: form.loginUsername.trim(),
-        password: form.loginPassword,
+        xtServer: principal.xtServer.trim(),
+        xtUsername: principal.xtUsername.trim(),
+        xtPassword: principal.xtPassword,
         appId,
         nomeServer: form.nomeServer.trim(),
-        modoSelecao: principal.modo,
         tipo: form.tipo,
-        urlM3u8: urlM3u8 || undefined,
         urlEpg: principal.urlEpg || undefined,
         valor: form.valor || undefined,
         dataExpiracao: form.dataExpiracao || undefined,
@@ -266,10 +262,7 @@ export default function UserCreate() {
                 maxLength={17}
                 className="h-10 font-mono"
               />
-            </div> : <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5"><Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">LOGIN DO CLIENTE: <span className="text-red-500">*</span></Label><Input placeholder="cliente.exemplo" value={form.loginUsername} onChange={e => setForm(f => ({ ...f, loginUsername: e.target.value.replace(/\s/g, "") }))} className="h-10" /></div>
-              <div className="space-y-1.5"><Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">SENHA DO CLIENTE: <span className="text-red-500">*</span></Label><Input type="password" placeholder="Mínimo de 6 caracteres" value={form.loginPassword} onChange={e => setForm(f => ({ ...f, loginPassword: e.target.value }))} className="h-10" /></div>
-            </div>}
+            </div> : <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground"><strong className="text-foreground">Sem dados inventados:</strong> o login, a senha e a DNS do aplicativo serão exatamente o <strong className="text-foreground">Usuário, Senha e URL do Servidor XTeam</strong> informados na Lista Principal abaixo.</div>}
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

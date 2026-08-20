@@ -521,6 +521,7 @@ export const appCredentials = mysqlTable("app_credentials", {
   ownerId: int("ownerId").notNull(),
   deviceId: int("deviceId").notNull().unique(),
   appId: varchar("appId", { length: 64 }).notNull(),
+  dnsHost: text("dnsHost"),
   username: varchar("username", { length: 128 }).notNull().unique(),
   passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
   active: boolean("active").default(true).notNull(),

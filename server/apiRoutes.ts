@@ -1479,6 +1479,10 @@ export function registerApiRoutes(app: Express) {
         res.status(401).json({ authenticated: false, registered: false, error: "Login ou senha inválidos." });
         return;
       }
+      if (!credential.dnsHost) {
+        res.status(403).json({ authenticated: false, registered: true, allowed: false, error: "Acesso antigo. Cadastre novamente usando a DNS, usuário e senha XTeam da Lista Principal." });
+        return;
+      }
 
       const device = (await db.select().from(devices).where(and(eq(devices.id, credential.deviceId), eq(devices.ownerId, credential.ownerId))).limit(1))[0];
       if (!device || device.accessMode !== "LOGIN_PASSWORD") {
@@ -1527,6 +1531,7 @@ export function registerApiRoutes(app: Express) {
         client_name: device.nomeServer || "",
         status: allowed ? "Liberado" : (device.status === "Liberado" ? "Expirado" : device.status),
         expiration_date: expiration,
+        dns_host: credential.dnsHost || dnsUrls[0] || "",
         dns_url: dnsUrls[0] || "",
         dns_urls: dnsUrls,
         playlist_url: playlistUrls[0] || "",

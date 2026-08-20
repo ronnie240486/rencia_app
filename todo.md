@@ -9,6 +9,15 @@
 - [x] Cobrir o novo fluxo com testes automatizados e validar TypeScript antes do checkpoint
 - [x] Adicionar testes das operações de criação, listagem, edição e remoção de credenciais no painel
 
+## Credenciais Reais do Painel IPTV
+- [x] Usar obrigatoriamente o usuário e a senha XTeam da Lista Principal como acesso do APK
+- [x] Remover os campos de login e senha criados manualmente do cadastro por credenciais
+- [x] Retornar a DNS/XTeam original e a lista correspondente ao login real do painel IPTV
+- [x] Atualizar a gestão e os testes para o fluxo sem credenciais inventadas
+- [x] Remover a alteração manual de senha do backend de credenciais de aplicativo
+- [x] Invalidar credenciais antigas sem DNS XTeam para que não autentiquem no APK
+- [x] Testar a rejeição de cadastro legado e de redefinição manual de senha
+
 ## Backend
 - [x] Schema do banco de dados com tabela users (já existe, verificar campos)
 - [x] Procedure: listar todos os usuários (admin only)

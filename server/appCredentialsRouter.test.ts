@@ -33,7 +33,7 @@ describe("appCredentials router", () => {
   it("cria o cliente de acesso com senha em hash e preserva listas adicionais", async () => {
     const caller = appRouter.createCaller(context);
     selectRows = [[]];
-    const result = await caller.appCredentials.create({ username: "cliente.teste", password: "senha-segura", appId: "optimus", nomeServer: "Cliente Teste", modoSelecao: "M3U8", urlM3u8: "https://dns.exemplo.com/lista", extraLists: [{ nome: "Lista 2", modoSelecao: "M3U8", urlM3u8: "https://dns2.exemplo.com/lista" }] });
+    const result = await caller.appCredentials.create({ xtServer: "https://dns.exemplo.com", xtUsername: "cliente.teste", xtPassword: "senha-segura", appId: "optimus", nomeServer: "Cliente Teste", extraLists: [{ nome: "Lista 2", modoSelecao: "M3U8", urlM3u8: "https://dns2.exemplo.com/lista" }] });
 
     expect(result).toMatchObject({ success: true, deviceId: 99, username: "cliente.teste" });
     expect(database.insert).toHaveBeenCalledTimes(2);
@@ -43,19 +43,21 @@ describe("appCredentials router", () => {
 
   it("lista credenciais sem expor o hash da senha", async () => {
     const caller = appRouter.createCaller(context);
-    const rows = [{ id: 8, username: "cliente.teste", appId: "optimus", active: true, deviceId: 99, nomeServer: "Cliente", mac: "LOGIN:PENDENTE", status: "Liberado", dataExpiracao: null }];
+    const rows = [{ id: 8, username: "cliente.teste", appId: "optimus", dnsHost: "https://dns.exemplo.com", active: true, deviceId: 99, nomeServer: "Cliente", mac: "LOGIN:PENDENTE", status: "Liberado", dataExpiracao: null }];
     selectRows = [rows];
     const result = await caller.appCredentials.list();
     expect(result).toEqual(rows);
     expect(JSON.stringify(result)).not.toContain("passwordHash");
   });
 
-  it("atualiza status e senha sem guardar texto puro e remove apenas a credencial", async () => {
+  it("atualiza apenas status/validade e rejeita redefinição manual de senha", async () => {
     const caller = appRouter.createCaller(context);
     const credential = { id: 8, ownerId: 1, deviceId: 99, username: "cliente.teste", passwordHash: "anterior", active: true };
     selectRows = [[credential]];
-    await expect(caller.appCredentials.update({ id: 8, password: "nova-senha", status: "Bloqueado", active: false, dataExpiracao: "2026-12-31" })).resolves.toEqual({ success: true });
+    await expect(caller.appCredentials.update({ id: 8, status: "Bloqueado", active: false, dataExpiracao: "2026-12-31" })).resolves.toEqual({ success: true });
     expect(database.update).toHaveBeenCalledTimes(2);
+
+    await expect(caller.appCredentials.update({ id: 8, password: "nova-senha" } as any)).rejects.toThrow();
 
     selectRows = [[credential]];
     await expect(caller.appCredentials.remove({ id: 8 })).resolves.toEqual({ success: true });

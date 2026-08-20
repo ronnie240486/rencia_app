@@ -1,0 +1,1 @@
+ALTER TABLE `app_credentials` ADD `dnsHost` text;

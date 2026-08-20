@@ -60,6 +60,10 @@ export const revendaUpdateInputSchema = z.object({
 
 type MonitorTarget = { deviceId: number; deviceUrlId: number | null; deviceName: string; listName: string; url: string };
 
+function buildXteamPlaylistUrl(server: string, username: string, password: string) {
+  return `${server.replace(/\/$/, "")}/get.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&type=m3u_plus&output=ts`;
+}
+
 async function getManagedResellerIds(db: any, ownerId: number): Promise<number[]> {
   const managedIds: number[] = [];
   let parentIds = [ownerId];
@@ -1608,6 +1612,7 @@ export const appRouter = router({
         id: appCredentials.id,
         username: appCredentials.username,
         appId: appCredentials.appId,
+        dnsHost: appCredentials.dnsHost,
         active: appCredentials.active,
         firstAuthenticatedAt: appCredentials.firstAuthenticatedAt,
         lastAuthenticatedAt: appCredentials.lastAuthenticatedAt,
@@ -1627,13 +1632,12 @@ export const appRouter = router({
     }),
 
     create: protectedProcedure.input(z.object({
-      username: z.string().trim().min(3).max(128).regex(/^[A-Za-z0-9._-]+$/, "Use somente letras, números, ponto, hífen ou sublinhado no login."),
-      password: z.string().min(6).max(128),
+      xtServer: z.string().trim().min(3).max(1024),
+      xtUsername: z.string().trim().min(1).max(128),
+      xtPassword: z.string().min(1).max(128),
       appId: z.string().trim().toLowerCase().refine(isManagedAppId, "Aplicativo inválido."),
       nomeServer: z.string().trim().min(1).max(255),
       tipo: z.enum(["Usuario", "Revenda", "UltraMaster", "Master"]).optional().default("Usuario"),
-      modoSelecao: z.enum(["XTeamCode", "M3U8"]),
-      urlM3u8: z.string().trim().optional(),
       urlEpg: z.string().trim().optional(),
       valor: z.string().trim().optional(),
       dataExpiracao: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -1650,7 +1654,7 @@ export const appRouter = router({
     })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
-      const username = input.username.toLowerCase();
+      const username = input.xtUsername.trim();
       const alreadyExists = await db.select({ id: appCredentials.id }).from(appCredentials).where(eq(appCredentials.username, username)).limit(1);
       if (alreadyExists.length) throw new TRPCError({ code: "CONFLICT", message: "Este login já está cadastrado. Escolha outro." });
 
@@ -1669,9 +1673,9 @@ export const appRouter = router({
         accessMode: "LOGIN_PASSWORD",
         nomeServer: input.nomeServer,
         tipo: input.tipo,
-        modoSelecao: input.modoSelecao,
+        modoSelecao: "XTeamCode",
         app: appDef.deviceAliases[0],
-        urlM3u8: input.urlM3u8 || undefined,
+        urlM3u8: buildXteamPlaylistUrl(input.xtServer.trim(), username, input.xtPassword),
         urlEpg: input.urlEpg || undefined,
         valor: input.valor || undefined,
         dataExpiracao: input.dataExpiracao,
@@ -1684,8 +1688,9 @@ export const appRouter = router({
           ownerId: ctx.user.id,
           deviceId: device.id,
           appId: input.appId,
+          dnsHost: input.xtServer.trim(),
           username,
-          passwordHash: await hashPassword(input.password),
+          passwordHash: await hashPassword(input.xtPassword),
           active: input.status === "Liberado",
         });
         for (let index = 0; index < input.extraLists.length; index += 1) {
@@ -1721,11 +1726,10 @@ export const appRouter = router({
 
     update: protectedProcedure.input(z.object({
       id: z.number().int().positive(),
-      password: z.union([z.string().min(6).max(128), z.literal("")]).optional(),
       active: z.boolean().optional(),
       status: z.enum(["Liberado", "Bloqueado", "Expirado"]).optional(),
       dataExpiracao: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal("")]).optional(),
-    })).mutation(async ({ ctx, input }) => {
+    }).strict()).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
       const credential = (await db.select().from(appCredentials).where(and(eq(appCredentials.id, input.id), eq(appCredentials.ownerId, ctx.user.id))).limit(1))[0];
@@ -1733,7 +1737,6 @@ export const appRouter = router({
 
       const credentialUpdate: Record<string, unknown> = {};
       if (input.active !== undefined) credentialUpdate.active = input.active;
-      if (input.password) credentialUpdate.passwordHash = await hashPassword(input.password);
       if (Object.keys(credentialUpdate).length) await db.update(appCredentials).set(credentialUpdate).where(eq(appCredentials.id, credential.id));
 
       const deviceUpdate: Record<string, unknown> = {};

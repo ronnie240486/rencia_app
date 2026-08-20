@@ -23,9 +23,9 @@ function queryResult(rows: unknown[]) {
   return query;
 }
 
-function prepareDatabase(input: { appId?: string; passwordHash?: string; mac?: string; active?: boolean }) {
+function prepareDatabase(input: { appId?: string; passwordHash?: string; mac?: string; active?: boolean; dnsHost?: string | null }) {
   const credential = {
-    id: 8, ownerId: 1, deviceId: 55, appId: input.appId ?? "optimus", username: "cliente.teste", passwordHash: input.passwordHash ?? "hash", active: input.active ?? true,
+    id: 8, ownerId: 1, deviceId: 55, appId: input.appId ?? "optimus", dnsHost: input.dnsHost === undefined ? "https://dns.exemplo.com" : input.dnsHost, username: "cliente.teste", passwordHash: input.passwordHash ?? "hash", active: input.active ?? true,
     firstAuthenticatedAt: null, lastAuthenticatedAt: null, createdAt: new Date(), updatedAt: new Date(),
   };
   const device = {
@@ -72,7 +72,7 @@ describe("POST /api/v5/app-login", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toMatchObject({ authenticated: true, allowed: true, mac: "AA:BB:CC:DD:EE:FF", playlist_url: "https://dns.exemplo.com/get.php?username=a&password=b" });
+    expect(body).toMatchObject({ authenticated: true, allowed: true, mac: "AA:BB:CC:DD:EE:FF", dns_host: "https://dns.exemplo.com", playlist_url: "https://dns.exemplo.com/get.php?username=a&password=b" });
     expect(database.update).toHaveBeenCalledTimes(2);
   });
 
@@ -96,5 +96,13 @@ describe("POST /api/v5/app-login", () => {
     const body = await response.json();
     expect(response.status).toBe(409);
     expect(body.allowed).toBe(false);
+  });
+
+  it("rejeita uma credencial antiga que não possui DNS XTeam", async () => {
+    prepareDatabase({ dnsHost: null });
+    const app = express(); app.use(express.json()); registerApiRoutes(app);
+    const running = await startRoute(app); server = running.server;
+    const response = await fetch(`${running.url}/api/v5/app-login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "cliente.teste", password: "senha-correta", appId: "optimus" }) });
+    expect(response.status).toBe(403);
   });
 });
