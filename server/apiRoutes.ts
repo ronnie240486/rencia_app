@@ -24,7 +24,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials } from "../drizzle/schema";
 import { eq, or, and, asc } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
@@ -42,6 +42,8 @@ import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistrati
 import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
+import { comparePassword } from "./auth";
+import { isLoginAccessAllowed, resolveLoginMacBinding } from "./appLogin";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -1449,6 +1451,92 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error("[API] /api/app-config error:", error);
       res.status(500).json({ error: "Erro interno do servidor." });
+    }
+  });
+
+  /**
+   * POST /api/v5/app-login
+   * Autentica um cliente por login e senha. O MAC é opcional no primeiro
+   * acesso e fica vinculado ao cadastro após uma autenticação válida.
+   */
+  app.post("/api/v5/app-login", async (req: Request, res: Response) => {
+    const body = (req.body && typeof req.body === "object" ? req.body : {}) as Record<string, unknown>;
+    const username = typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
+    const password = typeof body.password === "string" ? body.password : "";
+    const appId = typeof body.appId === "string" ? body.appId.trim().toLowerCase() : "";
+    const suppliedMac = typeof body.mac === "string" ? body.mac : "";
+
+    if (!username || !password || !isManagedAppId(appId)) {
+      res.status(400).json({ authenticated: false, registered: false, error: "Login, senha ou aplicativo inválido." });
+      return;
+    }
+
+    try {
+      const db = await getDb();
+      if (!db) { res.status(503).json({ authenticated: false, registered: false, error: "Banco de dados indisponível." }); return; }
+      const credential = (await db.select().from(appCredentials).where(eq(appCredentials.username, username)).limit(1))[0];
+      if (!credential || credential.appId !== appId || !(await comparePassword(password, credential.passwordHash))) {
+        res.status(401).json({ authenticated: false, registered: false, error: "Login ou senha inválidos." });
+        return;
+      }
+
+      const device = (await db.select().from(devices).where(and(eq(devices.id, credential.deviceId), eq(devices.ownerId, credential.ownerId))).limit(1))[0];
+      if (!device || device.accessMode !== "LOGIN_PASSWORD") {
+        res.status(404).json({ authenticated: false, registered: false, error: "Cadastro do cliente não encontrado." });
+        return;
+      }
+
+      const binding = resolveLoginMacBinding(device.mac, suppliedMac);
+      if (!binding.accepted) {
+        res.status(409).json({ authenticated: true, registered: true, allowed: false, error: binding.error });
+        return;
+      }
+
+      const allowed = isLoginAccessAllowed({
+        credentialActive: credential.active,
+        deviceStatus: device.status,
+        expirationDate: device.dataExpiracao,
+      });
+      const now = new Date();
+      await db.update(devices).set({ mac: binding.shouldPersist && allowed ? binding.mac : device.mac, lastSeen: now }).where(eq(devices.id, device.id));
+      await db.update(appCredentials).set({ firstAuthenticatedAt: credential.firstAuthenticatedAt ?? now, lastAuthenticatedAt: now }).where(eq(appCredentials.id, credential.id));
+
+      const extraLists = await db.select().from(deviceUrls)
+        .where(and(eq(deviceUrls.deviceId, device.id), eq(deviceUrls.ativo, true)))
+        .orderBy(asc(deviceUrls.ordem));
+      const playlistUrls = [device.urlM3u8 || "", ...extraLists.map((list) => list.urlM3u8 || list.xtServer || "")].filter(Boolean);
+      const dnsUrls = Array.from(new Set(playlistUrls.map((url) => {
+        try { return new URL(url).origin; } catch { return ""; }
+      }).filter(Boolean)));
+      const appDef = MANAGED_APP_CATALOG[appId];
+      const settings = await getSettings();
+      const config = appId === "fusion"
+        ? buildUltraPlayerConfig(settings)
+        : buildGenericAppConfig(appId, appDef.displayName, settings, playlistUrls);
+      const expiration = device.dataExpiracao ? String(device.dataExpiracao).slice(0, 10) : "";
+
+      res.setHeader("Cache-Control", "no-store");
+      res.json({
+        authenticated: true,
+        registered: true,
+        allowed,
+        access_mode: "LOGIN_PASSWORD",
+        app_id: appId,
+        username: credential.username,
+        mac: binding.mac,
+        client_name: device.nomeServer || "",
+        status: allowed ? "Liberado" : (device.status === "Liberado" ? "Expirado" : device.status),
+        expiration_date: expiration,
+        dns_url: dnsUrls[0] || "",
+        dns_urls: dnsUrls,
+        playlist_url: playlistUrls[0] || "",
+        playlist_urls: playlistUrls,
+        playlists: playlistUrls.map((url, index) => ({ name: index === 0 ? "Lista Principal" : `Lista ${index + 1}`, url })),
+        ...config,
+      });
+    } catch (error) {
+      console.error("[API] /api/v5/app-login error:", error);
+      res.status(500).json({ authenticated: false, registered: false, error: "Não foi possível autenticar o aplicativo." });
     }
   });
 

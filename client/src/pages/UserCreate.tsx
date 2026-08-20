@@ -28,6 +28,18 @@ type ListaItem = {
   isPrimary: boolean;
 };
 
+const APP_ID_BY_NAME: Record<string, string> = {
+  OuroPro: "ouropro",
+  "Ultra Player": "fusion",
+  Maximus: "maximus",
+  Prestige: "prestige",
+  Optimus: "optimus",
+  "Império Play": "imperio",
+  Infinitus: "infinitus",
+  Supremus: "supremus",
+  Evolux: "evolux",
+};
+
 function newLista(isPrimary = false): ListaItem {
   return {
     id: Math.random().toString(36).slice(2),
@@ -48,7 +60,10 @@ export default function UserCreate() {
   const { data: appsData } = trpc.apps.list.useQuery();
 
   const [form, setForm] = useState({
+    accessMode: "MAC" as "MAC" | "LOGIN_PASSWORD",
     mac: "",
+    loginUsername: "",
+    loginPassword: "",
     nomeServer: "",
     app: "OuroPro",
     valor: "",
@@ -111,6 +126,16 @@ export default function UserCreate() {
 
   const addUrlMutation = trpc.deviceUrls.add.useMutation();
 
+  const credentialMutation = trpc.appCredentials.create.useMutation({
+    onSuccess: () => {
+      toast.success("Acesso por login e senha cadastrado com sucesso!");
+      utils.devices.list.invalidate();
+      utils.appCredentials.list.invalidate();
+      navigate("/credenciais-app");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
   const handleMacChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 12);
     const formatted = raw.match(/.{1,2}/g)?.join(":") ?? raw;
@@ -139,7 +164,9 @@ export default function UserCreate() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.mac.trim()) { toast.error("MAC do dispositivo é obrigatório."); return; }
+    if (form.accessMode === "MAC" && !form.mac.trim()) { toast.error("MAC do dispositivo é obrigatório."); return; }
+    if (form.accessMode === "LOGIN_PASSWORD" && !form.loginUsername.trim()) { toast.error("Login do cliente é obrigatório."); return; }
+    if (form.accessMode === "LOGIN_PASSWORD" && form.loginPassword.length < 6) { toast.error("A senha do cliente precisa ter pelo menos 6 caracteres."); return; }
     if (!form.nomeServer.trim()) { toast.error("Nome do server é obrigatório."); return; }
 
     const principal = listas[0];
@@ -153,6 +180,35 @@ export default function UserCreate() {
       urlM3u8 = buildXteamUrl(principal.xtServer.trim(), principal.xtUsername.trim(), principal.xtPassword.trim());
     } else {
       if (!urlM3u8.trim()) { toast.error("URL M3U8 da lista principal é obrigatória."); return; }
+    }
+
+    if (form.accessMode === "LOGIN_PASSWORD") {
+      const appId = APP_ID_BY_NAME[form.app];
+      if (!appId) { toast.error("Selecione um aplicativo válido para o acesso por login."); return; }
+      credentialMutation.mutate({
+        username: form.loginUsername.trim(),
+        password: form.loginPassword,
+        appId,
+        nomeServer: form.nomeServer.trim(),
+        modoSelecao: principal.modo,
+        tipo: form.tipo,
+        urlM3u8: urlM3u8 || undefined,
+        urlEpg: principal.urlEpg || undefined,
+        valor: form.valor || undefined,
+        dataExpiracao: form.dataExpiracao || undefined,
+        telefone: form.telefone ? `+55${form.telefone.replace(/\D/g, "")}` : undefined,
+        extraLists: listas.slice(1).map((lista, index) => ({
+          nome: lista.nome || `Lista ${index + 2}`,
+          modoSelecao: lista.modo,
+          urlM3u8: lista.modo === "XTeamCode" && lista.xtServer && lista.xtUsername && lista.xtPassword
+            ? buildXteamUrl(lista.xtServer.trim(), lista.xtUsername.trim(), lista.xtPassword.trim())
+            : (lista.urlM3u8 || undefined),
+          xtServer: lista.modo === "XTeamCode" ? lista.xtServer || undefined : undefined,
+          xtUsername: lista.modo === "XTeamCode" ? lista.xtUsername || undefined : undefined,
+          xtPassword: lista.modo === "XTeamCode" ? lista.xtPassword || undefined : undefined,
+        })),
+      });
+      return;
     }
 
     createMutation.mutate({
@@ -186,9 +242,20 @@ export default function UserCreate() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Dados do dispositivo */}
           <div className="bg-card rounded-xl border shadow-sm p-6 space-y-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Dados do Dispositivo</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Acesso do Cliente</p>
 
-            <div className="space-y-1.5">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button type="button" onClick={() => setForm(f => ({ ...f, accessMode: "MAC" }))} className={`rounded-lg border p-3 text-left transition-colors ${form.accessMode === "MAC" ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"}`}>
+                <p className="text-sm font-semibold text-foreground">Por MAC</p>
+                <p className="mt-1 text-xs text-muted-foreground">Mantém o modo atual de cadastro do aparelho.</p>
+              </button>
+              <button type="button" onClick={() => setForm(f => ({ ...f, accessMode: "LOGIN_PASSWORD" }))} className={`rounded-lg border p-3 text-left transition-colors ${form.accessMode === "LOGIN_PASSWORD" ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"}`}>
+                <p className="text-sm font-semibold text-foreground">Por login e senha</p>
+                <p className="mt-1 text-xs text-muted-foreground">O MAC será vinculado automaticamente no primeiro acesso do APK.</p>
+              </button>
+            </div>
+
+            {form.accessMode === "MAC" ? <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 MAC DO DISPOSITIVO: <span className="text-red-500">*</span>
               </Label>
@@ -199,7 +266,10 @@ export default function UserCreate() {
                 maxLength={17}
                 className="h-10 font-mono"
               />
-            </div>
+            </div> : <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">LOGIN DO CLIENTE: <span className="text-red-500">*</span></Label><Input placeholder="cliente.exemplo" value={form.loginUsername} onChange={e => setForm(f => ({ ...f, loginUsername: e.target.value.replace(/\s/g, "") }))} className="h-10" /></div>
+              <div className="space-y-1.5"><Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">SENHA DO CLIENTE: <span className="text-red-500">*</span></Label><Input type="password" placeholder="Mínimo de 6 caracteres" value={form.loginPassword} onChange={e => setForm(f => ({ ...f, loginPassword: e.target.value }))} className="h-10" /></div>
+            </div>}
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -483,9 +553,9 @@ export default function UserCreate() {
             <Link href="/users">
               <Button type="button" variant="outline" className="dark:!text-white">Cancelar</Button>
             </Link>
-            <Button type="submit" disabled={createMutation.isPending} className="gap-2 btn-add-user-bottom">
+            <Button type="submit" disabled={createMutation.isPending || credentialMutation.isPending} className="gap-2 btn-add-user-bottom">
               <Save className="w-4 h-4" />
-              {createMutation.isPending ? "Enviando..." : "Cadastrar Usuário"}
+              {createMutation.isPending || credentialMutation.isPending ? "Enviando..." : form.accessMode === "LOGIN_PASSWORD" ? "Cadastrar Acesso" : "Cadastrar Usuário"}
             </Button>
           </div>
         </form>

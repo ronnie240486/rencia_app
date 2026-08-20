@@ -1,6 +1,14 @@
 # Rencia App - TODO
 # Atualização Ultra Player: uploads visuais, Loja e Ranking registrados abaixo como pendentes prioritários.
 
+## Acesso de APK por Login e Senha
+- [x] Criar credenciais seguras de aplicativo vinculadas aos clientes, listas, validade e status existentes
+- [x] Criar rota pública de login do APK com resposta de configuração, imagens, mensagens e listas
+- [x] Permitir vincular o MAC informado pelo APK no primeiro login sem remover o modo MAC atual
+- [x] Criar gerenciamento visual de credenciais de aplicativo no painel
+- [x] Cobrir o novo fluxo com testes automatizados e validar TypeScript antes do checkpoint
+- [x] Adicionar testes das operações de criação, listagem, edição e remoção de credenciais no painel
+
 ## Backend
 - [x] Schema do banco de dados com tabela users (já existe, verificar campos)
 - [x] Procedure: listar todos os usuários (admin only)
@@ -967,6 +975,27 @@
 - [x] Consolidar as rotas de conexão, configuração, listas, mensagens, comandos, atualização e monitoramento
 - [x] Incluir exemplos corretos para Ouro Pro, Fusion, Maximus, Optimus e os demais aplicativos
 - [x] Gerar PDF de nove páginas, compilar sem avisos e validar com verificação determinística e revisão visual
+
+## Travamento Android por Campo Nulo
+- [x] Identificar aplicativo, MAC e rota: Evolux, MAC 8C:97:31:CD:31:8A, rota /api/v5/apps/evolux/config
+- [x] Confirmar que a configuração do painel não retorna campos JSON nulos
+- [x] Preparar a correção obrigatória de Enum.valueOf seguro para o desenvolvedor do APK Evolux
+- [ ] Substituir ou regularizar a lista epics.zip, que responde HTTP 403 com HTML neste momento
+
+## Evolux Valida MAC mas Não Abre Lista
+- [x] Confirmar que o MAC é validado e o travamento acontece depois na abertura da lista
+- [x] Cadastrar uma lista M3U válida para o MAC 8C:97:31:CD:31:8A
+- [ ] Validar a reprodução no Evolux após trocar a fonte
+
+## Acesso ao Aplicativo por Login e Senha
+- [ ] Definir cadastro de credenciais de aplicativo vinculadas a DNS, lista e validade
+- [ ] Criar rota segura de autenticação do aplicativo por login e senha
+- [ ] Manter suporte ao modo atual por MAC como alternativa
+- [ ] Preparar o contrato de integração para os desenvolvedores dos aplicativos
+
+## Nova Lista do Evolux
+- [x] Testar a URL OnixSpeed fornecida: resposta HTTP 200 e conteúdo reconhecido como playlist M3U
+- [x] Substituir somente a lista principal do Evolux e confirmar a URL pela rota de configuração
 
 ## Correção de MAC Duplicado entre Aplicativos
 - [x] Identificar a causa: o MAC 07:80:C8:3C:53:15 tem cadastro Ouro Pro e cadastro Optimus, e a rota escolhia o Ouro Pro primeiro

@@ -40,6 +40,7 @@ export const devices = mysqlTable("devices", {
   id: int("id").autoincrement().primaryKey(),
   ownerId: int("ownerId").notNull(),
   mac: varchar("mac", { length: 64 }).notNull(),
+  accessMode: mysqlEnum("accessMode", ["MAC", "LOGIN_PASSWORD"]).default("MAC").notNull(),
   nomeServer: varchar("nomeServer", { length: 255 }).notNull(),
   tipo: mysqlEnum("tipo", ["Usuario", "Revenda", "UltraMaster", "Master"]).default("Usuario").notNull(),
   modoSelecao: mysqlEnum("modoSelecao", ["XTeamCode", "M3U8"]).default("XTeamCode").notNull(),
@@ -511,3 +512,23 @@ export const playerCredentials = mysqlTable("player_credentials", {
 
 export type PlayerCredential = typeof playerCredentials.$inferSelect;
 export type InsertPlayerCredential = typeof playerCredentials.$inferInsert;
+
+// Credencial de acesso vinculada a um cliente do painel. A lista, validade,
+// status e recursos de failover continuam no dispositivo associado, para que
+// o modo login/senha tenha exatamente as mesmas proteções do modo por MAC.
+export const appCredentials = mysqlTable("app_credentials", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  deviceId: int("deviceId").notNull().unique(),
+  appId: varchar("appId", { length: 64 }).notNull(),
+  username: varchar("username", { length: 128 }).notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  active: boolean("active").default(true).notNull(),
+  firstAuthenticatedAt: timestamp("firstAuthenticatedAt"),
+  lastAuthenticatedAt: timestamp("lastAuthenticatedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AppCredential = typeof appCredentials.$inferSelect;
+export type InsertAppCredential = typeof appCredentials.$inferInsert;

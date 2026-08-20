@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull, like, or } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
@@ -42,6 +42,9 @@ import { cleanupOldOperationalHistory, HISTORY_RETENTION_CRON, HISTORY_RETENTION
 import { LIST_FAILOVER_CRON, recordFailoverRun, runListFailoverSweep } from "./listFailover";
 import { commandExpiresAt, REMOTE_COMMAND_LABELS, REMOTE_COMMAND_TYPES, type RemoteCommandType } from "./remoteCommands";
 import { buildDnsTargets, collectDnsTargetDeviceIds, normalizeDnsHost } from "./remoteCommandDns";
+import { hashPassword } from "./auth";
+import { isManagedAppId, MANAGED_APP_CATALOG } from "../shared/appCatalog";
+import { PENDING_LOGIN_MAC } from "./appLogin";
 
 export const revendaUpdateInputSchema = z.object({
   id: z.number(),
@@ -1593,6 +1596,162 @@ export const appRouter = router({
       if (setting.scheduleCronTaskUid) { try { await deleteHeartbeatJob(setting.scheduleCronTaskUid, parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? ""); } catch { /* manter registro local desativado */ } }
       await db.update(listFailoverSettings).set({ enabled: false, scheduleCronTaskUid: null }).where(eq(listFailoverSettings.id, setting.id));
       return { enabled: false };
+    }),
+  }),
+
+  // ─── Credenciais de aplicativo (login/senha) ──────────────────────────────
+  appCredentials: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select({
+        id: appCredentials.id,
+        username: appCredentials.username,
+        appId: appCredentials.appId,
+        active: appCredentials.active,
+        firstAuthenticatedAt: appCredentials.firstAuthenticatedAt,
+        lastAuthenticatedAt: appCredentials.lastAuthenticatedAt,
+        createdAt: appCredentials.createdAt,
+        deviceId: devices.id,
+        nomeServer: devices.nomeServer,
+        mac: devices.mac,
+        status: devices.status,
+        dataExpiracao: devices.dataExpiracao,
+        telefone: devices.telefone,
+        modoSelecao: devices.modoSelecao,
+        urlM3u8: devices.urlM3u8,
+      }).from(appCredentials)
+        .innerJoin(devices, eq(appCredentials.deviceId, devices.id))
+        .where(eq(appCredentials.ownerId, ctx.user.id))
+        .orderBy(desc(appCredentials.createdAt));
+    }),
+
+    create: protectedProcedure.input(z.object({
+      username: z.string().trim().min(3).max(128).regex(/^[A-Za-z0-9._-]+$/, "Use somente letras, números, ponto, hífen ou sublinhado no login."),
+      password: z.string().min(6).max(128),
+      appId: z.string().trim().toLowerCase().refine(isManagedAppId, "Aplicativo inválido."),
+      nomeServer: z.string().trim().min(1).max(255),
+      tipo: z.enum(["Usuario", "Revenda", "UltraMaster", "Master"]).optional().default("Usuario"),
+      modoSelecao: z.enum(["XTeamCode", "M3U8"]),
+      urlM3u8: z.string().trim().optional(),
+      urlEpg: z.string().trim().optional(),
+      valor: z.string().trim().optional(),
+      dataExpiracao: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      status: z.enum(["Liberado", "Bloqueado", "Expirado"]).optional().default("Liberado"),
+      telefone: z.string().trim().optional(),
+      extraLists: z.array(z.object({
+        nome: z.string().trim().min(1).max(128),
+        modoSelecao: z.enum(["XTeamCode", "M3U8"]),
+        urlM3u8: z.string().trim().optional(),
+        xtServer: z.string().trim().optional(),
+        xtUsername: z.string().trim().optional(),
+        xtPassword: z.string().trim().optional(),
+      })).max(4).optional().default([]),
+    })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      const username = input.username.toLowerCase();
+      const alreadyExists = await db.select({ id: appCredentials.id }).from(appCredentials).where(eq(appCredentials.username, username)).limit(1);
+      if (alreadyExists.length) throw new TRPCError({ code: "CONFLICT", message: "Este login já está cadastrado. Escolha outro." });
+
+      const planInfo = await getUserPlanInfo(ctx.user.id);
+      const stats = await getDeviceStats(ctx.user.id);
+      if (!planInfo) throw new TRPCError({ code: "FORBIDDEN", message: "Plano da revenda não encontrado." });
+      let limite: number;
+      try { limite = getEnforcedDeviceLimit(planInfo.limiteDevices); }
+      catch { throw new TRPCError({ code: "FORBIDDEN", message: "Limite de dispositivos inválido. Entre em contato com o administrador." }); }
+      if (stats.total >= limite) throw new TRPCError({ code: "FORBIDDEN", message: `Limite de ${limite} devices atingido.` });
+
+      const appDef = MANAGED_APP_CATALOG[input.appId as keyof typeof MANAGED_APP_CATALOG];
+      const device = await createDevice({
+        ownerId: ctx.user.id,
+        mac: PENDING_LOGIN_MAC,
+        accessMode: "LOGIN_PASSWORD",
+        nomeServer: input.nomeServer,
+        tipo: input.tipo,
+        modoSelecao: input.modoSelecao,
+        app: appDef.deviceAliases[0],
+        urlM3u8: input.urlM3u8 || undefined,
+        urlEpg: input.urlEpg || undefined,
+        valor: input.valor || undefined,
+        dataExpiracao: input.dataExpiracao,
+        status: input.status,
+        telefone: input.telefone || undefined,
+      });
+
+      try {
+        await db.insert(appCredentials).values({
+          ownerId: ctx.user.id,
+          deviceId: device.id,
+          appId: input.appId,
+          username,
+          passwordHash: await hashPassword(input.password),
+          active: input.status === "Liberado",
+        });
+        for (let index = 0; index < input.extraLists.length; index += 1) {
+          const list = input.extraLists[index];
+          await db.insert(deviceUrls).values({
+            deviceId: device.id,
+            nome: list.nome,
+            modoSelecao: list.modoSelecao,
+            urlM3u8: list.urlM3u8 || null,
+            xtServer: list.xtServer || null,
+            xtUsername: list.xtUsername || null,
+            xtPassword: list.xtPassword || null,
+            ordem: index + 1,
+            ativo: true,
+          });
+        }
+      } catch (error) {
+        await deleteDevice(device.id, ctx.user.id);
+        throw error;
+      }
+
+      await recordAudit({
+        ownerId: ctx.user.id,
+        actorUserId: ctx.user.id,
+        entityType: "app_credential",
+        entityId: device.id,
+        action: "created",
+        summary: `Credencial ${username} criada para ${input.nomeServer}`,
+        afterData: { username, appId: input.appId, deviceId: device.id, status: input.status },
+      });
+      return { success: true, deviceId: device.id, username };
+    }),
+
+    update: protectedProcedure.input(z.object({
+      id: z.number().int().positive(),
+      password: z.union([z.string().min(6).max(128), z.literal("")]).optional(),
+      active: z.boolean().optional(),
+      status: z.enum(["Liberado", "Bloqueado", "Expirado"]).optional(),
+      dataExpiracao: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal("")]).optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      const credential = (await db.select().from(appCredentials).where(and(eq(appCredentials.id, input.id), eq(appCredentials.ownerId, ctx.user.id))).limit(1))[0];
+      if (!credential) throw new TRPCError({ code: "NOT_FOUND", message: "Credencial não encontrada." });
+
+      const credentialUpdate: Record<string, unknown> = {};
+      if (input.active !== undefined) credentialUpdate.active = input.active;
+      if (input.password) credentialUpdate.passwordHash = await hashPassword(input.password);
+      if (Object.keys(credentialUpdate).length) await db.update(appCredentials).set(credentialUpdate).where(eq(appCredentials.id, credential.id));
+
+      const deviceUpdate: Record<string, unknown> = {};
+      if (input.status !== undefined) deviceUpdate.status = input.status;
+      if (input.dataExpiracao !== undefined) deviceUpdate.dataExpiracao = input.dataExpiracao ? dateOnlyForDatabase(input.dataExpiracao) : null;
+      if (Object.keys(deviceUpdate).length) await db.update(devices).set(deviceUpdate).where(and(eq(devices.id, credential.deviceId), eq(devices.ownerId, ctx.user.id)));
+      return { success: true };
+    }),
+
+    remove: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      const credential = (await db.select().from(appCredentials).where(and(eq(appCredentials.id, input.id), eq(appCredentials.ownerId, ctx.user.id))).limit(1))[0];
+      if (!credential) throw new TRPCError({ code: "NOT_FOUND", message: "Credencial não encontrada." });
+      await db.delete(appCredentials).where(eq(appCredentials.id, credential.id));
+      await db.update(devices).set({ accessMode: "MAC" }).where(and(eq(devices.id, credential.deviceId), eq(devices.ownerId, ctx.user.id)));
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "app_credential", entityId: credential.deviceId, action: "deleted", summary: `Credencial ${credential.username} removida; o cadastro do cliente foi preservado.` });
+      return { success: true };
     }),
   }),
 

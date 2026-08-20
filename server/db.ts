@@ -101,6 +101,7 @@ export async function getRecentDevices(ownerId: number, limit = 5) {
 export async function createDevice(data: {
   ownerId: number;
   mac: string;
+  accessMode?: "MAC" | "LOGIN_PASSWORD";
   nomeServer: string;
   tipo?: "Usuario" | "Revenda" | "UltraMaster" | "Master";
   modoSelecao?: "XTeamCode" | "M3U8";
@@ -110,12 +111,14 @@ export async function createDevice(data: {
   valor?: string;
   dataExpiracao?: string;
   telefone?: string;
+  status?: "Liberado" | "Bloqueado" | "Expirado";
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(devices).values({
     ownerId: data.ownerId,
     mac: data.mac,
+    accessMode: data.accessMode ?? "MAC",
     nomeServer: data.nomeServer,
     tipo: data.tipo ?? "Usuario",
     modoSelecao: data.modoSelecao ?? "M3U8",
@@ -125,7 +128,7 @@ export async function createDevice(data: {
     valor: data.valor ?? null,
     dataExpiracao: data.dataExpiracao ? dateOnlyForDatabase(data.dataExpiracao) : null,
     telefone: data.telefone ?? null,
-    status: "Liberado",
+    status: data.status ?? "Liberado",
   });
   // Retornar o id do device recém-criado
   const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
@@ -134,6 +137,7 @@ export async function createDevice(data: {
 
 export async function updateDevice(id: number, ownerId: number, data: Partial<{
   mac: string;
+  accessMode: "MAC" | "LOGIN_PASSWORD";
   nomeServer: string;
   tipo: "Usuario" | "Revenda" | "UltraMaster" | "Master";
   modoSelecao: "XTeamCode" | "M3U8";
@@ -149,6 +153,7 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
   if (!db) throw new Error("Database not available");
   const updateData: Record<string, unknown> = {};
   if (data.mac !== undefined) updateData.mac = data.mac;
+  if (data.accessMode !== undefined) updateData.accessMode = data.accessMode;
   if (data.nomeServer !== undefined) updateData.nomeServer = data.nomeServer;
   if (data.tipo !== undefined) updateData.tipo = data.tipo;
   if (data.modoSelecao !== undefined) updateData.modoSelecao = data.modoSelecao;

@@ -50,6 +50,7 @@ import SettingsUltra from "./pages/SettingsUltra";
 import RemoteCommands from "./pages/RemoteCommands";
 import PublicDownloads from "./pages/PublicDownloads";
 import GenericAppSettings from "./pages/GenericAppSettings";
+import AppCredentials from "./pages/AppCredentials";
 
 function Router() {
   return (
@@ -72,6 +73,7 @@ function Router() {
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/users"} component={Users} />
       <Route path={"/users/create"} component={UserCreate} />
+      <Route path={"/credenciais-app"} component={AppCredentials} />
       <Route path={"/users/:id/edit"} component={UserEdit} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/settings"} component={Settings} />
