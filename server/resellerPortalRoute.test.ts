@@ -81,4 +81,15 @@ describe("portal de revendas — rotas HTTP", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ success: true, clients: [{ id: 101, nomeServer: "Cliente da revenda", extra_list_count: 1 }] });
   });
+
+  it("não permite bloquear ou liberar um cliente que não pertence à revenda", async () => {
+    selectMock.mockImplementation(() => ({ from: (table: unknown) => table === users ? rows([reseller]) : rows([]) }));
+    verifySessionMock.mockResolvedValue({ openId: "revenda_11", appId: "app", name: "Revenda Teste" });
+    const app = express(); app.use(express.json()); registerApiRoutes(app);
+    const running = await start(app); server = running.server;
+
+    const response = await fetch(`${running.baseUrl}/api/reseller-portal/client-status`, { method: "POST", headers: { "content-type": "application/json", Authorization: "Bearer portal-token" }, body: JSON.stringify({ id: 999, status: "Bloqueado" }) });
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ success: false, error: "Cliente não encontrado." });
+  });
 });

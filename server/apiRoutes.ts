@@ -24,7 +24,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials, suggestions } from "../drizzle/schema";
 import { eq, or, and, asc, desc, sql } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
@@ -449,6 +449,138 @@ export function registerApiRoutes(app: Express) {
     }));
     res.setHeader("Cache-Control", "no-store");
     res.json({ success: true, clients });
+  });
+
+  const portalDevice = async (ownerId: number, rawId: unknown) => {
+    const id = Number(rawId);
+    if (!Number.isInteger(id) || id <= 0) return null;
+    const db = await getDb();
+    if (!db) return null;
+    return (await db.select().from(devices).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId))).limit(1))[0] ?? null;
+  };
+  const portalListUrl = (entry: Record<string, unknown>) => {
+    const mode = entry.modoSelecao === "XTeamCode" ? "XTeamCode" : "M3U8";
+    if (mode === "M3U8") return typeof entry.urlM3u8 === "string" ? entry.urlM3u8.trim() : "";
+    const server = typeof entry.xtServer === "string" ? entry.xtServer.trim().replace(/\/+$/, "") : "";
+    const username = typeof entry.xtUsername === "string" ? entry.xtUsername.trim() : "";
+    const password = typeof entry.xtPassword === "string" ? entry.xtPassword.trim() : "";
+    return server && username && password ? `${server}/get.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&type=m3u_plus&output=ts` : "";
+  };
+  const portalBody = (req: Request) => ((req.body ?? {}) as Record<string, unknown>);
+
+  app.post("/api/reseller-portal/dashboard", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req);
+    if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const db = await getDb();
+    if (!db) { res.status(503).json({ success: false, error: "Banco indisponível." }); return; }
+    const own = await db.select().from(devices).where(eq(devices.ownerId, user.id));
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const inThirtyDays = new Date(now); inThirtyDays.setDate(inThirtyDays.getDate() + 30);
+    const value = own.reduce((total, item) => total + Number(item.valor ?? 0), 0);
+    const expiring = own.filter(item => item.dataExpiracao && new Date(`${item.dataExpiracao}T12:00:00`) >= now && new Date(`${item.dataExpiracao}T12:00:00`) <= inThirtyDays).length;
+    const sessions = own.filter(item => item.lastSeen && Date.now() - new Date(item.lastSeen).getTime() < 10 * 60 * 1000).length;
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ success: true, metrics: { total_clients: own.length, active_clients: own.filter(item => item.status === "Liberado").length, blocked_clients: own.filter(item => item.status === "Bloqueado").length, expired_clients: own.filter(item => item.status === "Expirado").length, expiring_soon: expiring, online_now: sessions, expected_value: value.toFixed(2), available_slots: Math.max(0, Number(user.limiteDevices ?? 0) - own.length) } });
+  });
+
+  app.post("/api/reseller-portal/client-save", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req);
+    if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const body = portalBody(req); const id = Number(body.id || 0);
+    const nomeServer = typeof body.nomeServer === "string" ? body.nomeServer.trim() : "";
+    const mac = typeof body.mac === "string" ? body.mac.trim().toUpperCase() : "";
+    if (!nomeServer || !mac) { res.status(400).json({ success: false, error: "Nome do cliente e MAC são obrigatórios." }); return; }
+    const db = await getDb(); if (!db) { res.status(503).json({ success: false, error: "Banco indisponível." }); return; }
+    const status = ["Liberado", "Bloqueado", "Expirado"].includes(String(body.status)) ? String(body.status) as "Liberado" | "Bloqueado" | "Expirado" : "Liberado";
+    const modoSelecao: "XTeamCode" | "M3U8" = body.modoSelecao === "M3U8" ? "M3U8" : "XTeamCode";
+    const primary = (body.primaryList && typeof body.primaryList === "object" ? body.primaryList : body) as Record<string, unknown>;
+    const playlist = portalListUrl({ ...primary, modoSelecao });
+    const data: Record<string, unknown> = { nomeServer, mac, app: typeof body.app === "string" ? body.app.trim() : null, telefone: typeof body.telefone === "string" ? body.telefone.trim() : null, dataExpiracao: typeof body.dataExpiracao === "string" && body.dataExpiracao ? body.dataExpiracao : null, valor: typeof body.valor === "string" && body.valor ? body.valor : null, status, modoSelecao, urlM3u8: playlist || null };
+    if (id) {
+      const device = await portalDevice(user.id, id); if (!device) { res.status(404).json({ success: false, error: "Cliente não encontrado." }); return; }
+      if (!playlist) delete data.urlM3u8;
+      await db.update(devices).set(data).where(and(eq(devices.id, device.id), eq(devices.ownerId, user.id)));
+      res.json({ success: true, id: device.id }); return;
+    }
+    const totalRows = await db.select({ id: devices.id }).from(devices).where(eq(devices.ownerId, user.id));
+    if (Number(user.limiteDevices ?? 0) > 0 && totalRows.length >= Number(user.limiteDevices)) { res.status(403).json({ success: false, error: "Limite de dispositivos da revenda atingido." }); return; }
+    const expiration = typeof body.dataExpiracao === "string" && body.dataExpiracao ? new Date(`${body.dataExpiracao}T12:00:00`) : null;
+    const result = await db.insert(devices).values({ ownerId: user.id, mac, nomeServer, tipo: "Usuario", app: data.app as string | null, telefone: data.telefone as string | null, dataExpiracao: expiration, valor: data.valor as string | null, status, modoSelecao, urlM3u8: playlist || null });
+    const newId = Number((result as any).insertId ?? (result as any)[0]?.insertId);
+    if (newId && playlist) await db.insert(deviceUrls).values({ deviceId: newId, nome: "Lista 1", modoSelecao, urlM3u8: modoSelecao === "M3U8" ? playlist : null, xtServer: modoSelecao === "XTeamCode" ? String(primary.xtServer ?? "") : null, xtUsername: modoSelecao === "XTeamCode" ? String(primary.xtUsername ?? "") : null, xtPassword: modoSelecao === "XTeamCode" ? String(primary.xtPassword ?? "") : null, ordem: 0, ativo: true });
+    res.status(201).json({ success: true, id: newId });
+  });
+
+  app.post("/api/reseller-portal/client-status", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req); if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const body = portalBody(req); const device = await portalDevice(user.id, body.id); if (!device) { res.status(404).json({ success: false, error: "Cliente não encontrado." }); return; }
+    const status = ["Liberado", "Bloqueado", "Expirado"].includes(String(body.status)) ? String(body.status) as "Liberado" | "Bloqueado" | "Expirado" : null;
+    if (!status) { res.status(400).json({ success: false, error: "Status inválido." }); return; }
+    const db = await getDb(); await db!.update(devices).set({ status }).where(and(eq(devices.id, device.id), eq(devices.ownerId, user.id))); res.json({ success: true });
+  });
+
+  app.post("/api/reseller-portal/client-delete", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req); if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const body = portalBody(req); const device = await portalDevice(user.id, body.id); if (!device) { res.status(404).json({ success: false, error: "Cliente não encontrado." }); return; }
+    const db = await getDb(); await db!.delete(deviceUrls).where(eq(deviceUrls.deviceId, device.id)); await db!.delete(devices).where(and(eq(devices.id, device.id), eq(devices.ownerId, user.id))); res.json({ success: true });
+  });
+
+  app.post("/api/reseller-portal/lists", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req); if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const device = await portalDevice(user.id, portalBody(req).clientId); if (!device) { res.status(404).json({ success: false, error: "Cliente não encontrado." }); return; }
+    const db = await getDb(); const lists = await db!.select().from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem)); res.json({ success: true, client: { id: device.id, nomeServer: device.nomeServer, mac: device.mac }, lists });
+  });
+
+  app.post("/api/reseller-portal/list-save", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req); if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const body = portalBody(req); const device = await portalDevice(user.id, body.clientId); if (!device) { res.status(404).json({ success: false, error: "Cliente não encontrado." }); return; }
+    const nome = typeof body.nome === "string" && body.nome.trim() ? body.nome.trim() : "Lista"; const modoSelecao: "XTeamCode" | "M3U8" = body.modoSelecao === "M3U8" ? "M3U8" : "XTeamCode"; const urlM3u8 = portalListUrl({ ...body, modoSelecao });
+    if (!urlM3u8) { res.status(400).json({ success: false, error: "Informe os dados completos da lista." }); return; }
+    const data = { nome, modoSelecao, urlM3u8: modoSelecao === "M3U8" ? urlM3u8 : null, xtServer: modoSelecao === "XTeamCode" ? String(body.xtServer ?? "") : null, xtUsername: modoSelecao === "XTeamCode" ? String(body.xtUsername ?? "") : null, xtPassword: modoSelecao === "XTeamCode" ? String(body.xtPassword ?? "") : null, ordem: Number.isFinite(Number(body.ordem)) ? Number(body.ordem) : 1, ativo: body.ativo !== false };
+    const db = await getDb(); const listId = Number(body.id || 0);
+    if (listId) { const existing = (await db!.select().from(deviceUrls).where(eq(deviceUrls.id, listId)).limit(1))[0]; if (!existing || existing.deviceId !== device.id) { res.status(404).json({ success: false, error: "Lista não encontrada." }); return; } await db!.update(deviceUrls).set(data).where(eq(deviceUrls.id, listId)); res.json({ success: true, id: listId }); return; }
+    const result = await db!.insert(deviceUrls).values({ deviceId: device.id, ...data }); res.status(201).json({ success: true, id: Number((result as any).insertId ?? (result as any)[0]?.insertId) });
+  });
+
+  app.post("/api/reseller-portal/list-delete", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req); if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const body = portalBody(req); const device = await portalDevice(user.id, body.clientId); if (!device) { res.status(404).json({ success: false, error: "Cliente não encontrado." }); return; }
+    const db = await getDb(); const list = (await db!.select().from(deviceUrls).where(eq(deviceUrls.id, Number(body.id))).limit(1))[0]; if (!list || list.deviceId !== device.id) { res.status(404).json({ success: false, error: "Lista não encontrada." }); return; } await db!.delete(deviceUrls).where(eq(deviceUrls.id, list.id)); res.json({ success: true });
+  });
+
+  app.post("/api/reseller-portal/dns", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req); if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const db = await getDb(); const entries = await db!.select().from(dnsEntries).where(eq(dnsEntries.ownerId, user.id)).orderBy(desc(dnsEntries.createdAt)); res.json({ success: true, entries });
+  });
+
+  app.post("/api/reseller-portal/dns-save", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req); if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const body = portalBody(req); const titulo = typeof body.titulo === "string" ? body.titulo.trim() : ""; const host = typeof body.host === "string" ? body.host.trim() : "";
+    if (!titulo || !host) { res.status(400).json({ success: false, error: "Título e DNS são obrigatórios." }); return; }
+    const db = await getDb(); const id = Number(body.id || 0); const data = { titulo, host, grupo: typeof body.grupo === "string" && body.grupo.trim() ? body.grupo.trim() : "Padrão", ativo: body.ativo !== false };
+    if (id) { await db!.update(dnsEntries).set(data).where(and(eq(dnsEntries.id, id), eq(dnsEntries.ownerId, user.id))); res.json({ success: true, id }); return; }
+    const result = await db!.insert(dnsEntries).values({ ownerId: user.id, ...data }); res.status(201).json({ success: true, id: Number((result as any).insertId ?? (result as any)[0]?.insertId) });
+  });
+
+  app.post("/api/reseller-portal/dns-delete", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req); if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const db = await getDb(); await db!.delete(dnsEntries).where(and(eq(dnsEntries.id, Number(portalBody(req).id)), eq(dnsEntries.ownerId, user.id))); res.json({ success: true });
+  });
+
+  app.post("/api/reseller-portal/operations", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req); if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const db = await getDb(); const own = await db!.select({ id: devices.id, nomeServer: devices.nomeServer, mac: devices.mac, status: devices.status, dataExpiracao: devices.dataExpiracao, lastSeen: devices.lastSeen, currentContent: devices.currentContent, valor: devices.valor }).from(devices).where(eq(devices.ownerId, user.id)).orderBy(desc(devices.updatedAt));
+    const now = new Date(); now.setHours(0, 0, 0, 0); const inThirty = new Date(now); inThirty.setDate(inThirty.getDate() + 30);
+    res.json({ success: true, renewals: own.filter(item => item.dataExpiracao && new Date(`${item.dataExpiracao}T12:00:00`) <= inThirty), alerts: own.filter(item => item.status !== "Liberado"), sessions: own.map(item => ({ ...item, online: Boolean(item.lastSeen && Date.now() - new Date(item.lastSeen).getTime() < 10 * 60 * 1000) })), financial: { total_expected: own.reduce((total, item) => total + Number(item.valor ?? 0), 0).toFixed(2), active_value: own.filter(item => item.status === "Liberado").reduce((total, item) => total + Number(item.valor ?? 0), 0).toFixed(2) } });
+  });
+
+  app.post("/api/reseller-portal/suggestion", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req); if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const body = portalBody(req); const text = typeof body.sugestao === "string" ? body.sugestao.trim() : "";
+    if (!text) { res.status(400).json({ success: false, error: "Escreva a sugestão antes de enviar." }); return; }
+    const db = await getDb();
+    await db!.insert(suggestions).values({ userId: user.id, nome: user.name || "Revenda", email: user.email || null, telefone: typeof body.telefone === "string" ? body.telefone.trim() || null : null, sugestao: text });
+    res.status(201).json({ success: true });
   });
 
   /**

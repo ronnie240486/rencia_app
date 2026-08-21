@@ -49,6 +49,15 @@
 - [x] Adaptar a leitura de sessão e clientes do portal para o método HTTP aceito no domínio publicado
 - [x] Validar visualmente a página pública do Portal da Revenda com login real e lista carregada
 - [x] Registrar e entregar a URL pública final do Portal da Revenda
+- [ ] Confirmar e corrigir a abertura do link público do Portal da Revenda no dispositivo do usuário
+- [ ] Permitir que a revenda cadastre clientes próprios pelo portal
+- [ ] Permitir editar, bloquear, liberar e excluir somente os próprios clientes
+- [ ] Permitir que a revenda cadastre e altere as listas dos próprios clientes
+- [ ] Adicionar interface móvel operacional com ações claras para clientes e listas
+- [ ] Cobrir as novas operações do portal com testes de isolamento por revenda
+- [ ] Disponibilizar à revenda o painel completo de usuários, listas, DNS, avisos, financeiro, relatórios e manutenção
+- [ ] Ocultar configurações de aplicativos, loja global, backups globais, permissões e demais ferramentas exclusivas do proprietário
+- [ ] Garantir que cada ferramenta completa do painel filtre e altere somente os dados da revenda autenticada
 
 ## Backend
 - [x] Schema do banco de dados com tabela users (já existe, verificar campos)
