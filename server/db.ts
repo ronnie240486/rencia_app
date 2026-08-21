@@ -1,6 +1,6 @@
-import { and, count, desc, eq, gte, like, lt, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, like, lt, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, apps, devices, deviceUrls, localCredentials, users } from "../drizzle/schema";
+import { appCredentials, apps, auditLogs, customerNotes, deviceListNotificationReceipts, deviceTags, devices, deviceUrls, InsertUser, listFailoverEvents, listHealthChecks, localCredentials, maintenanceTasks, notices, payments, remoteDeviceCommands, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 
@@ -171,19 +171,44 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
 export async function deleteDevice(id: number, ownerId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  // Deletar listas associadas primeiro
-  await db.delete(deviceUrls).where(eq(deviceUrls.deviceId, id));
-  await db.delete(devices).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId)));
+  const owned = await db.select({ id: devices.id, mac: devices.mac }).from(devices).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId))).limit(1);
+  if (!owned.length) return;
+  const duplicateDevices = await db.select({ id: devices.id })
+    .from(devices)
+    .where(sql`UPPER(REPLACE(${devices.mac}, '-', ':')) = ${owned[0].mac.trim().toUpperCase()}`);
+  const deviceIds = duplicateDevices.map((device) => device.id);
+  await deleteDeviceReferences(db, deviceIds);
+  await db.delete(devices).where(inArray(devices.id, deviceIds));
 }
 
 export async function deleteManyDevices(ids: number[], ownerId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   if (ids.length === 0) return;
-  const { inArray } = await import("drizzle-orm");
-  // Deletar listas associadas primeiro
-  await db.delete(deviceUrls).where(inArray(deviceUrls.deviceId, ids));
-  await db.delete(devices).where(and(inArray(devices.id, ids), eq(devices.ownerId, ownerId)));
+  const owned = await db.select({ id: devices.id, mac: devices.mac }).from(devices).where(and(inArray(devices.id, ids), eq(devices.ownerId, ownerId)));
+  if (!owned.length) return;
+  const normalizedMacs = Array.from(new Set(owned.map((device) => device.mac.trim().toUpperCase())));
+  const allDuplicates = await db.select({ id: devices.id }).from(devices)
+    .where(inArray(sql`UPPER(REPLACE(${devices.mac}, '-', ':'))`, normalizedMacs));
+  const deviceIds = allDuplicates.map((device) => device.id);
+  await deleteDeviceReferences(db, deviceIds);
+  await db.delete(devices).where(inArray(devices.id, deviceIds));
+}
+
+/** Remove todos os rastros operacionais de dispositivos antes de liberar os MACs. */
+async function deleteDeviceReferences(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, deviceIds: number[]) {
+  await db.delete(appCredentials).where(inArray(appCredentials.deviceId, deviceIds));
+  await db.delete(deviceListNotificationReceipts).where(inArray(deviceListNotificationReceipts.deviceId, deviceIds));
+  await db.delete(remoteDeviceCommands).where(inArray(remoteDeviceCommands.deviceId, deviceIds));
+  await db.delete(listHealthChecks).where(inArray(listHealthChecks.deviceId, deviceIds));
+  await db.delete(listFailoverEvents).where(inArray(listFailoverEvents.deviceId, deviceIds));
+  await db.delete(payments).where(inArray(payments.deviceId, deviceIds));
+  await db.delete(deviceTags).where(inArray(deviceTags.deviceId, deviceIds));
+  await db.delete(customerNotes).where(inArray(customerNotes.deviceId, deviceIds));
+  await db.delete(maintenanceTasks).where(inArray(maintenanceTasks.deviceId, deviceIds));
+  await db.delete(notices).where(inArray(notices.targetDeviceId, deviceIds));
+  await db.delete(auditLogs).where(and(eq(auditLogs.entityType, "device"), inArray(auditLogs.entityId, deviceIds)));
+  await db.delete(deviceUrls).where(inArray(deviceUrls.deviceId, deviceIds));
 }
 
 export async function deleteExpiredDevices(ownerId: number) {

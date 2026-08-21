@@ -97,6 +97,14 @@
 - [ ] Estender a autorização individual às demais procedures globais liberáveis
 - [x] Mostrar o resumo de falhas de listas somente uma vez por dia para cada usuário
 - [x] Destacar permissões selecionadas com preto no tema claro e branco no tema escuro
+- [x] Reativar a conta existente flemingfleming10fleming@gmail.com e vinculá-la como revenda
+- [ ] Confirmar a presença de flemingfleming10fleming@gmail.com na lista de Revendas da sessão do proprietário
+- [x] Remover o registro antigo do MAC C4:4E:AC:0A:65:85 e preservar o cadastro ativo da Testeu
+- [x] Remover por completo todos os registros de um cliente ou MAC ao excluir o cadastro
+- [ ] Permitir recadastrar o mesmo MAC em outra conta sem usar registros antigos
+- [ ] Validar se existem referências históricas identificadas pelo MAC além do deviceId
+- [ ] Testar exclusão e recadastro do mesmo MAC em outra conta sem qualquer conflito
+- [x] Remover todos os cadastros duplicados do mesmo MAC em outras contas quando o MAC for excluído
 - [ ] Validar no painel publicado a abertura do controle de Permissões de uma revenda
 - [ ] Validar visualmente o contraste da seleção nos temas claro e escuro
 - [x] Confirmar a senha persistida durante a criação antes de informar que a nova revenda está pronta
