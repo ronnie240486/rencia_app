@@ -54,7 +54,7 @@ describe("portal de revendas — rotas HTTP", () => {
     expect(login.status).toBe(200);
     expect(await login.json()).toMatchObject({ success: true, token: "portal-token", user: { email: reseller.email, limite_devices: 50 } });
 
-    const me = await fetch(`${running.baseUrl}/api/reseller-portal/me`, { headers: { Authorization: "Bearer portal-token" } });
+    const me = await fetch(`${running.baseUrl}/api/reseller-portal/me`, { method: "POST", headers: { Authorization: "Bearer portal-token" } });
     expect(me.status).toBe(200);
     expect(await me.json()).toMatchObject({ success: true, user: { name: "Revenda Teste", email: reseller.email } });
   });
@@ -63,7 +63,7 @@ describe("portal de revendas — rotas HTTP", () => {
     verifySessionMock.mockResolvedValue(null);
     const app = express(); app.use(express.json()); registerApiRoutes(app);
     const running = await start(app); server = running.server;
-    const response = await fetch(`${running.baseUrl}/api/reseller-portal/clients`, { headers: { Authorization: "Bearer inválido" } });
+    const response = await fetch(`${running.baseUrl}/api/reseller-portal/clients`, { method: "POST", headers: { Authorization: "Bearer inválido" } });
     expect(response.status).toBe(401);
     expect(await response.json()).toMatchObject({ success: false, error: "Sessão de revenda inválida." });
   });
@@ -77,7 +77,7 @@ describe("portal de revendas — rotas HTTP", () => {
     const app = express(); app.use(express.json()); registerApiRoutes(app);
     const running = await start(app); server = running.server;
 
-    const response = await fetch(`${running.baseUrl}/api/reseller-portal/clients`, { headers: { Authorization: "Bearer portal-token" } });
+    const response = await fetch(`${running.baseUrl}/api/reseller-portal/clients`, { method: "POST", headers: { Authorization: "Bearer portal-token" } });
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ success: true, clients: [{ id: 101, nomeServer: "Cliente da revenda", extra_list_count: 1 }] });
   });

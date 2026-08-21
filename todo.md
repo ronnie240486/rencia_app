@@ -45,6 +45,7 @@
 - [ ] Publicar e validar as rotas do portal de revendas no domínio real
 - [x] Cobrir login, sessão inválida e filtro de clientes com teste HTTP do portal
 - [x] Impedir explicitamente que uma sessão de revenda abra rotas do Painel Principal
+- [ ] Adaptar a leitura de sessão e clientes do portal para o método HTTP aceito no domínio publicado
 
 ## Backend
 - [x] Schema do banco de dados com tabela users (já existe, verificar campos)

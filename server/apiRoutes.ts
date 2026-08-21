@@ -429,14 +429,14 @@ export function registerApiRoutes(app: Express) {
     }
   });
 
-  app.get("/api/reseller-portal/me", async (req: Request, res: Response) => {
+  app.post("/api/reseller-portal/me", async (req: Request, res: Response) => {
     const user = await getPortalReseller(req);
     if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
     res.setHeader("Cache-Control", "no-store");
     res.json({ success: true, user: { name: user.name || "Revenda", email: user.email || "", plano: user.plano || "Revenda", limite_devices: user.limiteDevices } });
   });
 
-  app.get("/api/reseller-portal/clients", async (req: Request, res: Response) => {
+  app.post("/api/reseller-portal/clients", async (req: Request, res: Response) => {
     const user = await getPortalReseller(req);
     if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
     const db = await getDb();
