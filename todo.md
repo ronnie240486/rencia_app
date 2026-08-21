@@ -96,6 +96,9 @@
 - [ ] Validar no navegador edição de revenda, abertura de permissões e gravação de uma liberação
 - [ ] Estender a autorização individual às demais procedures globais liberáveis
 - [x] Mostrar o resumo de falhas de listas somente uma vez por dia para cada usuário
+- [x] Destacar permissões selecionadas com preto no tema claro e branco no tema escuro
+- [ ] Validar no painel publicado a abertura do controle de Permissões de uma revenda
+- [ ] Validar visualmente o contraste da seleção nos temas claro e escuro
 - [x] Confirmar a senha persistida durante a criação antes de informar que a nova revenda está pronta
 - [x] Limpar credenciais legadas antes de excluir o cadastro de revenda
 

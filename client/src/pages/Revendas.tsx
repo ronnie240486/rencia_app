@@ -394,10 +394,10 @@ export default function Revendas() {
           <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
             {permissionsLoading ? <div className="flex justify-center py-8"><Loader2 className="animate-spin" /></div> : RESELLER_PERMISSION_CATALOG.map(permission => {
               const active = selectedPermissions.includes(permission.key);
-              return <button key={permission.key} type="button" onClick={() => togglePermission(permission.key)} disabled={savePermissionsMut.isPending} className={`w-full rounded-xl border p-3 text-left transition-colors ${active ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"}`}>
+              return <button key={permission.key} type="button" onClick={() => togglePermission(permission.key)} disabled={savePermissionsMut.isPending} className={`w-full rounded-xl border p-3 text-left transition-colors ${active ? "border-black bg-black text-white shadow-sm dark:border-white dark:bg-white dark:text-black" : "border-border hover:bg-muted/50"}`}>
                 <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${active ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}>{active ? "✓" : ""}</div>
-                  <div><p className="font-medium">{permission.label}</p><p className="mt-0.5 text-xs text-muted-foreground">{permission.description}</p></div>
+                  <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${active ? "border-white bg-white text-black dark:border-black dark:bg-black dark:text-white" : "border-muted-foreground/40"}`}>{active ? "✓" : ""}</div>
+                  <div><p className="font-medium">{permission.label}</p><p className={`mt-0.5 text-xs ${active ? "text-white/85 dark:text-black/70" : "text-muted-foreground"}`}>{permission.description}</p></div>
                 </div>
               </button>;
             })}
