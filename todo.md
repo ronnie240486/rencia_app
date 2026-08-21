@@ -73,6 +73,16 @@
 - [x] Adicionar teste completo de alterar senha em Revendas e entrar no painel público com a nova senha
 - [x] Adicionar teste integrado de alteração em Revendas seguida de loginLocal no mesmo painel público
 - [x] Sincronizar ou remover o fluxo legado localCredentials para evitar divergência futura de senha
+- [x] Reproduzir o ciclo real de excluir e recriar a revenda com o mesmo e-mail e senha
+- [x] Garantir que recriação não deixe credencial, sessão ou e-mail antigo interferindo no login
+- [x] Corrigir a recriação de revenda para gravar automaticamente a senha informada no passwordHash do login público
+- [x] Adicionar integração de excluir, recriar com mesmo e-mail e entrar no mesmo painel sem SQL manual
+- [x] Limpar ou sincronizar credenciais legadas e seleção de conta na recriação de revenda
+- [ ] Limpar localCredentials da revenda ao excluir a conta
+- [ ] Testar excluir, recriar com o mesmo e-mail e entrar no mesmo painel sem SQL manual
+- [ ] Validar o ciclo completo em rota publicada antes de concluir a entrega
+- [x] Confirmar a senha persistida durante a criação antes de informar que a nova revenda está pronta
+- [x] Limpar credenciais legadas antes de excluir o cadastro de revenda
 
 ## Backend
 - [x] Schema do banco de dados com tabela users (já existe, verificar campos)

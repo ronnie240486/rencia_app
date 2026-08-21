@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gte, like, lt, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, apps, devices, deviceUrls, users } from "../drizzle/schema";
+import { InsertUser, apps, devices, deviceUrls, localCredentials, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 
@@ -404,6 +404,7 @@ export async function updateRevenda(id: number, resellerId: number, data: Partia
 export async function deleteRevenda(id: number, resellerId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  await db.delete(localCredentials).where(eq(localCredentials.userId, id));
   await db.delete(users).where(and(eq(users.id, id), eq(users.resellerId, resellerId)));
 }
 

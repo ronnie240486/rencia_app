@@ -1899,6 +1899,8 @@ export const appRouter = router({
         limiteRevendas: z.number().min(0).default(0),
       }))
       .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
         // Verificar limite de revendas do usuário atual
         const planInfo = await getUserPlanInfo(ctx.user.id);
         const stats = await getRevendaStats(ctx.user.id);
@@ -1906,16 +1908,28 @@ export const appRouter = router({
         if (limiteRevendas > 0 && stats.totalRevendas >= limiteRevendas) {
           throw new TRPCError({ code: "FORBIDDEN", message: `Limite de ${limiteRevendas} revendas atingido.` });
         }
-        const { hashPassword } = await import("./auth");
+        const { hashPassword, comparePassword } = await import("./auth");
         const { password, ...revendaData } = input;
+        const passwordHash = await hashPassword(password);
         let result: { id: number };
         try {
-          result = await createRevenda({ resellerId: ctx.user.id, ...revendaData, passwordHash: await hashPassword(password) });
+          result = await createRevenda({ resellerId: ctx.user.id, ...revendaData, passwordHash });
         } catch (error) {
           if (error instanceof Error && error.message.includes("Já existe uma conta")) {
             throw new TRPCError({ code: "CONFLICT", message: error.message });
           }
           throw error;
+        }
+        const created = (await db.select({ passwordHash: users.passwordHash }).from(users)
+          .where(and(eq(users.id, result.id), eq(users.resellerId, ctx.user.id))).limit(1))[0];
+        if (!created?.passwordHash || !(await comparePassword(password, created.passwordHash))) {
+          // Nunca confirma a criação enquanto a mesma senha não puder autenticar.
+          await db.update(users).set({ passwordHash }).where(and(eq(users.id, result.id), eq(users.resellerId, ctx.user.id)));
+          const repaired = (await db.select({ passwordHash: users.passwordHash }).from(users)
+            .where(and(eq(users.id, result.id), eq(users.resellerId, ctx.user.id))).limit(1))[0];
+          if (!repaired?.passwordHash || !(await comparePassword(password, repaired.passwordHash))) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível confirmar a senha da nova revenda. Tente novamente." });
+          }
         }
         await recordAudit({
           ownerId: ctx.user.id,
@@ -1926,7 +1940,7 @@ export const appRouter = router({
           summary: `Revenda ${input.name} criada com limite de ${input.limiteDevices} dispositivos`,
           afterData: { ...revendaData, password: "[oculto]" },
         });
-        return { success: true, id: result.id };
+        return { success: true, id: result.id, loginReady: true };
       }),
 
     update: protectedProcedure
