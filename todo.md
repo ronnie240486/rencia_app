@@ -83,6 +83,8 @@
 - [ ] Validar o ciclo completo em rota publicada antes de concluir a entrega
 - [ ] Rastrear o login publicado da conta recém-recriada testeu163@gmail.com sem supor a senha usada
 - [ ] Corrigir a falha real de autenticação dessa conta e validar o Dashboard publicado
+- [x] Impedir que o navegador trate o campo de senha da revenda como criação de senha do próprio navegador
+- [x] Exibir instrução de login no painel sem acionar confirmação de senha externa
 - [x] Confirmar a senha persistida durante a criação antes de informar que a nova revenda está pronta
 - [x] Limpar credenciais legadas antes de excluir o cadastro de revenda
 

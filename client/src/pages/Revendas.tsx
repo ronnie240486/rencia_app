@@ -307,8 +307,8 @@ export default function Revendas() {
             </div>
             <div>
               <Label className="text-xs font-medium mb-1.5 block">{editId ? "Nova senha (opcional)" : "Senha inicial *"}</Label>
-              <Input value={form.password} onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))} placeholder={editId ? "Deixe em branco para manter" : "Mínimo de 8 caracteres"} type="password" name="reseller-password" autoComplete="new-password" />
-              <p className="mt-1 text-xs text-muted-foreground">Somente você pode criar ou alterar a senha da revenda.</p>
+              <Input value={form.password} onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))} placeholder={editId ? "Deixe em branco para manter" : "Mínimo de 8 caracteres"} type="password" name="reseller-access-password" autoComplete="off" data-lpignore="true" data-1p-ignore="true" spellCheck={false} />
+              <p className="mt-1 text-xs text-muted-foreground">Senha de acesso da revenda. Somente você pode criar ou alterar esta senha.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

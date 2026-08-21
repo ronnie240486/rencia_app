@@ -129,6 +129,10 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="seu@email.com"
+                  name="panel-login-email"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   disabled={isLoading}
                 />
@@ -144,6 +148,11 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Sua senha"
+                  name="panel-login-password"
+                  autoComplete="current-password"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  spellCheck={false}
                   className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   disabled={isLoading}
                 />
