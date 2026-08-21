@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { cn } from "@/lib/utils";
 import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS, isOwnerOnlyRoute } from "./sidebarNavigation";
+import { permissionForRoute } from "@shared/resellerPermissions";
 import { DISMISSED_LIST_ALERTS_SESSION_KEY, getActiveConfirmedListAlerts, hasPresentedListAlertSummary, LIST_ALERT_SUMMARY_PRESENTED_SESSION_KEY, parseDismissedListAlertIds } from "./listAlertDismissal";
 import {
   BarChart3,
@@ -53,6 +54,7 @@ interface NavItem {
   icon: React.ReactNode;
   adminOnly?: boolean;
   ownerOnly?: boolean; // Apenas para Ultra Master e dono
+  permissionKey?: string;
 }
 
 interface NavGroup {
@@ -71,9 +73,9 @@ const navGroups: NavGroup[] = [
       { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={18} /> },
       { label: "Usuários", href: "/users", icon: <Users size={18} /> },
       { label: "Cadastrar Usuário", href: "/users/create", icon: <BarChart3 size={18} /> },
-      { label: "Login dos Aplicativos", href: "/credenciais-app", icon: <KeyRound size={18} />, ownerOnly: true },
-      { label: "Revendas", href: "/revendas", icon: <Store size={18} />, ownerOnly: true },
-      { label: "Busca Global", href: "/busca", icon: <Search size={18} />, ownerOnly: true },
+      { label: "Login dos Aplicativos", href: "/credenciais-app", icon: <KeyRound size={18} />, ownerOnly: true, permissionKey: "app_logins" },
+      { label: "Revendas", href: "/revendas", icon: <Store size={18} />, ownerOnly: true, permissionKey: "manage_resellers" },
+      { label: "Busca Global", href: "/busca", icon: <Search size={18} />, ownerOnly: true, permissionKey: "global_search" },
     ],
   },
   {
@@ -82,8 +84,8 @@ const navGroups: NavGroup[] = [
     defaultOpen: true,
     items: [
       { label: "DNS", href: "/dns", icon: <Server size={18} /> },
-      { label: "Monitor de Listas", href: "/monitor-listas", icon: <Radio size={18} />, ownerOnly: true },
-      { label: "Diagnóstico", href: "/diagnostico", icon: <Activity size={18} />, ownerOnly: true },
+      { label: "Monitor de Listas", href: "/monitor-listas", icon: <Radio size={18} />, ownerOnly: true, permissionKey: "list_monitor" },
+      { label: "Diagnóstico", href: "/diagnostico", icon: <Activity size={18} />, ownerOnly: true, permissionKey: "list_monitor" },
       { label: "Manutenção", href: "/manutencao", icon: <Wrench size={18} /> },
       { label: "Alertas", href: "/alertas", icon: <BellRing size={18} /> },
       { label: "Comandos Remotos", href: "/comandos-remotos", icon: <MonitorCog size={18} /> },
@@ -96,18 +98,18 @@ const navGroups: NavGroup[] = [
     icon: <SlidersHorizontal size={16} />,
     defaultOpen: true,
     items: [
-      { label: "Ouro Pro", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
-      { label: "Fusion", href: "/ultra-player", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
-      { label: "Maximus Player", href: "/gpcpro", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
-      { label: "Prestige", href: "/aplicativos/prestige", icon: <Star size={18} />, ownerOnly: true },
-      { label: "Optimus", href: "/aplicativos/optimus", icon: <Radio size={18} />, ownerOnly: true },
-      { label: "Império Play", href: "/aplicativos/imperio", icon: <Crown size={18} />, ownerOnly: true },
-      { label: "Infinitus", href: "/aplicativos/infinitus", icon: <Infinity size={18} />, ownerOnly: true },
-      { label: "Supremus", href: "/aplicativos/supremus", icon: <Shield size={18} />, ownerOnly: true },
-      { label: "Evolux", href: "/aplicativos/evolux", icon: <Zap size={18} />, ownerOnly: true },
-      { label: "Loja", href: "/loja-painel", icon: <ShoppingBag size={18} />, ownerOnly: true },
-      { label: "Ranking de Apps", href: "/ranking-apps", icon: <BarChart3 size={18} />, ownerOnly: true },
-      { label: "Atualizações", href: "/atualizacoes", icon: <Download size={18} />, ownerOnly: true },
+      { label: "Ouro Pro", href: "/settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true, permissionKey: "app_settings" },
+      { label: "Fusion", href: "/ultra-player", icon: <SlidersHorizontal size={18} />, ownerOnly: true, permissionKey: "app_settings" },
+      { label: "Maximus Player", href: "/gpcpro", icon: <SlidersHorizontal size={18} />, ownerOnly: true, permissionKey: "app_settings" },
+      { label: "Prestige", href: "/aplicativos/prestige", icon: <Star size={18} />, ownerOnly: true, permissionKey: "app_settings" },
+      { label: "Optimus", href: "/aplicativos/optimus", icon: <Radio size={18} />, ownerOnly: true, permissionKey: "app_settings" },
+      { label: "Império Play", href: "/aplicativos/imperio", icon: <Crown size={18} />, ownerOnly: true, permissionKey: "app_settings" },
+      { label: "Infinitus", href: "/aplicativos/infinitus", icon: <Infinity size={18} />, ownerOnly: true, permissionKey: "app_settings" },
+      { label: "Supremus", href: "/aplicativos/supremus", icon: <Shield size={18} />, ownerOnly: true, permissionKey: "app_settings" },
+      { label: "Evolux", href: "/aplicativos/evolux", icon: <Zap size={18} />, ownerOnly: true, permissionKey: "app_settings" },
+      { label: "Loja", href: "/loja-painel", icon: <ShoppingBag size={18} />, ownerOnly: true, permissionKey: "app_distribution" },
+      { label: "Ranking de Apps", href: "/ranking-apps", icon: <BarChart3 size={18} />, ownerOnly: true, permissionKey: "app_distribution" },
+      { label: "Atualizações", href: "/atualizacoes", icon: <Download size={18} />, ownerOnly: true, permissionKey: "app_distribution" },
     ],
   },
   {
@@ -115,23 +117,23 @@ const navGroups: NavGroup[] = [
     icon: <WalletCards size={16} />,
     items: [
       { label: "Pagamentos", href: "/pagamentos", icon: <WalletCards size={18} /> },
-      { label: "Cobranças Revendas", href: "/cobrancas-revendas", icon: <WalletCards size={18} />, ownerOnly: true },
+      { label: "Cobranças Revendas", href: "/cobrancas-revendas", icon: <WalletCards size={18} />, ownerOnly: true, permissionKey: "reseller_finance" },
       { label: "Relatórios", href: "/relatorios", icon: <BarChart3 size={18} /> },
-      { label: "Relatório Revendas", href: "/relatorio-revendas", icon: <BarChart3 size={18} />, ownerOnly: true },
+      { label: "Relatório Revendas", href: "/relatorio-revendas", icon: <BarChart3 size={18} />, ownerOnly: true, permissionKey: "reseller_finance" },
     ],
   },
   {
     label: "Administração",
     icon: <Settings size={16} />,
     items: [
-      { label: "Chatbot de Avisos", href: "/chatbot", icon: <MessageCircle size={18} />, ownerOnly: true },
-      { label: "Central de Controle", href: "/central", icon: <ShieldAlert size={18} />, ownerOnly: true },
-      { label: "Segurança", href: "/seguranca", icon: <ShieldCheck size={18} />, ownerOnly: true },
-      { label: "Permissões", href: "/permissoes", icon: <Shield size={18} />, ownerOnly: true },
-      { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true },
+      { label: "Chatbot de Avisos", href: "/chatbot", icon: <MessageCircle size={18} />, ownerOnly: true, permissionKey: "chatbot" },
+      { label: "Central de Controle", href: "/central", icon: <ShieldAlert size={18} />, ownerOnly: true, permissionKey: "control_center" },
+      { label: "Segurança", href: "/seguranca", icon: <ShieldCheck size={18} />, ownerOnly: true, permissionKey: "security" },
+      { label: "Permissões", href: "/permissoes", icon: <Shield size={18} />, ownerOnly: true, permissionKey: "permissions" },
+      { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true, permissionKey: "global_notices" },
       { label: "Sugestões", href: "/sugestoes", icon: <MessageSquare size={18} /> },
-      { label: "Backups", href: "/backups", icon: <HardDrive size={18} />, ownerOnly: true },
-      { label: "Configurações do Painel", href: "/app-settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true },
+      { label: "Backups", href: "/backups", icon: <HardDrive size={18} />, ownerOnly: true, permissionKey: "backups" },
+      { label: "Configurações do Painel", href: "/app-settings", icon: <SlidersHorizontal size={18} />, ownerOnly: true, permissionKey: "panel_settings" },
     ],
   },
 ];
@@ -274,12 +276,14 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const sidebarLogoUrl = settings?.sidebar_logo_url || "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouroupro_logo_dark-fXyM9RJb5jrckbNeNbskGi.webp";
   const isAdmin = user?.role === "admin";
   const isOwner = (user as any)?.isOwner === true;
+  const grantedPermissions = ((user as any)?.grantedPermissions ?? []) as string[];
 
   useEffect(() => {
-    if (!loading && isAuthenticated && !isOwner && isOwnerOnlyRoute(location)) {
+    const requiredPermission = permissionForRoute(location);
+    if (!loading && isAuthenticated && !isOwner && isOwnerOnlyRoute(location) && (!requiredPermission || !grantedPermissions.includes(requiredPermission))) {
       setLocation("/dashboard", { replace: true });
     }
-  }, [isAuthenticated, isOwner, loading, location, setLocation]);
+  }, [isAuthenticated, isOwner, loading, location, setLocation, grantedPermissions]);
 
   if (loading) {
     return (
@@ -315,7 +319,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     );
   }
 
-  const visibleNavGroups = getVisibleNavigationGroups(navGroups, isAdmin, isOwner);
+  const visibleNavGroups = getVisibleNavigationGroups(navGroups, isAdmin, isOwner, grantedPermissions);
   const isItemActive = (item: NavItem) => location === item.href || (item.href !== "/" && location.startsWith(item.href));
   const toggleNavGroup = (label: string) => {
     setOpenNavGroups(current => current.includes(label)

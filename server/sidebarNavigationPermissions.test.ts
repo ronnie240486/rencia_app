@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS, isOwnerOnlyRoute } from "./sidebarNavigation";
+import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS, isOwnerOnlyRoute } from "../client/src/components/sidebarNavigation";
 
 describe("organização da barra lateral", () => {
   const groups = [
@@ -20,6 +20,11 @@ describe("organização da barra lateral", () => {
   it("exibe os itens exclusivos ao proprietário", () => {
     expect(getVisibleNavigationGroups(groups, true, true)).toHaveLength(2);
     expect(getVisibleNavigationGroups(groups, true, true)[0].items).toHaveLength(2);
+  });
+
+  it("libera somente o item exclusivo autorizado para a revenda escolhida", () => {
+    const permissionGroups = [{ items: [{ label: "Usuários" }, { label: "Backups", ownerOnly: true, permissionKey: "backups" }, { label: "Segurança", ownerOnly: true, permissionKey: "security" }] }];
+    expect(getVisibleNavigationGroups(permissionGroups, false, false, ["backups"])[0].items.map(item => item.label)).toEqual(["Usuários", "Backups"]);
   });
 
   it("identifica rotas administrativas que uma revenda não pode abrir manualmente", () => {

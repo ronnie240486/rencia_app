@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull, like, or } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
@@ -43,6 +43,18 @@ import { LIST_FAILOVER_CRON, recordFailoverRun, runListFailoverSweep } from "./l
 import { commandExpiresAt, REMOTE_COMMAND_LABELS, REMOTE_COMMAND_TYPES, type RemoteCommandType } from "./remoteCommands";
 import { buildDnsTargets, collectDnsTargetDeviceIds, normalizeDnsHost } from "./remoteCommandDns";
 import { hashPassword } from "./auth";
+import { normalizeResellerPermissions, RESELLER_PERMISSION_KEYS } from "../shared/resellerPermissions";
+
+async function requireGrantedPanelPermission(db: any, user: any, permission: string) {
+  if (user?.isOwner) return;
+  const row = (await db.select({ permissions: resellerPermissions.permissions }).from(resellerPermissions)
+    .where(eq(resellerPermissions.resellerId, user.id)).limit(1))[0];
+  let parsed: unknown = [];
+  try { parsed = row?.permissions ? JSON.parse(row.permissions) : []; } catch { parsed = []; }
+  if (!normalizeResellerPermissions(parsed).includes(permission as any)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Esta ferramenta não foi liberada para sua conta." });
+  }
+}
 import { isManagedAppId, MANAGED_APP_CATALOG } from "../shared/appCatalog";
 import { PENDING_LOGIN_MAC } from "./appLogin";
 
@@ -247,7 +259,18 @@ export const appRouter = router({
   }),
 
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(async opts => {
+      const user = opts.ctx.user;
+      if (!user) return null;
+      if (user.isOwner) return { ...user, grantedPermissions: RESELLER_PERMISSION_KEYS };
+      const db = await getDb();
+      if (!db) return { ...user, grantedPermissions: [] };
+      const row = (await db.select({ permissions: resellerPermissions.permissions }).from(resellerPermissions)
+        .where(eq(resellerPermissions.resellerId, user.id)).limit(1))[0];
+      let parsed: unknown = [];
+      try { parsed = row?.permissions ? JSON.parse(row.permissions) : []; } catch { parsed = []; }
+      return { ...user, grantedPermissions: normalizeResellerPermissions(parsed) };
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -285,6 +308,33 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, JSON.stringify({ userId: user.id, email: user.email }), cookieOptions);
         return { success: true, user };
       }),
+  }),
+
+  resellerPermissions: router({
+    get: protectedProcedure.input(z.object({ resellerId: z.number().positive() })).query(async ({ ctx, input }) => {
+      if (!ctx.user.isOwner) throw new TRPCError({ code: "FORBIDDEN", message: "Somente o proprietário pode configurar permissões." });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      const target = (await db.select({ id: users.id }).from(users).where(and(eq(users.id, input.resellerId), eq(users.resellerId, ctx.user.id))).limit(1))[0];
+      if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Revenda não encontrada." });
+      const row = (await db.select({ permissions: resellerPermissions.permissions }).from(resellerPermissions)
+        .where(eq(resellerPermissions.resellerId, input.resellerId)).limit(1))[0];
+      let parsed: unknown = [];
+      try { parsed = row?.permissions ? JSON.parse(row.permissions) : []; } catch { parsed = []; }
+      return { permissions: normalizeResellerPermissions(parsed) };
+    }),
+    set: protectedProcedure.input(z.object({ resellerId: z.number().positive(), permissions: z.array(z.string()).max(RESELLER_PERMISSION_KEYS.length) })).mutation(async ({ ctx, input }) => {
+      if (!ctx.user.isOwner) throw new TRPCError({ code: "FORBIDDEN", message: "Somente o proprietário pode configurar permissões." });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      const target = (await db.select({ id: users.id }).from(users).where(and(eq(users.id, input.resellerId), eq(users.resellerId, ctx.user.id))).limit(1))[0];
+      if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Revenda não encontrada." });
+      const permissions = normalizeResellerPermissions(input.permissions);
+      const values = { resellerId: input.resellerId, permissions: JSON.stringify(permissions), updatedBy: ctx.user.id };
+      await db.insert(resellerPermissions).values(values).onDuplicateKeyUpdate({ set: { permissions: values.permissions, updatedBy: values.updatedBy } });
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "reseller_permission", entityId: input.resellerId, action: "updated", summary: `Permissões da revenda atualizadas (${permissions.length} liberações).`, afterData: { permissions } });
+      return { success: true, permissions };
+    }),
   }),
 
   globalSearch: router({
@@ -2097,9 +2147,10 @@ export const appRouter = router({
         key: z.string().min(1),
         value: z.string(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await requireGrantedPanelPermission(db, ctx.user, "app_settings");
         await db.insert(appSettings)
           .values({ key: input.key, value: input.value })
           .onDuplicateKeyUpdate({ set: { value: input.value } });
@@ -2108,9 +2159,10 @@ export const appRouter = router({
 
     updateMany: protectedProcedure
       .input(z.record(z.string(), z.string()))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await requireGrantedPanelPermission(db, ctx.user, "app_settings");
         for (const [key, value] of Object.entries(input)) {
           await db.insert(appSettings)
             .values({ key, value })
@@ -2125,7 +2177,10 @@ export const appRouter = router({
         dataUrl: z.string().min(1),
         filename: z.string().min(1),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await requireGrantedPanelPermission(db, ctx.user, "app_settings");
         const { storagePut } = await import("./storage");
         const match = input.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
         if (!match) throw new TRPCError({ code: "BAD_REQUEST", message: "dataUrl inválido" });

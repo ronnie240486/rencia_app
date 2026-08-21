@@ -85,6 +85,16 @@
 - [ ] Corrigir a falha real de autenticação dessa conta e validar o Dashboard publicado
 - [x] Impedir que o navegador trate o campo de senha da revenda como criação de senha do próprio navegador
 - [x] Exibir instrução de login no painel sem acionar confirmação de senha externa
+- [ ] Auditar e documentar as ferramentas que permanecem exclusivas do proprietário em relação a Master e Revenda
+- [x] Criar permissões individuais por Master e Revenda para liberar ferramentas escolhidas pelo proprietário
+- [x] Adicionar botão de Permissões no cadastro e edição de Revendas
+- [x] Ocultar e bloquear cada ferramenta não autorizada para a conta selecionada
+- [x] Cobrir no catálogo todas as rotas exclusivas que ainda não possuem permissão individual
+- [x] Exibir o acesso de Permissões também dentro do fluxo de edição da Revenda
+- [x] Aplicar e testar autorização individual nas procedures sensíveis do backend
+- [x] Testar que toda rota exclusiva possui uma permissão correspondente no catálogo
+- [ ] Validar no navegador edição de revenda, abertura de permissões e gravação de uma liberação
+- [ ] Estender a autorização individual às demais procedures globais liberáveis
 - [x] Confirmar a senha persistida durante a criação antes de informar que a nova revenda está pronta
 - [x] Limpar credenciais legadas antes de excluir o cadastro de revenda
 

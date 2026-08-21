@@ -18,10 +18,12 @@ import {
   Trash2,
   Unlock,
   Users,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { formatDateOnlyPtBr, toDateOnly } from "@shared/dateOnly";
+import { RESELLER_PERMISSION_CATALOG } from "@shared/resellerPermissions";
 
 interface RevendaForm {
   name: string;
@@ -51,6 +53,7 @@ export default function Revendas() {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<RevendaForm>(emptyForm);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [permissionTarget, setPermissionTarget] = useState<{ id: number; name: string } | null>(null);
 
   const utils = trpc.useUtils();
   const { data, isLoading, refetch } = trpc.revendas.list.useQuery({ search, page, pageSize: 20 });
@@ -83,6 +86,22 @@ export default function Revendas() {
     },
     onError: (e) => toast.error(e.message),
   });
+  const { data: permissionData, isLoading: permissionsLoading } = trpc.resellerPermissions.get.useQuery(
+    { resellerId: permissionTarget?.id ?? 0 },
+    { enabled: Boolean(permissionTarget) },
+  );
+  const savePermissionsMut = trpc.resellerPermissions.set.useMutation({
+    onSuccess: () => toast.success("Permissões atualizadas para esta revenda."),
+    onError: (error) => toast.error(error.message),
+  });
+  const selectedPermissions = (permissionData?.permissions ?? []) as string[];
+  const togglePermission = (permission: string) => {
+    if (!permissionTarget) return;
+    const next = selectedPermissions.includes(permission)
+      ? selectedPermissions.filter(item => item !== permission)
+      : [...selectedPermissions, permission];
+    savePermissionsMut.mutate({ resellerId: permissionTarget.id, permissions: next });
+  };
 
   const openCreate = () => { setEditId(null); setForm(emptyForm); setShowDialog(true); };
   const openEdit = (r: any) => {
@@ -256,6 +275,9 @@ export default function Revendas() {
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
                             <Edit2 size={13} />
                           </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-primary hover:text-primary" title="Permissões desta revenda" onClick={() => setPermissionTarget({ id: r.id, name: r.name ?? r.email ?? "Revenda" })}>
+                            <Shield size={13} />
+                          </Button>
                           <Button
                             size="icon" variant="ghost"
                             className={`h-7 w-7 ${r.isActive ? "text-orange-500 hover:text-orange-600" : "text-green-500 hover:text-green-600"}`}
@@ -354,11 +376,33 @@ export default function Revendas() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
+            {editId && <Button variant="outline" type="button" className="gap-2" onClick={() => setPermissionTarget({ id: editId, name: form.name || form.email || "Revenda" })}><Shield size={14} /> Permissões</Button>}
             <Button className="btn-save" onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>
               {(createMut.isPending || updateMut.isPending) && <Loader2 size={14} className="mr-2 animate-spin" />}
               {editId ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(permissionTarget)} onOpenChange={(open) => !open && setPermissionTarget(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Permissões de {permissionTarget?.name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Marque somente as ferramentas que você quer liberar para esta conta. As demais continuam ocultas e bloqueadas.</p>
+          <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
+            {permissionsLoading ? <div className="flex justify-center py-8"><Loader2 className="animate-spin" /></div> : RESELLER_PERMISSION_CATALOG.map(permission => {
+              const active = selectedPermissions.includes(permission.key);
+              return <button key={permission.key} type="button" onClick={() => togglePermission(permission.key)} disabled={savePermissionsMut.isPending} className={`w-full rounded-xl border p-3 text-left transition-colors ${active ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"}`}>
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${active ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}>{active ? "✓" : ""}</div>
+                  <div><p className="font-medium">{permission.label}</p><p className="mt-0.5 text-xs text-muted-foreground">{permission.description}</p></div>
+                </div>
+              </button>;
+            })}
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setPermissionTarget(null)}>Concluir</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

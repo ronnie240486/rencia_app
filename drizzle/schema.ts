@@ -36,6 +36,18 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+// Ferramentas adicionais liberadas individualmente pelo proprietário para um Master ou Revenda.
+export const resellerPermissions = mysqlTable("reseller_permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  resellerId: int("resellerId").notNull().unique(),
+  permissions: text("permissions").notNull(),
+  updatedBy: int("updatedBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ResellerPermission = typeof resellerPermissions.$inferSelect;
+
 export const devices = mysqlTable("devices", {
   id: int("id").autoincrement().primaryKey(),
   ownerId: int("ownerId").notNull(),

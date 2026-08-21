@@ -1,6 +1,7 @@
 export interface AccessControlledNavItem {
   adminOnly?: boolean;
   ownerOnly?: boolean;
+  permissionKey?: string;
 }
 
 export interface NavigationGroup<T extends AccessControlledNavItem> {
@@ -31,13 +32,14 @@ export function getVisibleNavigationGroups<
   groups: G[],
   isAdmin: boolean,
   isOwner: boolean,
+  grantedPermissions: string[] = [],
 ): G[] {
   return groups
     .map(group => ({
       ...group,
       items: group.items.filter(item => {
         if (item.adminOnly && !isAdmin) return false;
-        if (item.ownerOnly && !isOwner) return false;
+        if (item.ownerOnly && !isOwner && (!item.permissionKey || !grantedPermissions.includes(item.permissionKey))) return false;
         return true;
       }),
     }) as G)
