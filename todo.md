@@ -69,6 +69,10 @@
 - [x] Documentar que a URL pública expõe apenas a aplicação e não concede edição do projeto Manus
 - [x] Verificar a conta ativa e a senha efetivamente usada pelo login público da revenda
 - [x] Corrigir a rejeição de senha no mesmo painel público e validar em sessão limpa
+- [x] Garantir que a senha salva em Revendas atualize o mesmo passwordHash consultado pelo login público
+- [x] Adicionar teste completo de alterar senha em Revendas e entrar no painel público com a nova senha
+- [x] Adicionar teste integrado de alteração em Revendas seguida de loginLocal no mesmo painel público
+- [x] Sincronizar ou remover o fluxo legado localCredentials para evitar divergência futura de senha
 
 ## Backend
 - [x] Schema do banco de dados com tabela users (já existe, verificar campos)

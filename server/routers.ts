@@ -2586,7 +2586,6 @@ export const appRouter = router({
         password: z.string().min(6),
       }))
       .mutation(async ({ input }) => {
-        const crypto = await import('crypto');
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database connection failed' });
         
@@ -2602,15 +2601,16 @@ export const appRouter = router({
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'Este usuário já possui credenciais locais.' });
         }
         
-        // Gerar hash da senha
-        const hashPassword = crypto.createHash('sha256').update(input.password).digest('hex');
+        // A mesma senha bcrypt precisa servir para o login público e o registro legado.
+        const passwordHash = await hashPassword(input.password);
         
         // Inserir credenciais
         await db.insert(localCredentials).values({
           userId: input.userId,
           email: input.email,
-          passwordHash: hashPassword,
+          passwordHash,
         });
+        await db.update(users).set({ passwordHash }).where(eq(users.id, input.userId));
         
         return { success: true, message: 'Credenciais criadas com sucesso!' };
       }),
@@ -2622,7 +2622,6 @@ export const appRouter = router({
         password: z.string().min(6).optional(),
       }))
       .mutation(async ({ input }) => {
-        const crypto = await import('crypto');
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database connection failed' });
         
@@ -2634,11 +2633,14 @@ export const appRouter = router({
         
         const updateData: any = {};
         if (input.email) updateData.email = input.email;
-        if (input.password) updateData.passwordHash = crypto.createHash('sha256').update(input.password).digest('hex');
+        if (input.password) updateData.passwordHash = await hashPassword(input.password);
         
         await db.update(localCredentials)
           .set(updateData)
           .where(eq(localCredentials.userId, input.userId));
+        if (input.password) {
+          await db.update(users).set({ passwordHash: updateData.passwordHash }).where(eq(users.id, input.userId));
+        }
         
         return { success: true, message: 'Credenciais atualizadas com sucesso!' };
       }),
