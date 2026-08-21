@@ -25,6 +25,17 @@
 - [x] Cobrir a rota GET /api/v5/check_mac.php com payload de vencimento do Max Play
 - [x] Documentar que o Max Play deve consultar a rota de configuração periodicamente enquanto estiver aberto
 - [x] Criar guia consumível para o desenvolvedor do Max Play com polling e campos de vencimento
+- [ ] Confirmar a rota efetivamente consultada pelo Maximum Player no aparelho aberto
+- [ ] Entregar o aviso de vencimento também no formato compatível com essa rota
+- [ ] Validar em teste a resposta da rota real usada pelo Maximum Player
+- [ ] Rastrear a consulta do MAC 6A:55:E2:DB:C3:4A após a abertura do Maximum Player
+- [ ] Adicionar um contrato alternativo de aviso compatível se o Maximum Player não lê expiration_*
+
+## Login de Revenda
+- [ ] Verificar a senha gravada e o status da conta testeu163@gmail.com
+- [ ] Corrigir a atualização de senha de revendas no painel, se necessário
+- [ ] Adicionar teste de regressão para troca e autenticação de senha de revenda
+- [ ] Redefinir diretamente a senha da conta ativa testeu163@gmail.com e confirmar o login publicado
 
 ## Backend
 - [x] Schema do banco de dados com tabela users (já existe, verificar campos)
