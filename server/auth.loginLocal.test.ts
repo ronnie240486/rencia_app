@@ -142,6 +142,26 @@ describe("auth.loginLocal", () => {
     expect(ctx.res.cookie).not.toHaveBeenCalled();
   });
 
+  it("seleciona a conta ativa gerenciada quando existe um cadastro legado bloqueado com o mesmo e-mail", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const legacyBlocked = { id: 10, email: "revenda@example.com", passwordHash: null, isActive: false, resellerId: null };
+    const activeReseller = {
+      id: 11, email: "revenda@example.com", passwordHash: "hashedpassword", isActive: true, resellerId: 1,
+      role: "user", name: "Revenda", openId: "reseller-11", loginMethod: "local", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date(),
+    };
+    vi.mocked(dbModule.getDb).mockResolvedValue({
+      select: () => ({ from: () => ({ where: () => ({ limit: () => Promise.resolve([legacyBlocked, activeReseller]) }) }) }),
+    } as any);
+    vi.mocked(authModule.comparePassword).mockResolvedValue(true as any);
+
+    const result = await caller.auth.loginLocal({ email: "revenda@example.com", password: "senha123" });
+
+    expect(result.success).toBe(true);
+    expect(result.user.id).toBe(11);
+    expect(ctx.res.cookie).toHaveBeenCalled();
+  });
+
   it("should successfully login active user with correct password", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);

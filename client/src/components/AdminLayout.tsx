@@ -310,6 +310,30 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const isAdmin = user?.role === "admin";
   // Dono vê tudo; outros veem apenas itens não ownerOnly
   const isOwner = (user as any)?.isOwner === true;
+
+  if (!isOwner) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+            <Shield size={32} className="text-primary" />
+          </div>
+          <h1 className="text-2xl font-semibold text-foreground mb-2">Painel Principal restrito</h1>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            O Painel Principal e as configurações administrativas são exclusivos do proprietário. Revendas devem usar o Portal da Revenda com as próprias credenciais.
+          </p>
+          <button
+            type="button"
+            onClick={() => logout()}
+            className="mt-6 inline-flex items-center gap-2 border border-border px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors"
+          >
+            Sair desta sessão
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const visibleNavGroups = getVisibleNavigationGroups(navGroups, isAdmin, isOwner);
   const isItemActive = (item: NavItem) => location === item.href || (item.href !== "/" && location.startsWith(item.href));
   const toggleNavGroup = (label: string) => {

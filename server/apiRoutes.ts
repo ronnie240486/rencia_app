@@ -25,7 +25,7 @@ import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
 import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials } from "../drizzle/schema";
-import { eq, or, and, asc } from "drizzle-orm";
+import { eq, or, and, asc, desc, sql } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
 import { buildUltraPlayerConfig, normalizeMacAddress } from "./ultraPlayerConfig";
@@ -45,6 +45,7 @@ import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConf
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 import { comparePassword } from "./auth";
 import { isLoginAccessAllowed, resolveLoginMacBinding } from "./appLogin";
+import { canAccessResellerPortal, chooseResellerPortalAccount } from "./resellerPortal";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -393,6 +394,62 @@ export function registerApiRoutes(app: Express) {
     }
   });
 
+
+  /** Autenticação local do portal de revendas, separada do Painel Principal. */
+  const getPortalReseller = async (req: Request) => {
+    const authorization = String(req.headers.authorization || "");
+    const token = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+    const session = await sdk.verifySession(token);
+    if (!session) return null;
+    const db = await getDb();
+    if (!db) return null;
+    const user = (await db.select().from(users).where(eq(users.openId, session.openId)).limit(1))[0] ?? null;
+    return canAccessResellerPortal(user) ? user : null;
+  };
+
+  app.post("/api/reseller-portal/login", async (req: Request, res: Response) => {
+    try {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      const password = typeof body.password === "string" ? body.password : "";
+      if (!email || !password) { res.status(400).json({ success: false, error: "E-mail e senha são obrigatórios." }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ success: false, error: "Banco indisponível." }); return; }
+      const matches = await db.select().from(users).where(sql`LOWER(${users.email}) = ${email}`).limit(20);
+      const user = chooseResellerPortalAccount(matches);
+      if (!user?.passwordHash || !(await comparePassword(password, user.passwordHash))) {
+        res.status(401).json({ success: false, error: "E-mail ou senha inválidos." }); return;
+      }
+      const token = await sdk.createSessionToken(user.openId, { name: user.name || "Revenda", expiresInMs: 8 * 60 * 60 * 1000 });
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ success: true, token, expires_in_seconds: 28800, user: { name: user.name || "Revenda", email: user.email || "", plano: user.plano || "Revenda", limite_devices: user.limiteDevices } });
+    } catch (error) {
+      console.error("[ResellerPortal] login error", error);
+      res.status(500).json({ success: false, error: "Não foi possível entrar agora." });
+    }
+  });
+
+  app.get("/api/reseller-portal/me", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req);
+    if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ success: true, user: { name: user.name || "Revenda", email: user.email || "", plano: user.plano || "Revenda", limite_devices: user.limiteDevices } });
+  });
+
+  app.get("/api/reseller-portal/clients", async (req: Request, res: Response) => {
+    const user = await getPortalReseller(req);
+    if (!user) { res.status(401).json({ success: false, error: "Sessão de revenda inválida." }); return; }
+    const db = await getDb();
+    if (!db) { res.status(503).json({ success: false, error: "Banco indisponível." }); return; }
+    const ownedDevices = await db.select({ id: devices.id, nomeServer: devices.nomeServer, mac: devices.mac, app: devices.app, status: devices.status, dataExpiracao: devices.dataExpiracao, telefone: devices.telefone, createdAt: devices.createdAt })
+      .from(devices).where(eq(devices.ownerId, user.id)).orderBy(desc(devices.createdAt));
+    const clients = await Promise.all(ownedDevices.map(async (device) => {
+      const lists = await db.select({ id: deviceUrls.id }).from(deviceUrls).where(and(eq(deviceUrls.deviceId, device.id), eq(deviceUrls.ativo, true)));
+      return { ...device, extra_list_count: lists.length };
+    }));
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ success: true, clients });
+  });
 
   /**
    * GET /api/users
