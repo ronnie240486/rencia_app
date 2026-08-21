@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-const { getDbMock, updateRevendaMock, hashPasswordMock, recordAuditMock } = vi.hoisted(() => ({
+const { getDbMock, updateRevendaMock, hashPasswordMock, comparePasswordMock, recordAuditMock } = vi.hoisted(() => ({
   getDbMock: vi.fn(),
   updateRevendaMock: vi.fn(),
   hashPasswordMock: vi.fn(),
+  comparePasswordMock: vi.fn(),
   recordAuditMock: vi.fn(),
 }));
 
@@ -16,6 +17,7 @@ vi.mock("./db", async (importOriginal) => ({
 vi.mock("./auth", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./auth")>()),
   hashPassword: hashPasswordMock,
+  comparePassword: comparePasswordMock,
 }));
 vi.mock("./audit", () => ({ recordAudit: recordAuditMock }));
 
@@ -35,16 +37,17 @@ describe("revendas.update — troca de senha", () => {
   it("gera hash e grava a nova senha da revenda pelo fluxo do painel", async () => {
     const current = { id: 11, resellerId: 1, name: "Revenda", email: "revenda@example.com", plano: "Revenda", limiteDevices: 50, limiteRevendas: 0 };
     getDbMock.mockResolvedValue({
-      select: () => ({ from: () => ({ where: () => ({ limit: async () => [current] }) }) }),
+      select: (fields?: { passwordHash?: unknown }) => ({ from: () => ({ where: () => ({ limit: async () => [fields?.passwordHash ? { passwordHash: "bcrypt-hash-da-nova-senha" } : current] }) }) }),
     });
     hashPasswordMock.mockResolvedValue("bcrypt-hash-da-nova-senha");
+    comparePasswordMock.mockResolvedValue(true);
     updateRevendaMock.mockResolvedValue(undefined);
     recordAuditMock.mockResolvedValue(undefined);
 
     const caller = appRouter.createCaller(createOwnerContext());
     const result = await caller.revendas.update({ id: 11, password: "senha-nova-segura" });
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, loginReady: true });
     expect(hashPasswordMock).toHaveBeenCalledWith("senha-nova-segura");
     expect(updateRevendaMock).toHaveBeenCalledWith(11, 1, { passwordHash: "bcrypt-hash-da-nova-senha" });
     expect(recordAuditMock).toHaveBeenCalledWith(expect.objectContaining({ action: "password_changed", entityId: 11 }));

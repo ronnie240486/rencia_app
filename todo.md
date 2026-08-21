@@ -81,6 +81,8 @@
 - [ ] Limpar localCredentials da revenda ao excluir a conta
 - [ ] Testar excluir, recriar com o mesmo e-mail e entrar no mesmo painel sem SQL manual
 - [ ] Validar o ciclo completo em rota publicada antes de concluir a entrega
+- [ ] Rastrear o login publicado da conta recém-recriada testeu163@gmail.com sem supor a senha usada
+- [ ] Corrigir a falha real de autenticação dessa conta e validar o Dashboard publicado
 - [x] Confirmar a senha persistida durante a criação antes de informar que a nova revenda está pronta
 - [x] Limpar credenciais legadas antes de excluir o cadastro de revenda
 

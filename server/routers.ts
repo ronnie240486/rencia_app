@@ -1951,8 +1951,21 @@ export const appRouter = router({
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível" });
         const current = (await db.select().from(users).where(and(eq(users.id, id), eq(users.resellerId, ctx.user.id))).limit(1))[0];
         if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Revenda não encontrada." });
-        const passwordHash = password ? await (await import("./auth")).hashPassword(password) : undefined;
+        const { hashPassword, comparePassword } = await import("./auth");
+        const passwordHash = password ? await hashPassword(password) : undefined;
         await updateRevenda(id, ctx.user.id, { ...data, passwordHash });
+        if (password && passwordHash) {
+          const persisted = (await db.select({ passwordHash: users.passwordHash }).from(users)
+            .where(and(eq(users.id, id), eq(users.resellerId, ctx.user.id))).limit(1))[0];
+          if (!persisted?.passwordHash || !(await comparePassword(password, persisted.passwordHash))) {
+            await db.update(users).set({ passwordHash }).where(and(eq(users.id, id), eq(users.resellerId, ctx.user.id)));
+            const repaired = (await db.select({ passwordHash: users.passwordHash }).from(users)
+              .where(and(eq(users.id, id), eq(users.resellerId, ctx.user.id))).limit(1))[0];
+            if (!repaired?.passwordHash || !(await comparePassword(password, repaired.passwordHash))) {
+              throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível confirmar a nova senha. Tente novamente." });
+            }
+          }
+        }
         await recordAudit({
           ownerId: ctx.user.id,
           actorUserId: ctx.user.id,
@@ -1963,7 +1976,7 @@ export const appRouter = router({
           beforeData: { name: current.name, email: current.email, plano: current.plano, limiteDevices: current.limiteDevices, limiteRevendas: current.limiteRevendas },
           afterData: { ...data, password: password ? "[oculto]" : undefined },
         });
-        return { success: true };
+        return { success: true, loginReady: Boolean(password) };
       }),
 
     toggleBlock: protectedProcedure
