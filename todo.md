@@ -37,15 +37,18 @@
 - [x] Adicionar teste de regressão para troca e autenticação de senha de revenda
 - [x] Redefinir diretamente a senha da conta ativa testeu163@gmail.com e confirmar o login publicado
 - [x] Remover o e-mail duplicado da conta legada bloqueada para eliminar conflito de autenticação
-- [ ] Validar o login da revenda pela mesma interface usada no painel
-- [ ] Corrigir e testar a atualização de senha de revenda no fluxo do painel, sem ajuste manual no banco
+- [x] Validar o login da revenda pela mesma interface usada no painel
+- [x] Corrigir e testar a atualização de senha de revenda no fluxo do painel, sem ajuste manual no banco
+- [x] Cobrir de forma integrada a alteração de senha da revenda seguida do login no Portal da Revenda
 - [x] Criar um acesso de revenda separado da tela Manus, mantendo o painel principal privado
 - [x] Garantir que apenas o proprietário possa abrir o Painel Principal e suas configurações administrativas
 - [x] Expor para cada revenda somente os próprios clientes, listas e dados permitidos
-- [ ] Publicar e validar as rotas do portal de revendas no domínio real
+- [x] Publicar e validar as rotas do portal de revendas no domínio real
 - [x] Cobrir login, sessão inválida e filtro de clientes com teste HTTP do portal
 - [x] Impedir explicitamente que uma sessão de revenda abra rotas do Painel Principal
-- [ ] Adaptar a leitura de sessão e clientes do portal para o método HTTP aceito no domínio publicado
+- [x] Adaptar a leitura de sessão e clientes do portal para o método HTTP aceito no domínio publicado
+- [x] Validar visualmente a página pública do Portal da Revenda com login real e lista carregada
+- [x] Registrar e entregar a URL pública final do Portal da Revenda
 
 ## Backend
 - [x] Schema do banco de dados com tabela users (já existe, verificar campos)
