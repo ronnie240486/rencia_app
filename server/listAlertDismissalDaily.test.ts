@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getActiveConfirmedListAlerts, hasPresentedListAlertSummary, parseDismissedListAlertIds } from "./listAlertDismissal";
+import { currentListAlertDay, getActiveConfirmedListAlerts, hasPresentedListAlertSummary, listAlertSummaryStorageKey, parseDismissedListAlertIds } from "../client/src/components/listAlertDismissal";
 
 describe("fechamento de alerta técnico confirmado", () => {
   const alert = { id: 25, isRead: false, type: "critical", title: "Falha confirmada de lista: Lista 1" };
@@ -15,8 +15,11 @@ describe("fechamento de alerta técnico confirmado", () => {
     expect(parseDismissedListAlertIds("conteúdo inválido")).toEqual([]);
   });
 
-  it("apresenta o resumo apenas uma vez na sessão", () => {
-    expect(hasPresentedListAlertSummary(null)).toBe(false);
-    expect(hasPresentedListAlertSummary("1")).toBe(true);
+  it("apresenta o resumo apenas uma vez no mesmo dia", () => {
+    const day = currentListAlertDay(new Date(2026, 7, 21));
+    expect(hasPresentedListAlertSummary(null, day)).toBe(false);
+    expect(hasPresentedListAlertSummary(day, day)).toBe(true);
+    expect(hasPresentedListAlertSummary("2026-08-20", day)).toBe(false);
+    expect(listAlertSummaryStorageKey(42)).toContain("42");
   });
 });

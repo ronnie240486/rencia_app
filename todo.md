@@ -95,6 +95,7 @@
 - [x] Testar que toda rota exclusiva possui uma permissão correspondente no catálogo
 - [ ] Validar no navegador edição de revenda, abertura de permissões e gravação de uma liberação
 - [ ] Estender a autorização individual às demais procedures globais liberáveis
+- [x] Mostrar o resumo de falhas de listas somente uma vez por dia para cada usuário
 - [x] Confirmar a senha persistida durante a criação antes de informar que a nova revenda está pronta
 - [x] Limpar credenciais legadas antes de excluir o cadastro de revenda
 

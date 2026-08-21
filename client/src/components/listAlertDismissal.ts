@@ -1,7 +1,15 @@
 export type ConfirmedListAlert = { id: number; isRead: boolean; type: string; title: string };
 
 export const DISMISSED_LIST_ALERTS_SESSION_KEY = "rencia.dismissed-confirmed-list-alerts";
-export const LIST_ALERT_SUMMARY_PRESENTED_SESSION_KEY = "rencia.confirmed-list-alert-summary-presented";
+export const LIST_ALERT_SUMMARY_PRESENTED_DAILY_KEY = "rencia.confirmed-list-alert-summary-presented";
+
+export function listAlertSummaryStorageKey(userId?: number) {
+  return `${LIST_ALERT_SUMMARY_PRESENTED_DAILY_KEY}.${userId ?? "anonymous"}`;
+}
+
+export function currentListAlertDay(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
 
 /** Lê com segurança os alertas já reconhecidos durante a sessão atual do painel. */
 export function parseDismissedListAlertIds(value: string | null): number[] {
@@ -15,8 +23,8 @@ export function parseDismissedListAlertIds(value: string | null): number[] {
   }
 }
 
-export function hasPresentedListAlertSummary(value: string | null) {
-  return value === "1";
+export function hasPresentedListAlertSummary(value: string | null, today = currentListAlertDay()) {
+  return value === today;
 }
 
 export function getActiveConfirmedListAlerts(
