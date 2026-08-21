@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS } from "./sidebarNavigation";
+import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS, isOwnerOnlyRoute } from "./sidebarNavigation";
 
 describe("organização da barra lateral", () => {
   const groups = [
@@ -20,5 +20,12 @@ describe("organização da barra lateral", () => {
   it("exibe os itens exclusivos ao proprietário", () => {
     expect(getVisibleNavigationGroups(groups, true, true)).toHaveLength(2);
     expect(getVisibleNavigationGroups(groups, true, true)[0].items).toHaveLength(2);
+  });
+
+  it("identifica rotas administrativas que uma revenda não pode abrir manualmente", () => {
+    expect(isOwnerOnlyRoute("/settings")).toBe(true);
+    expect(isOwnerOnlyRoute("/aplicativos/optimus")).toBe(true);
+    expect(isOwnerOnlyRoute("/users")).toBe(false);
+    expect(isOwnerOnlyRoute("/dns")).toBe(false);
   });
 });

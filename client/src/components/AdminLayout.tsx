@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { cn } from "@/lib/utils";
-import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS } from "./sidebarNavigation";
+import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS, isOwnerOnlyRoute } from "./sidebarNavigation";
 import { DISMISSED_LIST_ALERTS_SESSION_KEY, getActiveConfirmedListAlerts, hasPresentedListAlertSummary, LIST_ALERT_SUMMARY_PRESENTED_SESSION_KEY, parseDismissedListAlertIds } from "./listAlertDismissal";
 import {
   BarChart3,
@@ -71,9 +71,9 @@ const navGroups: NavGroup[] = [
       { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={18} /> },
       { label: "Usuários", href: "/users", icon: <Users size={18} /> },
       { label: "Cadastrar Usuário", href: "/users/create", icon: <BarChart3 size={18} /> },
-      { label: "Login dos Aplicativos", href: "/credenciais-app", icon: <KeyRound size={18} /> },
-      { label: "Revendas", href: "/revendas", icon: <Store size={18} /> },
-      { label: "Busca Global", href: "/busca", icon: <Search size={18} /> },
+      { label: "Login dos Aplicativos", href: "/credenciais-app", icon: <KeyRound size={18} />, ownerOnly: true },
+      { label: "Revendas", href: "/revendas", icon: <Store size={18} />, ownerOnly: true },
+      { label: "Busca Global", href: "/busca", icon: <Search size={18} />, ownerOnly: true },
     ],
   },
   {
@@ -107,7 +107,7 @@ const navGroups: NavGroup[] = [
       { label: "Evolux", href: "/aplicativos/evolux", icon: <Zap size={18} />, ownerOnly: true },
       { label: "Loja", href: "/loja-painel", icon: <ShoppingBag size={18} />, ownerOnly: true },
       { label: "Ranking de Apps", href: "/ranking-apps", icon: <BarChart3 size={18} />, ownerOnly: true },
-      { label: "Atualizações", href: "/atualizacoes", icon: <Download size={18} /> },
+      { label: "Atualizações", href: "/atualizacoes", icon: <Download size={18} />, ownerOnly: true },
     ],
   },
   {
@@ -127,7 +127,7 @@ const navGroups: NavGroup[] = [
       { label: "Chatbot de Avisos", href: "/chatbot", icon: <MessageCircle size={18} />, ownerOnly: true },
       { label: "Central de Controle", href: "/central", icon: <ShieldAlert size={18} />, ownerOnly: true },
       { label: "Segurança", href: "/seguranca", icon: <ShieldCheck size={18} />, ownerOnly: true },
-      { label: "Permissões", href: "/permissoes", icon: <Shield size={18} /> },
+      { label: "Permissões", href: "/permissoes", icon: <Shield size={18} />, ownerOnly: true },
       { label: "Avisos", href: "/avisos", icon: <AlertCircle size={18} />, ownerOnly: true },
       { label: "Sugestões", href: "/sugestoes", icon: <MessageSquare size={18} /> },
       { label: "Backups", href: "/backups", icon: <HardDrive size={18} />, ownerOnly: true },
@@ -272,6 +272,14 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   }, [settings]);
 
   const sidebarLogoUrl = settings?.sidebar_logo_url || "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouroupro_logo_dark-fXyM9RJb5jrckbNeNbskGi.webp";
+  const isAdmin = user?.role === "admin";
+  const isOwner = (user as any)?.isOwner === true;
+
+  useEffect(() => {
+    if (!loading && isAuthenticated && !isOwner && isOwnerOnlyRoute(location)) {
+      setLocation("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, isOwner, loading, location, setLocation]);
 
   if (loading) {
     return (
@@ -295,40 +303,13 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
             Você precisa estar autenticado para acessar o painel administrativo.
           </p>
-          <a
-            href={getLoginUrl()}
+          <Link
+            href="/login"
             className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
           >
-            Entrar com Manus
+            Entrar no painel
             <ChevronRight size={16} />
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  const isAdmin = user?.role === "admin";
-  // Dono vê tudo; outros veem apenas itens não ownerOnly
-  const isOwner = (user as any)?.isOwner === true;
-
-  if (!isOwner) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center max-w-md mx-auto px-6">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-            <Shield size={32} className="text-primary" />
-          </div>
-          <h1 className="text-2xl font-semibold text-foreground mb-2">Painel Principal restrito</h1>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            O Painel Principal e as configurações administrativas são exclusivos do proprietário. Revendas devem usar o Portal da Revenda com as próprias credenciais.
-          </p>
-          <button
-            type="button"
-            onClick={() => logout()}
-            className="mt-6 inline-flex items-center gap-2 border border-border px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-muted transition-colors"
-          >
-            Sair desta sessão
-          </button>
+          </Link>
         </div>
       </div>
     );

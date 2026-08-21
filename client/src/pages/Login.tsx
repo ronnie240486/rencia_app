@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { ChevronRight, Shield, Users, BarChart3, Lock, Mail } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { getLoginUrl } from "@/const";
 
 export default function Login() {
   const { isAuthenticated, loading } = useAuth();
@@ -169,6 +170,9 @@ export default function Login() {
             <p className="text-xs text-muted-foreground leading-relaxed">
               <strong className="text-foreground">Acesso seguro:</strong> Utilize suas credenciais de email e senha para acessar o painel administrativo.
             </p>
+            <a href={getLoginUrl()} className="mt-3 inline-flex text-xs font-semibold text-primary hover:underline">
+              Entrar como proprietário com Manus
+            </a>
           </div>
         </div>
       </div>
