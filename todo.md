@@ -105,6 +105,9 @@
 - [ ] Validar se existem referências históricas identificadas pelo MAC além do deviceId
 - [ ] Testar exclusão e recadastro do mesmo MAC em outra conta sem qualquer conflito
 - [x] Remover todos os cadastros duplicados do mesmo MAC em outras contas quando o MAC for excluído
+- [x] Simular falha confirmada da Lista 1 e comprovar a ativação da Lista 2 no estado do dispositivo
+- [x] Simular recuperação confirmada da Lista 1 e comprovar retorno ao estado principal
+- [x] Validar os payloads `backup_active` e `primary_restored` devolvidos ao aplicativo
 - [ ] Validar no painel publicado a abertura do controle de Permissões de uma revenda
 - [ ] Validar visualmente o contraste da seleção nos temas claro e escuro
 - [x] Confirmar a senha persistida durante a criação antes de informar que a nova revenda está pronta
