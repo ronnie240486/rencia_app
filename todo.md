@@ -67,6 +67,8 @@
 - [x] Validar visualmente que a revenda vê a navegação operacional e não vê itens exclusivos do proprietário
 - [x] Cobrir todas as rotas ownerOnly relevantes para impedir acesso manual de revendas
 - [x] Documentar que a URL pública expõe apenas a aplicação e não concede edição do projeto Manus
+- [x] Verificar a conta ativa e a senha efetivamente usada pelo login público da revenda
+- [x] Corrigir a rejeição de senha no mesmo painel público e validar em sessão limpa
 
 ## Backend
 - [x] Schema do banco de dados com tabela users (já existe, verificar campos)
