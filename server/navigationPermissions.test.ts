@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getVisibleNavigationGroups, isOwnerOnlyRoute } from "../client/src/components/sidebarNavigation";
+import { getVisibleNavigationGroups, isOwnerOnlyRoute, OWNER_ONLY_ROUTE_PREFIXES } from "../client/src/components/sidebarNavigation";
 
 describe("permissões de navegação do painel compartilhado", () => {
   it("oculta ferramentas do proprietário para uma revenda", () => {
@@ -8,10 +8,8 @@ describe("permissões de navegação do painel compartilhado", () => {
   });
 
   it("bloqueia rotas exclusivas do proprietário e mantém as operacionais disponíveis", () => {
-    expect(isOwnerOnlyRoute("/settings")).toBe(true);
-    expect(isOwnerOnlyRoute("/aplicativos/evolux")).toBe(true);
-    expect(isOwnerOnlyRoute("/users")).toBe(false);
-    expect(isOwnerOnlyRoute("/dns")).toBe(false);
-    expect(isOwnerOnlyRoute("/pagamentos")).toBe(false);
+    OWNER_ONLY_ROUTE_PREFIXES.forEach(path => expect(isOwnerOnlyRoute(path)).toBe(true));
+    ["/aplicativos/prestige", "/aplicativos/optimus", "/aplicativos/imperio", "/aplicativos/infinitus", "/aplicativos/supremus", "/aplicativos/evolux"].forEach(path => expect(isOwnerOnlyRoute(path)).toBe(true));
+    ["/users", "/users/create", "/dns", "/pagamentos", "/relatorios", "/manutencao", "/agenda-renovacao"].forEach(path => expect(isOwnerOnlyRoute(path)).toBe(false));
   });
 });

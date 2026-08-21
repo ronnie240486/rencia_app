@@ -61,10 +61,12 @@
 - [x] Permitir login local de revendas no mesmo painel principal, sem tela Manus
 - [x] Manter a mesma interface e navegação principal para revenda, ocultando somente itens exclusivos do proprietário
 - [x] Redirecionar a revenda autenticada ao Dashboard do painel compartilhado com seus próprios dados
-- [ ] Liberar a URL do painel para acesso público somente até o login local autorizado pelo proprietário
-- [ ] Confirmar que login público não concede edição do projeto nem permissões administrativas do proprietário
-- [ ] Validar no domínio real uma revenda entrando por e-mail e senha no mesmo Dashboard do painel
-- [ ] Validar visualmente que a revenda vê a navegação operacional e não vê itens exclusivos do proprietário
+- [x] Liberar a URL do painel para acesso público somente até o login local autorizado pelo proprietário
+- [x] Confirmar que login público não concede edição do projeto nem permissões administrativas do proprietário
+- [x] Validar no domínio real uma revenda entrando por e-mail e senha no mesmo Dashboard do painel
+- [x] Validar visualmente que a revenda vê a navegação operacional e não vê itens exclusivos do proprietário
+- [x] Cobrir todas as rotas ownerOnly relevantes para impedir acesso manual de revendas
+- [x] Documentar que a URL pública expõe apenas a aplicação e não concede edição do projeto Manus
 
 ## Backend
 - [x] Schema do banco de dados com tabela users (já existe, verificar campos)
