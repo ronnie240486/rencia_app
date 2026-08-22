@@ -108,6 +108,14 @@
 - [x] Simular falha confirmada da Lista 1 e comprovar a ativação da Lista 2 no estado do dispositivo
 - [x] Simular recuperação confirmada da Lista 1 e comprovar retorno ao estado principal
 - [x] Validar os payloads `backup_active` e `primary_restored` devolvidos ao aplicativo
+- [ ] Verificar se o Ouro Pro em uso chama a rota de falha de reprodução ao ocorrer erro
+- [ ] Entregar ao desenvolvedor do Ouro Pro o contrato de troca imediata e sincronização de listas
+- [ ] Garantir que o Ouro Pro substitua a fonte de playlist pela Lista 2 após receber o failover
+- [x] Medir o tempo de resposta do painel ao entregar a configuração de uma lista reativada
+- [ ] Comparar o tempo total percebido no Ouro Pro com a resposta do painel em uma lista reativada
+- [ ] Coletar o log do Ouro Pro após receber a configuração para localizar parse, cache ou reload lento
+- [x] Atualizar o download e a URL de atualização do Ouro Pro para o novo APK enviado
+- [x] Atualizar o Ouro Pro com Downloader 3386441 e link AFTV aftv.news/3386441
 - [ ] Validar no painel publicado a abertura do controle de Permissões de uma revenda
 - [ ] Validar visualmente o contraste da seleção nos temas claro e escuro
 - [x] Confirmar a senha persistida durante a criação antes de informar que a nova revenda está pronta
