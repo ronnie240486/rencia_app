@@ -1,4 +1,4 @@
-CREATE TABLE `notices` (
+CREATE TABLE IF NOT EXISTS `notices` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`autorId` int NOT NULL,
 	`titulo` varchar(255) NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE `notices` (
 	CONSTRAINT `notices_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `suggestions` (
+CREATE TABLE IF NOT EXISTS `suggestions` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`userId` int NOT NULL,
 	`nome` varchar(255) NOT NULL,
