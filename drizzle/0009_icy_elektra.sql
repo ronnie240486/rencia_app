@@ -23,4 +23,8 @@ CREATE TABLE `suggestions` (
 	CONSTRAINT `suggestions_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-ALTER TABLE `users` ADD `lastLoginDate` date DEFAULT CURDATE() NOT NULL;
+ALTER TABLE `users` ADD `lastLoginDate` date NULL;
+--> statement-breakpoint
+UPDATE `users` SET `lastLoginDate` = CURDATE() WHERE `lastLoginDate` IS NULL;
+--> statement-breakpoint
+ALTER TABLE `users` MODIFY `lastLoginDate` date NOT NULL;
