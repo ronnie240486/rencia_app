@@ -2005,7 +2005,14 @@ export const appRouter = router({
         if (!current) throw new TRPCError({ code: "NOT_FOUND", message: "Revenda não encontrada." });
         const { hashPassword, comparePassword } = await import("./auth");
         const passwordHash = password ? await hashPassword(password) : undefined;
-        await updateRevenda(id, ctx.user.id, { ...data, passwordHash });
+        // Redefinir senha é uma ação explícita de liberação de acesso. Mantemos o
+        // bloqueio apenas se o proprietário também enviar isActive=false.
+        const updateData = {
+          ...data,
+          passwordHash,
+          ...(password && data.isActive !== false ? { isActive: true } : {}),
+        };
+        await updateRevenda(id, ctx.user.id, updateData);
         if (password && passwordHash) {
           const persisted = (await db.select({ passwordHash: users.passwordHash }).from(users)
             .where(and(eq(users.id, id), eq(users.resellerId, ctx.user.id))).limit(1))[0];
@@ -2026,7 +2033,7 @@ export const appRouter = router({
           action: password ? "password_changed" : "updated",
           summary: password ? `Senha da revenda ${current.name ?? current.email ?? id} alterada` : `Revenda ${current.name ?? current.email ?? id} atualizada`,
           beforeData: { name: current.name, email: current.email, plano: current.plano, limiteDevices: current.limiteDevices, limiteRevendas: current.limiteRevendas },
-          afterData: { ...data, password: password ? "[oculto]" : undefined },
+          afterData: { ...updateData, password: password ? "[oculto]" : undefined },
         });
         return { success: true, loginReady: Boolean(password) };
       }),

@@ -1207,3 +1207,12 @@
 - [x] Medir instalações confirmadas pelo primeiro heartbeat do APK, sem confundir cadastro com download real
 - [x] Testar isolamento de dados entre revendas e os controles do administrador
 - [x] Adicionar atalho direto para o ranking no gerenciamento de revendas
+
+## Entrada pelo Domínio Público (25/08/2026)
+- [ ] Fazer a rota inicial abrir a tela de login por e-mail e senha quando não houver sessão
+- [ ] Redirecionar uma conta autenticada para o painel autorizado
+- [ ] Validar o isolamento da sessão entre administrador e revenda
+
+## Correção de Senha de Revenda (25/08/2026)
+- [x] Sincronizar a senha alterada pelo administrador com o login local de revenda
+- [x] Validar que a nova senha passa a autenticar imediatamente

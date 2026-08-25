@@ -49,7 +49,23 @@ describe("revendas.update — troca de senha", () => {
 
     expect(result).toEqual({ success: true, loginReady: true });
     expect(hashPasswordMock).toHaveBeenCalledWith("senha-nova-segura");
-    expect(updateRevendaMock).toHaveBeenCalledWith(11, 1, { passwordHash: "bcrypt-hash-da-nova-senha" });
+    expect(updateRevendaMock).toHaveBeenCalledWith(11, 1, { passwordHash: "bcrypt-hash-da-nova-senha", isActive: true });
     expect(recordAuditMock).toHaveBeenCalledWith(expect.objectContaining({ action: "password_changed", entityId: 11 }));
+  });
+
+  it("mantém a revenda bloqueada quando o proprietário envia o bloqueio explicitamente", async () => {
+    const current = { id: 11, resellerId: 1, name: "Revenda", email: "revenda@example.com", plano: "Revenda", limiteDevices: 50, limiteRevendas: 0 };
+    getDbMock.mockResolvedValue({
+      select: (fields?: { passwordHash?: unknown }) => ({ from: () => ({ where: () => ({ limit: async () => [fields?.passwordHash ? { passwordHash: "bcrypt-hash-da-nova-senha" } : current] }) }) }),
+    });
+    hashPasswordMock.mockResolvedValue("bcrypt-hash-da-nova-senha");
+    comparePasswordMock.mockResolvedValue(true);
+    updateRevendaMock.mockResolvedValue(undefined);
+    recordAuditMock.mockResolvedValue(undefined);
+
+    const caller = appRouter.createCaller(createOwnerContext());
+    await caller.revendas.update({ id: 11, password: "senha-nova-segura", isActive: false });
+
+    expect(updateRevendaMock).toHaveBeenCalledWith(11, 1, { passwordHash: "bcrypt-hash-da-nova-senha", isActive: false });
   });
 });

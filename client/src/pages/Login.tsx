@@ -4,7 +4,6 @@ import { useLocation } from "wouter";
 import { ChevronRight, Shield, Users, BarChart3, Lock, Mail } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { getLoginUrl } from "@/const";
 
 export default function Login() {
   const { isAuthenticated, loading } = useAuth();
@@ -177,11 +176,8 @@ export default function Login() {
 
           <div className="mt-8 p-4 rounded-xl border border-border bg-muted/40">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Acesso seguro:</strong> Utilize suas credenciais de email e senha para acessar o painel administrativo.
+              <strong className="text-foreground">Acesso seguro:</strong> Administradores e revendas usam exclusivamente o e-mail e a senha cadastrados para acessar o próprio painel.
             </p>
-            <a href={getLoginUrl()} className="mt-3 inline-flex text-xs font-semibold text-primary hover:underline">
-              Entrar como proprietário com Manus
-            </a>
           </div>
         </div>
       </div>
