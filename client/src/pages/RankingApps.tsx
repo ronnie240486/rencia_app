@@ -30,6 +30,7 @@ export default function RankingApps() {
       'Infinitus': appStats?.infinitus || 0,
       'Supremus': appStats?.supremus || 0,
       'Evolux': appStats?.evolux || 0,
+      'Nexus': appStats?.nexus || 0,
     };
   }, [appStats]);
 
@@ -62,6 +63,7 @@ export default function RankingApps() {
       { name: "Infinitus", logo: MANAGED_APP_CATALOG.infinitus.defaultLogoUrl, color: "purple", users: appCounts['Infinitus'] || 0 },
       { name: "Supremus", logo: MANAGED_APP_CATALOG.supremus.defaultLogoUrl, color: "yellow", users: appCounts['Supremus'] || 0 },
       { name: "Evolux", logo: MANAGED_APP_CATALOG.evolux.defaultLogoUrl, color: "cyan", users: appCounts['Evolux'] || 0 },
+      { name: "Nexus", logo: MANAGED_APP_CATALOG.nexus.defaultLogoUrl, color: "purple", users: appCounts['Nexus'] || 0 },
     ];
 
     return apps

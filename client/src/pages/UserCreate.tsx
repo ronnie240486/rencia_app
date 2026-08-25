@@ -38,6 +38,7 @@ const APP_ID_BY_NAME: Record<string, string> = {
   Infinitus: "infinitus",
   Supremus: "supremus",
   Evolux: "evolux",
+  Nexus: "nexus",
 };
 
 function newLista(isPrimary = false): ListaItem {
@@ -292,6 +293,7 @@ export default function UserCreate() {
                   <SelectItem value="Infinitus">Infinitus</SelectItem>
                   <SelectItem value="Supremus">Supremus</SelectItem>
                   <SelectItem value="Evolux">Evolux</SelectItem>
+                  <SelectItem value="Nexus">Nexus</SelectItem>
                   <SelectItem value="Outro">Outro aplicativo</SelectItem>
                 </SelectContent>
               </Select>

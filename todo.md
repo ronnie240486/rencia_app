@@ -1182,3 +1182,19 @@
 - [x] Auditar as tabelas e configurações incluídas no backup atual
 - [x] Gerar arquivo baixável com todos os dados do banco e instruções de restauração
 - [x] Validar a integridade do backup sem alterar os dados em produção
+
+## Correção de MAC e Atividade (25/08/2026)
+- [x] Confirmar que o MAC iniciado em 18 é o dispositivo correto solicitado
+- [x] Validar que a atividade recebida pertence ao próprio MAC iniciado em 18
+- [x] Preservar os demais cadastros e MACs durante a correção
+
+## Lista no APK Novo para MAC 18 (25/08/2026)
+- [x] Confirmar a lista vinculada ao MAC iniciado em 18
+- [x] Associar o MAC iniciado em 18 ao aplicativo Nexus sem apagar sua lista
+- [x] Testar a resposta de lista esperada pelo APK novo
+
+## Suporte ao Nexus (25/08/2026)
+- [x] Adicionar o Nexus ao catálogo de aplicativos gerenciados
+- [x] Associar o MAC iniciado em 18 ao Nexus preservando a lista atual
+- [x] Validar `/api/v5/apps/nexus/config` e `/api/v5/apps/nexus/update`
+- [x] Incluir o Nexus no catálogo e no ranking de aplicativos do painel

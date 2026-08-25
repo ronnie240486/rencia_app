@@ -12,8 +12,9 @@ describe("catálogo de aplicativos do painel", () => {
     expect(APP_CONFIGURATION_FEATURES).toContain("updates");
   });
 
-  it("inclui os seis novos aplicativos no catálogo comum", async () => {
+  it("inclui os novos aplicativos no catálogo comum", async () => {
     const { NEW_MANAGED_APP_IDS } = await import("./appCatalog");
-    expect(NEW_MANAGED_APP_IDS).toEqual(["prestige", "optimus", "imperio", "infinitus", "supremus", "evolux"]);
+    expect(NEW_MANAGED_APP_IDS).toEqual(["prestige", "optimus", "imperio", "infinitus", "supremus", "evolux", "nexus"]);
+    expect(MANAGED_APP_CATALOG.nexus.deviceAliases).toContain("Nexus");
   });
 });
