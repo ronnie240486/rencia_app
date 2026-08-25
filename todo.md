@@ -1206,3 +1206,4 @@
 - [x] Criar ranking por revenda com instalações e uso dos aplicativos vinculados aos seus clientes
 - [x] Medir instalações confirmadas pelo primeiro heartbeat do APK, sem confundir cadastro com download real
 - [x] Testar isolamento de dados entre revendas e os controles do administrador
+- [x] Adicionar atalho direto para o ranking no gerenciamento de revendas

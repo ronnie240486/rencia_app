@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { trpc } from "@/lib/trpc";
 import {
   Building2,
+  BarChart3,
   Edit2,
   Loader2,
   Lock,
@@ -21,6 +22,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useState } from "react";
+import { Link } from "wouter";
 import { toast } from "sonner";
 import { formatDateOnlyPtBr, toDateOnly } from "@shared/dateOnly";
 import { RESELLER_PERMISSION_CATALOG } from "@shared/resellerPermissions";
@@ -213,6 +215,9 @@ export default function Revendas() {
         <Button size="sm" onClick={openCreate} className="gap-2 ml-auto btn-new-resale">
           <Plus size={15} />
           Nova Revenda
+        </Button>
+        <Button asChild size="sm" variant="outline" className="gap-2">
+          <Link href="/relatorio-revendas"><BarChart3 size={15} /> Ranking</Link>
         </Button>
       </div>
 
