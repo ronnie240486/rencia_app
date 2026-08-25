@@ -1236,3 +1236,12 @@
 - [x] Verificar se o MAC informado já possui um cadastro ou listas vinculadas
 - [x] Cadastrar o cliente Velox no Evolux com acesso somente por MAC
 - [x] Validar a rota de configuração do Evolux para o novo cadastro
+
+## Diagnóstico do PrimeX no Prestige (25/08/2026)
+- [x] Conferir o cadastro do MAC exibido e seu vínculo com a família Prestige
+- [x] Informar a correção necessária antes de criar ou alterar qualquer cadastro
+
+## Cadastro do PrimeX no Prestige (25/08/2026)
+- [x] Confirmar o MAC e a ausência de cadastro existente
+- [x] Cadastrar o PrimeX no Prestige com acesso somente por MAC
+- [x] Validar a rota Prestige para o MAC cadastrado
