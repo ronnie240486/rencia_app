@@ -1177,3 +1177,8 @@
 - [x] Extrair todas as rotas descritas nos sete PDFs enviados
 - [x] Comparar cada rota documentada com a implementação do painel
 - [x] Testar as rotas confirmadas e documentar a única rota de domínio externo
+
+## Backup Portátil Completo (24/08/2026)
+- [x] Auditar as tabelas e configurações incluídas no backup atual
+- [x] Gerar arquivo baixável com todos os dados do banco e instruções de restauração
+- [x] Validar a integridade do backup sem alterar os dados em produção
