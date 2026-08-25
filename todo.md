@@ -1228,3 +1228,11 @@
 ## Documento de Integração Universal para APKs (25/08/2026)
 - [x] Mapear rotas reais para configuração, imagens, ícones, mensagens e listas
 - [x] Produzir PDF universal de integração para todos os APKs
+
+## Conferência de PDF Enviado (25/08/2026)
+- [x] Revisar o PDF enviado e comparar seu conteúdo com as rotas atuais do painel
+
+## Cadastro do Cliente Velox no Evolux (25/08/2026)
+- [x] Verificar se o MAC informado já possui um cadastro ou listas vinculadas
+- [x] Cadastrar o cliente Velox no Evolux com acesso somente por MAC
+- [x] Validar a rota de configuração do Evolux para o novo cadastro
