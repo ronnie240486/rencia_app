@@ -1224,3 +1224,7 @@
 - [x] Definir cópias automáticas armazenadas e aviso semanal com download manual
 - [ ] Manter cópias automáticas armazenadas sem depender de o painel estar aberto
 - [x] Testar importação do arquivo sem apagar dados atuais antes da restauração
+
+## Documento de Integração Universal para APKs (25/08/2026)
+- [x] Mapear rotas reais para configuração, imagens, ícones, mensagens e listas
+- [x] Produzir PDF universal de integração para todos os APKs

@@ -1,0 +1,10 @@
+{
+  "entry": "main.typ",
+  "metadata": {
+    "author": "Manus AI",
+    "subtitle": "Contratos REST do Rencia App para configuração, mensagens, imagens e troca automática de listas",
+    "title": "Integração Universal de APKs"
+  },
+  "mode": "report",
+  "theme": "report-theme.typ"
+}

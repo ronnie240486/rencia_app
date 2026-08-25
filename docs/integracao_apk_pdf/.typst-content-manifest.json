@@ -1,0 +1,11 @@
+{
+  "task_kind": "new-document",
+  "output": "pdf",
+  "signals": [],
+  "hard_constraints": ["PDF técnico em português brasileiro", "documentar somente rotas confirmadas no backend", "não incluir segredos ou credenciais reais"],
+  "content_features": {
+    "code_blocks": 10,
+    "defined_terms": 12,
+    "portrait_images": 0
+  }
+}
