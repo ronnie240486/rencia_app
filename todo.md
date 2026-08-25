@@ -1209,9 +1209,9 @@
 - [x] Adicionar atalho direto para o ranking no gerenciamento de revendas
 
 ## Entrada pelo Domínio Público (25/08/2026)
-- [ ] Fazer a rota inicial abrir a tela de login por e-mail e senha quando não houver sessão
-- [ ] Redirecionar uma conta autenticada para o painel autorizado
-- [ ] Validar o isolamento da sessão entre administrador e revenda
+- [x] Fazer a rota inicial abrir a tela de login por e-mail e senha quando não houver sessão
+- [x] Redirecionar uma conta autenticada para o painel autorizado
+- [x] Validar o isolamento da sessão entre administrador e revenda
 
 ## Correção de Senha de Revenda (25/08/2026)
 - [x] Sincronizar a senha alterada pelo administrador com o login local de revenda
