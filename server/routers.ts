@@ -23,7 +23,7 @@ import { getEffectivePaymentStatus } from "./payments";
 import { buildFinancialReport } from "./financialReport";
 import { normalizeMessageTemplate } from "./messageTemplate";
 import { buildSessionOverview } from "./sessionControl";
-import { summarizeResellerFinance } from "./resellerReport";
+import { summarizeResellerDevicePerformance, summarizeResellerFinance } from "./resellerReport";
 import { buildRenewalAgenda } from "./renewalAgenda";
 import { buildMaintenanceOverview } from "./maintenanceCenter";
 import { buildApkUpdateOverview } from "./apkUpdates";
@@ -1073,13 +1073,14 @@ export const appRouter = router({
       if (resellers.length === 0) return [];
       const ids = resellers.map((reseller) => reseller.id);
       const [allDevices, allPayments] = await Promise.all([
-        db.select({ id: devices.id, ownerId: devices.ownerId, status: devices.status, dataExpiracao: devices.dataExpiracao }).from(devices).where(inArray(devices.ownerId, ids)),
+        db.select({ id: devices.id, ownerId: devices.ownerId, app: devices.app, status: devices.status, dataExpiracao: devices.dataExpiracao, lastSeen: devices.lastSeen }).from(devices).where(inArray(devices.ownerId, ids)),
         db.select({ ownerId: payments.ownerId, amount: payments.amount, status: payments.status, dueDate: payments.dueDate }).from(payments).where(inArray(payments.ownerId, ids)),
       ]);
       const now = new Date();
       return resellers.map((reseller) => {
         const clients = allDevices.filter((device) => device.ownerId === reseller.id);
         const finance = summarizeResellerFinance(allPayments.filter((payment) => payment.ownerId === reseller.id), now);
+        const performance = summarizeResellerDevicePerformance(clients, now);
         const expiringSoon = clients.filter((device) => device.dataExpiracao && (new Date(device.dataExpiracao).getTime() - now.getTime()) / 86_400_000 >= 0 && (new Date(device.dataExpiracao).getTime() - now.getTime()) / 86_400_000 <= 7).length;
         return {
           ...reseller,
@@ -1088,6 +1089,7 @@ export const appRouter = router({
           blockedClients: clients.filter((device) => device.status === "Bloqueado" || device.status === "Expirado").length,
           remainingDevices: Math.max(0, (reseller.limiteDevices ?? 0) - clients.length),
           expiringSoon,
+          ...performance,
           finance,
         };
       });

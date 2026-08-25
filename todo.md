@@ -1198,3 +1198,11 @@
 - [x] Associar o MAC iniciado em 18 ao Nexus preservando a lista atual
 - [x] Validar `/api/v5/apps/nexus/config` e `/api/v5/apps/nexus/update`
 - [x] Incluir o Nexus no catálogo e no ranking de aplicativos do painel
+
+## Painel de Revendas e Controle Administrativo (25/08/2026)
+- [x] Confirmar o login separado por e-mail e senha para cada revenda
+- [x] Garantir que apenas o administrador altere senhas, dados e limites de revendas
+- [x] Exibir quantos clientes cada revenda cadastrou e mantém ativos
+- [x] Criar ranking por revenda com instalações e uso dos aplicativos vinculados aos seus clientes
+- [x] Medir instalações confirmadas pelo primeiro heartbeat do APK, sem confundir cadastro com download real
+- [x] Testar isolamento de dados entre revendas e os controles do administrador
