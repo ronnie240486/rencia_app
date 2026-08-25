@@ -1172,3 +1172,8 @@
 - [x] Inventariar as rotas de Ouro Pro, Fusion, Maximus e novos aplicativos
 - [x] Documentar mensagens, vencimento, failover, listas, atualizações, comandos e testes
 - [x] Gerar um único PDF técnico pronto para os desenvolvedores
+
+## Auditoria de Rotas dos Documentos Enviados (24/08/2026)
+- [x] Extrair todas as rotas descritas nos sete PDFs enviados
+- [x] Comparar cada rota documentada com a implementação do painel
+- [x] Testar as rotas confirmadas e documentar a única rota de domínio externo
