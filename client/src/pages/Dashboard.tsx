@@ -2,6 +2,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,7 +14,7 @@ import {
   AlertTriangle, CalendarDays, Crown, Layers, Search, Shield,
   Star, Users, Wifi, WifiOff, RefreshCw, Activity, Download, Upload,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function EditCurrentContentButton({ deviceId, currentContent }: { deviceId: number; currentContent: string | null }) {
   const updateMutation = trpc.devices.updateCurrentContent.useMutation();
@@ -94,6 +95,14 @@ export default function Dashboard() {
   const [importPreview, setImportPreview] = useState<any | null>(null);
   const [previewingImport, setPreviewingImport] = useState(false);
   const [confirmingImport, setConfirmingImport] = useState(false);
+  const [backupReminderOpen, setBackupReminderOpen] = useState(false);
+
+  const backupWeekKey = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 1);
+    const week = Math.ceil((((now.getTime() - start.getTime()) / 86_400_000) + start.getDay() + 1) / 7);
+    return `${now.getFullYear()}-${week}`;
+  };
 
   const handleExport = async () => {
     try {
@@ -101,6 +110,7 @@ export default function Dashboard() {
         method: 'GET',
         credentials: 'include'
       });
+      if (!response.ok) throw new Error('Não foi possível gerar o backup completo.');
       const data = await response.json();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -112,6 +122,22 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Erro ao exportar:', error);
     }
+  };
+
+  useEffect(() => {
+    if (!user?.isOwner) return;
+    const currentWeek = backupWeekKey();
+    if (localStorage.getItem('rencia-backup-reminder-week') !== currentWeek) setBackupReminderOpen(true);
+  }, [user?.isOwner]);
+
+  const dismissBackupReminder = () => {
+    localStorage.setItem('rencia-backup-reminder-week', backupWeekKey());
+    setBackupReminderOpen(false);
+  };
+
+  const downloadBackupFromReminder = async () => {
+    await handleExport();
+    dismissBackupReminder();
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -213,7 +239,7 @@ export default function Dashboard() {
             </Badge>
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="w-4 h-4 mr-1" />
-              <span>{"Exportar"}</span>
+              <span>{"Backup completo"}</span>
             </Button>
             <Button variant="outline" size="sm" disabled={previewingImport} onClick={() => document.getElementById('importFile')?.click()}>
               <Upload className="w-4 h-4 mr-1" />
@@ -222,6 +248,24 @@ export default function Dashboard() {
             <input id="importFile" type="file" accept=".json" style={{display: 'none'}} onChange={handleImport} />
           </div>
         </div>
+
+        <Dialog open={backupReminderOpen} onOpenChange={(open) => { if (!open) dismissBackupReminder(); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Shield size={20} className="text-primary" /> Faça seu backup semanal</DialogTitle>
+              <DialogDescription>
+                Baixe uma cópia completa de usuários, MACs, listas, configurações e credenciais. Ela ajuda a restaurar o painel se ocorrer algum problema.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+              As senhas são incluídas de forma protegida: após restaurar, as credenciais continuam funcionando sem serem exibidas em texto aberto.
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={dismissBackupReminder}>Lembrar na próxima semana</Button>
+              <Button className="gap-2 text-black dark:text-white" onClick={downloadBackupFromReminder}><Download size={16} /> Baixar agora</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {importPreview && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"><Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto"><CardHeader><CardTitle>Prévia segura da importação</CardTitle><p className="text-sm text-muted-foreground">Nada foi alterado ainda. Revise os MACs abaixo antes de confirmar.</p></CardHeader><CardContent className="space-y-4"><div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><PreviewMetric label="No arquivo" value={importPreview.summary.importedDevices} /><PreviewMetric label="Novos" value={importPreview.summary.newDevices} /><PreviewMetric label="Já existem" value={importPreview.summary.existingMatches} /><PreviewMetric label="Duplicados" value={importPreview.summary.duplicateInFile + importPreview.summary.invalidDevices} /></div>{importPreview.existingMatches.length > 0 && <PreviewList title="MACs já cadastrados — serão atualizados" rows={importPreview.existingMatches.map((row: any) => `${row.mac} · ${row.currentName}`)} />}{importPreview.duplicateInFile.length > 0 && <PreviewList title="MACs repetidos dentro do arquivo" rows={importPreview.duplicateInFile.map((row: any) => `${row.mac} · ${row.nomeServer}`)} danger />}{importPreview.invalidDevices.length > 0 && <PreviewList title="Registros inválidos — não serão importados" rows={importPreview.invalidDevices.map((row: any) => `${row.mac || 'sem MAC'} · ${row.nomeServer}`)} danger />}<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button variant="outline" onClick={() => { setImportPreview(null); setPendingBackup(null); }}>Cancelar</Button><Button onClick={confirmImport} disabled={confirmingImport || !importPreview.valid} className="text-black dark:text-white">{confirmingImport ? 'Importando…' : 'Confirmar importação'}</Button></div>{!importPreview.valid && <p className="text-sm text-destructive">Corrija os registros inválidos no backup antes de importar.</p>}</CardContent></Card></div>}
 

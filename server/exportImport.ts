@@ -12,8 +12,33 @@ import {
   nuvixConfig,
   playerCredentials,
   localCredentials,
+  ultraPlayerConfig,
+  appCredentials,
+  messageTemplates,
+  resellerPermissions,
+  apps,
 } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
+
+export type PortableDeviceUrl = Record<string, any> & {
+  backupDeviceId?: number;
+  deviceMac?: string;
+};
+
+/** Converte o formato antigo por ID para entradas portáteis vinculadas ao MAC. */
+export function normalizeBackupDeviceUrls(rawUrls: unknown, backupDevices: any[] = []): PortableDeviceUrl[] {
+  const deviceMacById = new Map(backupDevices.map((device) => [Number(device.id), device.mac]));
+  if (Array.isArray(rawUrls)) return rawUrls as PortableDeviceUrl[];
+  if (!rawUrls || typeof rawUrls !== "object") return [];
+  const entries: PortableDeviceUrl[] = [];
+  for (const [backupDeviceId, urls] of Object.entries(rawUrls as Record<string, unknown>)) {
+    if (!Array.isArray(urls)) continue;
+    for (const url of urls) {
+      entries.push({ ...(url as Record<string, any>), backupDeviceId: Number(backupDeviceId), deviceMac: deviceMacById.get(Number(backupDeviceId)) });
+    }
+  }
+  return entries;
+}
 
 export async function exportBackup(ownerId: number) {
   const db = await getDb();
@@ -36,6 +61,11 @@ export async function exportBackup(ownerId: number) {
     let allSuggestions: any[] = [];
     let allNotices: any[] = [];
     let allLocalCredentials: any[] = [];
+    let allUltraPlayerConfig: any[] = [];
+    let allAppCredentials: any[] = [];
+    let allMessageTemplates: any[] = [];
+    let allResellerPermissions: any[] = [];
+    let allApps: any[] = [];
 
     try { ownerDevices = await db.select().from(devices).where(eq(devices.ownerId, ownerId)); } catch (e) { console.error('[Export] Error fetching devices:', e); }
     try { ownerDns = await db.select().from(dnsEntries).where(eq(dnsEntries.ownerId, ownerId)); } catch (e) { console.error('[Export] Error fetching dnsEntries:', e); }
@@ -48,16 +78,21 @@ export async function exportBackup(ownerId: number) {
     try { allSuggestions = await db.select().from(suggestions); } catch (e) { console.error('[Export] Error fetching suggestions:', e); }
     try { allNotices = await db.select().from(notices); } catch (e) { console.error('[Export] Error fetching notices:', e); }
     try { allLocalCredentials = await db.select().from(localCredentials); } catch (e) { console.error('[Export] Error fetching localCredentials:', e); }
+    try { allUltraPlayerConfig = await db.select().from(ultraPlayerConfig).where(eq(ultraPlayerConfig.ownerId, ownerId)); } catch (e) { console.error('[Export] Error fetching ultraPlayerConfig:', e); }
+    try { allAppCredentials = await db.select().from(appCredentials).where(eq(appCredentials.ownerId, ownerId)); } catch (e) { console.error('[Export] Error fetching appCredentials:', e); }
+    try { allMessageTemplates = await db.select().from(messageTemplates).where(eq(messageTemplates.ownerId, ownerId)); } catch (e) { console.error('[Export] Error fetching messageTemplates:', e); }
+    try { allResellerPermissions = await db.select().from(resellerPermissions); } catch (e) { console.error('[Export] Error fetching resellerPermissions:', e); }
+    try { allApps = await db.select().from(apps); } catch (e) { console.error('[Export] Error fetching apps:', e); }
 
     console.log('[Export] Data fetched - devices:', ownerDevices.length, 'users:', allUsers.length);
 
     // Buscar device URLs para cada device
-    const deviceUrlsMap: Record<number, typeof deviceUrls.$inferSelect[]> = {};
+    const portableDeviceUrls: PortableDeviceUrl[] = [];
     try {
       for (const device of ownerDevices) {
         try {
           const urls = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, device.id));
-          deviceUrlsMap[device.id] = urls;
+          portableDeviceUrls.push(...urls.map((url) => ({ ...url, backupDeviceId: device.id, deviceMac: device.mac })));
         } catch (e) {
           console.error('[Export] Error fetching deviceUrls for device', device.id, ':', e);
         }
@@ -67,14 +102,16 @@ export async function exportBackup(ownerId: number) {
     }
 
     return {
-      version: "2.0.0",
+      version: "3.0.0",
       exportDate: new Date().toISOString(),
       ownerId,
       data: {
         owner: owner[0] || null,
         users: allUsers,
         devices: ownerDevices,
-        deviceUrls: deviceUrlsMap,
+        // Cada lista leva o MAC do dispositivo. Isso permite restaurá-la mesmo
+        // quando o novo banco gerar IDs diferentes para os dispositivos.
+        deviceUrls: portableDeviceUrls,
         dns: ownerDns,
         nuvixConfig: ownerNuvixConfig,
         playerCredentials: ownerPlayerCredentials,
@@ -84,6 +121,11 @@ export async function exportBackup(ownerId: number) {
         suggestions: allSuggestions,
         notices: allNotices,
         localCredentials: allLocalCredentials,
+        ultraPlayerConfig: allUltraPlayerConfig,
+        appCredentials: allAppCredentials,
+        messageTemplates: allMessageTemplates,
+        resellerPermissions: allResellerPermissions,
+        apps: allApps,
       },
     };
   } catch (error) {
@@ -118,7 +160,7 @@ export function analyzeImportDevices(incoming: any[], existing: Array<{ id: numb
 export async function previewBackupImport(ownerId: number, backup: any) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  if (backup?.version !== "2.0.0") throw new Error("Versão de backup incompatível. Esperado: 2.0.0");
+  if (!['2.0.0', '3.0.0'].includes(backup?.version)) throw new Error("Versão de backup incompatível.");
   const incoming = Array.isArray(backup?.data?.devices) ? backup.data.devices : [];
   const existing = await db.select({ id: devices.id, mac: devices.mac, nomeServer: devices.nomeServer }).from(devices).where(eq(devices.ownerId, ownerId));
   const { newDevices, existingMatches, duplicateInFile, invalidDevices } = analyzeImportDevices(incoming, existing);
@@ -135,20 +177,40 @@ export async function importBackup(ownerId: number, backup: any) {
 
   try {
     // Validar versão
-    if (backup.version !== "2.0.0") {
-      throw new Error("Versão de backup incompatível. Esperado: 2.0.0");
+    if (!['2.0.0', '3.0.0'].includes(backup.version)) {
+      throw new Error("Versão de backup incompatível.");
     }
 
-    // Importar usuários
+    const sourceUsers = Array.isArray(backup.data?.users) ? backup.data.users : [];
+    const sourceUserIdMap = new Map<number, number>();
+
+    // Importar usuários sem reaproveitar IDs internos. Os vínculos são refeitos
+    // em seguida por e-mail/openId, que não mudam ao restaurar em outro banco.
     if (backup.data?.users && Array.isArray(backup.data.users)) {
       for (const user of backup.data.users) {
-        const { id, ...userData } = user;
+        const { id, resellerId, ...userData } = user;
         try {
           // Tentar inserir ou atualizar
-          await db.insert(users).values(userData).onDuplicateKeyUpdate({ set: userData });
+          await db.insert(users).values({ ...userData, resellerId: null }).onDuplicateKeyUpdate({ set: { ...userData, resellerId: null } });
         } catch (err) {
           console.warn(`[Import] Erro ao importar usuário ${user.email}:`, err);
         }
+      }
+    }
+
+    const restoredUsers = await db.select({ id: users.id, email: users.email, openId: users.openId }).from(users);
+    for (const sourceUser of sourceUsers) {
+      const restored = restoredUsers.find((user) =>
+        (sourceUser.openId && user.openId === sourceUser.openId) ||
+        (sourceUser.email && user.email?.toLowerCase() === String(sourceUser.email).toLowerCase()),
+      );
+      if (restored) sourceUserIdMap.set(Number(sourceUser.id), restored.id);
+    }
+    for (const sourceUser of sourceUsers) {
+      const targetUserId = sourceUserIdMap.get(Number(sourceUser.id));
+      const targetResellerId = sourceUserIdMap.get(Number(sourceUser.resellerId));
+      if (targetUserId && sourceUser.resellerId != null && targetResellerId) {
+        await db.update(users).set({ resellerId: targetResellerId }).where(eq(users.id, targetUserId));
       }
     }
 
@@ -164,19 +226,30 @@ export async function importBackup(ownerId: number, backup: any) {
       }
     }
 
-    // Importar device URLs
-    if (backup.data?.deviceUrls && typeof backup.data.deviceUrls === "object") {
-      for (const [deviceIdStr, urls] of Object.entries(backup.data.deviceUrls)) {
-        if (Array.isArray(urls)) {
-          for (const url of urls) {
-            const { id, ...urlData } = url;
-            try {
-              await db.insert(deviceUrls).values(urlData).onDuplicateKeyUpdate({ set: urlData });
-            } catch (err) {
-              console.warn(`[Import] Erro ao importar device URL:`, err);
-            }
-          }
-        }
+    // Importar listas pelo MAC, nunca pelo ID antigo do dispositivo. Assim uma
+    // restauração em outro banco mantém cada lista no cliente correto.
+    const targetDevices = await db.select({ id: devices.id, mac: devices.mac }).from(devices).where(eq(devices.ownerId, ownerId));
+    const targetDeviceByMac = new Map(targetDevices.map((device) => [normalizeImportMac(device.mac), device.id]));
+    const targetDeviceIdBySourceId = new Map<number, number>();
+    for (const sourceDevice of backup.data?.devices ?? []) {
+      const targetDeviceId = targetDeviceByMac.get(normalizeImportMac(sourceDevice.mac));
+      if (targetDeviceId) targetDeviceIdBySourceId.set(Number(sourceDevice.id), targetDeviceId);
+    }
+    const incomingUrls = normalizeBackupDeviceUrls(backup.data?.deviceUrls, backup.data?.devices ?? []);
+    for (const url of incomingUrls) {
+      const targetDeviceId = targetDeviceByMac.get(normalizeImportMac(url.deviceMac));
+      if (!targetDeviceId) {
+        console.warn(`[Import] Lista ignorada: MAC de origem não encontrado (${url.deviceMac ?? "sem MAC"}).`);
+        continue;
+      }
+      const { id, deviceId, backupDeviceId, deviceMac, ...urlData } = url;
+      try {
+        const existingUrls = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, targetDeviceId));
+        const existing = existingUrls.find((item) => item.nome === urlData.nome && item.ordem === urlData.ordem);
+        if (existing) await db.update(deviceUrls).set(urlData).where(eq(deviceUrls.id, existing.id));
+        else await db.insert(deviceUrls).values({ ...urlData, deviceId: targetDeviceId });
+      } catch (err) {
+        console.warn(`[Import] Erro ao importar lista:`, err);
       }
     }
 
@@ -279,12 +352,50 @@ export async function importBackup(ownerId: number, backup: any) {
     // Importar Local Credentials
     if (backup.data?.localCredentials && Array.isArray(backup.data.localCredentials)) {
       for (const cred of backup.data.localCredentials) {
-        const { id, ...credData } = cred;
+        const { id, userId, ...credData } = cred;
+        const targetUserId = sourceUserIdMap.get(Number(userId));
+        if (!targetUserId) continue;
         try {
-          await db.insert(localCredentials).values(credData).onDuplicateKeyUpdate({ set: credData });
+          await db.insert(localCredentials).values({ ...credData, userId: targetUserId }).onDuplicateKeyUpdate({ set: { ...credData, userId: targetUserId } });
         } catch (err) {
           console.warn(`[Import] Erro ao importar Local Credential:`, err);
         }
+      }
+    }
+
+    if (Array.isArray(backup.data?.ultraPlayerConfig)) {
+      for (const config of backup.data.ultraPlayerConfig) {
+        const { id, ownerId: _ownerId, ...configData } = config;
+        await db.insert(ultraPlayerConfig).values({ ...configData, ownerId }).onDuplicateKeyUpdate({ set: configData });
+      }
+    }
+    if (Array.isArray(backup.data?.appCredentials)) {
+      for (const credential of backup.data.appCredentials) {
+        const { id, ownerId: _ownerId, deviceId, ...credentialData } = credential;
+        const targetDeviceId = targetDeviceIdBySourceId.get(Number(deviceId));
+        if (!targetDeviceId) continue;
+        await db.insert(appCredentials).values({ ...credentialData, ownerId, deviceId: targetDeviceId }).onDuplicateKeyUpdate({ set: { ...credentialData, ownerId, deviceId: targetDeviceId } });
+      }
+    }
+    if (Array.isArray(backup.data?.messageTemplates)) {
+      for (const template of backup.data.messageTemplates) {
+        const { id, ownerId: _ownerId, ...templateData } = template;
+        await db.insert(messageTemplates).values({ ...templateData, ownerId });
+      }
+    }
+    if (Array.isArray(backup.data?.resellerPermissions)) {
+      for (const permission of backup.data.resellerPermissions) {
+        const { id, resellerId, updatedBy, ...permissionData } = permission;
+        const targetResellerId = sourceUserIdMap.get(Number(resellerId));
+        const targetUpdatedBy = sourceUserIdMap.get(Number(updatedBy)) ?? ownerId;
+        if (!targetResellerId) continue;
+        await db.insert(resellerPermissions).values({ ...permissionData, resellerId: targetResellerId, updatedBy: targetUpdatedBy }).onDuplicateKeyUpdate({ set: { ...permissionData, updatedBy: targetUpdatedBy } });
+      }
+    }
+    if (Array.isArray(backup.data?.apps)) {
+      for (const app of backup.data.apps) {
+        const { id, ...appData } = app;
+        await db.insert(apps).values(appData);
       }
     }
 

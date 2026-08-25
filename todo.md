@@ -1216,3 +1216,11 @@
 ## Correção de Senha de Revenda (25/08/2026)
 - [x] Sincronizar a senha alterada pelo administrador com o login local de revenda
 - [x] Validar que a nova senha passa a autenticar imediatamente
+
+## Backup Completo e Proteção Semanal (25/08/2026)
+- [x] Confirmar que o exportador inclui usuários, MACs, dispositivos, listas, configurações e credenciais de login
+- [x] Adicionar botão visível para gerar e baixar backup completo sob demanda
+- [x] Adicionar aviso semanal de backup dentro do painel
+- [x] Definir cópias automáticas armazenadas e aviso semanal com download manual
+- [ ] Manter cópias automáticas armazenadas sem depender de o painel estar aberto
+- [x] Testar importação do arquivo sem apagar dados atuais antes da restauração
