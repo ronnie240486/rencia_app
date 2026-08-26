@@ -377,7 +377,9 @@ export default function UserEdit() {
                   <SelectItem value="Infinitus">Infinitus</SelectItem>
                   <SelectItem value="Supremus">Supremus</SelectItem>
                   <SelectItem value="Evolux">Evolux</SelectItem>
-                  <SelectItem value="Nexus">Nexus</SelectItem>
+                  <SelectItem value="Ominus">Ominus</SelectItem>
+                  <SelectItem value="Magnus">Magnus</SelectItem>
+                  <SelectItem value="Excellence">Excellence</SelectItem>
                   <SelectItem value="Outro">Outro aplicativo</SelectItem>
                 </SelectContent>
               </Select>

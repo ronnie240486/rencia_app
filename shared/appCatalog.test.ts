@@ -12,9 +12,13 @@ describe("catálogo de aplicativos do painel", () => {
     expect(APP_CONFIGURATION_FEATURES).toContain("updates");
   });
 
-  it("inclui os novos aplicativos no catálogo comum", async () => {
+  it("inclui as novas famílias sem quebrar Evolux e Nexus existentes", async () => {
     const { NEW_MANAGED_APP_IDS } = await import("./appCatalog");
-    expect(NEW_MANAGED_APP_IDS).toEqual(["prestige", "optimus", "imperio", "infinitus", "supremus", "evolux", "nexus"]);
+    expect(NEW_MANAGED_APP_IDS).toEqual(["prestige", "optimus", "imperio", "infinitus", "supremus", "evolux", "ominus", "magnus", "excellence", "nexus"]);
+    expect(MANAGED_APP_CATALOG.ominus.settingsRoute).toBe("/aplicativos/ominus");
+    expect(MANAGED_APP_CATALOG.magnus.deviceAliases).toContain("Magnus TV");
+    expect(MANAGED_APP_CATALOG.excellence.displayName).toBe("Excellence");
+    expect(MANAGED_APP_CATALOG.evolux.displayName).toBe("Evolux");
     expect(MANAGED_APP_CATALOG.nexus.deviceAliases).toContain("Nexus");
   });
 });

@@ -33,4 +33,14 @@ describe("loja pública de downloads", () => {
       version: "5.5.0",
     })]);
   });
+
+  it("expõe os novos aplicativos quando cada link de APK é configurado", () => {
+    const apps = buildPublicDownloadApps({
+      ominus_apk_download_url: "https://files.exemplo.com/ominus.apk",
+      magnus_apk_download_url: "https://files.exemplo.com/magnus.apk",
+      excellence_apk_download_url: "https://files.exemplo.com/excellence.apk",
+    });
+
+    expect(apps.map((app) => app.slug)).toEqual(["ominus", "magnus", "excellence"]);
+  });
 });

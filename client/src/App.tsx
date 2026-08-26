@@ -65,6 +65,9 @@ function Router() {
       <Route path="/n" component={PublicDownloads} />
       <Route path="/s" component={PublicDownloads} />
       <Route path="/e" component={PublicDownloads} />
+      <Route path="/om" component={PublicDownloads} />
+      <Route path="/g" component={PublicDownloads} />
+      <Route path="/ex" component={PublicDownloads} />
       <Route path="/loja" component={PublicDownloads} />
       <Route path="/baixar/:app" component={PublicDownloads} />
       <Route path="/baixar" component={PublicDownloads} />
@@ -123,7 +126,7 @@ function Router() {
 
 function App() {
   const [location] = useLocation();
-  const isPublicDownload = ["/d", "/o", "/u", "/m", "/p", "/x", "/i", "/n", "/s", "/e", "/loja"].includes(location) || location === "/baixar" || location.startsWith("/baixar/");
+  const isPublicDownload = ["/d", "/o", "/u", "/m", "/p", "/x", "/i", "/n", "/s", "/e", "/om", "/g", "/ex", "/loja"].includes(location) || location === "/baixar" || location.startsWith("/baixar/");
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light" switchable={true}>

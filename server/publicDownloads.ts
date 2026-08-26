@@ -1,4 +1,4 @@
-export type PublicAppSlug = "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux";
+export type PublicAppSlug = "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence";
 
 export interface PublicDownloadApp {
   slug: PublicAppSlug;
@@ -23,6 +23,9 @@ const FALLBACK_LOGOS: Record<PublicAppSlug, string> = {
   infinitus: "/manus-storage/infinitus_eee744db.webp",
   supremus: "/manus-storage/supremus_9e4e9049.jpg",
   evolux: "/manus-storage/evolux_7ea8a0fc.png",
+  ominus: "",
+  magnus: "",
+  excellence: "",
 };
 
 function safePublicUrl(value: string | undefined): string {
@@ -74,6 +77,9 @@ export function buildPublicDownloadApps(settings: Settings): PublicDownloadApp[]
     { slug: "infinitus", name: "Infinitus", accent: "indigo", fallbackDownload: settings.infinitus_apk_download_url, fallbackVersion: settings.infinitus_apk_version, fallbackLogo: settings.infinitus_logo_url },
     { slug: "supremus", name: "Supremus", accent: "pink", fallbackDownload: settings.supremus_apk_download_url, fallbackVersion: settings.supremus_apk_version, fallbackLogo: settings.supremus_logo_url },
     { slug: "evolux", name: "Evolux", accent: "cyan", fallbackDownload: settings.evolux_apk_download_url, fallbackVersion: settings.evolux_apk_version, fallbackLogo: settings.evolux_logo_url },
+    { slug: "ominus", name: "Ominus", accent: "indigo", fallbackDownload: settings.ominus_apk_download_url, fallbackVersion: settings.ominus_apk_version, fallbackLogo: settings.ominus_logo_url },
+    { slug: "magnus", name: "Magnus", accent: "orange", fallbackDownload: settings.magnus_apk_download_url, fallbackVersion: settings.magnus_apk_version, fallbackLogo: settings.magnus_logo_url },
+    { slug: "excellence", name: "Excellence", accent: "violet", fallbackDownload: settings.excellence_apk_download_url, fallbackVersion: settings.excellence_apk_version, fallbackLogo: settings.excellence_logo_url },
   ];
 
   return definitions.flatMap((definition) => {

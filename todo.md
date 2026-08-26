@@ -1245,3 +1245,15 @@
 - [x] Confirmar o MAC e a ausência de cadastro existente
 - [x] Cadastrar o PrimeX no Prestige com acesso somente por MAC
 - [x] Validar a rota Prestige para o MAC cadastrado
+
+## Diagnóstico do Magnus TV (25/08/2026)
+- [x] Conferir se o MAC exibido possui cadastro ou listas vinculadas
+- [x] Identificar a rota ou família necessária para o Magnus TV consultar o painel
+- [x] Informar a correção necessária antes de criar ou alterar qualquer cadastro
+
+## Catálogo de Aplicativos Ominus, Magnus e Excellence (25/08/2026)
+- [x] Mapear referências do Nexus e preservar seus clientes cadastrados
+- [x] Adicionar Ominus, Magnus e Excellence ao catálogo e às rotas próprias
+- [x] Exibir os três aplicativos no cadastro e nas configurações do painel
+- [x] Remover apenas Nexus das opções para novos cadastros sem apagar dados existentes
+- [x] Testar o catálogo, as telas e as rotas dos três novos aplicativos

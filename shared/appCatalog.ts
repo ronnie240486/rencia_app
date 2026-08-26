@@ -1,4 +1,4 @@
-export type ManagedAppId = "ouropro" | "fusion" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "nexus";
+export type ManagedAppId = "ouropro" | "fusion" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence" | "nexus";
 
 export const APP_CONFIGURATION_FEATURES = [
   "logo", "banner", "background", "message", "content_icons", "playlist", "mac_integration", "updates",
@@ -77,6 +77,30 @@ export const MANAGED_APP_CATALOG = {
     deviceAliases: ["Evolux"],
     defaultLogoUrl: "/manus-storage/evolux_7ea8a0fc.png",
   },
+  ominus: {
+    id: "ominus",
+    displayName: "Ominus",
+    settingsRoute: "/aplicativos/ominus",
+    publicSlug: "ominus",
+    deviceAliases: ["Ominus"],
+    defaultLogoUrl: "",
+  },
+  magnus: {
+    id: "magnus",
+    displayName: "Magnus",
+    settingsRoute: "/aplicativos/magnus",
+    publicSlug: "magnus",
+    deviceAliases: ["Magnus", "Magnus TV"],
+    defaultLogoUrl: "",
+  },
+  excellence: {
+    id: "excellence",
+    displayName: "Excellence",
+    settingsRoute: "/aplicativos/excellence",
+    publicSlug: "excellence",
+    deviceAliases: ["Excellence"],
+    defaultLogoUrl: "",
+  },
   nexus: {
     id: "nexus",
     displayName: "Nexus",
@@ -87,7 +111,7 @@ export const MANAGED_APP_CATALOG = {
   },
 } as const;
 
-export const NEW_MANAGED_APP_IDS: ManagedAppId[] = ["prestige", "optimus", "imperio", "infinitus", "supremus", "evolux", "nexus"];
+export const NEW_MANAGED_APP_IDS: ManagedAppId[] = ["prestige", "optimus", "imperio", "infinitus", "supremus", "evolux", "ominus", "magnus", "excellence", "nexus"];
 
 export function isManagedAppId(value: string): value is ManagedAppId {
   return Object.prototype.hasOwnProperty.call(MANAGED_APP_CATALOG, value);

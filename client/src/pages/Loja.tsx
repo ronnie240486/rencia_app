@@ -12,7 +12,7 @@ import { trpc } from "@/lib/trpc";
 import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
 import { PUBLIC_STORE_URL } from "@shared/publicStore";
 
-type PublicSlug = "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux";
+type PublicSlug = "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence";
 
 const PUBLIC_SHORT_PATHS: Record<PublicSlug, string> = {
   ouropro: "/o",
@@ -24,6 +24,9 @@ const PUBLIC_SHORT_PATHS: Record<PublicSlug, string> = {
   infinitus: "/n",
   supremus: "/s",
   evolux: "/e",
+  ominus: "/om",
+  magnus: "/g",
+  excellence: "/ex",
 };
 
 interface AppConfig {
@@ -43,6 +46,9 @@ const APPS: AppConfig[] = [
   { name: "Infinitus", logo: MANAGED_APP_CATALOG.infinitus.defaultLogoUrl, color: "indigo", publicSlug: "infinitus" },
   { name: "Supremus", logo: MANAGED_APP_CATALOG.supremus.defaultLogoUrl, color: "pink", publicSlug: "supremus" },
   { name: "Evolux", logo: MANAGED_APP_CATALOG.evolux.defaultLogoUrl, color: "cyan", publicSlug: "evolux" },
+  { name: "Ominus", logo: MANAGED_APP_CATALOG.ominus.defaultLogoUrl, color: "indigo", publicSlug: "ominus" },
+  { name: "Magnus", logo: MANAGED_APP_CATALOG.magnus.defaultLogoUrl, color: "orange", publicSlug: "magnus" },
+  { name: "Excellence", logo: MANAGED_APP_CATALOG.excellence.defaultLogoUrl, color: "purple", publicSlug: "excellence" },
 ];
 
 function fallbackDownload(settings: Record<string, string> | undefined, slug: PublicSlug) {
@@ -54,6 +60,9 @@ function fallbackDownload(settings: Record<string, string> | undefined, slug: Pu
   if (slug === "infinitus") return settings?.infinitus_apk_download_url || "";
   if (slug === "supremus") return settings?.supremus_apk_download_url || "";
   if (slug === "evolux") return settings?.evolux_apk_download_url || "";
+  if (slug === "ominus") return settings?.ominus_apk_download_url || "";
+  if (slug === "magnus") return settings?.magnus_apk_download_url || "";
+  if (slug === "excellence") return settings?.excellence_apk_download_url || "";
   return settings?.maximus_download_url || settings?.gpcpro_apk_download_url || "";
 }
 
@@ -66,6 +75,9 @@ function fallbackVersion(settings: Record<string, string> | undefined, slug: Pub
   if (slug === "infinitus") return settings?.infinitus_apk_version || "";
   if (slug === "supremus") return settings?.supremus_apk_version || "";
   if (slug === "evolux") return settings?.evolux_apk_version || "";
+  if (slug === "ominus") return settings?.ominus_apk_version || "";
+  if (slug === "magnus") return settings?.magnus_apk_version || "";
+  if (slug === "excellence") return settings?.excellence_apk_version || "";
   return settings?.maximus_version || settings?.gpcpro_apk_version || "";
 }
 
