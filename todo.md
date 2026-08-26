@@ -1257,3 +1257,9 @@
 - [x] Exibir os três aplicativos no cadastro e nas configurações do painel
 - [x] Remover apenas Nexus das opções para novos cadastros sem apagar dados existentes
 - [x] Testar o catálogo, as telas e as rotas dos três novos aplicativos
+
+## Diagnóstico da Troca Automática de Lista do Ouro Pro (25/08/2026)
+- [x] Identificar o cliente afetado, a lista principal e as listas de reserva
+- [x] Conferir registros de falha, failover e comunicação do APK com o painel
+- [x] Corrigir somente a causa confirmada sem alterar listas válidas
+- [ ] Validar a troca automática e o retorno recebido pelo APK
