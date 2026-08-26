@@ -1263,3 +1263,13 @@
 - [x] Conferir registros de falha, failover e comunicação do APK com o painel
 - [x] Corrigir somente a causa confirmada sem alterar listas válidas
 - [ ] Validar a troca automática e o retorno recebido pelo APK
+
+## Diagnóstico de MAC Compartilhado entre Aplicativos (25/08/2026)
+- [x] Conferir cadastros e rotas de Magnus, Ominus e Excellence sem alterar dados
+- [x] Rastrear a origem do MAC exibido pelos APKs
+- [x] Corrigir apenas a causa confirmada e validar a separação
+
+## Aplicativo Correto em Assistindo (25/08/2026)
+- [x] Mapear a rota de atividade e a seleção do cadastro pelo MAC
+- [x] Selecionar o cadastro compatível com o aplicativo que enviou a atividade
+- [x] Testar o mesmo MAC em aplicativos distintos sem misturar a atividade

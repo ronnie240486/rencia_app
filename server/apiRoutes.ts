@@ -43,6 +43,7 @@ import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistrati
 import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
+import { selectActivityDevice } from "./activityDeviceSelection";
 import { comparePassword } from "./auth";
 import { isLoginAccessAllowed, resolveLoginMacBinding } from "./appLogin";
 import { canAccessResellerPortal, chooseResellerPortalAccount } from "./resellerPortal";
@@ -1866,6 +1867,7 @@ export function registerApiRoutes(app: Express) {
       let macAddress: string | null = null;
       let currentContent: string | null = null;
       let reportedAppVersion: string | null = body ? String(body.app_version ?? body.appVersion ?? body.version ?? "").trim().slice(0, 64) || null : null;
+      let reportedAppId: string | null = body ? String(body.app_id ?? body.appId ?? body.app ?? body.application ?? body.app_type ?? "").trim() || null : null;
 
       // Formato 1: { mac, content } — plain JSON
       if (body && body.mac) {
@@ -1886,6 +1888,7 @@ export function registerApiRoutes(app: Express) {
               || (parsed.current_content as string)
               || null;
             reportedAppVersion = String(parsed.app_version ?? parsed.appVersion ?? parsed.version_name ?? parsed.version ?? reportedAppVersion ?? "").trim().slice(0, 64) || null;
+            reportedAppId = String(parsed.app_id ?? parsed.appId ?? parsed.app ?? parsed.application ?? parsed.app_type ?? reportedAppId ?? "").trim() || null;
           }
         } catch { /* ignora */ }
       }
@@ -1895,6 +1898,7 @@ export function registerApiRoutes(app: Express) {
         macAddress = String(req.query.mac).trim().toUpperCase();
         currentContent = req.query.content ? String(req.query.content).trim() : null;
       }
+      if (!reportedAppId) reportedAppId = String(req.query.app_id ?? req.query.appId ?? req.query.app ?? req.query.application ?? "").trim() || null;
 
       if (!macAddress) {
         res.status(400).json({ ok: false, error: "mac obrigatório" });
@@ -1917,19 +1921,32 @@ export function registerApiRoutes(app: Express) {
       if (currentContent) updateSet.currentContent = currentContent;
       if (reportedAppVersion) updateSet.appVersion = reportedAppVersion;
 
-      // Atualizar por MAC exato ou normalizado
-      await db
-        .update(devices)
-        .set(updateSet)
-        .where(or(
+      const sameMacRows = await db.select().from(devices).where(or(
+        eq(devices.mac, formattedMac),
+        eq(devices.mac, macAddress),
+      ));
+      const activityDevice = selectActivityDevice(sameMacRows, reportedAppId);
+      if (reportedAppId && !activityDevice) {
+        res.status(403).json({ ok: false, error: "MAC não vinculado ao aplicativo informado" });
+        return;
+      }
+
+      // APKs atualizados enviam app/app_id: assim somente o cadastro daquele
+      // aplicativo recebe o status Assistindo, mesmo com o mesmo MAC físico.
+      if (activityDevice) {
+        await db.update(devices).set(updateSet).where(eq(devices.id, activityDevice.id));
+      } else {
+        // Compatibilidade temporária para APKs antigos que ainda não informam o app.
+        await db.update(devices).set(updateSet).where(or(
           eq(devices.mac, formattedMac),
-          eq(devices.mac, macAddress)
+          eq(devices.mac, macAddress),
         ));
+      }
 
       console.log(`[HEARTBEAT] MAC=${formattedMac} content=${currentContent ?? "(none)"}`);
       console.log(`[HEARTBEAT] Body:`, JSON.stringify(body));
       console.log(`[HEARTBEAT] Query:`, JSON.stringify(req.query));
-      res.json({ ok: true, mac: formattedMac, content: currentContent });
+      res.json({ ok: true, mac: formattedMac, content: currentContent, app: activityDevice?.app ?? null });
     } catch (error) {
       console.error("[API] /api/v4/heartbeat.php error:", error);
       res.status(500).json({ ok: false, error: "Erro interno" });
@@ -4352,6 +4369,7 @@ export function registerApiRoutes(app: Express) {
     try {
       const db = await getDb();
       const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : "";
+      const reportedAppId = String(req.query.app_id ?? req.query.appId ?? req.query.app ?? req.query.application ?? "").trim() || null;
       if (!mac) {
         res.json({ success: false, message: 'MAC nao fornecido' });
         return;
@@ -4369,11 +4387,25 @@ export function registerApiRoutes(app: Express) {
         };
         if (currentContent) updateData.currentContent = currentContent;
 
-        await db.update(devices).set(updateData).where(or(
+        const sameMacRows = await db.select().from(devices).where(or(
           eq(devices.mac, mac),
           eq(devices.mac, mac.toLowerCase()),
           eq(devices.mac, mac.toUpperCase()),
         ));
+        const activityDevice = selectActivityDevice(sameMacRows, reportedAppId);
+        if (reportedAppId && !activityDevice) {
+          res.status(403).json({ success: false, message: "MAC não vinculado ao aplicativo informado" });
+          return;
+        }
+        if (activityDevice) {
+          await db.update(devices).set(updateData).where(eq(devices.id, activityDevice.id));
+        } else {
+          await db.update(devices).set(updateData).where(or(
+            eq(devices.mac, mac),
+            eq(devices.mac, mac.toLowerCase()),
+            eq(devices.mac, mac.toUpperCase()),
+          ));
+        }
       }
 
       const remote = db ? await claimRemoteCommandForMac(db, mac) : { command: null };
@@ -4620,6 +4652,7 @@ export function registerApiRoutes(app: Express) {
       }
 
       const mac = req.query.mac ? String(req.query.mac).trim() : null;
+      const reportedAppId = String(req.query.app_id ?? req.query.appId ?? req.query.app ?? req.query.application ?? "").trim() || null;
       if (!mac) {
         res.json({ content: '', lastSeen: '', registered: false, error: 'mac required' });
         return;
@@ -4637,15 +4670,14 @@ export function registerApiRoutes(app: Express) {
           eq(devices.mac, macWithColons),
           eq(devices.mac, macNormalized),
           eq(devices.mac, mac),
-        ))
-        .limit(1);
+        ));
 
-      if (result.length === 0) {
+      const device = selectActivityDevice(result, reportedAppId) ?? (reportedAppId ? undefined : result[0]);
+      if (!device) {
         res.json({ content: '', mac: macWithColons, lastSeen: '', registered: false });
         return;
       }
 
-      const device = result[0];
       res.json({
         content: safeApkText(device.currentContent),
         mac: device.mac,
@@ -4677,6 +4709,7 @@ export function registerApiRoutes(app: Express) {
       }
 
       const { mac, currentContent } = req.body;
+      const reportedAppId = String(req.body?.app_id ?? req.body?.appId ?? req.body?.app ?? req.body?.application ?? "").trim() || null;
       if (!mac) {
         res.status(400).json({ success: false, error: 'mac required' });
         return;
@@ -4695,10 +4728,10 @@ export function registerApiRoutes(app: Express) {
           eq(devices.mac, macWithColons),
           eq(devices.mac, macNormalized),
           eq(devices.mac, mac),
-        ))
-        .limit(1);
+        ));
 
-      if (result.length === 0) {
+      const device = selectActivityDevice(result, reportedAppId) ?? (reportedAppId ? undefined : result[0]);
+      if (!device) {
         res.status(404).json({ success: false, error: 'device not found', mac: macWithColons });
         return;
       }
@@ -4706,11 +4739,12 @@ export function registerApiRoutes(app: Express) {
       // Atualizar currentContent
       await db.update(devices)
         .set({ currentContent: currentContent || null })
-        .where(eq(devices.id, result[0].id));
+        .where(eq(devices.id, device.id));
 
       res.json({
         success: true,
-        mac: result[0].mac,
+        mac: device.mac,
+        app: device.app,
         currentContent: currentContent || null,
         updated: new Date().toISOString(),
       });
