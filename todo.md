@@ -1283,3 +1283,8 @@
 - [x] Exibir logo e nome em cada opção de APK no cadastro de usuários
 - [x] Aplicar a mesma apresentação na edição de usuários
 - [x] Conferir visualmente Ouro Pro e os demais aplicativos no seletor
+
+## Correção de Exibição do Logo Optimus (25/08/2026)
+- [x] Identificar por que loja e ranking não mostram o logo enviado
+- [x] Aplicar o logo enviado nas telas visíveis da loja e do ranking
+- [x] Validar visualmente o logo nas duas telas antes de entregar
