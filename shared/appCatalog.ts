@@ -27,7 +27,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/gpcpro",
     publicSlug: "maximus",
     deviceAliases: ["Maximus", "Maximus Player"],
-    defaultLogoUrl: "/manus-storage/maximus-player_0f899c06.png",
+    defaultLogoUrl: "/manus-storage/maximus-logo-20260827_4590e4b0.jpg",
   },
   prestige: {
     id: "prestige",
@@ -75,7 +75,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/evolux",
     publicSlug: "evolux",
     deviceAliases: ["Evolux"],
-    defaultLogoUrl: "/manus-storage/evolux_7ea8a0fc.png",
+    defaultLogoUrl: "/manus-storage/evolux-logo-20260827_48de561d.jpg",
   },
   ominus: {
     id: "ominus",
@@ -83,7 +83,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/ominus",
     publicSlug: "ominus",
     deviceAliases: ["Ominus"],
-    defaultLogoUrl: "",
+    defaultLogoUrl: "/manus-storage/ominus-logo-20260827_e24d6cd3.jpg",
   },
   magnus: {
     id: "magnus",
@@ -91,7 +91,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/magnus",
     publicSlug: "magnus",
     deviceAliases: ["Magnus", "Magnus TV"],
-    defaultLogoUrl: "",
+    defaultLogoUrl: "/manus-storage/magnus-logo-20260827_850f6f6f.jpg",
   },
   excellence: {
     id: "excellence",

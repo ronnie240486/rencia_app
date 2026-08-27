@@ -1312,3 +1312,9 @@
 - [x] Preparar o logo enviado para uso no painel
 - [x] Aplicar o logo Infinitus na loja, ranking, cadastro e configurações
 - [x] Validar visualmente o logo Infinitus nas telas internas
+
+## Logos Ominus, Magnus, Evolux e Maximus (25/08/2026)
+- [x] Preparar os quatro logos enviados para uso no painel
+- [x] Aplicar os logos Ominus, Magnus, Evolux e Maximus na loja, ranking, cadastro e configurações
+- [x] Validar visualmente os quatro logos nas telas internas
+- [x] Incluir Ominus e Magnus no ranking mesmo quando ainda não houver clientes cadastrados

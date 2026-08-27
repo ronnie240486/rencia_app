@@ -11,6 +11,10 @@ describe("catálogo de aplicativos do painel", () => {
     expect(MANAGED_APP_CATALOG.fusion.displayName).toBe("Fusion");
     expect(APP_CONFIGURATION_FEATURES).toContain("updates");
     expect(MANAGED_APP_CATALOG.infinitus.defaultLogoUrl).toBe("/manus-storage/infinitus-logo-20260827_4434c640.jpg");
+    expect(MANAGED_APP_CATALOG.ominus.defaultLogoUrl).toBe("/manus-storage/ominus-logo-20260827_e24d6cd3.jpg");
+    expect(MANAGED_APP_CATALOG.magnus.defaultLogoUrl).toBe("/manus-storage/magnus-logo-20260827_850f6f6f.jpg");
+    expect(MANAGED_APP_CATALOG.evolux.defaultLogoUrl).toBe("/manus-storage/evolux-logo-20260827_48de561d.jpg");
+    expect(MANAGED_APP_CATALOG.maximus.defaultLogoUrl).toBe("/manus-storage/maximus-logo-20260827_4590e4b0.jpg");
   });
 
   it("inclui as novas famílias sem quebrar Evolux e Nexus existentes", async () => {
