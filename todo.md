@@ -1339,3 +1339,9 @@
 - [x] Retornar autorização ou bloqueio pela rota de heartbeat dos APKs
 - [x] Exibir sessões reais por cliente na Central de Sessões
 - [x] Testar a integração de sessões e documentar a rota para os APKs
+
+## Ordem dos botões da lista de clientes (25/08/2026)
+- [x] Colocar o botão 360° como primeira ação do cliente
+- [x] Colocar a exclusão logo após o botão 360° e preservar as demais ações
+- [x] Validar a nova ordem no computador e no celular
+- [x] Aplicar a mesma sequência de ações nos cartões de clientes do celular

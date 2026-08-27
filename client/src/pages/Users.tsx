@@ -343,10 +343,12 @@ export default function Users() {
                   <p className="mt-2 text-xs text-muted-foreground">{device.app || "Aplicativo não informado"} · Vence: {formatDate(device.dataExpiracao)}</p>
                 </div>
               </div>
-              <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3">
-                <Link href={`/users/${device.id}/edit`}><Button size="sm" variant="outline" className="w-full gap-1"><Pencil className="h-3.5 w-3.5" /> Editar</Button></Link>
-                <Link href={`/users/${device.id}/lists`}><Button size="sm" variant="outline" className="w-full gap-1"><List className="h-3.5 w-3.5" /> Listas</Button></Link>
+              <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-3">
+                <Link href={`/cliente/${device.id}`}><Button size="sm" variant="outline" className="w-full gap-1">360°</Button></Link>
+                <Button size="sm" variant="destructive" className="w-full gap-1" onClick={() => setDeleteId(device.id)}><Trash2 className="h-3.5 w-3.5" /> Excluir</Button>
                 <Button size="sm" variant={device.status === "Bloqueado" ? "outline" : "destructive"} className="w-full gap-1" disabled={updateStatusMutation.isPending} onClick={() => updateStatusMutation.mutate({ id: device.id, status: device.status === "Bloqueado" ? "Liberado" : "Bloqueado" })}>{device.status === "Bloqueado" ? <UnlockKeyhole className="h-3.5 w-3.5" /> : <LockKeyhole className="h-3.5 w-3.5" />}{device.status === "Bloqueado" ? "Liberar" : "Bloquear"}</Button>
+                <Link href={`/users/${device.id}/edit`}><Button size="sm" variant="outline" className="w-full gap-1"><Pencil className="h-3.5 w-3.5" /> Editar</Button></Link>
+                <Link href={`/users/${device.id}/lists`} className="col-span-2"><Button size="sm" variant="outline" className="w-full gap-1"><List className="h-3.5 w-3.5" /> Listas</Button></Link>
               </div>
             </div>
           ))}
@@ -415,6 +417,11 @@ export default function Users() {
                       <TableCell className="text-xs">{formatDate(d.dataExpiracao)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Link href={`/cliente/${d.id}`}>
+                            <Button size="sm" variant="outline" className="h-7 px-2 text-[10px]" title="Ficha 360°">
+                              360°
+                            </Button>
+                          </Link>
                           <Button
                             size="sm"
                             variant="destructive"
@@ -437,11 +444,6 @@ export default function Users() {
                           <Link href={`/users/${d.id}/edit`}>
                             <Button size="sm" className="h-7 w-7 p-0 bg-blue-500 hover:bg-blue-600" title="Editar">
                               <Pencil className="w-3 h-3" />
-                            </Button>
-                          </Link>
-                          <Link href={`/cliente/${d.id}`}>
-                            <Button size="sm" variant="outline" className="h-7 px-2 text-[10px]" title="Ficha 360°">
-                              360°
                             </Button>
                           </Link>
                           <Link href={`/users/${d.id}/lists`}>
