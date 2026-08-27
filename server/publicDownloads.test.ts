@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildPublicDownloadApps } from "./publicDownloads";
 
 describe("loja pública de downloads", () => {
-  it("expõe apenas aplicativos ativos com URL segura", () => {
+  it("mantém o catálogo público e só libera download com URL segura", () => {
     const apps = buildPublicDownloadApps({
       public_ouropro_download_url: "https://downloads.exemplo.com/ouropro.apk",
       public_ouropro_version: "7.1.0",
@@ -11,8 +11,10 @@ describe("loja pública de downloads", () => {
       public_maximus_active: "false",
     });
 
-    expect(apps).toHaveLength(1);
-    expect(apps[0]).toMatchObject({ slug: "ouropro", version: "7.1.0" });
+    expect(apps).toHaveLength(11);
+    expect(apps.find((app) => app.slug === "ouropro")).toMatchObject({ version: "7.1.0", isAvailable: true });
+    expect(apps.find((app) => app.slug === "ultra")).toMatchObject({ isAvailable: false });
+    expect(apps.find((app) => app.slug === "maximus")).toBeUndefined();
   });
 
   it("usa a configuração já existente do OuroPro como fallback", () => {
@@ -26,12 +28,12 @@ describe("loja pública de downloads", () => {
       imperio_apk_version: "5.5.0",
     });
 
-    expect(apps).toEqual([expect.objectContaining({
+    expect(apps).toEqual(expect.arrayContaining([expect.objectContaining({
       slug: "imperio",
       name: "Império Play",
       downloadUrl: "https://files.exemplo.com/imperio-play.apk",
       version: "5.5.0",
-    })]);
+    })]));
   });
 
   it("usa o logo configurado do Infinitus", () => {
@@ -40,10 +42,10 @@ describe("loja pública de downloads", () => {
       infinitus_logo_url: "/manus-storage/infinitus-logo-20260827_4434c640.jpg",
     });
 
-    expect(apps).toEqual([expect.objectContaining({
+    expect(apps).toEqual(expect.arrayContaining([expect.objectContaining({
       slug: "infinitus",
       logoUrl: "/manus-storage/infinitus-logo-20260827_4434c640.jpg",
-    })]);
+    })]));
   });
 
   it("expõe os novos aplicativos quando cada link de APK é configurado", () => {
@@ -53,6 +55,6 @@ describe("loja pública de downloads", () => {
       excellence_apk_download_url: "https://files.exemplo.com/excellence.apk",
     });
 
-    expect(apps.map((app) => app.slug)).toEqual(["ominus", "magnus", "excellence"]);
+    expect(apps.filter((app) => app.isAvailable).map((app) => app.slug)).toEqual(["ominus", "magnus", "excellence"]);
   });
 });

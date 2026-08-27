@@ -8,6 +8,7 @@ type DownloadApp = {
   name: string;
   version: string;
   downloadUrl: string;
+  isAvailable: boolean;
   downloaderCode: string;
   aftvUrl: string;
   logoUrl: string;
@@ -45,24 +46,24 @@ const APP_SHOWCASES: Partial<Record<DownloadApp["slug"], { title: string; images
   ouropro: {
     title: "Conheça o Ouro Pro",
     images: [
-      { url: "/manus-storage/03-inicio_579dda8d.webp", label: "Tela inicial" },
-      { url: "/manus-storage/02-canais_4f59d933.webp", label: "Canais ao vivo" },
-      { url: "/manus-storage/05-filmes_e4a96396.webp", label: "Filmes" },
-      { url: "/manus-storage/04-radios_35e9e2b4.webp", label: "Rádios" },
-      { url: "/manus-storage/01-configuracoes_14ff9f34.webp", label: "Configurações" },
+      { url: "/manus-storage/ouropro-inicio_e0a1fb17.webp", label: "Tela inicial" },
+      { url: "/manus-storage/ouropro-canais_83fdcdda.webp", label: "Canais ao vivo" },
+      { url: "/manus-storage/ouropro-filmes_bb4bec8a.webp", label: "Filmes" },
+      { url: "/manus-storage/ouropro-radios_e8f80b3f.webp", label: "Rádios" },
+      { url: "/manus-storage/ouropro-configuracoes_7b6389d8.webp", label: "Configurações" },
     ],
   },
   imperio: {
     title: "Conheça o Império Play",
     images: [
-      { url: "/manus-storage/inicio_6c8f5a8a.webp", label: "Tela inicial" },
-      { url: "/manus-storage/carregamento_622c7c52.webp", label: "Carregamento" },
-      { url: "/manus-storage/canais_300b3ebd.webp", label: "Canais" },
-      { url: "/manus-storage/filmes_ecdc5436.webp", label: "Filmes" },
-      { url: "/manus-storage/kids_0ccd0621.webp", label: "Conteúdo infantil" },
-      { url: "/manus-storage/jogos_9e4301b9.webp", label: "Jogos do dia" },
-      { url: "/manus-storage/conta_c84226b9.webp", label: "Conta" },
-      { url: "/manus-storage/acesso_39d59359.webp", label: "Acesso autorizado" },
+      { url: "/manus-storage/imperio-inicio_fa65d45d.webp", label: "Tela inicial" },
+      { url: "/manus-storage/imperio-carregamento_144f6a66.webp", label: "Carregamento" },
+      { url: "/manus-storage/imperio-canais_c79fa12c.webp", label: "Canais" },
+      { url: "/manus-storage/imperio-filmes_5932843c.webp", label: "Filmes" },
+      { url: "/manus-storage/imperio-infantil_e43e1784.webp", label: "Conteúdo infantil" },
+      { url: "/manus-storage/imperio-jogos_a4a42d0f.webp", label: "Jogos do dia" },
+      { url: "/manus-storage/imperio-conta_96620a9a.webp", label: "Conta" },
+      { url: "/manus-storage/imperio-acesso_bb919af9.webp", label: "Acesso autorizado" },
     ],
   },
 };
@@ -128,9 +129,9 @@ export default function PublicDownloads() {
           <div className={`h-2 bg-gradient-to-r ${ACCENT[app.accent]}`} />
           <div className={allAppsStore ? "flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8" : "p-6 sm:p-8"}>
             <div className={allAppsStore ? "flex items-center gap-4" : "flex items-center gap-4"}><AppLogo app={app} /><div><h2 className="text-xl font-bold">{app.name}</h2><p className="mt-1 text-sm text-slate-400">{app.version}</p></div></div>
-            {app.downloaderCode && <div className="rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-center"><p className="text-[10px] font-bold uppercase tracking-wider text-amber-200">Código Downloader</p><p className="mt-1 text-xl font-black tracking-[.12em] text-amber-300">{app.downloaderCode}</p></div>}
+            <div className="rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-center"><p className="text-[10px] font-bold uppercase tracking-wider text-amber-200">Código Downloader</p><p className="mt-1 text-xl font-black tracking-[.12em] text-amber-300">{app.downloaderCode || "EM BREVE"}</p></div>
             {app.aftvUrl && <a href={app.aftvUrl} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-sky-300/30 bg-sky-400/10 px-4 py-3 text-center text-sm font-bold text-sky-200 hover:bg-sky-400/20">Abrir link AFTV</a>}
-            <a href={app.downloadUrl} target="_blank" rel="noopener noreferrer" className={`${allAppsStore ? "sm:min-w-56" : "mt-7"} flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r ${ACCENT[app.accent]} px-5 text-base font-black text-slate-950 shadow-lg transition-transform hover:scale-[1.02]`}><Download size={20} /> BAIXAR AGORA</a>
+            {app.isAvailable ? <a href={app.downloadUrl} target="_blank" rel="noopener noreferrer" className={`${allAppsStore ? "sm:min-w-56" : "mt-7"} flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r ${ACCENT[app.accent]} px-5 text-base font-black text-slate-950 shadow-lg transition-transform hover:scale-[1.02]`}><Download size={20} /> BAIXAR AGORA</a> : <div className={`${allAppsStore ? "sm:min-w-56" : "mt-7"} flex min-h-14 flex-col items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 text-center text-xs font-bold uppercase tracking-wide text-slate-300`}><span>Download em breve</span><span className="mt-1 text-[10px] font-medium normal-case tracking-normal text-slate-500">Aguardando código do Downloader</span></div>}
             {!allAppsStore && <div className="mt-6 space-y-3 text-xs text-slate-400"><p className="flex gap-2"><ShieldCheck size={16} className="shrink-0 text-emerald-400" />Baixe somente pelo link enviado pelo seu revendedor.</p><p className="flex gap-2"><Smartphone size={16} className="shrink-0 text-amber-300" />Se o Android solicitar, permita a instalação do aplicativo baixado.</p></div>}
           </div>
           <AppShowcase app={app} />

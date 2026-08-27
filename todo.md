@@ -1352,3 +1352,13 @@
 - [x] Após cadastrar o primeiro cliente, oferecer ação para adicionar outra lista ao mesmo cliente
 - [x] Permitir repetir a adição de listas sem substituir listas já cadastradas
 - [x] Validar o novo fluxo no computador e no celular
+
+## Loja pública de aplicativos (25/08/2026)
+- [x] Mapear links de download e códigos Downloader já configurados para todos os aplicativos
+- [x] Aplicar o visual da loja enviada na página pública de downloads
+- [x] Importar Ouro Pro, Fusion e Império Play com os downloads e códigos confirmados na loja enviada
+- [x] Exibir todos os aplicativos que tiverem download configurado, com logo, versão e código Downloader
+- [x] Manter os aplicativos sem código como pendentes, sem inventar links ou IDs
+- [x] Restaurar as imagens de apresentação de Ouro Pro e Império Play que aparecem vazias na loja
+- [x] Validar loja pública em computador e celular
+- [ ] Configurar os links e códigos Downloader reais de Maximus, Prestige, Optimus, Infinitus, Supreme, Evolux, Ominus, Magnus e Excellence quando forem enviados

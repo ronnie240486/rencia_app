@@ -5,6 +5,7 @@ export interface PublicDownloadApp {
   name: string;
   version: string;
   downloadUrl: string;
+  isAvailable: boolean;
   downloaderCode: string;
   aftvUrl: string;
   logoUrl: string;
@@ -40,9 +41,9 @@ function safePublicUrl(value: string | undefined): string {
   }
 }
 
-/** Constrói somente os aplicativos que podem ser exibidos sem autenticação. */
+/** Constrói o catálogo público sem inventar links ou códigos que ainda não foram configurados. */
 export function buildPublicDownloadApps(settings: Settings): PublicDownloadApp[] {
-  const definitions: Array<Omit<PublicDownloadApp, "version" | "downloadUrl" | "downloaderCode" | "aftvUrl" | "logoUrl"> & {
+  const definitions: Array<Omit<PublicDownloadApp, "version" | "downloadUrl" | "isAvailable" | "downloaderCode" | "aftvUrl" | "logoUrl"> & {
     fallbackDownload?: string;
     fallbackVersion?: string;
     fallbackLogo?: string;
@@ -85,13 +86,13 @@ export function buildPublicDownloadApps(settings: Settings): PublicDownloadApp[]
   return definitions.flatMap((definition) => {
     if (settings[`public_${definition.slug}_active`] === "false") return [];
     const downloadUrl = safePublicUrl(settings[`public_${definition.slug}_download_url`] || definition.fallbackDownload);
-    if (!downloadUrl) return [];
     return [{
       slug: definition.slug,
       name: definition.name,
       accent: definition.accent,
       version: (settings[`public_${definition.slug}_version`] || definition.fallbackVersion || "Versão atual").trim(),
       downloadUrl,
+      isAvailable: Boolean(downloadUrl),
       downloaderCode: (settings[`public_${definition.slug}_downloader_code`] || "").trim(),
       aftvUrl: safePublicUrl(settings[`public_${definition.slug}_aftv_url`]),
       logoUrl: safePublicUrl(settings[`public_${definition.slug}_logo_url`] || definition.fallbackLogo) || FALLBACK_LOGOS[definition.slug],
