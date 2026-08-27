@@ -533,7 +533,7 @@ export default function Users() {
                 <option value="Optimus">Optimus</option>
                 <option value="Império Play">Império Play</option>
                 <option value="Infinitus">Infinitus</option>
-                <option value="Supremus">Supremus</option>
+                <option value="Supremus">Supreme</option>
                 <option value="Evolux">Evolux</option>
                 <option value="Ominus">Ominus</option>
                 <option value="Magnus">Magnus</option>

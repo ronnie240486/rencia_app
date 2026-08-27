@@ -61,7 +61,7 @@ export default function RankingApps() {
       { name: "Optimus", logo: MANAGED_APP_CATALOG.optimus.defaultLogoUrl, color: "cyan", users: appCounts['Optimus'] || 0 },
       { name: "Império Play", logo: MANAGED_APP_CATALOG.imperio.defaultLogoUrl, color: "yellow", users: appCounts['Império Play'] || 0 },
       { name: "Infinitus", logo: MANAGED_APP_CATALOG.infinitus.defaultLogoUrl, color: "purple", users: appCounts['Infinitus'] || 0 },
-      { name: "Supremus", logo: MANAGED_APP_CATALOG.supremus.defaultLogoUrl, color: "yellow", users: appCounts['Supremus'] || 0 },
+      { name: "Supreme", logo: MANAGED_APP_CATALOG.supremus.defaultLogoUrl, color: "yellow", users: appCounts['Supremus'] || 0 },
       { name: "Evolux", logo: MANAGED_APP_CATALOG.evolux.defaultLogoUrl, color: "cyan", users: appCounts['Evolux'] || 0 },
       { name: "Nexus", logo: MANAGED_APP_CATALOG.nexus.defaultLogoUrl, color: "purple", users: appCounts['Nexus'] || 0 },
     ];

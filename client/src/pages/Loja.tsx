@@ -44,7 +44,7 @@ const APPS: AppConfig[] = [
   { name: "Optimus", logo: MANAGED_APP_CATALOG.optimus.defaultLogoUrl, color: "emerald", publicSlug: "optimus" },
   { name: "Império Play", logo: MANAGED_APP_CATALOG.imperio.defaultLogoUrl, color: "orange", publicSlug: "imperio" },
   { name: "Infinitus", logo: MANAGED_APP_CATALOG.infinitus.defaultLogoUrl, color: "indigo", publicSlug: "infinitus" },
-  { name: "Supremus", logo: MANAGED_APP_CATALOG.supremus.defaultLogoUrl, color: "pink", publicSlug: "supremus" },
+  { name: "Supreme", logo: MANAGED_APP_CATALOG.supremus.defaultLogoUrl, color: "pink", publicSlug: "supremus" },
   { name: "Evolux", logo: MANAGED_APP_CATALOG.evolux.defaultLogoUrl, color: "cyan", publicSlug: "evolux" },
   { name: "Ominus", logo: MANAGED_APP_CATALOG.ominus.defaultLogoUrl, color: "indigo", publicSlug: "ominus" },
   { name: "Magnus", logo: MANAGED_APP_CATALOG.magnus.defaultLogoUrl, color: "orange", publicSlug: "magnus" },

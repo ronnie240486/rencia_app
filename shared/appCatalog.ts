@@ -63,11 +63,11 @@ export const MANAGED_APP_CATALOG = {
   },
   supremus: {
     id: "supremus",
-    displayName: "Supremus",
+    displayName: "Supreme",
     settingsRoute: "/aplicativos/supremus",
     publicSlug: "supremus",
-    deviceAliases: ["Supremus"],
-    defaultLogoUrl: "/manus-storage/supremus_9e4e9049.jpg",
+    deviceAliases: ["Supremus", "Supreme"],
+    defaultLogoUrl: "/manus-storage/supremus-logo-20260827_ff5b5921.jpg",
   },
   evolux: {
     id: "evolux",

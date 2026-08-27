@@ -1293,3 +1293,12 @@
 - [x] Preparar o logo enviado para uso no painel
 - [x] Aplicar o logo Fusion na loja, ranking, cadastro e configurações
 - [x] Validar visualmente o logo Fusion nas telas internas
+
+## Logo do Supremus (25/08/2026)
+- [x] Preparar o logo enviado para uso no painel
+- [x] Aplicar o logo Supremus na loja, ranking, cadastro e configurações
+- [x] Validar visualmente o logo Supremus nas telas internas
+
+## Nome Visual Supreme (25/08/2026)
+- [x] Atualizar o nome visível de Supremus para Supreme sem alterar a rota técnica
+- [x] Conferir o nome e o logo Supreme nas telas internas
