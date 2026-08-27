@@ -1324,3 +1324,15 @@
 - [x] Aplicar os logos Excellence e Prestige na loja, ranking, cadastro e configurações
 - [x] Validar visualmente os logos nas telas internas
 - [x] Incluir Excellence no ranking mesmo quando ainda não houver clientes cadastrados
+
+## Melhorias Profissionais Selecionadas (25/08/2026)
+- [x] Auditar a edição em massa e definir melhorias sem sobrescrever dados indevidamente
+- [x] Auditar alertas úteis e o monitor visual de listas
+- [x] Auditar o controle de conexões simultâneas por cliente
+- [x] Auditar o portal de revenda e as permissões individuais
+- [x] Auditar backup, restauração e organização da loja pública
+- [x] Avaliar e melhorar a experiência operacional em celular
+- [x] Adicionar uma confirmação com resumo antes de aplicar edição em massa
+- [x] Exibir o limite de conexões de cada cliente na Central de Sessões
+- [x] Melhorar as ações principais para uso em celular sem alterar dados existentes
+- [ ] Receber uma identificação de sessão de cada APK para aplicar bloqueio real ao exceder o limite de conexões

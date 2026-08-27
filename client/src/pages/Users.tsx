@@ -67,6 +67,7 @@ export default function Users() {
   const [dnsDialogScope, setDnsDialogScope] = useState<"selected" | "all">("selected");
   const [newDnsUrl, setNewDnsUrl] = useState("");
   const [bulkConfigOpen, setBulkConfigOpen] = useState(false);
+  const [bulkReviewOpen, setBulkReviewOpen] = useState(false);
   const [bulkStatus, setBulkStatus] = useState<"" | DeviceStatus>("");
   const [bulkApp, setBulkApp] = useState("");
   const [bulkExpiration, setBulkExpiration] = useState("");
@@ -146,6 +147,7 @@ export default function Users() {
       toast.success(`${result.count} cliente(s) atualizado(s).`);
       setSelected(new Set());
       setBulkConfigOpen(false);
+      setBulkReviewOpen(false);
       setBulkStatus("");
       setBulkApp("");
       setBulkExpiration("");
@@ -227,6 +229,10 @@ export default function Users() {
       toast.error("Escolha pelo menos uma configuração para alterar.");
       return;
     }
+    setBulkReviewOpen(true);
+  };
+
+  const confirmBulkConfigSubmit = () => {
     bulkUpdateMutation.mutate({
       ids: Array.from(selected),
       status: bulkStatus || undefined,
@@ -235,6 +241,13 @@ export default function Users() {
       urlM3u8: bulkUrl || undefined,
     });
   };
+
+  const bulkChanges = [
+    ["Status", bulkStatus],
+    ["Aplicativo", bulkApp],
+    ["Vencimento", bulkExpiration ? formatDate(bulkExpiration) : ""],
+    ["Lista / DNS principal", bulkUrl],
+  ].filter(([, value]) => Boolean(value)) as Array<[string, string]>;
 
   return (
     <AdminLayout title="Usuários">
@@ -318,8 +331,29 @@ export default function Users() {
           )}
         </div>
 
-        {/* Table */}
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        {/* Lista otimizada para celular */}
+        <div className="space-y-3 md:hidden">
+          {isLoading ? Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="h-36 w-full rounded-xl" />) : devices.length === 0 ? <div className="rounded-xl border bg-card py-12 text-center text-sm text-muted-foreground">Nenhum usuário encontrado.</div> : devices.map((device) => (
+            <div key={device.id} className={`rounded-xl border bg-card p-4 shadow-sm ${selected.has(device.id) ? "border-primary bg-primary/5" : ""}`}>
+              <div className="flex items-start gap-3">
+                <Checkbox checked={selected.has(device.id)} onCheckedChange={() => toggleSelect(device.id)} aria-label={`Selecionar ${device.mac}`} className="mt-1" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3"><p className="truncate font-semibold text-foreground">{device.nomeServer}</p><StatusBadge status={device.status as DeviceStatus} /></div>
+                  <p className="mt-1 font-mono text-xs text-muted-foreground">{device.mac}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{device.app || "Aplicativo não informado"} · Vence: {formatDate(device.dataExpiracao)}</p>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3">
+                <Link href={`/users/${device.id}/edit`}><Button size="sm" variant="outline" className="w-full gap-1"><Pencil className="h-3.5 w-3.5" /> Editar</Button></Link>
+                <Link href={`/users/${device.id}/lists`}><Button size="sm" variant="outline" className="w-full gap-1"><List className="h-3.5 w-3.5" /> Listas</Button></Link>
+                <Button size="sm" variant={device.status === "Bloqueado" ? "outline" : "destructive"} className="w-full gap-1" disabled={updateStatusMutation.isPending} onClick={() => updateStatusMutation.mutate({ id: device.id, status: device.status === "Bloqueado" ? "Liberado" : "Bloqueado" })}>{device.status === "Bloqueado" ? <UnlockKeyhole className="h-3.5 w-3.5" /> : <LockKeyhole className="h-3.5 w-3.5" />}{device.status === "Bloqueado" ? "Liberar" : "Bloquear"}</Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tabela detalhada para telas médias e grandes */}
+        <div className="hidden overflow-hidden rounded-xl border bg-card shadow-sm md:block">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -553,7 +587,32 @@ export default function Users() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setBulkConfigOpen(false)}>Cancelar</Button>
             <Button onClick={handleBulkConfigSubmit} disabled={bulkUpdateMutation.isPending} className="gap-2 text-black dark:text-white">
-              <SlidersHorizontal className="w-4 h-4" /> {bulkUpdateMutation.isPending ? "Aplicando..." : "Aplicar alterações"}
+              <SlidersHorizontal className="w-4 h-4" /> Revisar alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkReviewOpen} onOpenChange={setBulkReviewOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Confirmar edição em massa</DialogTitle>
+            <DialogDescription>
+              As alterações abaixo serão aplicadas somente aos {selected.size} cliente(s) selecionado(s). Os demais dados serão preservados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 rounded-xl border bg-muted/30 p-4 text-sm">
+            {bulkChanges.map(([label, value]) => (
+              <div key={label} className="flex gap-3 border-b border-border/60 pb-2 last:border-0 last:pb-0">
+                <span className="w-36 shrink-0 text-muted-foreground">{label}</span>
+                <span className="min-w-0 break-all font-medium text-foreground">{value}</span>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkReviewOpen(false)} disabled={bulkUpdateMutation.isPending}>Voltar</Button>
+            <Button onClick={confirmBulkConfigSubmit} disabled={bulkUpdateMutation.isPending} className="gap-2 text-black dark:text-white">
+              <SlidersHorizontal className="w-4 h-4" /> {bulkUpdateMutation.isPending ? "Aplicando..." : "Confirmar e aplicar"}
             </Button>
           </DialogFooter>
         </DialogContent>

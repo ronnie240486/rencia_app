@@ -6,6 +6,7 @@ export type SessionCandidate = {
   status: "Liberado" | "Bloqueado" | "Expirado";
   lastSeen: Date | null;
   currentContent: string | null;
+  maxConcurrentConnections: number;
 };
 
 export function buildSessionOverview(rows: SessionCandidate[], now = new Date(), minutesWindow = 30) {

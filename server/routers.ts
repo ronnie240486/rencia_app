@@ -1049,6 +1049,7 @@ export const appRouter = router({
         status: devices.status,
         lastSeen: devices.lastSeen,
         currentContent: devices.currentContent,
+        maxConcurrentConnections: devices.maxConcurrentConnections,
       }).from(devices).where(eq(devices.ownerId, ctx.user.id));
       return buildSessionOverview(rows, new Date(), input.minutesAgo);
     }),
