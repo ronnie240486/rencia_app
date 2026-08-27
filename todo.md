@@ -1302,3 +1302,8 @@
 ## Nome Visual Supreme (25/08/2026)
 - [x] Atualizar o nome visível de Supremus para Supreme sem alterar a rota técnica
 - [x] Conferir o nome e o logo Supreme nas telas internas
+
+## Logo do Império Play (25/08/2026)
+- [x] Preparar o logo enviado para uso no painel
+- [x] Aplicar o logo Império Play na loja, ranking, cadastro e configurações
+- [x] Validar visualmente o logo Império Play nas telas internas
