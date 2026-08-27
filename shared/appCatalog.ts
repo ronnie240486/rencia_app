@@ -43,7 +43,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/optimus",
     publicSlug: "optimus",
     deviceAliases: ["Optimus"],
-    defaultLogoUrl: "/manus-storage/optimus_7d8289c6.png",
+    defaultLogoUrl: "/manus-storage/optimus-logo-20260826_bbe6e127.jpg",
   },
   imperio: {
     id: "imperio",

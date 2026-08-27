@@ -18,7 +18,7 @@ const FALLBACK_LOGOS: Record<PublicAppSlug, string> = {
   ultra: "/manus-storage/fusion_80fa0de0.png",
   maximus: "/manus-storage/maximus-player_0f899c06.png",
   prestige: "/manus-storage/prestige_60f80d9e.jpg",
-  optimus: "/manus-storage/optimus_7d8289c6.png",
+  optimus: "/manus-storage/optimus-logo-20260826_bbe6e127.jpg",
   imperio: "/manus-storage/imperio-play_cf24839c.png",
   infinitus: "/manus-storage/infinitus_eee744db.webp",
   supremus: "/manus-storage/supremus_9e4e9049.jpg",

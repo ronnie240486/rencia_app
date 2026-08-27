@@ -6,6 +6,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { CLIENT_APP_OPTIONS } from "@/lib/clientAppOptions";
+import { AppLogoBadge } from "@/components/AppLogoBadge";
 import { ArrowLeft, CalendarSearch, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -286,19 +288,14 @@ export default function UserCreate() {
                   <SelectValue placeholder="Selecione um app" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="OuroPro">Ouro Pro</SelectItem>
-                  <SelectItem value="Maximus">Maximus</SelectItem>
-                  <SelectItem value="Ultra Player">Fusion</SelectItem>
-                  <SelectItem value="Prestige">Prestige</SelectItem>
-                  <SelectItem value="Optimus">Optimus</SelectItem>
-                  <SelectItem value="Império Play">Império Play</SelectItem>
-                  <SelectItem value="Infinitus">Infinitus</SelectItem>
-                  <SelectItem value="Supremus">Supremus</SelectItem>
-                  <SelectItem value="Evolux">Evolux</SelectItem>
-                  <SelectItem value="Ominus">Ominus</SelectItem>
-                  <SelectItem value="Magnus">Magnus</SelectItem>
-                  <SelectItem value="Excellence">Excellence</SelectItem>
-                  <SelectItem value="Outro">Outro aplicativo</SelectItem>
+                  {CLIENT_APP_OPTIONS.map((appOption) => (
+                    <SelectItem key={appOption.value} value={appOption.value}>
+                      <span className="flex items-center gap-2">
+                        <AppLogoBadge logoUrl={appOption.logoUrl} label={appOption.label} />
+                        <span>{appOption.label}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

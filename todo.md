@@ -1273,3 +1273,13 @@
 - [x] Mapear a rota de atividade e a seleção do cadastro pelo MAC
 - [x] Selecionar o cadastro compatível com o aplicativo que enviou a atividade
 - [x] Testar o mesmo MAC em aplicativos distintos sem misturar a atividade
+
+## Logo do Optimus (25/08/2026)
+- [x] Preparar o logo enviado para uso no painel
+- [x] Aplicar o logo do Optimus na loja, ranking, cadastro e configurações
+- [x] Verificar o logo nas telas e na configuração entregue ao APK
+
+## Logos no Seletor de APK (25/08/2026)
+- [x] Exibir logo e nome em cada opção de APK no cadastro de usuários
+- [x] Aplicar a mesma apresentação na edição de usuários
+- [x] Conferir visualmente Ouro Pro e os demais aplicativos no seletor
