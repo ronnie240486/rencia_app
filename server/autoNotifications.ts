@@ -3,8 +3,11 @@ import { devices, notices } from "../drizzle/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import { daysUntilDateOnly, formatDateOnlyPtBr } from "../shared/dateOnly";
 
+export const PANEL_EXPIRATION_NOTICE_WINDOW_DAYS = 7;
+
 export function isExpirationNoticeDue(dataExpiracao: string | Date, reference = new Date()): boolean {
-  return daysUntilDateOnly(dataExpiracao, reference) === 1;
+  const daysUntilExpire = daysUntilDateOnly(dataExpiracao, reference);
+  return daysUntilExpire >= 0 && daysUntilExpire <= PANEL_EXPIRATION_NOTICE_WINDOW_DAYS;
 }
 
 export function buildPanelExpirationNotice(device: { nomeServer: string | null; dataExpiracao: string | Date | null; status: string }, reference = new Date()) {
@@ -18,6 +21,13 @@ export function buildPanelExpirationNotice(device: { nomeServer: string | null; 
       title: "Aviso de Vencimento",
       content: `${name} vence amanhã (${date}).`,
       reason: "expires-tomorrow" as const,
+    };
+  }
+  if (daysUntilExpire > 1 && daysUntilExpire <= PANEL_EXPIRATION_NOTICE_WINDOW_DAYS) {
+    return {
+      title: "Vencimento Próximo",
+      content: `${name} vence em ${daysUntilExpire} dias (${date}).`,
+      reason: "expires-soon" as const,
     };
   }
   if (daysUntilExpire === 0) {

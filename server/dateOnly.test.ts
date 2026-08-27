@@ -26,9 +26,11 @@ describe("datas de vencimento sem deslocamento de fuso", () => {
     expect(daysUntilDateOnly("2026-08-12", new Date(2026, 7, 12, 9))).toBe(0);
   });
 
-  it("só libera o aviso automático quando faltam exatamente 1 dia", () => {
+  it("libera o aviso automático nos sete dias anteriores ao vencimento", () => {
     expect(isExpirationNoticeDue("2026-08-12", new Date(2026, 7, 11, 9))).toBe(true);
-    expect(isExpirationNoticeDue("2026-08-12", new Date(2026, 7, 10, 9))).toBe(false);
-    expect(isExpirationNoticeDue("2026-08-12", new Date(2026, 7, 12, 9))).toBe(false);
+    expect(isExpirationNoticeDue("2026-08-12", new Date(2026, 7, 10, 9))).toBe(true);
+    expect(isExpirationNoticeDue("2026-08-12", new Date(2026, 7, 5, 9))).toBe(true);
+    expect(isExpirationNoticeDue("2026-08-12", new Date(2026, 7, 4, 9))).toBe(false);
+    expect(isExpirationNoticeDue("2026-08-12", new Date(2026, 7, 12, 9))).toBe(true);
   });
 });

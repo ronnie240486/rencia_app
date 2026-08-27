@@ -1374,3 +1374,14 @@
 - [x] Deixar Excluir sem fundo vermelho, com o visual neutro do botão 360°
 - [x] Deixar Bloquear sem fundo vermelho, com o visual neutro do botão 360°
 - [x] Validar os botões em computador e celular sem alterar suas funções
+
+## Aviso de vencimento ao abrir o aplicativo (25/08/2026)
+- [x] Mapear por que a lista próxima do vencimento não recebeu o aviso
+- [x] Corrigir a resposta de vencimento entregue ao aplicativo na abertura
+- [x] Testar a regra de aviso sem modificar a validade da lista cadastrada
+
+## Modal de vencimentos ao abrir o painel (25/08/2026)
+- [x] Mostrar no modal inicial os clientes que vencem nos próximos sete dias
+- [x] Incluir botão direto para abrir a ficha do cliente no painel
+- [x] Validar o modal sem alterar listas, clientes ou datas de vencimento
+- [x] Manter o aviso de vencimento à frente do lembrete de backup quando os dois abrirem juntos

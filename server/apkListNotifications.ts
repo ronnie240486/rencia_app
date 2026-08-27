@@ -9,6 +9,8 @@ export type ApkListNotificationStatus = "failure" | "recovered";
 export type ApkFailoverState = "primary" | "backup_active" | "primary_restored";
 export type ApkExpirationState = "none" | "upcoming" | "expires_tomorrow" | "expires_today" | "expired";
 
+export const APK_EXPIRATION_MODAL_WINDOW_DAYS = 7;
+
 type FailoverList = { id: number; nome: string | null; ordem: number; ativo?: boolean };
 type FailoverEvent = { id: number; fromDeviceUrlId: number | null; toDeviceUrlId: number | null; createdAt: Date | string } | null;
 type ExpirationDevice = { dataExpiracao: Date | string | null; status: string };
@@ -34,16 +36,18 @@ export function buildApkExpirationNotice(device: ExpirationDevice, reference = n
     ? "expired"
     : daysRemaining === 0 ? "expires_today"
       : daysRemaining === 1 ? "expires_tomorrow" : "upcoming";
-  const showModal = state === "expired" || state === "expires_today" || state === "expires_tomorrow";
+  const showModal = state === "expired" || (daysRemaining >= 0 && daysRemaining <= APK_EXPIRATION_MODAL_WINDOW_DAYS);
   const expirationDisplay = formatDateOnlyPtBr(expirationDate);
   const modalTitle = state === "expired"
     ? "Seu acesso venceu"
     : state === "expires_today" ? "Seu acesso vence hoje"
-      : state === "expires_tomorrow" ? "Seu acesso vence amanhã" : "";
+      : state === "expires_tomorrow" ? "Seu acesso vence amanhã"
+        : showModal ? `Seu acesso vence em ${daysRemaining} dia${daysRemaining === 1 ? "" : "s"}` : "";
   const modalMessage = state === "expired"
     ? `Seu acesso venceu em ${expirationDisplay}. Procure seu revendedor para renovar.`
     : state === "expires_today" ? `Seu acesso vence hoje (${expirationDisplay}). Renove para evitar interrupção.`
-      : state === "expires_tomorrow" ? `Seu acesso vence amanhã (${expirationDisplay}). Renove para evitar interrupção.` : "";
+      : state === "expires_tomorrow" ? `Seu acesso vence amanhã (${expirationDisplay}). Renove para evitar interrupção.`
+        : showModal ? `Seu acesso vence em ${daysRemaining} dias (${expirationDisplay}). Renove para evitar interrupção.` : "";
 
   return {
     expiration_date: expirationDate,
@@ -66,6 +70,9 @@ export function buildApkExpirationResponseFields(expiration: ReturnType<typeof b
     expiration_modal_key: expiration.modal_key,
     expiration_modal_title: expiration.modal_title,
     expiration_modal_message: expiration.modal_message,
+    show_expiration_modal: expiration.show_modal,
+    expiration_title: expiration.modal_title,
+    expiration_message: expiration.modal_message,
   };
 }
 

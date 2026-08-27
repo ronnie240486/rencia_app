@@ -1053,6 +1053,7 @@ export function registerApiRoutes(app: Express) {
         mac_registered: isAllowed,
         mac_address: device.mac,
         expire_date: expireDate,
+        ...buildApkExpirationResponseFields(buildApkExpirationNotice(device, now)),
         urls,
         is_trial: 0,
         lock: isAllowed ? 0 : 1,

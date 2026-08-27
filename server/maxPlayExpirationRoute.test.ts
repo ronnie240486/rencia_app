@@ -81,4 +81,22 @@ describe("GET /api/v5/check_mac.php — vencimento Max Play", () => {
     });
     expect(body.expiration_modal_message).toContain("Renove para evitar interrupção");
   });
+
+  it("entrega o modal quando faltam quatro dias para vencer", async () => {
+    const device = prepareMaxPlayDatabase();
+    device.dataExpiracao = "2026-08-24";
+    const app = express(); app.use(express.json()); registerApiRoutes(app);
+    const running = await startRoute(app); server = running.server;
+    const response = await fetch(`${running.url}/api/v5/check_mac.php?mac=6A%3A55%3AE2%3ADB%3AC3%3A4A`);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      registered: true,
+      expiration_state: "upcoming",
+      expiration_show_modal: true,
+      show_expiration_modal: true,
+      expiration_modal_title: "Seu acesso vence em 4 dias",
+    });
+  });
 });

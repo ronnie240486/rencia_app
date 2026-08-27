@@ -18,7 +18,7 @@ describe("notificações de lista para APK", () => {
     expect(getClientFacingListMessage("recovered")).toBe("Sua lista voltou a funcionar normalmente.");
   });
 
-  it("prepara o modal de vencimento somente quando a renovação exige atenção", () => {
+  it("prepara o modal de vencimento até sete dias antes da renovação", () => {
     const tomorrow = buildApkExpirationNotice(
       { dataExpiracao: "2026-08-15", status: "Liberado" },
       new Date(2026, 7, 14, 10),
@@ -36,7 +36,13 @@ describe("notificações de lista para APK", () => {
       { dataExpiracao: "2026-08-20", status: "Liberado" },
       new Date(2026, 7, 14, 10),
     );
-    expect(upcoming).toMatchObject({ expiration_state: "upcoming", show_modal: false, modal_message: "" });
+    expect(upcoming).toMatchObject({
+      expiration_state: "upcoming",
+      days_remaining: 6,
+      show_modal: true,
+      modal_title: "Seu acesso vence em 6 dias",
+    });
+    expect(upcoming.modal_message).toContain("20/08/2026");
   });
 
   it("mostra aviso de acesso vencido para a data já expirada", () => {
@@ -60,6 +66,7 @@ describe("notificações de lista para APK", () => {
       expiration_modal_title: "Seu acesso vence hoje",
     });
     expect(fields.expiration_modal_message).toContain("Renove para evitar interrupção");
+    expect(fields.show_expiration_modal).toBe(true);
   });
 
   it("informa quando uma lista de reserva foi ativada automaticamente", () => {
