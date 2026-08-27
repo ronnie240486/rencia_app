@@ -334,14 +334,22 @@ export default function Users() {
         {/* Lista otimizada para celular */}
         <div className="space-y-3 md:hidden">
           {isLoading ? Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="h-36 w-full rounded-xl" />) : devices.length === 0 ? <div className="rounded-xl border bg-card py-12 text-center text-sm text-muted-foreground">Nenhum usuário encontrado.</div> : devices.map((device) => (
-            <div key={device.id} className={`rounded-xl border bg-card p-4 shadow-sm ${selected.has(device.id) ? "border-primary bg-primary/5" : ""}`}>
+            <div key={device.id} className={`rounded-2xl border bg-card p-4 shadow-sm ${selected.has(device.id) ? "border-primary bg-primary/5" : "border-primary/15"}`}>
               <div className="flex items-start gap-3">
                 <Checkbox checked={selected.has(device.id)} onCheckedChange={() => toggleSelect(device.id)} aria-label={`Selecionar ${device.mac}`} className="mt-1" />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">{device.nomeServer.slice(0, 1).toUpperCase()}</div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-3"><p className="truncate font-semibold text-foreground">{device.nomeServer}</p><StatusBadge status={device.status as DeviceStatus} /></div>
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-muted-foreground">Cliente</p><p className="truncate font-semibold text-foreground">{device.nomeServer}</p></div><StatusBadge status={device.status as DeviceStatus} /></div>
                   <p className="mt-1 font-mono text-xs text-muted-foreground">{device.mac}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">{device.app || "Aplicativo não informado"} · Vence: {formatDate(device.dataExpiracao)}</p>
                 </div>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2 border-y py-3">
+                <div className="rounded-xl bg-primary/10 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Playlists</p><p className="mt-0.5 text-lg font-bold text-primary">{device.playlistCount}</p></div>
+                <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Nível</p><p className="mt-0.5 truncate text-sm font-semibold text-foreground">{device.tipo}</p></div>
+                <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Valor</p><p className="mt-0.5 text-sm font-semibold text-foreground">{device.valor ? `R$ ${Number(device.valor).toFixed(2)}` : "—"}</p></div>
+                <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Aplicativo</p><p className="mt-0.5 truncate text-sm font-semibold text-foreground">{device.app || "Não informado"}</p></div>
+                <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Cadastro</p><p className="mt-0.5 text-sm font-semibold text-foreground">{formatDate(device.dataCadastro)}</p></div>
+                <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Expiração</p><p className="mt-0.5 text-sm font-semibold text-foreground">{formatDate(device.dataExpiracao)}</p></div>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-3">
                 <Link href={`/cliente/${device.id}`}><Button size="sm" variant="outline" className="w-full gap-1">360°</Button></Link>

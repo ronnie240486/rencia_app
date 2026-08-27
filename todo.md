@@ -1345,3 +1345,10 @@
 - [x] Colocar a exclusão logo após o botão 360° e preservar as demais ações
 - [x] Validar a nova ordem no computador e no celular
 - [x] Aplicar a mesma sequência de ações nos cartões de clientes do celular
+
+## Cartões móveis e listas adicionais (25/08/2026)
+- [x] Mostrar quantidade de playlists, nível, valor, status e datas nos cartões de clientes do celular
+- [x] Deixar os cartões móveis mais próximos da referência, preservando o estilo do painel
+- [x] Após cadastrar o primeiro cliente, oferecer ação para adicionar outra lista ao mesmo cliente
+- [x] Permitir repetir a adição de listas sem substituir listas já cadastradas
+- [x] Validar o novo fluxo no computador e no celular

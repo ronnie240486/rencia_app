@@ -57,6 +57,8 @@ export default function DeviceLists() {
 
   const { data: device } = trpc.devices.getById.useQuery({ id: deviceId }, { enabled: !!deviceId });
   const { data: lists, isLoading, refetch } = trpc.deviceUrls.list.useQuery({ deviceId }, { enabled: !!deviceId });
+  const hasPrimaryList = Boolean(device?.urlM3u8);
+  const totalListCount = (lists?.length ?? 0) + (hasPrimaryList ? 1 : 0);
   const { data: availableTargets = [] } = trpc.deviceUrls.copyTargets.useQuery({ deviceId }, { enabled: !!deviceId && copySourceId !== null });
   const refreshLists = async () => {
     await Promise.all([
@@ -85,7 +87,7 @@ export default function DeviceLists() {
 
   const openCreate = () => {
     setEditId(null);
-    setForm({ ...emptyForm, nome: `Lista ${(lists?.length ?? 0) + 1}`, ordem: lists?.length ?? 0 });
+    setForm({ ...emptyForm, nome: `Lista ${totalListCount + 1}`, ordem: totalListCount });
     setShowDialog(true);
   };
   const openEdit = (l: any) => {
@@ -158,7 +160,7 @@ export default function DeviceLists() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Listas</p>
-                <p className="text-sm font-medium">{lists?.length ?? 0}</p>
+                <p className="text-sm font-medium">{totalListCount}</p>
               </div>
             </div>
           </CardContent>
@@ -172,7 +174,7 @@ export default function DeviceLists() {
           backgroundColor: 'var(--btn-add-list-color)',
         }}>
           <Plus size={14} />
-          Adicionar Lista
+          Adicionar outra lista
         </Button>
       </div>
 
@@ -183,7 +185,7 @@ export default function DeviceLists() {
             <div className="flex items-center justify-center py-12">
               <Loader2 size={24} className="animate-spin text-muted-foreground" />
             </div>
-          ) : (lists?.length ?? 0) === 0 ? (
+          ) : totalListCount === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <List size={40} className="mx-auto mb-3 opacity-20" />
               <p className="text-sm">Nenhuma lista cadastrada</p>
@@ -191,10 +193,11 @@ export default function DeviceLists() {
             </div>
           ) : (
             <div className="divide-y divide-border">
+              {hasPrimaryList && <div className="flex items-center gap-3 bg-primary/5 px-4 py-3"><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10"><span className="text-xs font-bold text-primary">1</span></div><div className="min-w-0 flex-1"><div className="flex items-center gap-2 flex-wrap"><p className="text-sm font-medium text-foreground">Lista Principal</p><Badge className="text-xs">Cadastro inicial</Badge><Badge variant="outline" className="text-xs">{device?.modoSelecao}</Badge></div><p className="mt-0.5 truncate text-xs text-muted-foreground">Configurada no cadastro do cliente</p></div></div>}
               {lists?.map((l, idx) => (
                 <div key={l.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
                   <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-primary">{idx + 1}</span>
+                    <span className="text-xs font-bold text-primary">{idx + (hasPrimaryList ? 2 : 1)}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

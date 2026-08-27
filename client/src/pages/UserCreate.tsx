@@ -8,6 +8,7 @@ import {
 import { trpc } from "@/lib/trpc";
 import { CLIENT_APP_OPTIONS } from "@/lib/clientAppOptions";
 import { AppLogoBadge } from "@/components/AppLogoBadge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, CalendarSearch, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -77,6 +78,7 @@ export default function UserCreate() {
 
   const [listas, setListas] = useState<ListaItem[]>([newLista(true)]);
   const [dnsList, setDnsList] = useState<Array<{ id: string; titulo: string; host: string }>>([]);
+  const [createdDeviceId, setCreatedDeviceId] = useState<number | null>(null);
 
   const lookupExpirationMutation = trpc.devices.lookupExpiration.useMutation({
     onSuccess: (result) => {
@@ -122,7 +124,7 @@ export default function UserCreate() {
       
       toast.success("Usuário cadastrado com sucesso!");
       utils.devices.list.invalidate();
-      navigate("/users");
+      setCreatedDeviceId(data.id);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -403,7 +405,7 @@ export default function UserCreate() {
                 className="h-8 gap-1 text-xs btn-add-user"
                 onClick={() => setListas(ls => [...ls, newLista(false)])}
               >
-                <Plus className="w-3 h-3" /> Adicionar Lista
+                <Plus className="w-3 h-3" /> Adicionar outra lista
               </Button>
             </div>
 
@@ -555,6 +557,21 @@ export default function UserCreate() {
             </Button>
           </div>
         </form>
+
+        <Dialog open={createdDeviceId !== null} onOpenChange={(open) => { if (!open) setCreatedDeviceId(null); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Cliente cadastrado com a primeira lista</DialogTitle>
+              <DialogDescription>
+                Você pode adicionar outra lista agora. As listas já cadastradas serão preservadas e o mesmo cliente pode ter quantas listas você quiser.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => navigate("/users")}>Ver clientes</Button>
+              <Button className="btn-add-user" onClick={() => createdDeviceId && navigate(`/users/${createdDeviceId}/lists`)}><Plus className="mr-1.5 h-4 w-4" /> Adicionar outra lista</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );

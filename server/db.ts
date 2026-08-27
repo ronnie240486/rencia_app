@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { appCredentials, apps, auditLogs, customerNotes, deviceListNotificationReceipts, deviceTags, devices, deviceUrls, InsertUser, listFailoverEvents, listHealthChecks, localCredentials, maintenanceTasks, notices, payments, remoteDeviceCommands, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { dateOnlyForDatabase } from "../shared/dateOnly";
+import { countDevicePlaylists } from "./devicePlaylistCount";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -89,7 +90,20 @@ export async function listDevices(ownerId: number, opts: {
     db.select({ count: count() }).from(devices).where(whereClause),
   ]);
 
-  return { data, total: totalRows[0]?.count ?? 0 };
+  const playlistRows = data.length === 0 ? [] : await db
+    .select({ deviceId: deviceUrls.deviceId, count: count() })
+    .from(deviceUrls)
+    .where(inArray(deviceUrls.deviceId, data.map((device) => device.id)))
+    .groupBy(deviceUrls.deviceId);
+  const playlistCountByDevice = new Map(playlistRows.map((item) => [item.deviceId, Number(item.count)]));
+
+  return {
+    data: data.map((device) => ({
+      ...device,
+      playlistCount: countDevicePlaylists(device.urlM3u8, playlistCountByDevice.get(device.id) ?? 0),
+    })),
+    total: totalRows[0]?.count ?? 0,
+  };
 }
 
 export async function getRecentDevices(ownerId: number, limit = 5) {
