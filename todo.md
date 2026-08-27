@@ -1288,3 +1288,8 @@
 - [x] Identificar por que loja e ranking não mostram o logo enviado
 - [x] Aplicar o logo enviado nas telas visíveis da loja e do ranking
 - [x] Validar visualmente o logo nas duas telas antes de entregar
+
+## Logo do Fusion (25/08/2026)
+- [x] Preparar o logo enviado para uso no painel
+- [x] Aplicar o logo Fusion na loja, ranking, cadastro e configurações
+- [x] Validar visualmente o logo Fusion nas telas internas

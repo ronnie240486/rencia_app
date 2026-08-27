@@ -19,7 +19,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/ultra-player",
     publicSlug: "ultra",
     deviceAliases: ["Ultra Player", "Fusion"],
-    defaultLogoUrl: "/manus-storage/fusion_80fa0de0.png",
+    defaultLogoUrl: "/manus-storage/fusion-logo-20260827_e8316aa1.jpg",
   },
   maximus: {
     id: "maximus",

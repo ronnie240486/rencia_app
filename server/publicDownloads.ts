@@ -15,7 +15,7 @@ type Settings = Record<string, string | undefined>;
 
 const FALLBACK_LOGOS: Record<PublicAppSlug, string> = {
   ouropro: "/manus-storage/ouropro_logo_c0c3caef.png",
-  ultra: "/manus-storage/fusion_80fa0de0.png",
+  ultra: "/manus-storage/fusion-logo-20260827_e8316aa1.jpg",
   maximus: "/manus-storage/maximus-player_0f899c06.png",
   prestige: "/manus-storage/prestige_60f80d9e.jpg",
   optimus: "/manus-storage/optimus-logo-20260826_bbe6e127.jpg",
