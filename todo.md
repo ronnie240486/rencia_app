@@ -1385,3 +1385,9 @@
 - [x] Incluir botão direto para abrir a ficha do cliente no painel
 - [x] Validar o modal sem alterar listas, clientes ou datas de vencimento
 - [x] Manter o aviso de vencimento à frente do lembrete de backup quando os dois abrirem juntos
+
+## Busca, comunicação por grupo e atualização de APK (27/08/2026)
+- [x] Adicionar busca por voz de nome, MAC ou telefone na tela de clientes
+- [x] Permitir preparar avisos em massa filtrando clientes por aplicativo, revenda, servidor/DNS ou período de vencimento
+- [x] Exibir clientes que reportaram versão inferior à versão configurada para o respectivo APK
+- [x] Validar os três fluxos sem alterar clientes, MACs, listas ou configurações existentes

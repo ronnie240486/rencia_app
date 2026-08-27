@@ -17,18 +17,34 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ChevronLeft, ChevronRight, ChevronDown, List, Pencil, Plus, Search, Trash2, Globe,
-  LockKeyhole, SlidersHorizontal, UnlockKeyhole, Download,
+  LockKeyhole, SlidersHorizontal, UnlockKeyhole, Download, Mic, MicOff,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { formatDateOnlyPtBr } from "@shared/dateOnly";
 import { downloadCsv } from "@/lib/csv";
+import { normalizeVoiceSearchTranscript } from "@/lib/voiceSearch";
 
 const PAGE_SIZE = 50;
 
 type DeviceStatus = "Liberado" | "Bloqueado" | "Expirado";
 type DeviceTipo = "Usuario" | "Revenda" | "UltraMaster" | "Master";
+
+type VoiceRecognition = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  start: () => void;
+  abort: () => void;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+};
+
+type VoiceRecognitionConstructor = new () => VoiceRecognition;
 
 function StatusBadge({ status }: { status: DeviceStatus }) {
   const map: Record<DeviceStatus, string> = {
@@ -72,6 +88,8 @@ export default function Users() {
   const [bulkApp, setBulkApp] = useState("");
   const [bulkExpiration, setBulkExpiration] = useState("");
   const [bulkUrl, setBulkUrl] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const voiceRecognitionRef = useRef<VoiceRecognition | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -164,6 +182,45 @@ export default function Users() {
     setSearch(searchInput);
     setPage(1);
     setSelected(new Set());
+  };
+
+  const startVoiceSearch = () => {
+    const speechWindow = window as Window & typeof globalThis & {
+      SpeechRecognition?: VoiceRecognitionConstructor;
+      webkitSpeechRecognition?: VoiceRecognitionConstructor;
+    };
+    const Recognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    if (!Recognition) {
+      toast.error("A busca por voz não é suportada neste navegador. Use o Chrome atualizado ou digite a busca.");
+      return;
+    }
+
+    voiceRecognitionRef.current?.abort();
+    const recognition = new Recognition();
+    voiceRecognitionRef.current = recognition;
+    recognition.lang = "pt-BR";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => {
+      setIsListening(false);
+      voiceRecognitionRef.current = null;
+    };
+    recognition.onerror = (event) => {
+      if (event.error !== "aborted") toast.error(event.error === "not-allowed" ? "Libere o microfone para usar a busca por voz." : "Não foi possível entender a busca. Tente novamente.");
+    };
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript ?? "";
+      const term = normalizeVoiceSearchTranscript(transcript);
+      if (!term) return toast.error("Não foi possível identificar a busca falada.");
+      setSearchInput(term);
+      setSearch(term);
+      setPage(1);
+      setSelected(new Set());
+      toast.success(`Buscando por: ${term}`);
+    };
+    recognition.start();
   };
 
   const exportClients = async () => {
@@ -280,12 +337,16 @@ export default function Users() {
         {/* Search + Bulk Actions */}
         <div className="flex flex-wrap gap-2 items-center">
           <Input
-            placeholder="Buscar por MAC ou servidor..."
+            placeholder="Buscar por nome, MAC ou telefone..."
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleSearch()}
             className="h-8 text-sm max-w-xs"
           />
+          <Button size="sm" variant="outline" className="h-8 px-3 text-xs gap-1" onClick={startVoiceSearch} disabled={isListening} aria-label="Buscar por voz" title="Buscar por voz">
+            {isListening ? <MicOff className="w-3 h-3 animate-pulse" /> : <Mic className="w-3 h-3" />}
+            {isListening ? "Ouvindo..." : "Voz"}
+          </Button>
           <Button size="sm" className="h-8 px-3 text-xs btn-search" onClick={handleSearch}>
             <Search className="w-3 h-3 mr-1" />
             Buscar

@@ -76,11 +76,17 @@ export async function listDevices(ownerId: number, opts: {
 
   const conditions = [eq(devices.ownerId, ownerId)];
   if (search) {
+    const normalizedPhoneSearch = search.replace(/\D/g, "");
+    const searchConditions = [
+      like(devices.mac, `%${search}%`),
+      like(devices.nomeServer, `%${search}%`),
+      like(devices.telefone, `%${search}%`),
+    ];
+    if (normalizedPhoneSearch.length >= 8) {
+      searchConditions.push(sql`REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(${devices.telefone}, ''), ' ', ''), '(', ''), ')', ''), '-', ''), '+', '') LIKE ${`%${normalizedPhoneSearch}%`}` as never);
+    }
     conditions.push(
-      or(
-        like(devices.mac, `%${search}%`),
-        like(devices.nomeServer, `%${search}%`)
-      )!
+      or(...searchConditions)!
     );
   }
 

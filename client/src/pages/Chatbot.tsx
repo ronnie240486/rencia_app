@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, MessageCircle, ExternalLink, Phone, RefreshCw, AlertTriangle, Building2, Copy, Pencil, Save, Trash2 } from "lucide-react";
+import { Loader2, MessageCircle, ExternalLink, Phone, RefreshCw, AlertTriangle, Building2, Copy, Pencil, Save, Trash2, ListFilter, Send } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { toast } from "sonner";
 
@@ -16,6 +16,104 @@ interface ExpiringItem {
   vencimento: string;
   dias: number;
   waUrl: string;
+}
+
+interface GroupMessageRecipient {
+  id: number;
+  nome: string;
+  app: string;
+  telefone: string | null;
+  vencimento: string;
+  waUrl: string;
+}
+
+function GroupMessagePanel() {
+  const groupOptions = trpc.bulkMessages.filters.useQuery();
+  const [app, setApp] = useState("");
+  const [dnsHost, setDnsHost] = useState("");
+  const [resellerId, setResellerId] = useState("");
+  const [expirationRange, setExpirationRange] = useState<"all" | "expired" | "7" | "30">("all");
+  const [message, setMessage] = useState("Olá {nome}! Temos uma mensagem importante sobre seu acesso {app}. Fale conosco se precisar de ajuda.");
+  const [recipients, setRecipients] = useState<GroupMessageRecipient[] | null>(null);
+  const preview = trpc.bulkMessages.preview.useQuery({
+    app: app || undefined,
+    dnsHost: dnsHost || undefined,
+    resellerId: resellerId ? Number(resellerId) : undefined,
+    expirationRange,
+    message,
+  }, { enabled: false });
+
+  const prepareRecipients = async () => {
+    if (!message.trim()) return toast.error("Digite uma mensagem antes de preparar os avisos.");
+    const result = await preview.refetch();
+    if (result.error) return toast.error(result.error.message || "Não foi possível preparar os avisos.");
+    const nextRecipients = result.data?.recipients ?? [];
+    setRecipients(nextRecipients);
+    if (nextRecipients.length === 0) toast.info("Nenhum cliente com telefone foi encontrado para este grupo.");
+    else toast.success(`${nextRecipients.length} aviso(s) preparado(s) para revisão.`);
+  };
+
+  const openGroupWhatsApp = () => {
+    if (!recipients?.length) return;
+    if (!window.confirm(`Abrir ${recipients.length} conversa(s) do WhatsApp com a mensagem pronta? O envio continua sob sua confirmação no WhatsApp.`)) return;
+    recipients.forEach((recipient) => window.open(recipient.waUrl, "_blank", "noopener,noreferrer"));
+    toast.success(`${recipients.length} conversa(s) foram abertas com a mensagem pronta.`);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base"><ListFilter size={17} /> Aviso em massa por grupo</CardTitle>
+        <CardDescription>Filtre clientes por aplicativo, revenda, servidor ou vencimento. O painel apenas prepara as conversas; nada é enviado sem sua confirmação no WhatsApp.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="grid gap-1.5 text-sm font-medium">Aplicativo
+            <select value={app} onChange={(event) => { setApp(event.target.value); setRecipients(null); }} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">Todos os aplicativos</option>
+              {(groupOptions.data?.apps ?? []).map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium">Revenda
+            <select value={resellerId} onChange={(event) => { setResellerId(event.target.value); setRecipients(null); }} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">Minha conta e revendas</option>
+              {(groupOptions.data?.resellers ?? []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium">Servidor / DNS
+            <select value={dnsHost} onChange={(event) => { setDnsHost(event.target.value); setRecipients(null); }} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">Todos os servidores</option>
+              {(groupOptions.data?.dnsHosts ?? []).map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium">Vencimento
+            <select value={expirationRange} onChange={(event) => { setExpirationRange(event.target.value as typeof expirationRange); setRecipients(null); }} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <option value="all">Qualquer data</option>
+              <option value="7">Vence em até 7 dias</option>
+              <option value="30">Vence em até 30 dias</option>
+              <option value="expired">Já vencido</option>
+            </select>
+          </label>
+        </div>
+        <label className="grid gap-1.5 text-sm font-medium">Mensagem
+          <Textarea value={message} onChange={(event) => { setMessage(event.target.value); setRecipients(null); }} rows={4} placeholder="Use {nome}, {app}, {mac}, {data} ou {dias} se quiser personalizar." />
+        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" onClick={prepareRecipients} disabled={preview.isFetching || groupOptions.isLoading} className="gap-2 text-black dark:text-white">
+            {preview.isFetching ? <Loader2 size={16} className="animate-spin" /> : <ListFilter size={16} />}
+            {preview.isFetching ? "Preparando..." : "Revisar grupo"}
+          </Button>
+          {recipients && <span className="text-sm text-muted-foreground">{recipients.length} cliente(s) com telefone pronto(s) para contato.</span>}
+        </div>
+        {recipients && (
+          <div className="rounded-xl border bg-muted/20">
+            <div className="flex flex-col gap-3 border-b p-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm font-semibold">Destinatários revisados</p><Button type="button" size="sm" onClick={openGroupWhatsApp} disabled={!recipients.length} className="gap-1.5 text-black dark:text-white"><Send size={14} /> Abrir WhatsApp ({recipients.length})</Button></div>
+            {recipients.length > 0 ? <div className="divide-y">{recipients.slice(0, 12).map((recipient) => <div key={recipient.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"><div><span className="font-medium">{recipient.nome}</span><span className="ml-2 text-muted-foreground">{recipient.app} · vence: {recipient.vencimento}</span></div><a className="text-xs font-medium text-primary underline-offset-4 hover:underline" href={recipient.waUrl} target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a></div>)}{recipients.length > 12 && <p className="px-3 py-2 text-xs text-muted-foreground">E mais {recipients.length - 12} cliente(s) prontos para envio.</p>}</div> : <p className="p-4 text-sm text-muted-foreground">Ajuste os filtros ou inclua telefone nos clientes que deseja avisar.</p>}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function Chatbot() {
@@ -321,6 +419,8 @@ export default function Chatbot() {
               {templatesQuery.isLoading ? <p className="text-sm text-muted-foreground">Carregando modelos…</p> : templatesQuery.data?.map((template) => <div key={template.id} className="rounded-lg border p-3"><div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex items-center gap-2"><p className="font-medium text-sm">{template.name}</p><Badge variant="secondary" className="text-xs">{template.category}</Badge></div><p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{template.content}</p></div><div className="flex shrink-0 flex-wrap gap-1"><Button size="sm" variant="outline" title="Copiar" onClick={() => { navigator.clipboard.writeText(template.content); toast.success("Modelo copiado."); }}><Copy size={14} /></Button><Button size="sm" variant="outline" title="Editar" onClick={() => editTemplate(template)}><Pencil size={14} /></Button><Button size="sm" variant="outline" onClick={() => applyTemplate.mutate({ id: template.id })}>Usar no vencimento</Button><Button size="sm" variant="ghost" className="text-destructive" title="Remover" onClick={() => { if (window.confirm(`Remover o modelo ${template.name}?`)) removeTemplate.mutate({ id: template.id }); }}><Trash2 size={14} /></Button></div></div></div>)}</div>
           </CardContent>
         </Card>
+
+        <GroupMessagePanel />
 
         <Tabs defaultValue="clientes">
           <TabsList className="w-full">

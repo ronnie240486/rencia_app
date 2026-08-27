@@ -26,7 +26,8 @@ import { buildSessionOverview } from "./sessionControl";
 import { summarizeResellerDevicePerformance, summarizeResellerFinance } from "./resellerReport";
 import { buildRenewalAgenda } from "./renewalAgenda";
 import { buildMaintenanceOverview } from "./maintenanceCenter";
-import { buildApkUpdateOverview } from "./apkUpdates";
+import { buildApkUpdateOverview, buildConfiguredAppVersions } from "./apkUpdates";
+import { buildBulkMessageRecipients, normalizeBulkMessageDnsHost } from "./bulkMessages";
 import { getConnectionState } from "./customerProfile";
 import { hasConfirmedListFailure, probeListUrl } from "./listHealth";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
@@ -1036,6 +1037,52 @@ export const appRouter = router({
     }),
   }),
 
+  // ─── Mensagens em Massa por Grupo ────────────────────────────────────────────
+  bulkMessages: router({
+    filters: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { apps: [], dnsHosts: [] };
+      await requireGrantedPanelPermission(db, ctx.user, "chatbot");
+      const managedResellerIds = await getManagedResellerIds(db, ctx.user.id);
+      const allowedOwnerIds = [ctx.user.id, ...managedResellerIds];
+      const [rows, resellerRows] = await Promise.all([
+        db.select({ app: devices.app, urlM3u8: devices.urlM3u8 }).from(devices).where(inArray(devices.ownerId, allowedOwnerIds)),
+        managedResellerIds.length ? db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, managedResellerIds)) : Promise.resolve([]),
+      ]);
+      const apps = Array.from(new Set(rows.map((row) => row.app?.trim()).filter((value): value is string => Boolean(value)))).sort((a, b) => a.localeCompare(b, "pt-BR"));
+      const dnsHosts = Array.from(new Set(rows.map((row) => normalizeBulkMessageDnsHost(row.urlM3u8)).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"));
+      const resellers = resellerRows.map((row) => ({ id: row.id, name: row.name || `Revenda #${row.id}` })).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+      return { apps, dnsHosts, resellers };
+    }),
+    preview: protectedProcedure.input(z.object({
+      app: z.string().max(100).optional(),
+      dnsHost: z.string().max(512).optional(),
+      resellerId: z.number().int().positive().optional(),
+      expirationRange: z.enum(["all", "expired", "7", "30"]).default("all"),
+      message: z.string().trim().min(1).max(2000),
+    })).query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return { recipients: [], total: 0 };
+      await requireGrantedPanelPermission(db, ctx.user, "chatbot");
+      const managedResellerIds = await getManagedResellerIds(db, ctx.user.id);
+      const allowedOwnerIds = [ctx.user.id, ...managedResellerIds];
+      if (input.resellerId && !allowedOwnerIds.includes(input.resellerId)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Esta revenda não faz parte do seu grupo." });
+      }
+      const rows = await db.select({
+        id: devices.id,
+        nomeServer: devices.nomeServer,
+        mac: devices.mac,
+        app: devices.app,
+        telefone: devices.telefone,
+        urlM3u8: devices.urlM3u8,
+        dataExpiracao: devices.dataExpiracao,
+      }).from(devices).where(inArray(devices.ownerId, input.resellerId ? [input.resellerId] : allowedOwnerIds));
+      const recipients = buildBulkMessageRecipients(rows, input, input.message);
+      return { recipients, total: recipients.length };
+    }),
+  }),
+
   // ─── Controle de Sessões ─────────────────────────────────────────────────────
   sessions: router({
     list: protectedProcedure.input(z.object({ minutesAgo: z.number().min(5).max(1440).optional().default(30) })).query(async ({ ctx, input }) => {
@@ -1184,13 +1231,13 @@ export const appRouter = router({
   apkUpdates: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) return { versions: { ouroPro: null, maximus: null }, devices: [] };
+      if (!db) return { versions: {}, devices: [] };
       const [deviceRows, settings] = await Promise.all([
         db.select({ id: devices.id, nomeServer: devices.nomeServer, app: devices.app, appVersion: devices.appVersion, telefone: devices.telefone, lastSeen: devices.lastSeen }).from(devices).where(eq(devices.ownerId, ctx.user.id)),
-        db.select({ key: appSettings.key, value: appSettings.value }).from(appSettings).where(inArray(appSettings.key, ["apk_version", "gpcpro_apk_version"])),
+        db.select({ key: appSettings.key, value: appSettings.value }).from(appSettings),
       ]);
       const byKey = Object.fromEntries(settings.map((setting) => [setting.key, setting.value]));
-      const versions = { ouroPro: byKey.apk_version ?? null, maximus: byKey.gpcpro_apk_version ?? null };
+      const versions = buildConfiguredAppVersions(byKey);
       return { versions, devices: buildApkUpdateOverview(deviceRows, versions) };
     }),
   }),
