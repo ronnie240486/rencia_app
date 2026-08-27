@@ -47,6 +47,7 @@ import { selectActivityDevice } from "./activityDeviceSelection";
 import { comparePassword } from "./auth";
 import { isLoginAccessAllowed, resolveLoginMacBinding } from "./appLogin";
 import { canAccessResellerPortal, chooseResellerPortalAccount } from "./resellerPortal";
+import { normalizeApkSessionKey, registerApkSession } from "./appSessionControl";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -1868,6 +1869,7 @@ export function registerApiRoutes(app: Express) {
       let currentContent: string | null = null;
       let reportedAppVersion: string | null = body ? String(body.app_version ?? body.appVersion ?? body.version ?? "").trim().slice(0, 64) || null : null;
       let reportedAppId: string | null = body ? String(body.app_id ?? body.appId ?? body.app ?? body.application ?? body.app_type ?? "").trim() || null : null;
+      let sessionKey = normalizeApkSessionKey(body?.session_id ?? body?.sessionId ?? body?.session);
 
       // Formato 1: { mac, content } — plain JSON
       if (body && body.mac) {
@@ -1889,6 +1891,7 @@ export function registerApiRoutes(app: Express) {
               || null;
             reportedAppVersion = String(parsed.app_version ?? parsed.appVersion ?? parsed.version_name ?? parsed.version ?? reportedAppVersion ?? "").trim().slice(0, 64) || null;
             reportedAppId = String(parsed.app_id ?? parsed.appId ?? parsed.app ?? parsed.application ?? parsed.app_type ?? reportedAppId ?? "").trim() || null;
+            sessionKey = normalizeApkSessionKey(parsed.session_id ?? parsed.sessionId ?? parsed.session) ?? sessionKey;
           }
         } catch { /* ignora */ }
       }
@@ -1899,6 +1902,7 @@ export function registerApiRoutes(app: Express) {
         currentContent = req.query.content ? String(req.query.content).trim() : null;
       }
       if (!reportedAppId) reportedAppId = String(req.query.app_id ?? req.query.appId ?? req.query.app ?? req.query.application ?? "").trim() || null;
+      sessionKey = normalizeApkSessionKey(req.query.session_id ?? req.query.sessionId ?? req.query.session) ?? sessionKey;
 
       if (!macAddress) {
         res.status(400).json({ ok: false, error: "mac obrigatório" });
@@ -1931,6 +1935,32 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
+      const sessionDevice = activityDevice ?? (sameMacRows.length === 1 ? sameMacRows[0] : undefined);
+      let session: { enforced: boolean; active_sessions?: number; maximum_connections?: number } = { enforced: false };
+      if (sessionKey && sessionDevice) {
+        const decision = await registerApkSession({
+          deviceId: sessionDevice.id,
+          appId: reportedAppId,
+          sessionKey,
+          maximum: sessionDevice.maxConcurrentConnections,
+          now,
+        });
+        session = {
+          enforced: true,
+          active_sessions: decision.activeSessions,
+          maximum_connections: decision.maximum,
+        };
+        if (!decision.allowed) {
+          res.status(409).json({
+            ok: false,
+            code: "CONNECTION_LIMIT_REACHED",
+            error: "Limite de conexões simultâneas atingido.",
+            session: { ...session, allowed: false },
+          });
+          return;
+        }
+      }
+
       // APKs atualizados enviam app/app_id: assim somente o cadastro daquele
       // aplicativo recebe o status Assistindo, mesmo com o mesmo MAC físico.
       if (activityDevice) {
@@ -1946,7 +1976,7 @@ export function registerApiRoutes(app: Express) {
       console.log(`[HEARTBEAT] MAC=${formattedMac} content=${currentContent ?? "(none)"}`);
       console.log(`[HEARTBEAT] Body:`, JSON.stringify(body));
       console.log(`[HEARTBEAT] Query:`, JSON.stringify(req.query));
-      res.json({ ok: true, mac: formattedMac, content: currentContent, app: activityDevice?.app ?? null });
+      res.json({ ok: true, mac: formattedMac, content: currentContent, app: activityDevice?.app ?? null, session: { ...session, allowed: true } });
     } catch (error) {
       console.error("[API] /api/v4/heartbeat.php error:", error);
       res.status(500).json({ ok: false, error: "Erro interno" });
@@ -4370,6 +4400,7 @@ export function registerApiRoutes(app: Express) {
       const db = await getDb();
       const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : "";
       const reportedAppId = String(req.query.app_id ?? req.query.appId ?? req.query.app ?? req.query.application ?? "").trim() || null;
+      const sessionKey = normalizeApkSessionKey(req.query.session_id ?? req.query.sessionId ?? req.query.session);
       if (!mac) {
         res.json({ success: false, message: 'MAC nao fornecido' });
         return;
@@ -4381,6 +4412,7 @@ export function registerApiRoutes(app: Express) {
         req.query.current_content ?? req.query.currentContent ?? req.query.content,
       );
 
+      let session: { enforced: boolean; active_sessions?: number; maximum_connections?: number } = { enforced: false };
       if (db) {
         const updateData: { lastSeen: Date; currentContent?: string } = {
           lastSeen: new Date(),
@@ -4397,6 +4429,29 @@ export function registerApiRoutes(app: Express) {
           res.status(403).json({ success: false, message: "MAC não vinculado ao aplicativo informado" });
           return;
         }
+        const sessionDevice = activityDevice ?? (sameMacRows.length === 1 ? sameMacRows[0] : undefined);
+        if (sessionKey && sessionDevice) {
+          const decision = await registerApkSession({
+            deviceId: sessionDevice.id,
+            appId: reportedAppId,
+            sessionKey,
+            maximum: sessionDevice.maxConcurrentConnections,
+          });
+          session = {
+            enforced: true,
+            active_sessions: decision.activeSessions,
+            maximum_connections: decision.maximum,
+          };
+          if (!decision.allowed) {
+            res.status(409).json({
+              success: false,
+              code: "CONNECTION_LIMIT_REACHED",
+              message: "Limite de conexões simultâneas atingido.",
+              session: { ...session, allowed: false },
+            });
+            return;
+          }
+        }
         if (activityDevice) {
           await db.update(devices).set(updateData).where(eq(devices.id, activityDevice.id));
         } else {
@@ -4409,7 +4464,7 @@ export function registerApiRoutes(app: Express) {
       }
 
       const remote = db ? await claimRemoteCommandForMac(db, mac) : { command: null };
-      res.json({ success: true, mac, contentUpdated: Boolean(currentContent), command: remote.command, timestamp: new Date().toISOString() });
+      res.json({ success: true, mac, contentUpdated: Boolean(currentContent), command: remote.command, session: { ...session, allowed: true }, timestamp: new Date().toISOString() });
     } catch (error) {
       console.error('[API] /api/v5/heartbeat error:', error);
       res.json({ success: false, message: 'Erro ao registrar heartbeat' });

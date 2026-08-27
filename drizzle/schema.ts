@@ -78,6 +78,19 @@ export const devices = mysqlTable("devices", {
 export type Device = typeof devices.$inferSelect;
 export type InsertDevice = typeof devices.$inferInsert;
 
+// Sessões ativas dos APKs. São removidas após inatividade para não alterar cadastros existentes.
+export const appSessions = mysqlTable("app_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  deviceId: int("deviceId").notNull(),
+  sessionKey: varchar("sessionKey", { length: 128 }).notNull().unique(),
+  appId: varchar("appId", { length: 64 }),
+  lastSeen: timestamp("lastSeen").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AppSession = typeof appSessions.$inferSelect;
+
 // Múltiplas listas (URLs) por dispositivo
 export const deviceUrls = mysqlTable("device_urls", {
   id: int("id").autoincrement().primaryKey(),

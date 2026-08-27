@@ -1335,4 +1335,7 @@
 - [x] Adicionar uma confirmação com resumo antes de aplicar edição em massa
 - [x] Exibir o limite de conexões de cada cliente na Central de Sessões
 - [x] Melhorar as ações principais para uso em celular sem alterar dados existentes
-- [ ] Receber uma identificação de sessão de cada APK para aplicar bloqueio real ao exceder o limite de conexões
+- [x] Criar identificador de sessão compatível para cada APK e controlar o limite de conexões sem interromper APKs atuais
+- [x] Retornar autorização ou bloqueio pela rota de heartbeat dos APKs
+- [x] Exibir sessões reais por cliente na Central de Sessões
+- [x] Testar a integração de sessões e documentar a rota para os APKs

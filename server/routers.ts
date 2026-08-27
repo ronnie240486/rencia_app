@@ -12,8 +12,8 @@ import {
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
   getConnectedDevices, updateUserProfile,
 } from "./db";
-import { eq, and, inArray, sql, desc, isNotNull, like, or } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions } from "../drizzle/schema";
+import { eq, and, inArray, sql, desc, isNotNull, like, or, gt } from "drizzle-orm";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
@@ -1051,7 +1051,17 @@ export const appRouter = router({
         currentContent: devices.currentContent,
         maxConcurrentConnections: devices.maxConcurrentConnections,
       }).from(devices).where(eq(devices.ownerId, ctx.user.id));
-      return buildSessionOverview(rows, new Date(), input.minutesAgo);
+      const now = new Date();
+      const overview = buildSessionOverview(rows, now, input.minutesAgo);
+      const deviceIds = rows.map((item) => item.id);
+      const cutoff = new Date(now.getTime() - 150_000);
+      const activeRows = deviceIds.length
+        ? await db.select({ deviceId: appSessions.deviceId }).from(appSessions)
+          .where(and(inArray(appSessions.deviceId, deviceIds), gt(appSessions.lastSeen, cutoff)))
+        : [];
+      const activeSessionsByDevice = new Map<number, number>();
+      activeRows.forEach((item) => activeSessionsByDevice.set(item.deviceId, (activeSessionsByDevice.get(item.deviceId) ?? 0) + 1));
+      return overview.map((item) => ({ ...item, activeSessions: activeSessionsByDevice.get(item.id) ?? 0 }));
     }),
     setStatus: protectedProcedure.input(z.object({ id: z.number(), status: z.enum(["Liberado", "Bloqueado"]) })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
