@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { CLIENT_APP_OPTIONS } from "@/lib/clientAppOptions";
 import { AppLogoBadge } from "@/components/AppLogoBadge";
-import { AlertTriangle, ArrowLeft, CalendarSearch, Loader2, Save } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarSearch, ListPlus, Loader2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
@@ -409,6 +409,16 @@ export default function UserEdit() {
                 onChange={e => setForm(f => ({ ...f, urlEpg: e.target.value }))}
                 className="h-10"
               />
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-xl border border-dashed bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Listas do cliente</p>
+                <p className="mt-1 text-xs text-muted-foreground">A lista principal fica neste cadastro. Use o botão para adicionar Lista 2, Lista 3 e as próximas, sem substituir as que já existem.</p>
+              </div>
+              <Link href={`/users/${deviceId}/lists`}>
+                <Button type="button" variant="outline" className="w-full gap-2 sm:w-auto"><ListPlus className="h-4 w-4" /> Adicionar lista</Button>
+              </Link>
             </div>
 
             {/* Valor */}

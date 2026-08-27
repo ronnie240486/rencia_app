@@ -405,7 +405,7 @@ export default function UserCreate() {
                 className="h-8 gap-1 text-xs btn-add-user"
                 onClick={() => setListas(ls => [...ls, newLista(false)])}
               >
-                <Plus className="w-3 h-3" /> Adicionar outra lista
+                <Plus className="w-3 h-3" /> Adicionar lista
               </Button>
             </div>
 
@@ -568,7 +568,7 @@ export default function UserCreate() {
             </DialogHeader>
             <DialogFooter className="gap-2 sm:gap-0">
               <Button variant="outline" onClick={() => navigate("/users")}>Ver clientes</Button>
-              <Button className="btn-add-user" onClick={() => createdDeviceId && navigate(`/users/${createdDeviceId}/lists`)}><Plus className="mr-1.5 h-4 w-4" /> Adicionar outra lista</Button>
+              <Button className="btn-add-user" onClick={() => createdDeviceId && navigate(`/users/${createdDeviceId}/lists`)}><Plus className="mr-1.5 h-4 w-4" /> Adicionar lista</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

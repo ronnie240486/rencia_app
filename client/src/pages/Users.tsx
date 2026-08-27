@@ -353,10 +353,9 @@ export default function Users() {
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-3">
                 <Link href={`/cliente/${device.id}`}><Button size="sm" variant="outline" className="w-full gap-1">360°</Button></Link>
-                <Button size="sm" variant="destructive" className="w-full gap-1" onClick={() => setDeleteId(device.id)}><Trash2 className="h-3.5 w-3.5" /> Excluir</Button>
-                <Button size="sm" variant={device.status === "Bloqueado" ? "outline" : "destructive"} className="w-full gap-1" disabled={updateStatusMutation.isPending} onClick={() => updateStatusMutation.mutate({ id: device.id, status: device.status === "Bloqueado" ? "Liberado" : "Bloqueado" })}>{device.status === "Bloqueado" ? <UnlockKeyhole className="h-3.5 w-3.5" /> : <LockKeyhole className="h-3.5 w-3.5" />}{device.status === "Bloqueado" ? "Liberar" : "Bloquear"}</Button>
+                <Button size="sm" variant="outline" className="w-full gap-1" onClick={() => setDeleteId(device.id)}><Trash2 className="h-3.5 w-3.5" /> Excluir</Button>
+                <Button size="sm" variant="outline" className="w-full gap-1" disabled={updateStatusMutation.isPending} onClick={() => updateStatusMutation.mutate({ id: device.id, status: device.status === "Bloqueado" ? "Liberado" : "Bloqueado" })}>{device.status === "Bloqueado" ? <UnlockKeyhole className="h-3.5 w-3.5" /> : <LockKeyhole className="h-3.5 w-3.5" />}{device.status === "Bloqueado" ? "Liberar" : "Bloquear"}</Button>
                 <Link href={`/users/${device.id}/edit`}><Button size="sm" variant="outline" className="w-full gap-1"><Pencil className="h-3.5 w-3.5" /> Editar</Button></Link>
-                <Link href={`/users/${device.id}/lists`} className="col-span-2"><Button size="sm" variant="outline" className="w-full gap-1"><List className="h-3.5 w-3.5" /> Listas</Button></Link>
               </div>
             </div>
           ))}
@@ -432,7 +431,7 @@ export default function Users() {
                           </Link>
                           <Button
                             size="sm"
-                            variant="destructive"
+                            variant="outline"
                             className="h-7 w-7 p-0"
                             title="Deletar"
                             onClick={() => setDeleteId(d.id)}
@@ -442,7 +441,7 @@ export default function Users() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className={`h-7 w-7 p-0 ${d.status === "Bloqueado" ? "border-emerald-500 text-emerald-600" : "border-amber-500 text-amber-600"}`}
+                            className="h-7 w-7 p-0"
                             title={d.status === "Bloqueado" ? "Liberar cliente" : "Bloquear cliente"}
                             onClick={() => updateStatusMutation.mutate({ id: d.id, status: d.status === "Bloqueado" ? "Liberado" : "Bloqueado" })}
                             disabled={updateStatusMutation.isPending}
@@ -452,11 +451,6 @@ export default function Users() {
                           <Link href={`/users/${d.id}/edit`}>
                             <Button size="sm" className="h-7 w-7 p-0 bg-blue-500 hover:bg-blue-600" title="Editar">
                               <Pencil className="w-3 h-3" />
-                            </Button>
-                          </Link>
-                          <Link href={`/users/${d.id}/lists`}>
-                            <Button size="sm" className="h-7 w-7 p-0 bg-emerald-500 hover:bg-emerald-600" title="Gerenciar Listas">
-                              <List className="w-3 h-3" />
                             </Button>
                           </Link>
                         </div>

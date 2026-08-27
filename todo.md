@@ -1362,3 +1362,15 @@
 - [x] Restaurar as imagens de apresentação de Ouro Pro e Império Play que aparecem vazias na loja
 - [x] Validar loja pública em computador e celular
 - [ ] Configurar os links e códigos Downloader reais de Maximus, Prestige, Optimus, Infinitus, Supreme, Evolux, Ominus, Magnus e Excellence quando forem enviados
+
+## Ações e listas no mesmo cadastro (25/08/2026)
+- [x] Aplicar ao botão Excluir o mesmo visual neutro do botão 360°
+- [x] Remover o botão Listas da frente dos cartões de clientes
+- [x] Disponibilizar a administração de listas a partir do botão Editar
+- [x] Permitir adicionar Lista 2, Lista 3 e seguintes no mesmo formulário do cliente
+- [x] Validar a nova sequência de ações e o formulário de listas em computador e celular
+
+## Cor dos botões de ação (25/08/2026)
+- [x] Deixar Excluir sem fundo vermelho, com o visual neutro do botão 360°
+- [x] Deixar Bloquear sem fundo vermelho, com o visual neutro do botão 360°
+- [x] Validar os botões em computador e celular sem alterar suas funções

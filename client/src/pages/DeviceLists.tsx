@@ -174,7 +174,7 @@ export default function DeviceLists() {
           backgroundColor: 'var(--btn-add-list-color)',
         }}>
           <Plus size={14} />
-          Adicionar outra lista
+          Adicionar lista
         </Button>
       </div>
 
