@@ -10,6 +10,7 @@ describe("catálogo de aplicativos do painel", () => {
   it("expõe os recursos comuns para novos aplicativos", () => {
     expect(MANAGED_APP_CATALOG.fusion.displayName).toBe("Fusion");
     expect(APP_CONFIGURATION_FEATURES).toContain("updates");
+    expect(MANAGED_APP_CATALOG.infinitus.defaultLogoUrl).toBe("/manus-storage/infinitus-logo-20260827_4434c640.jpg");
   });
 
   it("inclui as novas famílias sem quebrar Evolux e Nexus existentes", async () => {

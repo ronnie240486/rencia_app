@@ -1307,3 +1307,8 @@
 - [x] Preparar o logo enviado para uso no painel
 - [x] Aplicar o logo Império Play na loja, ranking, cadastro e configurações
 - [x] Validar visualmente o logo Império Play nas telas internas
+
+## Logo do Infinitus (25/08/2026)
+- [x] Preparar o logo enviado para uso no painel
+- [x] Aplicar o logo Infinitus na loja, ranking, cadastro e configurações
+- [x] Validar visualmente o logo Infinitus nas telas internas

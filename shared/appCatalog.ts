@@ -59,7 +59,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/infinitus",
     publicSlug: "infinitus",
     deviceAliases: ["Infinitus"],
-    defaultLogoUrl: "/manus-storage/infinitus_eee744db.webp",
+    defaultLogoUrl: "/manus-storage/infinitus-logo-20260827_4434c640.jpg",
   },
   supremus: {
     id: "supremus",

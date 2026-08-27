@@ -34,6 +34,18 @@ describe("loja pública de downloads", () => {
     })]);
   });
 
+  it("usa o logo configurado do Infinitus", () => {
+    const apps = buildPublicDownloadApps({
+      infinitus_apk_download_url: "https://files.exemplo.com/infinitus.apk",
+      infinitus_logo_url: "/manus-storage/infinitus-logo-20260827_4434c640.jpg",
+    });
+
+    expect(apps).toEqual([expect.objectContaining({
+      slug: "infinitus",
+      logoUrl: "/manus-storage/infinitus-logo-20260827_4434c640.jpg",
+    })]);
+  });
+
   it("expõe os novos aplicativos quando cada link de APK é configurado", () => {
     const apps = buildPublicDownloadApps({
       ominus_apk_download_url: "https://files.exemplo.com/ominus.apk",
