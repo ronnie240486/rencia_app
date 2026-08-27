@@ -1391,3 +1391,9 @@
 - [x] Permitir preparar avisos em massa filtrando clientes por aplicativo, revenda, servidor/DNS ou período de vencimento
 - [x] Exibir clientes que reportaram versão inferior à versão configurada para o respectivo APK
 - [x] Validar os três fluxos sem alterar clientes, MACs, listas ou configurações existentes
+
+## Mapa de saúde e assistente operacional (27/08/2026)
+- [x] Consolidar a saúde de aplicativos, servidores, listas e clientes em uma visão visual
+- [x] Criar recomendações operacionais priorizadas usando apenas situações confirmadas
+- [x] Oferecer atalhos seguros para a tela correta, sem executar alterações automaticamente
+- [x] Validar a central em computador e celular sem alterar clientes, MACs, listas ou configurações

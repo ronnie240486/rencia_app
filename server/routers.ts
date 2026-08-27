@@ -28,6 +28,7 @@ import { buildRenewalAgenda } from "./renewalAgenda";
 import { buildMaintenanceOverview } from "./maintenanceCenter";
 import { buildApkUpdateOverview, buildConfiguredAppVersions } from "./apkUpdates";
 import { buildBulkMessageRecipients, normalizeBulkMessageDnsHost } from "./bulkMessages";
+import { buildOperationHealthOverview } from "./operationHealth";
 import { getConnectionState } from "./customerProfile";
 import { hasConfirmedListFailure, probeListUrl } from "./listHealth";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
@@ -790,6 +791,20 @@ export const appRouter = router({
         }
       });
       return Array.from(new Set(hosts));
+    }),
+  }),
+
+  // ─── Mapa de Saúde da Operação ───────────────────────────────────────────────
+  operationHealth: router({
+    overview: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      await requireGrantedPanelPermission(db, ctx.user, "control_center");
+      const [deviceRows, checkRows] = await Promise.all([
+        db.select({ id: devices.id, nomeServer: devices.nomeServer, app: devices.app, urlM3u8: devices.urlM3u8, status: devices.status, lastSeen: devices.lastSeen, dataExpiracao: devices.dataExpiracao, telefone: devices.telefone }).from(devices).where(eq(devices.ownerId, ctx.user.id)),
+        db.select({ deviceId: listHealthChecks.deviceId, status: listHealthChecks.status, responseTimeMs: listHealthChecks.responseTimeMs, checkedAt: listHealthChecks.checkedAt }).from(listHealthChecks).where(and(eq(listHealthChecks.ownerId, ctx.user.id), sql`${listHealthChecks.checkedAt} >= DATE_SUB(NOW(), INTERVAL 24 HOUR)`)).orderBy(desc(listHealthChecks.checkedAt)).limit(500),
+      ]);
+      return buildOperationHealthOverview(deviceRows, checkRows);
     }),
   }),
 

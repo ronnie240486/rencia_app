@@ -42,6 +42,7 @@ import {
   MonitorCog,
   Crown,
   Infinity,
+  HeartPulse,
   Star,
   Zap,
 } from "lucide-react";
@@ -84,6 +85,7 @@ const navGroups: NavGroup[] = [
     defaultOpen: true,
     items: [
       { label: "DNS", href: "/dns", icon: <Server size={18} /> },
+      { label: "Saúde da Operação", href: "/saude", icon: <HeartPulse size={18} />, ownerOnly: true, permissionKey: "control_center" },
       { label: "Monitor de Listas", href: "/monitor-listas", icon: <Radio size={18} />, ownerOnly: true, permissionKey: "list_monitor" },
       { label: "Diagnóstico", href: "/diagnostico", icon: <Activity size={18} />, ownerOnly: true, permissionKey: "list_monitor" },
       { label: "Manutenção", href: "/manutencao", icon: <Wrench size={18} /> },

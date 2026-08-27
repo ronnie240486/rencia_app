@@ -30,6 +30,7 @@ import MovieDetails from "./pages/MovieDetails";
 import MaximusPlayer from "./pages/MaximusPlayer";
 import RankingApps from "./pages/RankingApps";
 import ControlCenter from "./pages/ControlCenter";
+import OperationHealth from "./pages/OperationHealth";
 import Diagnostics from "./pages/Diagnostics";
 import Payments from "./pages/Payments";
 import ListMonitor from "./pages/ListMonitor";
@@ -102,6 +103,7 @@ function Router() {
       <Route path="/maximus-player" component={MaximusPlayer} />
       <Route path="/ranking-apps" component={RankingApps} />
       <Route path="/central" component={ControlCenter} />
+      <Route path="/saude" component={OperationHealth} />
       <Route path="/diagnostico" component={Diagnostics} />
       <Route path="/pagamentos" component={Payments} />
       <Route path="/relatorios" component={FinancialReports} />
