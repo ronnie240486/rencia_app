@@ -1318,3 +1318,9 @@
 - [x] Aplicar os logos Ominus, Magnus, Evolux e Maximus na loja, ranking, cadastro e configurações
 - [x] Validar visualmente os quatro logos nas telas internas
 - [x] Incluir Ominus e Magnus no ranking mesmo quando ainda não houver clientes cadastrados
+
+## Logos Excellence e Prestige (25/08/2026)
+- [x] Preparar os dois logos enviados para uso no painel
+- [x] Aplicar os logos Excellence e Prestige na loja, ranking, cadastro e configurações
+- [x] Validar visualmente os logos nas telas internas
+- [x] Incluir Excellence no ranking mesmo quando ainda não houver clientes cadastrados

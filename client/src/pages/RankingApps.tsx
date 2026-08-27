@@ -32,6 +32,7 @@ export default function RankingApps() {
       'Evolux': appStats?.evolux || 0,
       'Ominus': appStats?.ominus || 0,
       'Magnus': appStats?.magnus || 0,
+      'Excellence': appStats?.excellence || 0,
       'Nexus': appStats?.nexus || 0,
     };
   }, [appStats]);
@@ -67,6 +68,7 @@ export default function RankingApps() {
       { name: "Evolux", logo: MANAGED_APP_CATALOG.evolux.defaultLogoUrl, color: "cyan", users: appCounts['Evolux'] || 0 },
       { name: "Ominus", logo: MANAGED_APP_CATALOG.ominus.defaultLogoUrl, color: "purple", users: appCounts['Ominus'] || 0 },
       { name: "Magnus", logo: MANAGED_APP_CATALOG.magnus.defaultLogoUrl, color: "yellow", users: appCounts['Magnus'] || 0 },
+      { name: "Excellence", logo: MANAGED_APP_CATALOG.excellence.defaultLogoUrl, color: "purple", users: appCounts['Excellence'] || 0 },
       { name: "Nexus", logo: MANAGED_APP_CATALOG.nexus.defaultLogoUrl, color: "purple", users: appCounts['Nexus'] || 0 },
     ];
 

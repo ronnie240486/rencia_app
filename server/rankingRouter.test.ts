@@ -40,10 +40,11 @@ describe("ranking.appStats", () => {
       { app: "Ominus", count: 2 },
       { app: "Magnus", count: 3 },
       { app: "Magnus TV", count: 1 },
+      { app: "Excellence", count: 5 },
     ];
 
     const result = await appRouter.createCaller(context).ranking.appStats();
 
-    expect(result).toMatchObject({ ominus: 2, magnus: 4, total: 6 });
+    expect(result).toMatchObject({ ominus: 2, magnus: 4, excellence: 5, total: 11 });
   });
 });

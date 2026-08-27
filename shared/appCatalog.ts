@@ -35,7 +35,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/prestige",
     publicSlug: "prestige",
     deviceAliases: ["Prestige"],
-    defaultLogoUrl: "/manus-storage/prestige_60f80d9e.jpg",
+    defaultLogoUrl: "/manus-storage/prestige-logo-20260827_603ddb54.png",
   },
   optimus: {
     id: "optimus",
@@ -99,7 +99,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/excellence",
     publicSlug: "excellence",
     deviceAliases: ["Excellence"],
-    defaultLogoUrl: "",
+    defaultLogoUrl: "/manus-storage/excellence-logo-20260827_31e22412.png",
   },
   nexus: {
     id: "nexus",

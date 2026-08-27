@@ -17,7 +17,7 @@ const FALLBACK_LOGOS: Record<PublicAppSlug, string> = {
   ouropro: "/manus-storage/ouropro_logo_c0c3caef.png",
   ultra: "/manus-storage/fusion-logo-20260827_e8316aa1.jpg",
   maximus: "/manus-storage/maximus-logo-20260827_4590e4b0.jpg",
-  prestige: "/manus-storage/prestige_60f80d9e.jpg",
+  prestige: "/manus-storage/prestige-logo-20260827_603ddb54.png",
   optimus: "/manus-storage/optimus-logo-20260826_bbe6e127.jpg",
   imperio: "/manus-storage/imperio-logo-20260827_2545f412.jpg",
   infinitus: "/manus-storage/infinitus-logo-20260827_4434c640.jpg",
@@ -25,7 +25,7 @@ const FALLBACK_LOGOS: Record<PublicAppSlug, string> = {
   evolux: "/manus-storage/evolux-logo-20260827_48de561d.jpg",
   ominus: "/manus-storage/ominus-logo-20260827_e24d6cd3.jpg",
   magnus: "/manus-storage/magnus-logo-20260827_850f6f6f.jpg",
-  excellence: "",
+  excellence: "/manus-storage/excellence-logo-20260827_31e22412.png",
 };
 
 function safePublicUrl(value: string | undefined): string {

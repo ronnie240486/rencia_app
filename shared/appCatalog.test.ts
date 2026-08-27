@@ -15,6 +15,8 @@ describe("catálogo de aplicativos do painel", () => {
     expect(MANAGED_APP_CATALOG.magnus.defaultLogoUrl).toBe("/manus-storage/magnus-logo-20260827_850f6f6f.jpg");
     expect(MANAGED_APP_CATALOG.evolux.defaultLogoUrl).toBe("/manus-storage/evolux-logo-20260827_48de561d.jpg");
     expect(MANAGED_APP_CATALOG.maximus.defaultLogoUrl).toBe("/manus-storage/maximus-logo-20260827_4590e4b0.jpg");
+    expect(MANAGED_APP_CATALOG.excellence.defaultLogoUrl).toBe("/manus-storage/excellence-logo-20260827_31e22412.png");
+    expect(MANAGED_APP_CATALOG.prestige.defaultLogoUrl).toBe("/manus-storage/prestige-logo-20260827_603ddb54.png");
   });
 
   it("inclui as novas famílias sem quebrar Evolux e Nexus existentes", async () => {
