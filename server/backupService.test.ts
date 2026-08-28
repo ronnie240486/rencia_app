@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AUTO_BACKUP_CRON, backupRunKey, snapshotIdsToRemove } from "./backupService";
+import { AUTO_BACKUP_CRON, backupDownloadFilename, backupRunKey, snapshotIdsToRemove } from "./backupService";
 
 describe("backup automático", () => {
   it("usa 03:00 de Brasília na rotina diária", () => {
@@ -9,5 +9,9 @@ describe("backup automático", () => {
   it("gera uma chave diária idempotente e mantém os 30 backups recentes", () => {
     expect(backupRunKey(new Date("2026-08-12T06:00:00.000Z"))).toBe("2026-08-12");
     expect(snapshotIdsToRemove(Array.from({ length: 32 }, (_, index) => index + 1))).toEqual([31, 32]);
+  });
+
+  it("gera um nome JSON para o arquivo portátil baixado", () => {
+    expect(backupDownloadFilename("2026-08-28T03:00:00.000Z")).toBe("rencia-backup-2026-08-28T03-00-00-000Z.json");
   });
 });

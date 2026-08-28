@@ -28,6 +28,7 @@ import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nu
 import { eq, or, and, asc, desc, sql } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
+import { getBackupDownload } from "./backupService";
 import { buildUltraPlayerConfig, normalizeMacAddress } from "./ultraPlayerConfig";
 import { normalizeHeartbeatContent } from "./heartbeatContent";
 import { acknowledgeRemoteCommand, claimRemoteCommandForMac } from "./remoteCommands";
@@ -404,6 +405,24 @@ export function registerApiRoutes(app: Express) {
     } catch (callbackError) {
       console.error("[GoogleDrive] Falha ao concluir autorização:", callbackError instanceof Error ? callbackError.message : callbackError);
       return res.redirect(fallback);
+    }
+  });
+
+  /** Download autenticado: força o navegador a salvar o JSON de backup no dispositivo. */
+  app.get("/api/backups/:snapshotId/download", async (req: Request, res: Response) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if (!user.isOwner) return res.status(403).json({ error: "Apenas o proprietário pode baixar backups." });
+      const snapshotId = Number(req.params.snapshotId);
+      if (!Number.isInteger(snapshotId) || snapshotId < 1) return res.status(400).json({ error: "Backup inválido." });
+      const backup = await getBackupDownload(user.id, snapshotId);
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${backup.filename}"`);
+      res.setHeader("Cache-Control", "no-store");
+      return res.send(backup.content);
+    } catch (downloadError) {
+      console.error("[Backup] Falha no download manual:", downloadError instanceof Error ? downloadError.message : downloadError);
+      return res.status(404).json({ error: "Não foi possível baixar este backup." });
     }
   });
 

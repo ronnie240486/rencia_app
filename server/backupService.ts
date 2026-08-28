@@ -16,6 +16,10 @@ export function snapshotIdsToRemove(ids: number[]) {
   return ids.slice(RETENTION_LIMIT);
 }
 
+export function backupDownloadFilename(createdAt: Date | string) {
+  return `rencia-backup-${new Date(createdAt).toISOString().replace(/[:.]/g, "-")}.json`;
+}
+
 export async function createBackupSnapshot(ownerId: number, type: "automatic" | "manual", now = new Date()) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
@@ -68,4 +72,16 @@ export async function restoreBackupSnapshot(ownerId: number, snapshotId: number)
   const response = await fetch(signedUrl);
   if (!response.ok) throw new Error("Não foi possível baixar o backup");
   return importBackup(ownerId, await response.json());
+}
+
+/** Retorna os bytes do backup para a rota autenticada enviar como anexo de download. */
+export async function getBackupDownload(ownerId: number, snapshotId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  const snapshot = (await db.select().from(backupSnapshots).where(and(eq(backupSnapshots.id, snapshotId), eq(backupSnapshots.ownerId, ownerId))).limit(1))[0];
+  if (!snapshot) throw new Error("Backup não encontrado");
+  const signedUrl = await storageGetSignedUrl(snapshot.storageKey);
+  const response = await fetch(signedUrl);
+  if (!response.ok) throw new Error("Não foi possível preparar o download do backup");
+  return { filename: backupDownloadFilename(snapshot.createdAt), content: Buffer.from(await response.arrayBuffer()) };
 }

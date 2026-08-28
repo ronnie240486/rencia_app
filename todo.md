@@ -1442,3 +1442,4 @@
 - [x] Incluir no pacote de backup um inventário legível para importação em outro sistema
 - [ ] Manter os dados necessários para restaurar clientes, MACs, listas, revendas e aplicativos fora do Manus
 - [x] Validar a exportação completa sem alterar ou remover dados existentes
+- [x] Fazer o botão Baixar no PC salvar o arquivo JSON em vez de abrir a página no navegador
