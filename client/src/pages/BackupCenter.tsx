@@ -43,7 +43,7 @@ export default function BackupCenter() {
 
   return <AdminLayout title="Backup Automático"><div className="space-y-6">
     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div><div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-[.18em] text-primary"><HardDrive size={17} /> Proteção de dados</div><h1 className="text-2xl font-bold">Backup Automático</h1><p className="mt-1 text-sm text-muted-foreground">Cópia completa no painel, no Google Drive e disponível para download no seu computador.</p></div>
+      <div><div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-[.18em] text-primary"><HardDrive size={17} /> Proteção de dados</div><h1 className="text-2xl font-bold">Backup Automático</h1><p className="mt-1 text-sm text-muted-foreground">Cópia completa no painel, no Google Drive e disponível para download no seu computador.</p><p className="mt-2 text-xs text-muted-foreground">Formato portável 4.0: clientes, MACs, listas, aplicativos, configurações, revendas, permissões, cobranças e registros operacionais.</p></div>
       <div className="flex flex-wrap gap-2"><Button variant="outline" className="gap-2" disabled={busy} onClick={() => query.refetch()}><RefreshCw size={16} className={query.isFetching ? "animate-spin" : ""} /> Atualizar</Button><Button className="gap-2 text-black dark:text-white" disabled={busy} onClick={() => runNow.mutate()}>{runNow.isPending ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />} Criar agora</Button></div>
     </div>
 

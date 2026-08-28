@@ -3,7 +3,9 @@ import { eq } from "drizzle-orm";
 import { googleDriveBackupConnections } from "../drizzle/schema";
 import { getDb } from "./db";
 
-const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
+// Permite criar e manter somente a pasta e os arquivos que este painel produz,
+// sem solicitar acesso à biblioteca inteira do Google Drive do proprietário.
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_OAUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 export const GOOGLE_DRIVE_REDIRECT_URI = "https://renciaapp.manus.space/api/google-drive/oauth/callback";

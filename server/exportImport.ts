@@ -17,13 +17,36 @@ import {
   messageTemplates,
   resellerPermissions,
   apps,
+  storeInvites,
+  appSessions,
+  auditLogs,
+  payments,
+  customerTags,
+  deviceTags,
+  customerNotes,
+  maintenanceTasks,
+  internalAlerts,
+  deviceListNotificationReceipts,
+  remoteDeviceCommands,
+  resellerBillings,
+  listHealthChecks,
+  listFailoverSettings,
+  listFailoverEvents,
+  serverMaintenanceBlocks,
+  autoBackupSettings,
+  historyRetentionSettings,
 } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { buildPortableBackupManifest } from "./portableBackupManifest";
 
 export type PortableDeviceUrl = Record<string, any> & {
   backupDeviceId?: number;
   deviceMac?: string;
 };
+
+export function isSupportedBackupVersion(version: unknown) {
+  return ['2.0.0', '3.0.0', '4.0.0'].includes(String(version));
+}
 
 /** Converte o formato antigo por ID para entradas portáteis vinculadas ao MAC. */
 export function normalizeBackupDeviceUrls(rawUrls: unknown, backupDevices: any[] = []): PortableDeviceUrl[] {
@@ -45,6 +68,17 @@ export async function exportBackup(ownerId: number) {
   if (!db) throw new Error("Database unavailable");
 
   try {
+    const selectOwnerRows = async (table: any, label: string): Promise<any[]> => {
+      try { return await db.select().from(table).where(eq(table.ownerId, ownerId)); }
+      catch (error) { console.error(`[Export] Error fetching ${label}:`, error); return []; }
+    };
+    const selectDeviceRows = async (table: any, label: string, ownerDeviceIds: Set<number>): Promise<any[]> => {
+      try {
+        const rows = await db.select().from(table);
+        return rows.filter((row: any) => ownerDeviceIds.has(Number(row.deviceId)));
+      } catch (error) { console.error(`[Export] Error fetching ${label}:`, error); return []; }
+    };
+
     // Buscar o dono para incluir no backup
     const owner = await db.select().from(users).where(eq(users.id, ownerId));
     console.log('[Export] Owner:', owner.length > 0 ? 'found' : 'not found');
@@ -66,6 +100,24 @@ export async function exportBackup(ownerId: number) {
     let allMessageTemplates: any[] = [];
     let allResellerPermissions: any[] = [];
     let allApps: any[] = [];
+    let ownerStoreInvites: any[] = [];
+    let ownerAuditLogs: any[] = [];
+    let ownerPayments: any[] = [];
+    let ownerCustomerTags: any[] = [];
+    let ownerDeviceTags: any[] = [];
+    let ownerCustomerNotes: any[] = [];
+    let ownerMaintenanceTasks: any[] = [];
+    let ownerInternalAlerts: any[] = [];
+    let ownerDeviceNotificationReceipts: any[] = [];
+    let ownerRemoteDeviceCommands: any[] = [];
+    let ownerResellerBillings: any[] = [];
+    let ownerListHealthChecks: any[] = [];
+    let ownerListFailoverSettings: any[] = [];
+    let ownerListFailoverEvents: any[] = [];
+    let ownerServerMaintenanceBlocks: any[] = [];
+    let ownerAutoBackupSettings: any[] = [];
+    let ownerHistoryRetentionSettings: any[] = [];
+    let ownerAppSessions: any[] = [];
 
     try { ownerDevices = await db.select().from(devices).where(eq(devices.ownerId, ownerId)); } catch (e) { console.error('[Export] Error fetching devices:', e); }
     try { ownerDns = await db.select().from(dnsEntries).where(eq(dnsEntries.ownerId, ownerId)); } catch (e) { console.error('[Export] Error fetching dnsEntries:', e); }
@@ -84,6 +136,26 @@ export async function exportBackup(ownerId: number) {
     try { allResellerPermissions = await db.select().from(resellerPermissions); } catch (e) { console.error('[Export] Error fetching resellerPermissions:', e); }
     try { allApps = await db.select().from(apps); } catch (e) { console.error('[Export] Error fetching apps:', e); }
 
+    const ownerDeviceIds = new Set(ownerDevices.map((device) => Number(device.id)));
+    ownerStoreInvites = await selectOwnerRows(storeInvites, "storeInvites");
+    ownerAuditLogs = await selectOwnerRows(auditLogs, "auditLogs");
+    ownerPayments = await selectOwnerRows(payments, "payments");
+    ownerCustomerTags = await selectOwnerRows(customerTags, "customerTags");
+    ownerCustomerNotes = await selectOwnerRows(customerNotes, "customerNotes");
+    ownerMaintenanceTasks = await selectOwnerRows(maintenanceTasks, "maintenanceTasks");
+    ownerInternalAlerts = await selectOwnerRows(internalAlerts, "internalAlerts");
+    ownerRemoteDeviceCommands = await selectOwnerRows(remoteDeviceCommands, "remoteDeviceCommands");
+    ownerResellerBillings = await selectOwnerRows(resellerBillings, "resellerBillings");
+    ownerListHealthChecks = await selectOwnerRows(listHealthChecks, "listHealthChecks");
+    ownerListFailoverSettings = await selectOwnerRows(listFailoverSettings, "listFailoverSettings");
+    ownerListFailoverEvents = await selectOwnerRows(listFailoverEvents, "listFailoverEvents");
+    ownerServerMaintenanceBlocks = await selectOwnerRows(serverMaintenanceBlocks, "serverMaintenanceBlocks");
+    ownerAutoBackupSettings = await selectOwnerRows(autoBackupSettings, "autoBackupSettings");
+    ownerHistoryRetentionSettings = await selectOwnerRows(historyRetentionSettings, "historyRetentionSettings");
+    ownerAppSessions = await selectDeviceRows(appSessions, "appSessions", ownerDeviceIds);
+    ownerDeviceTags = await selectDeviceRows(deviceTags, "deviceTags", ownerDeviceIds);
+    ownerDeviceNotificationReceipts = await selectDeviceRows(deviceListNotificationReceipts, "deviceListNotificationReceipts", ownerDeviceIds);
+
     console.log('[Export] Data fetched - devices:', ownerDevices.length, 'users:', allUsers.length);
 
     // Buscar device URLs para cada device
@@ -101,32 +173,51 @@ export async function exportBackup(ownerId: number) {
       console.error('[Export] Error in deviceUrls loop:', e);
     }
 
+    const portableData = {
+      owner: owner[0] || null,
+      users: allUsers,
+      devices: ownerDevices,
+      deviceUrls: portableDeviceUrls,
+      dns: ownerDns,
+      nuvixConfig: ownerNuvixConfig,
+      playerCredentials: ownerPlayerCredentials,
+      appSettings: allAppSettings,
+      carouselSlides: allCarouselSlides,
+      carouselConfig: allCarouselConfig,
+      suggestions: allSuggestions,
+      notices: allNotices,
+      localCredentials: allLocalCredentials,
+      ultraPlayerConfig: allUltraPlayerConfig,
+      appCredentials: allAppCredentials,
+      messageTemplates: allMessageTemplates,
+      resellerPermissions: allResellerPermissions,
+      apps: allApps,
+      storeInvites: ownerStoreInvites,
+      appSessions: ownerAppSessions,
+      auditLogs: ownerAuditLogs,
+      payments: ownerPayments,
+      customerTags: ownerCustomerTags,
+      deviceTags: ownerDeviceTags,
+      customerNotes: ownerCustomerNotes,
+      maintenanceTasks: ownerMaintenanceTasks,
+      internalAlerts: ownerInternalAlerts,
+      deviceListNotificationReceipts: ownerDeviceNotificationReceipts,
+      remoteDeviceCommands: ownerRemoteDeviceCommands,
+      resellerBillings: ownerResellerBillings,
+      listHealthChecks: ownerListHealthChecks,
+      listFailoverSettings: ownerListFailoverSettings,
+      listFailoverEvents: ownerListFailoverEvents,
+      serverMaintenanceBlocks: ownerServerMaintenanceBlocks,
+      autoBackupSettings: ownerAutoBackupSettings,
+      historyRetentionSettings: ownerHistoryRetentionSettings,
+    };
+
     return {
-      version: "3.0.0",
+      version: "4.0.0",
       exportDate: new Date().toISOString(),
       ownerId,
-      data: {
-        owner: owner[0] || null,
-        users: allUsers,
-        devices: ownerDevices,
-        // Cada lista leva o MAC do dispositivo. Isso permite restaurá-la mesmo
-        // quando o novo banco gerar IDs diferentes para os dispositivos.
-        deviceUrls: portableDeviceUrls,
-        dns: ownerDns,
-        nuvixConfig: ownerNuvixConfig,
-        playerCredentials: ownerPlayerCredentials,
-        appSettings: allAppSettings,
-        carouselSlides: allCarouselSlides,
-        carouselConfig: allCarouselConfig,
-        suggestions: allSuggestions,
-        notices: allNotices,
-        localCredentials: allLocalCredentials,
-        ultraPlayerConfig: allUltraPlayerConfig,
-        appCredentials: allAppCredentials,
-        messageTemplates: allMessageTemplates,
-        resellerPermissions: allResellerPermissions,
-        apps: allApps,
-      },
+      manifest: buildPortableBackupManifest(portableData),
+      data: portableData,
     };
   } catch (error) {
     console.error("[Export] Error exporting backup:", error);
@@ -160,7 +251,7 @@ export function analyzeImportDevices(incoming: any[], existing: Array<{ id: numb
 export async function previewBackupImport(ownerId: number, backup: any) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  if (!['2.0.0', '3.0.0'].includes(backup?.version)) throw new Error("Versão de backup incompatível.");
+  if (!isSupportedBackupVersion(backup?.version)) throw new Error("Versão de backup incompatível.");
   const incoming = Array.isArray(backup?.data?.devices) ? backup.data.devices : [];
   const existing = await db.select({ id: devices.id, mac: devices.mac, nomeServer: devices.nomeServer }).from(devices).where(eq(devices.ownerId, ownerId));
   const { newDevices, existingMatches, duplicateInFile, invalidDevices } = analyzeImportDevices(incoming, existing);
@@ -177,7 +268,7 @@ export async function importBackup(ownerId: number, backup: any) {
 
   try {
     // Validar versão
-    if (!['2.0.0', '3.0.0'].includes(backup.version)) {
+    if (!isSupportedBackupVersion(backup.version)) {
       throw new Error("Versão de backup incompatível.");
     }
 

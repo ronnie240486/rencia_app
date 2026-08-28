@@ -1430,7 +1430,14 @@
 ## Backup automático no Google Drive (28/08/2026)
 - [ ] Conectar de forma segura o Google Drive do proprietário ao backup do painel
 - [ ] Enviar uma cópia completa ao Drive após cada backup automático diário
-- [ ] Manter o backup interno e o download manual para computador
+- [x] Manter o backup interno e o download manual para computador
 - [ ] Exibir no Centro de Backups o resultado da cópia para o Google Drive
 - [ ] Validar a criação da cópia externa sem excluir ou alterar os dados do painel
 - [ ] Corrigir a atualização publicada para usar o cliente Web OAuth configurado no Google Drive
+- [x] Limitar a autorização do Google Drive aos arquivos de backup criados pelo painel
+
+## Backup completo e portável (28/08/2026)
+- [x] Auditar se a exportação inclui todas as tabelas de dados e configurações do painel
+- [x] Incluir no pacote de backup um inventário legível para importação em outro sistema
+- [ ] Manter os dados necessários para restaurar clientes, MACs, listas, revendas e aplicativos fora do Manus
+- [x] Validar a exportação completa sem alterar ou remover dados existentes

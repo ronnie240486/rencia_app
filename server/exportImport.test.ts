@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeImportDevices, normalizeBackupDeviceUrls, normalizeImportMac } from "./exportImport";
+import { analyzeImportDevices, isSupportedBackupVersion, normalizeBackupDeviceUrls, normalizeImportMac } from "./exportImport";
 
 describe("prévia de importação", () => {
   it("normaliza MACs e separa novos, existentes, repetidos e inválidos", () => {
@@ -27,5 +27,10 @@ describe("prévia de importação", () => {
   it("mantém o MAC portável nas listas do formato atual", () => {
     const urls = normalizeBackupDeviceUrls([{ nome: "Lista 2", deviceMac: "11:22:33:44:55:66" }]);
     expect(urls).toEqual([expect.objectContaining({ deviceMac: "11:22:33:44:55:66" })]);
+  });
+
+  it("aceita o formato completo 4.0.0 para restauração", () => {
+    expect(isSupportedBackupVersion("4.0.0")).toBe(true);
+    expect(isSupportedBackupVersion("1.0.0")).toBe(false);
   });
 });
