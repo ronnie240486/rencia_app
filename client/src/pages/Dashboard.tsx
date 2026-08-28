@@ -90,7 +90,9 @@ function StatCard({ title, value, icon: Icon, color }: {
 export default function Dashboard() {
   const { user } = useAuth();
   const [recentSearch, setRecentSearch] = useState("");
-  const [connectedFilter, setConnectedFilter] = useState(30);
+  // APKs antigos do OuroPro podem registrar o episódio apenas ao iniciá-lo.
+  // Duas horas evitam que esse último conteúdo suma logo depois de iniciar.
+  const [connectedFilter, setConnectedFilter] = useState(120);
   const [pendingBackup, setPendingBackup] = useState<any | null>(null);
   const [importPreview, setImportPreview] = useState<any | null>(null);
   const [previewingImport, setPreviewingImport] = useState(false);
@@ -303,7 +305,7 @@ export default function Dashboard() {
                   <Badge className="text-xs bg-green-100 text-green-700 border-green-200" variant="outline">
                     <Activity className="w-3 h-3 mr-1" />
                     <span>{connectedDevices?.length ?? 0}</span>
-                    <span>{" online"}</span>
+                    <span>{" em exibição"}</span>
                   </Badge>
                 )}
               </div>
@@ -369,17 +371,20 @@ export default function Dashboard() {
                 <TableBody>
                   {(connectedDevices ?? []).map(d => {
                     const isRecent = d.lastSeen && (Date.now() - new Date(d.lastSeen).getTime()) < 5 * 60 * 1000;
+                    const isFixed = d.forceShowChannel === true;
                     return (
                       <TableRow key={d.id}>
                         <TableCell>
                           <div className="flex items-center gap-1">
                             {isRecent ? (
                               <Wifi className="w-3 h-3 text-green-500" />
+                            ) : isFixed ? (
+                              <Wifi className="w-3 h-3 text-blue-500" />
                             ) : (
                               <Wifi className="w-3 h-3 text-amber-400" />
                             )}
-                            <span className={`text-xs font-medium ${isRecent ? "text-green-600" : "text-amber-600"}`}>
-                              {isRecent ? "Online" : "Recente"}
+                            <span className={`text-xs font-medium ${isRecent ? "text-green-600" : isFixed ? "text-blue-600" : "text-amber-600"}`}>
+                              {isRecent ? "Online" : isFixed ? "Fixado" : "Recente"}
                             </span>
                           </div>
                         </TableCell>
@@ -392,8 +397,8 @@ export default function Dashboard() {
                         <TableCell className="text-xs max-w-[160px]">
                           <div className="flex items-center gap-1 group">
                             {d.currentContent ? (
-                              <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium truncate flex-1" title={d.currentContent}>
-                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+                              <span className={`flex items-center gap-1 font-medium truncate flex-1 ${isRecent ? "text-green-600 dark:text-green-400" : isFixed ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} title={d.currentContent}>
+                                <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${isRecent ? "bg-green-500 animate-pulse" : isFixed ? "bg-blue-500" : "bg-muted-foreground"}`} />
                                 <span className="truncate">{d.currentContent}</span>
                               </span>
                             ) : (

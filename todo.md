@@ -273,6 +273,9 @@
 - [x] Aceitar os campos `content`, `current_content` e `currentContent` na atividade enviada pelo APK
 - [x] Conectar o heartbeat de um minuto ao player da fonte disponível do Maximus Player
 - [ ] Gerar e instalar APK atualizado para validar a presença contínua em aparelho real
+- [ ] Corrigir o OuroPro instalado que só atualiza presença ao entrar ou trocar de conteúdo
+- [x] Manter no Dashboard por duas horas o último conteúdo do OuroPro que não renovou atividade
+- [x] Fazer o botão Forçar canal fixar o último conteúdo na lista sem prazo até ser desligado
 
 ## Testes e Validação (23/07/2026)
 - [x] Criar testes vitest para protocolo Xtream Codes (server/xtreamcodes.test.ts)
