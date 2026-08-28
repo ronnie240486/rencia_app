@@ -7,6 +7,8 @@ const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_OAUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 export const GOOGLE_DRIVE_REDIRECT_URI = "https://renciaapp.manus.space/api/google-drive/oauth/callback";
+// Client Web criado para o painel. O ID é público por natureza; o segredo continua somente no ambiente protegido.
+const GOOGLE_DRIVE_WEB_CLIENT_ID = "668596030530-adfi35tcp2cnio6ss9fk79cmduscubvt.apps.googleusercontent.com";
 
 type DriveServiceAccount = { client_email?: string; private_key?: string; token_uri?: string };
 type OAuthTokenResponse = { access_token?: string; refresh_token?: string; error?: string; error_description?: string };
@@ -29,7 +31,7 @@ export function getGoogleDriveBackupConfig(env: NodeJS.ProcessEnv = process.env)
 }
 
 export function getGoogleDriveOAuthConfig(env: NodeJS.ProcessEnv = process.env): GoogleDriveOAuthConfig | null {
-  const clientId = env.GOOGLE_DRIVE_OAUTH_CLIENT_ID?.trim();
+  const clientId = GOOGLE_DRIVE_WEB_CLIENT_ID;
   const clientSecret = env.GOOGLE_DRIVE_OAUTH_CLIENT_SECRET?.trim();
   return clientId && clientSecret ? { clientId, clientSecret } : null;
 }
