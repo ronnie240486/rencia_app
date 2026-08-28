@@ -521,9 +521,8 @@ export async function getUserPlanInfo(userId: number) {
 // ─── Dispositivos Conectados (lastSeen) ───────────────────────────────────────
 
 /**
- * Retorna dispositivos recentes e os que o proprietário fixou manualmente no painel.
- * O modo fixado preserva a exibição do último conteúdo de APKs antigos que não
- * renovam o heartbeat enquanto ficam no mesmo episódio.
+ * Retorna dispositivos que tiveram atividade dentro da janela escolhida no painel.
+ * Registros fixados manualmente não são tratados como atividade atual.
  */
 export async function getConnectedDevices(ownerId: number, minutesAgo = 30) {
   const db = await getDb();
@@ -542,10 +541,7 @@ export async function getConnectedDevices(ownerId: number, minutesAgo = 30) {
     currentContent: devices.currentContent,
     forceShowChannel: devices.forceShowChannel,
   }).from(devices)
-    .where(and(
-      eq(devices.ownerId, ownerId),
-      or(gte(devices.lastSeen, cutoff), eq(devices.forceShowChannel, true)),
-    ))
+    .where(and(eq(devices.ownerId, ownerId), gte(devices.lastSeen, cutoff)))
     .orderBy(desc(devices.lastSeen))
     .limit(50);
 }
