@@ -1442,6 +1442,11 @@
 - [x] Preservar permissões e isolamento dos clientes no layout compartilhado
 - [ ] Validar em sessão de proprietário e sessão de revenda
 
+## Ranking de APKs para revendas (28/08/2026)
+- [x] Corrigir a abertura do ranking quando a permissão foi liberada para a revenda
+- [x] Mostrar no ranking apenas os aplicativos e clientes da própria revenda
+- [ ] Validar a permissão e o isolamento do ranking em sessão de revenda
+
 ## Atalho de convite por revenda (28/08/2026)
 - [x] Adicionar na tela de Revendas um atalho para gerar convite privado da revenda
 - [x] Pré-preencher a seleção com os aplicativos liberados no plano da revenda

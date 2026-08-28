@@ -14,4 +14,14 @@ describe("aplicativos liberados por revenda", () => {
   it("ignora aplicativos inválidos recebidos em dados antigos", () => {
     expect(parseResellerAccessPolicy({ permissions: [], allowedApps: ["future", "nao-existe"] }).allowedApps).toEqual(["future"]);
   });
+
+  it("mantém as permissões de navegação junto dos aplicativos liberados", () => {
+    const policy = parseResellerAccessPolicy(JSON.stringify({
+      permissions: ["app_distribution", "app_settings"],
+      allowedApps: ["ouropro", "future"],
+    }));
+
+    expect(policy.permissions).toEqual(["app_distribution", "app_settings"]);
+    expect(policy.allowedApps).toEqual(["ouropro", "future"]);
+  });
 });

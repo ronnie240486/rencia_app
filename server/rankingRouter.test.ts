@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let groupedRows: Array<{ app: string; count: number }> = [];
+const where = vi.fn(() => ({
+  groupBy: async () => groupedRows,
+}));
 const database = {
   select: vi.fn(() => ({
     from: () => ({
-      where: () => ({
-        groupBy: async () => groupedRows,
-      }),
+      where,
     }),
   })),
 };
@@ -46,5 +47,11 @@ describe("ranking.appStats", () => {
     const result = await appRouter.createCaller(context).ranking.appStats();
 
     expect(result).toMatchObject({ ominus: 2, magnus: 4, excellence: 5, total: 11 });
+  });
+
+  it("aplica o filtro de proprietário antes de agrupar o ranking", async () => {
+    await appRouter.createCaller(context).ranking.appStats();
+
+    expect(where).toHaveBeenCalledTimes(1);
   });
 });

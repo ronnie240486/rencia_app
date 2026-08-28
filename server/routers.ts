@@ -351,9 +351,8 @@ export const appRouter = router({
       if (!db) return { ...user, grantedPermissions: [] };
       const row = (await db.select({ permissions: resellerPermissions.permissions }).from(resellerPermissions)
         .where(eq(resellerPermissions.resellerId, user.id)).limit(1))[0];
-      let parsed: unknown = [];
-      try { parsed = row?.permissions ? JSON.parse(row.permissions) : []; } catch { parsed = []; }
-      return { ...user, grantedPermissions: normalizeResellerPermissions(parsed) };
+      const policy = parseResellerAccessPolicy(row?.permissions);
+      return { ...user, grantedPermissions: policy.permissions };
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -3093,7 +3092,7 @@ export const appRouter = router({
         count: sql`COUNT(*)`
       })
       .from(devices)
-      .where(isNotNull(devices.app))
+      .where(and(eq(devices.ownerId, ctx.user.id), isNotNull(devices.app)))
       .groupBy(devices.app);
       
       const counts = result.reduce((acc: any, row: any) => {

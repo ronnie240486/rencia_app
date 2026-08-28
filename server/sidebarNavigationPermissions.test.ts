@@ -27,6 +27,12 @@ describe("organização da barra lateral", () => {
     expect(getVisibleNavigationGroups(permissionGroups, false, false, ["backups"])[0].items.map(item => item.label)).toEqual(["Usuários", "Backups"]);
   });
 
+  it("exibe o Ranking de Apps quando a distribuição de aplicativos é liberada", () => {
+    const permissionGroups = [{ items: [{ label: "Ranking de Apps", ownerOnly: true, permissionKey: "app_distribution" }] }];
+
+    expect(getVisibleNavigationGroups(permissionGroups, false, false, ["app_distribution"])[0].items.map(item => item.label)).toEqual(["Ranking de Apps"]);
+  });
+
   it("identifica rotas administrativas que uma revenda não pode abrir manualmente", () => {
     expect(isOwnerOnlyRoute("/settings")).toBe(true);
     expect(isOwnerOnlyRoute("/aplicativos/optimus")).toBe(true);

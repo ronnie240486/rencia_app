@@ -18,6 +18,8 @@ interface AppRanking {
 export default function RankingApps() {
   // Buscar estatísticas de apps
   const { data: appStats } = trpc.ranking.appStats.useQuery();
+  const { data: resellerAppAccess } = trpc.resellerAppAccess.me.useQuery();
+  const allowedApps = resellerAppAccess?.isRestricted ? resellerAppAccess.allowedApps : null;
   
   const appCounts = useMemo(() => {
     return {
@@ -40,48 +42,52 @@ export default function RankingApps() {
 
   const totalUsers = (appStats?.total) || 0;
 
-  // Criar ranking dos aplicativos disponíveis no painel
+  // Criar ranking apenas com os aplicativos liberados no plano da revenda.
   const ranking: AppRanking[] = useMemo(() => {
     const apps = [
       {
+        id: "ouropro",
         name: "Ouro Pro",
         logo: MANAGED_APP_CATALOG.ouropro.defaultLogoUrl,
         color: "yellow",
         users: appCounts['Ouro Pro'] || 0,
       },
       {
+        id: "maximus",
         name: "Maximus",
         logo: MANAGED_APP_CATALOG.maximus.defaultLogoUrl,
         color: "purple",
         users: appCounts['Maximus'] || 0,
       },
       {
+        id: "fusion",
         name: "Fusion",
         logo: MANAGED_APP_CATALOG.fusion.defaultLogoUrl,
         color: "cyan",
         users: appCounts['Fusion'] || 0,
       },
-      { name: "Prestige", logo: MANAGED_APP_CATALOG.prestige.defaultLogoUrl, color: "purple", users: appCounts['Prestige'] || 0 },
-      { name: "Optimus", logo: MANAGED_APP_CATALOG.optimus.defaultLogoUrl, color: "cyan", users: appCounts['Optimus'] || 0 },
-      { name: "Império Play", logo: MANAGED_APP_CATALOG.imperio.defaultLogoUrl, color: "yellow", users: appCounts['Império Play'] || 0 },
-      { name: "Infinitus", logo: MANAGED_APP_CATALOG.infinitus.defaultLogoUrl, color: "purple", users: appCounts['Infinitus'] || 0 },
-      { name: "Supreme", logo: MANAGED_APP_CATALOG.supremus.defaultLogoUrl, color: "yellow", users: appCounts['Supremus'] || 0 },
-      { name: "Evolux", logo: MANAGED_APP_CATALOG.evolux.defaultLogoUrl, color: "cyan", users: appCounts['Evolux'] || 0 },
-      { name: "Ominus", logo: MANAGED_APP_CATALOG.ominus.defaultLogoUrl, color: "purple", users: appCounts['Ominus'] || 0 },
-      { name: "Magnus", logo: MANAGED_APP_CATALOG.magnus.defaultLogoUrl, color: "yellow", users: appCounts['Magnus'] || 0 },
-      { name: "Excellence", logo: MANAGED_APP_CATALOG.excellence.defaultLogoUrl, color: "purple", users: appCounts['Excellence'] || 0 },
-      { name: "Future", logo: MANAGED_APP_CATALOG.future.defaultLogoUrl, color: "cyan", users: appCounts['Future'] || 0 },
-      { name: "Nexus", logo: MANAGED_APP_CATALOG.nexus.defaultLogoUrl, color: "purple", users: appCounts['Nexus'] || 0 },
+      { id: "prestige", name: "Prestige", logo: MANAGED_APP_CATALOG.prestige.defaultLogoUrl, color: "purple", users: appCounts['Prestige'] || 0 },
+      { id: "optimus", name: "Optimus", logo: MANAGED_APP_CATALOG.optimus.defaultLogoUrl, color: "cyan", users: appCounts['Optimus'] || 0 },
+      { id: "imperio", name: "Império Play", logo: MANAGED_APP_CATALOG.imperio.defaultLogoUrl, color: "yellow", users: appCounts['Império Play'] || 0 },
+      { id: "infinitus", name: "Infinitus", logo: MANAGED_APP_CATALOG.infinitus.defaultLogoUrl, color: "purple", users: appCounts['Infinitus'] || 0 },
+      { id: "supremus", name: "Supreme", logo: MANAGED_APP_CATALOG.supremus.defaultLogoUrl, color: "yellow", users: appCounts['Supremus'] || 0 },
+      { id: "evolux", name: "Evolux", logo: MANAGED_APP_CATALOG.evolux.defaultLogoUrl, color: "cyan", users: appCounts['Evolux'] || 0 },
+      { id: "ominus", name: "Ominus", logo: MANAGED_APP_CATALOG.ominus.defaultLogoUrl, color: "purple", users: appCounts['Ominus'] || 0 },
+      { id: "magnus", name: "Magnus", logo: MANAGED_APP_CATALOG.magnus.defaultLogoUrl, color: "yellow", users: appCounts['Magnus'] || 0 },
+      { id: "excellence", name: "Excellence", logo: MANAGED_APP_CATALOG.excellence.defaultLogoUrl, color: "purple", users: appCounts['Excellence'] || 0 },
+      { id: "future", name: "Future", logo: MANAGED_APP_CATALOG.future.defaultLogoUrl, color: "cyan", users: appCounts['Future'] || 0 },
+      { id: "nexus", name: "Nexus", logo: MANAGED_APP_CATALOG.nexus.defaultLogoUrl, color: "purple", users: appCounts['Nexus'] || 0 },
     ];
 
     return apps
+      .filter((app) => !allowedApps || allowedApps.includes(app.id))
       .sort((a, b) => b.users - a.users)
       .map((app, idx) => ({
         ...app,
         position: idx + 1,
         percentage: totalUsers > 0 ? Math.round((app.users / totalUsers) * 100) : 0,
       }));
-  }, [appCounts, totalUsers]);
+  }, [allowedApps, appCounts, totalUsers]);
 
   const colorClasses = {
     yellow: "border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-yellow-50 via-yellow-50 to-yellow-100/50 dark:from-yellow-950/40 dark:via-yellow-900/20 dark:to-yellow-800/30",
@@ -116,7 +122,7 @@ export default function RankingApps() {
               <Trophy className="w-10 h-10 text-yellow-500 animate-bounce" style={{ animationDelay: "0.2s" }} />
             </div>
             <p className="text-muted-foreground text-lg">
-              Veja quantos clientes estão usando todos os aplicativos cadastrados no painel
+              Veja quantos dos seus clientes usam os aplicativos disponíveis no seu painel
             </p>
           </div>
         </div>
