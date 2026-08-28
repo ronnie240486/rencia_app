@@ -1433,3 +1433,4 @@
 - [ ] Manter o backup interno e o download manual para computador
 - [ ] Exibir no Centro de Backups o resultado da cópia para o Google Drive
 - [ ] Validar a criação da cópia externa sem excluir ou alterar os dados do painel
+- [ ] Corrigir a atualização publicada para usar o cliente Web OAuth configurado no Google Drive
