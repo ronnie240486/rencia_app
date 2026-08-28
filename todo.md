@@ -1436,6 +1436,9 @@
 - [ ] Corrigir a atualização publicada para usar o cliente Web OAuth configurado no Google Drive
 - [x] Limitar a autorização do Google Drive aos arquivos de backup criados pelo painel
 - [ ] Corrigir o retorno OAuth para registrar a conexão no painel após o proprietário permitir o acesso
+- [ ] Investigar a falha de persistência quando o Google Drive é autorizado mas continua desconectado
+- [ ] Exibir confirmação clara de sucesso ou falha após o retorno da autorização do Google Drive
+- [ ] Corrigir o status dos backups para mostrar Drive salvo quando a cópia externa concluir
 
 ## Backup completo e portável (28/08/2026)
 - [x] Auditar se a exportação inclui todas as tabelas de dados e configurações do painel

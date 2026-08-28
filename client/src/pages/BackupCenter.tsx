@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { Cloud, CopyCheck, Download, HardDrive, History, Link2, Loader2, Play, RefreshCw, ShieldCheck, ShieldOff, RotateCcw, Trash2 } from "lucide-react";
+import { useEffect } from "react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 const formatDate = (value: Date | string | null | undefined) => value ? new Date(value).toLocaleString("pt-BR") : "Ainda não executado";
 const formatSize = (value: number) => value < 1024 * 1024 ? `${Math.max(1, Math.round(value / 1024))} KB` : `${(value / (1024 * 1024)).toFixed(1)} MB`;
@@ -16,8 +18,20 @@ function DriveStatus({ status }: { status: "not_configured" | "success" | "error
 }
 
 export default function BackupCenter() {
+  const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const query = trpc.backups.overview.useQuery();
+  useEffect(() => {
+    const status = new URLSearchParams(window.location.search).get("googleDrive");
+    if (!status) return;
+    if (status === "connected") {
+      toast.success("Google Drive conectado com sucesso. Os próximos backups serão enviados automaticamente.");
+      void utils.backups.overview.invalidate();
+    } else {
+      toast.error("Não foi possível concluir a conexão com o Google Drive. Tente conectar novamente.");
+    }
+    setLocation("/backups", { replace: true });
+  }, [setLocation, utils.backups.overview]);
   const runNow = trpc.backups.runNow.useMutation({
     onSuccess: (result) => { toast.success(result.alreadyExists ? "O backup automático de hoje já existe." : "Backup criado com sucesso."); utils.backups.overview.invalidate(); },
     onError: (error) => toast.error(error.message),

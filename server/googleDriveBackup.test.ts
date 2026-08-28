@@ -20,4 +20,24 @@ describe("backup no Google Drive", () => {
     expect(encrypted).not.toContain(token);
     expect(decryptGoogleDriveRefreshToken(encrypted)).toBe(token);
   });
+
+  it.skipIf(!process.env.GOOGLE_DRIVE_OAUTH_CLIENT_SECRET)("aceita a credencial ativa no endpoint OAuth do Google", async () => {
+    const config = getGoogleDriveOAuthConfig(process.env);
+    expect(config).not.toBeNull();
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: config!.clientId,
+        client_secret: config!.clientSecret,
+        code: "rencia-credential-probe",
+        grant_type: "authorization_code",
+        redirect_uri: config!.redirectUri,
+      }),
+    });
+    const payload = await response.json() as { error?: string };
+    // O código fictício é rejeitado como invalid_request, mas a ausência de invalid_client confirma a credencial ativa.
+    expect(response.status).toBe(400);
+    expect(payload.error).toBe("invalid_request");
+  });
 });
