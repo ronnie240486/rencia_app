@@ -396,12 +396,13 @@ export function registerApiRoutes(app: Express) {
       const code = typeof req.query.code === "string" ? req.query.code : "";
       if (error || !stateValue || !code) return res.redirect(fallback);
       const state = readGoogleDriveOAuthState(stateValue);
-      const user = await sdk.authenticateRequest(req);
-      if (!user.isOwner || user.id !== state.ownerId) return res.status(403).send("A autorização deve ser concluída pelo proprietário do painel.");
-      await connectGoogleDriveBackup(user.id, code);
+      // O state é assinado, expira em 15 minutos e só é emitido pela procedure do proprietário.
+      // Não depender do cookie aqui evita falha quando o Google retorna de outro domínio.
+      await connectGoogleDriveBackup(state.ownerId, code);
       const returnUrl = new URL("/backups?googleDrive=connected", state.origin);
       return res.redirect(returnUrl.toString());
-    } catch {
+    } catch (callbackError) {
+      console.error("[GoogleDrive] Falha ao concluir autorização:", callbackError instanceof Error ? callbackError.message : callbackError);
       return res.redirect(fallback);
     }
   });

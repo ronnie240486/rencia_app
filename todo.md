@@ -1435,6 +1435,7 @@
 - [ ] Validar a criação da cópia externa sem excluir ou alterar os dados do painel
 - [ ] Corrigir a atualização publicada para usar o cliente Web OAuth configurado no Google Drive
 - [x] Limitar a autorização do Google Drive aos arquivos de backup criados pelo painel
+- [ ] Corrigir o retorno OAuth para registrar a conexão no painel após o proprietário permitir o acesso
 
 ## Backup completo e portável (28/08/2026)
 - [x] Auditar se a exportação inclui todas as tabelas de dados e configurações do painel
