@@ -464,6 +464,10 @@ export const backupSnapshots = mysqlTable("backup_snapshots", {
   fileSize: int("fileSize").notNull(),
   type: mysqlEnum("type", ["automatic", "manual"]).default("automatic").notNull(),
   runKey: varchar("runKey", { length: 10 }),
+  googleDriveFileId: varchar("googleDriveFileId", { length: 160 }),
+  googleDriveUrl: text("googleDriveUrl"),
+  googleDriveStatus: mysqlEnum("googleDriveStatus", ["not_configured", "success", "error"]).default("not_configured").notNull(),
+  googleDriveError: varchar("googleDriveError", { length: 500 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -486,6 +490,22 @@ export const autoBackupSettings = mysqlTable("auto_backup_settings", {
 
 export type AutoBackupSetting = typeof autoBackupSettings.$inferSelect;
 export type InsertAutoBackupSetting = typeof autoBackupSettings.$inferInsert;
+
+// Conexão OAuth protegida usada somente para a segunda cópia dos backups no Google Drive.
+export const googleDriveBackupConnections = mysqlTable("google_drive_backup_connections", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull().unique(),
+  folderId: varchar("folderId", { length: 160 }).notNull(),
+  folderName: varchar("folderName", { length: 255 }).notNull(),
+  encryptedRefreshToken: text("encryptedRefreshToken").notNull(),
+  status: mysqlEnum("status", ["connected", "error"]).default("connected").notNull(),
+  lastSuccessAt: timestamp("lastSuccessAt"),
+  lastError: varchar("lastError", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GoogleDriveBackupConnection = typeof googleDriveBackupConnections.$inferSelect;
 
 // Configuração da retenção automática dos históricos operacionais do painel
 export const historyRetentionSettings = mysqlTable("history_retention_settings", {

@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull, like, or, gt } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions, storeInvites } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions, storeInvites, googleDriveBackupConnections } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
@@ -36,6 +36,7 @@ import { buildServerPilotOverview } from "./serverPilot";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 import { autoBackupSettings, backupSnapshots, historyRetentionSettings } from "../drizzle/schema";
 import { createBackupSnapshot, restoreBackupSnapshot, AUTO_BACKUP_CRON } from "./backupService";
+import { createGoogleDriveAuthorizationUrl } from "./googleDriveBackup";
 import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 import { parse as parseCookie } from "cookie";
 import { chooseLocalLoginAccount } from "./loginSelection";
@@ -189,10 +190,16 @@ export const appRouter = router({
   backups: router({
     overview: ownerProcedure.query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) return { setting: null, snapshots: [] };
+      if (!db) return { setting: null, snapshots: [], googleDrive: null };
       const setting = (await db.select().from(autoBackupSettings).where(eq(autoBackupSettings.ownerId, ctx.user.id)).limit(1))[0] ?? null;
       const snapshots = await db.select().from(backupSnapshots).where(eq(backupSnapshots.ownerId, ctx.user.id)).orderBy(desc(backupSnapshots.createdAt)).limit(30);
-      return { setting, snapshots };
+      const googleDrive = (await db.select({ folderName: googleDriveBackupConnections.folderName, status: googleDriveBackupConnections.status, lastSuccessAt: googleDriveBackupConnections.lastSuccessAt, lastError: googleDriveBackupConnections.lastError }).from(googleDriveBackupConnections).where(eq(googleDriveBackupConnections.ownerId, ctx.user.id)).limit(1))[0] ?? null;
+      return { setting, snapshots, googleDrive };
+    }),
+    googleDriveAuthorizationUrl: ownerProcedure.input(z.object({ origin: z.string().url() })).mutation(({ ctx, input }) => {
+      const origin = new URL(input.origin);
+      if (origin.protocol !== "https:" && origin.protocol !== "http:") throw new TRPCError({ code: "BAD_REQUEST", message: "Endereço de retorno inválido." });
+      return { url: createGoogleDriveAuthorizationUrl(ctx.user.id, origin.origin) };
     }),
     runNow: ownerProcedure.mutation(async ({ ctx }) => {
       const result = await createBackupSnapshot(ctx.user.id, "manual");

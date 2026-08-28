@@ -49,6 +49,7 @@ import { isLoginAccessAllowed, resolveLoginMacBinding } from "./appLogin";
 import { canAccessResellerPortal, chooseResellerPortalAccount } from "./resellerPortal";
 import { normalizeApkSessionKey, registerApkSession } from "./appSessionControl";
 import { filterDownloadsForInvite, hashStoreInviteToken } from "./storeInvites";
+import { connectGoogleDriveBackup, readGoogleDriveOAuthState } from "./googleDriveBackup";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -384,6 +385,25 @@ export function registerApiRoutes(app: Express) {
     }
     
     next();
+  });
+
+  /** Retorno da autorização única do Google Drive para as cópias permanentes do backup. */
+  app.get("/api/google-drive/oauth/callback", async (req: Request, res: Response) => {
+    const fallback = "https://renciaapp.manus.space/backups?googleDrive=error";
+    try {
+      const error = typeof req.query.error === "string" ? req.query.error : "";
+      const stateValue = typeof req.query.state === "string" ? req.query.state : "";
+      const code = typeof req.query.code === "string" ? req.query.code : "";
+      if (error || !stateValue || !code) return res.redirect(fallback);
+      const state = readGoogleDriveOAuthState(stateValue);
+      const user = await sdk.authenticateRequest(req);
+      if (!user.isOwner || user.id !== state.ownerId) return res.status(403).send("A autorização deve ser concluída pelo proprietário do painel.");
+      await connectGoogleDriveBackup(user.id, code);
+      const returnUrl = new URL("/backups?googleDrive=connected", state.origin);
+      return res.redirect(returnUrl.toString());
+    } catch {
+      return res.redirect(fallback);
+    }
   });
 
   /** A loja aberta foi desativada: downloads só são entregues por convite privado. */

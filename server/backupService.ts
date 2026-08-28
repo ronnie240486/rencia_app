@@ -3,6 +3,7 @@ import { autoBackupSettings, backupSnapshots } from "../drizzle/schema";
 import { getDb } from "./db";
 import { exportBackup, importBackup } from "./exportImport";
 import { storageGetSignedUrl, storagePut } from "./storage";
+import { uploadGoogleDriveBackup } from "./googleDriveBackup";
 
 export const AUTO_BACKUP_CRON = "0 0 6 * * *"; // 03:00 no horário de Brasília (UTC-3)
 const RETENTION_LIMIT = 30;
@@ -29,7 +30,9 @@ export async function createBackupSnapshot(ownerId: number, type: "automatic" | 
   try {
     const backup = await exportBackup(ownerId);
     const content = JSON.stringify(backup);
-    const stored = await storagePut(`backups/${ownerId}/backup-${runKey ?? now.toISOString().replace(/[:.]/g, "-")}.json`, content, "application/json");
+    const filename = `backup-${runKey ?? now.toISOString().replace(/[:.]/g, "-")}.json`;
+    const stored = await storagePut(`backups/${ownerId}/${filename}`, content, "application/json");
+    const googleDrive = await uploadGoogleDriveBackup(ownerId, filename, content);
     const result = await db.insert(backupSnapshots).values({
       ownerId,
       storageKey: stored.key,
@@ -37,6 +40,10 @@ export async function createBackupSnapshot(ownerId: number, type: "automatic" | 
       fileSize: Buffer.byteLength(content, "utf8"),
       type,
       runKey,
+      googleDriveFileId: googleDrive.fileId,
+      googleDriveUrl: googleDrive.url,
+      googleDriveStatus: googleDrive.status,
+      googleDriveError: googleDrive.error,
     });
     const snapshotId = Number((result as any)[0]?.insertId ?? 0);
     const snapshot = (await db.select().from(backupSnapshots).where(eq(backupSnapshots.id, snapshotId)).limit(1))[0];

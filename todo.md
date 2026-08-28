@@ -1426,3 +1426,10 @@
 - [x] Adicionar na tela de Revendas um atalho para gerar convite privado da revenda
 - [x] Pré-preencher a seleção com os aplicativos liberados no plano da revenda
 - [x] Validar o atalho em computador e celular sem alterar dados existentes
+
+## Backup automático no Google Drive (28/08/2026)
+- [ ] Conectar de forma segura o Google Drive do proprietário ao backup do painel
+- [ ] Enviar uma cópia completa ao Drive após cada backup automático diário
+- [ ] Manter o backup interno e o download manual para computador
+- [ ] Exibir no Centro de Backups o resultado da cópia para o Google Drive
+- [ ] Validar a criação da cópia externa sem excluir ou alterar os dados do painel
