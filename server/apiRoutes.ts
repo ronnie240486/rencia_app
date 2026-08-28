@@ -24,7 +24,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials, suggestions } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials, suggestions, storeInvites } from "../drizzle/schema";
 import { eq, or, and, asc, desc, sql } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
@@ -48,6 +48,7 @@ import { comparePassword } from "./auth";
 import { isLoginAccessAllowed, resolveLoginMacBinding } from "./appLogin";
 import { canAccessResellerPortal, chooseResellerPortalAccount } from "./resellerPortal";
 import { normalizeApkSessionKey, registerApkSession } from "./appSessionControl";
+import { filterDownloadsForInvite, hashStoreInviteToken } from "./storeInvites";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -385,14 +386,27 @@ export function registerApiRoutes(app: Express) {
     next();
   });
 
-  /** Aplicativos publicamente visíveis na Loja de Downloads, sem exigir login. */
+  /** A loja aberta foi desativada: downloads só são entregues por convite privado. */
   app.get("/api/public/apps", async (_req: Request, res: Response) => {
+    res.status(403).json({ apps: [], error: "A loja pública está desativada. Use o link de convite enviado pelo responsável." });
+  });
+
+  /** Aplicativos liberados para um convite privado, sem expor dados do painel. */
+  app.get("/api/store-invites/:token", async (req: Request, res: Response) => {
     try {
+      const token = String(req.params.token ?? "").trim();
+      if (token.length < 20 || token.length > 120) return res.status(404).json({ apps: [], error: "Convite inválido ou indisponível." });
+      const db = await getDb();
+      if (!db) return res.status(503).json({ apps: [], error: "Serviço temporariamente indisponível." });
+      const invite = (await db.select().from(storeInvites).where(eq(storeInvites.tokenHash, hashStoreInviteToken(token))).limit(1))[0];
+      if (!invite || invite.revokedAt || (invite.expiresAt && invite.expiresAt <= new Date())) return res.status(404).json({ apps: [], error: "Convite inválido ou indisponível." });
       const settings = await getSettings();
       res.setHeader("Cache-Control", "no-store");
-      res.json({ apps: buildPublicDownloadApps(settings) });
+      const apps = filterDownloadsForInvite(buildPublicDownloadApps(settings), invite.allowedApps);
+      await db.update(storeInvites).set({ lastAccessedAt: new Date() }).where(eq(storeInvites.id, invite.id));
+      res.json({ apps, label: invite.label, expiresAt: invite.expiresAt });
     } catch {
-      res.status(500).json({ apps: [], error: "Não foi possível carregar os aplicativos." });
+      res.status(500).json({ apps: [], error: "Não foi possível carregar os aplicativos do convite." });
     }
   });
 

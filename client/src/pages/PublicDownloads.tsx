@@ -101,18 +101,29 @@ export default function PublicDownloads() {
   const [location] = useLocation();
   const [apps, setApps] = useState<DownloadApp[]>([]);
   const [loading, setLoading] = useState(true);
+  const [inviteLabel, setInviteLabel] = useState("");
+  const [loadError, setLoadError] = useState("");
   const slug = useMemo(() => SHORT_DOWNLOAD_SLUGS[location] || location.split("/")[2] || "", [location]);
   const allAppsStore = location === "/d" || location === "/loja";
+  const inviteToken = useMemo(() => location.match(/^\/convite\/([^/]+)$/)?.[1] ?? "", [location]);
 
   useEffect(() => {
     let active = true;
-    fetch("/api/public/apps")
+    if (!inviteToken) {
+      setApps([]);
+      setLoadError("Esta loja é privada. Use o link de convite enviado pelo seu revendedor.");
+      setLoading(false);
+      return () => { active = false; };
+    }
+    setLoading(true);
+    setLoadError("");
+    fetch(`/api/store-invites/${encodeURIComponent(inviteToken)}`)
       .then(response => response.ok ? response.json() : Promise.reject(new Error("Não foi possível carregar os aplicativos.")))
-      .then((data: { apps: DownloadApp[] }) => { if (active) setApps(data.apps || []); })
-      .catch(() => { if (active) setApps([]); })
+      .then((data: { apps: DownloadApp[]; label?: string }) => { if (active) { setApps(data.apps || []); setInviteLabel(data.label || ""); } })
+      .catch(() => { if (active) { setApps([]); setLoadError("Convite inválido, vencido ou revogado."); } })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [inviteToken]);
 
   const visibleApps = slug ? apps.filter(app => app.slug === slug) : apps;
 
@@ -120,9 +131,9 @@ export default function PublicDownloads() {
     <section className="mx-auto max-w-4xl">
       <header className="mb-10 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-300/30 bg-amber-400/10 text-amber-300 shadow-[0_0_40px_rgba(251,191,36,.14)]"><Download size={30} /></div>
-        <p className="text-xs font-bold uppercase tracking-[.24em] text-amber-300">Central oficial de downloads</p>
+        <p className="text-xs font-bold uppercase tracking-[.24em] text-amber-300">Loja privada de aplicativos</p>
         <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Baixe seu aplicativo</h1>
-        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-300">Escolha o aplicativo informado pelo seu revendedor. Esta página é pública e não dá acesso ao painel.</p>
+        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-300">{inviteLabel ? `Aplicativos liberados para ${inviteLabel}.` : "Use o link de convite enviado pelo seu revendedor."} Esta página não dá acesso ao painel.</p>
       </header>
 
       {loading ? <div className="flex justify-center py-20 text-amber-300"><Loader2 className="animate-spin" size={30} /></div> : visibleApps.length ? <div className={allAppsStore ? "space-y-5" : "grid gap-5 md:grid-cols-2"}>
@@ -137,7 +148,7 @@ export default function PublicDownloads() {
           </div>
           <AppShowcase app={app} />
         </article>)}
-      </div> : <div className="rounded-3xl border border-white/10 bg-slate-950/80 px-6 py-16 text-center"><PackageOpen className="mx-auto mb-4 text-slate-500" size={36} /><h2 className="text-xl font-bold">Aplicativo indisponível</h2><p className="mt-2 text-sm text-slate-400">Peça ao seu revendedor o link correto para download.</p></div>}
+      </div> : <div className="rounded-3xl border border-white/10 bg-slate-950/80 px-6 py-16 text-center"><PackageOpen className="mx-auto mb-4 text-slate-500" size={36} /><h2 className="text-xl font-bold">Acesso por convite</h2><p className="mt-2 text-sm text-slate-400">{loadError || "Peça ao seu revendedor o link correto para download."}</p></div>}
     </section>
   </main>;
 }

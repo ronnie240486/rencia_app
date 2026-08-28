@@ -48,6 +48,24 @@ export const resellerPermissions = mysqlTable("reseller_permissions", {
 
 export type ResellerPermission = typeof resellerPermissions.$inferSelect;
 
+// Links privados da loja: cada convite libera somente os aplicativos selecionados pelo proprietário.
+export const storeInvites = mysqlTable("store_invites", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  resellerId: int("resellerId"),
+  recipientType: mysqlEnum("recipientType", ["revenda", "cliente"]).notNull(),
+  label: varchar("label", { length: 255 }).notNull(),
+  tokenHash: varchar("tokenHash", { length: 128 }).notNull().unique(),
+  allowedApps: text("allowedApps").notNull(),
+  expiresAt: timestamp("expiresAt"),
+  revokedAt: timestamp("revokedAt"),
+  lastAccessedAt: timestamp("lastAccessedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type StoreInvite = typeof storeInvites.$inferSelect;
+
 export const devices = mysqlTable("devices", {
   id: int("id").autoincrement().primaryKey(),
   ownerId: int("ownerId").notNull(),

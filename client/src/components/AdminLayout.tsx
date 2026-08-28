@@ -43,6 +43,7 @@ import {
   Crown,
   Infinity,
   HeartPulse,
+  Link2,
   Star,
   Zap,
 } from "lucide-react";
@@ -122,6 +123,7 @@ const navGroups: NavGroup[] = [
       { label: "Excellence", href: "/aplicativos/excellence", icon: <Crown size={18} />, ownerOnly: true, permissionKey: "app_settings" },
       { label: "Future", href: "/aplicativos/future", icon: <Star size={18} />, ownerOnly: true, permissionKey: "app_settings" },
       { label: "Loja", href: "/loja-painel", icon: <ShoppingBag size={18} />, ownerOnly: true, permissionKey: "app_distribution" },
+      { label: "Convites da Loja", href: "/convites-loja", icon: <Link2 size={18} />, ownerOnly: true, permissionKey: "app_distribution" },
       { label: "Ranking de Apps", href: "/ranking-apps", icon: <BarChart3 size={18} />, ownerOnly: true, permissionKey: "app_distribution" },
       { label: "Atualizações", href: "/atualizacoes", icon: <Download size={18} />, ownerOnly: true, permissionKey: "app_distribution" },
     ],

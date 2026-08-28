@@ -1414,3 +1414,10 @@
 - [x] Substituir a letra inicial pelo logo do aplicativo cadastrado no cartão de cliente
 - [x] Manter o nome do cliente em destaque ao lado do logo no celular
 - [x] Validar os cartões em computador e celular sem alterar clientes, MACs, listas ou configurações
+
+## Loja privada por convite (28/08/2026)
+- [x] Criar convites privados para revendas e clientes, com seleção de aplicativos e validade
+- [x] Criar gestão de convites para o proprietário copiar, revogar e acompanhar cada link
+- [x] Mostrar no convite somente os aplicativos liberados, sem acesso ao painel
+- [x] Fechar a loja pública aberta e manter a visão completa de aplicativos apenas para o proprietário
+- [x] Validar convites e acesso filtrado em computador e celular sem alterar clientes, MACs, listas ou configurações

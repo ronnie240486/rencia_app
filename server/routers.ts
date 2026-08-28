@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull, like, or, gt } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions, storeInvites } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
@@ -46,6 +46,7 @@ import { commandExpiresAt, REMOTE_COMMAND_LABELS, REMOTE_COMMAND_TYPES, type Rem
 import { buildDnsTargets, collectDnsTargetDeviceIds, normalizeDnsHost } from "./remoteCommandDns";
 import { hashPassword } from "./auth";
 import { normalizeResellerPermissions, parseResellerAccessPolicy, RESELLER_PERMISSION_KEYS, serializeResellerAccessPolicy } from "../shared/resellerPermissions";
+import { createStoreInviteToken, hashStoreInviteToken, normalizeStoreInviteApps, serializeStoreInviteApps } from "./storeInvites";
 
 async function requireGrantedPanelPermission(db: any, user: any, permission: string) {
   if (user?.isOwner) return;
@@ -408,6 +409,55 @@ export const appRouter = router({
       await db.insert(resellerPermissions).values(values).onDuplicateKeyUpdate({ set: { permissions: values.permissions, updatedBy: values.updatedBy } });
       await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "reseller_app_access", entityId: input.resellerId, action: "updated", summary: `Aplicativos da revenda atualizados (${allowedApps.length} liberados).`, afterData: { allowedApps } });
       return { success: true, allowedApps };
+    }),
+  }),
+
+  storeInvites: router({
+    list: ownerProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db.select().from(storeInvites).where(eq(storeInvites.ownerId, ctx.user.id)).orderBy(desc(storeInvites.createdAt));
+      return rows.map((invite) => ({
+        id: invite.id,
+        recipientType: invite.recipientType,
+        label: invite.label,
+        resellerId: invite.resellerId,
+        allowedApps: normalizeStoreInviteApps(invite.allowedApps),
+        expiresAt: invite.expiresAt,
+        revokedAt: invite.revokedAt,
+        lastAccessedAt: invite.lastAccessedAt,
+        createdAt: invite.createdAt,
+      }));
+    }),
+    create: ownerProcedure.input(z.object({
+      recipientType: z.enum(["revenda", "cliente"]),
+      label: z.string().trim().min(2).max(100),
+      resellerId: z.number().positive().optional(),
+      allowedApps: z.array(z.string().refine(isManagedAppId, "Aplicativo inválido.")).min(1).max(Object.keys(MANAGED_APP_CATALOG).length),
+      expiresAt: z.string().datetime().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      if (input.resellerId) {
+        const reseller = (await db.select({ id: users.id }).from(users).where(and(eq(users.id, input.resellerId), eq(users.resellerId, ctx.user.id))).limit(1))[0];
+        if (!reseller) throw new TRPCError({ code: "NOT_FOUND", message: "Revenda não encontrada." });
+      }
+      const expiresAt = input.expiresAt ? new Date(input.expiresAt) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      if (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date()) throw new TRPCError({ code: "BAD_REQUEST", message: "Escolha uma validade futura para o convite." });
+      const token = createStoreInviteToken();
+      const allowedApps = normalizeStoreInviteApps(input.allowedApps);
+      const values = { ownerId: ctx.user.id, resellerId: input.resellerId ?? null, recipientType: input.recipientType, label: input.label, tokenHash: hashStoreInviteToken(token), allowedApps: serializeStoreInviteApps(allowedApps), expiresAt };
+      const created = await db.insert(storeInvites).values(values);
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "store_invite", action: "created", summary: `Convite de loja criado para ${input.label} (${allowedApps.length} aplicativo(s)).`, afterData: { recipientType: input.recipientType, label: input.label, allowedApps, expiresAt } });
+      return { success: true, id: Number(created[0].insertId), token, allowedApps, expiresAt };
+    }),
+    revoke: ownerProcedure.input(z.object({ id: z.number().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      const result = await db.update(storeInvites).set({ revokedAt: new Date() }).where(and(eq(storeInvites.id, input.id), eq(storeInvites.ownerId, ctx.user.id)));
+      if (!result[0]?.affectedRows) throw new TRPCError({ code: "NOT_FOUND", message: "Convite não encontrado." });
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "store_invite", entityId: input.id, action: "revoked", summary: "Convite de loja revogado." });
+      return { success: true };
     }),
   }),
 

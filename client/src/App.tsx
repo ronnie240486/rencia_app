@@ -52,6 +52,7 @@ import RemoteCommands from "./pages/RemoteCommands";
 import PublicDownloads from "./pages/PublicDownloads";
 import GenericAppSettings from "./pages/GenericAppSettings";
 import AppCredentials from "./pages/AppCredentials";
+import StoreInvites from "./pages/StoreInvites";
 
 function Router() {
   return (
@@ -71,6 +72,7 @@ function Router() {
       <Route path="/ex" component={PublicDownloads} />
       <Route path="/f" component={PublicDownloads} />
       <Route path="/loja" component={PublicDownloads} />
+      <Route path="/convite/:token" component={PublicDownloads} />
       <Route path="/baixar/:app" component={PublicDownloads} />
       <Route path="/baixar" component={PublicDownloads} />
       <Route path={"/"} component={Login} />
@@ -89,7 +91,8 @@ function Router() {
       <Route path={"/dns"} component={DNS} />
       <Route path={"/chatbot"} component={Chatbot} />
       <Route path={"/aplicativos/:appId"} component={GenericAppSettings} />
-      <Route path={"/loja-painel"} component={Loja} />
+      <Route path="/loja-painel" component={Loja} />
+      <Route path="/convites-loja" component={StoreInvites} />
       <Route path={"/carousel"} component={CarouselManager} />
       <Route path={"/panel-functions"} component={PanelFunctions} />
       <Route path={"/sugestoes"} component={Suggestions} />
