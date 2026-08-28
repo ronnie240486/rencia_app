@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { formatDateOnlyPtBr } from "@shared/dateOnly";
 import { downloadCsv } from "@/lib/csv";
 import { normalizeVoiceSearchTranscript } from "@/lib/voiceSearch";
+import { findClientAppOption } from "@/lib/clientAppOptions";
+import { AppLogoBadge } from "@/components/AppLogoBadge";
 
 const PAGE_SIZE = 50;
 
@@ -67,6 +69,12 @@ function TipoBadge({ tipo }: { tipo: DeviceTipo }) {
       {tipo === "UltraMaster" ? "Ultra Master" : tipo}
     </Badge>
   );
+}
+
+function ClientAppAvatar({ appName, customerName }: { appName?: string | null; customerName: string }) {
+  const app = findClientAppOption(appName);
+  if (app?.logoUrl) return <AppLogoBadge logoUrl={app.logoUrl} label={app.label} className="h-11 w-11 rounded-full border border-primary/20 shadow-sm" />;
+  return <div aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">{customerName.slice(0, 1).toUpperCase()}</div>;
 }
 
 export default function Users() {
@@ -398,7 +406,7 @@ export default function Users() {
             <div key={device.id} className={`rounded-2xl border bg-card p-4 shadow-sm ${selected.has(device.id) ? "border-primary bg-primary/5" : "border-primary/15"}`}>
               <div className="flex items-start gap-3">
                 <Checkbox checked={selected.has(device.id)} onCheckedChange={() => toggleSelect(device.id)} aria-label={`Selecionar ${device.mac}`} className="mt-1" />
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">{device.nomeServer.slice(0, 1).toUpperCase()}</div>
+                <ClientAppAvatar appName={device.app} customerName={device.nomeServer} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-muted-foreground">Cliente</p><p className="truncate font-semibold text-foreground">{device.nomeServer}</p></div><StatusBadge status={device.status as DeviceStatus} /></div>
                   <p className="mt-1 font-mono text-xs text-muted-foreground">{device.mac}</p>

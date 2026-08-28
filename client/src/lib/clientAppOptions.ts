@@ -22,3 +22,16 @@ export const CLIENT_APP_OPTIONS: ClientAppOption[] = [
   { value: "Future", label: "Future", logoUrl: MANAGED_APP_CATALOG.future.defaultLogoUrl },
   { value: "Outro", label: "Outro aplicativo" },
 ];
+
+/** Resolve o logo correto mesmo quando o cadastro usa o nome técnico ou o nome visual do aplicativo. */
+export function findClientAppOption(appName: string | null | undefined) {
+  const normalized = appName?.trim().toLocaleLowerCase("pt-BR");
+  if (!normalized) return undefined;
+  const catalogApp = Object.values(MANAGED_APP_CATALOG).find((app) =>
+    app.id === normalized || app.deviceAliases.some((alias) => alias.toLocaleLowerCase("pt-BR") === normalized),
+  );
+  if (catalogApp) return { value: catalogApp.id, label: catalogApp.displayName, logoUrl: catalogApp.defaultLogoUrl };
+  return CLIENT_APP_OPTIONS.find((option) =>
+    option.value.toLocaleLowerCase("pt-BR") === normalized || option.label.toLocaleLowerCase("pt-BR") === normalized,
+  );
+}

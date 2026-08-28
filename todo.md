@@ -1409,3 +1409,8 @@
 - [x] Preservar as permissões e os clientes existentes ao definir aplicativos da revenda
 - [x] Restringir cadastro, menu e configurações da revenda aos aplicativos liberados
 - [x] Validar o controle por plano em computador e celular
+
+## Logo do aplicativo nos cartões de clientes (28/08/2026)
+- [x] Substituir a letra inicial pelo logo do aplicativo cadastrado no cartão de cliente
+- [x] Manter o nome do cliente em destaque ao lado do logo no celular
+- [x] Validar os cartões em computador e celular sem alterar clientes, MACs, listas ou configurações
