@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Download, Loader2, PackageOpen, ShieldCheck, Smartphone } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { resolveRequestedDownloadSlug } from "@/lib/publicStoreRoute";
 
 type DownloadApp = {
   slug: "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence" | "future";
@@ -103,7 +104,7 @@ export default function PublicDownloads() {
   const [loading, setLoading] = useState(true);
   const [inviteLabel, setInviteLabel] = useState("");
   const [loadError, setLoadError] = useState("");
-  const slug = useMemo(() => SHORT_DOWNLOAD_SLUGS[location] || location.split("/")[2] || "", [location]);
+  const slug = useMemo(() => resolveRequestedDownloadSlug(location, SHORT_DOWNLOAD_SLUGS), [location]);
   const allAppsStore = location === "/d" || location === "/loja";
   const inviteToken = useMemo(() => location.match(/^\/convite\/([^/]+)$/)?.[1] ?? "", [location]);
 

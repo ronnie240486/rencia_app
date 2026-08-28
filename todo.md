@@ -1422,6 +1422,10 @@
 - [x] Fechar a loja pública aberta e manter a visão completa de aplicativos apenas para o proprietário
 - [x] Validar convites e acesso filtrado em computador e celular sem alterar clientes, MACs, listas ou configurações
 
+## Correção de aplicativos em convite (28/08/2026)
+- [x] Corrigir convite válido que abre sem carregar os aplicativos selecionados
+- [x] Validar o convite existente sem alterar a seleção, os dados nem os links de download
+
 ## Atalho de convite por revenda (28/08/2026)
 - [x] Adicionar na tela de Revendas um atalho para gerar convite privado da revenda
 - [x] Pré-preencher a seleção com os aplicativos liberados no plano da revenda
