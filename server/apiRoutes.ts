@@ -51,6 +51,7 @@ import { canAccessResellerPortal, chooseResellerPortalAccount } from "./reseller
 import { normalizeApkSessionKey, registerApkSession } from "./appSessionControl";
 import { filterDownloadsForInvite, hashStoreInviteToken } from "./storeInvites";
 import { connectGoogleDriveBackup, readGoogleDriveOAuthState } from "./googleDriveBackup";
+import { appServerSettingKey, buildAppServerDirectory } from "./appServerDirectory";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -1789,6 +1790,28 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error("[API] /api/v5/app-login error:", error);
       res.status(500).json({ authenticated: false, registered: false, error: "Não foi possível autenticar o aplicativo." });
+    }
+  });
+
+  /**
+   * GET /api/v5/apps/:appId/discovery
+   * Rota estável para o APK atualizado descobrir as rotas atuais do seu app.
+   * Não altera a rota em uso por APKs antigos.
+   */
+  app.get("/api/v5/apps/:appId/discovery", async (req: Request, res: Response) => {
+    const appId = String(req.params.appId || "").trim().toLowerCase();
+    if (!isManagedAppId(appId)) {
+      res.status(404).json({ managed: false, error: "Aplicativo não gerenciado." });
+      return;
+    }
+    try {
+      const settings = await getSettings();
+      const appDef = MANAGED_APP_CATALOG[appId];
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ managed: true, ...buildAppServerDirectory(appId, appDef.displayName, settings[appServerSettingKey(appId)]) });
+    } catch (error) {
+      console.error("[API] descoberta de endereço do aplicativo", error);
+      res.status(500).json({ managed: false, error: "Não foi possível obter o endereço do aplicativo." });
     }
   });
 

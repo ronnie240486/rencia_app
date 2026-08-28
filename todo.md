@@ -1446,3 +1446,10 @@
 - [ ] Manter os dados necessários para restaurar clientes, MACs, listas, revendas e aplicativos fora do Manus
 - [x] Validar a exportação completa sem alterar ou remover dados existentes
 - [x] Fazer o botão Baixar no PC salvar o arquivo JSON em vez de abrir a página no navegador
+
+## Central de endereço dos aplicativos (28/08/2026)
+- [x] Auditar quais aplicativos já consultam rotas de configuração do painel
+- [x] Criar configuração central de endereço por aplicativo sem alterar o domínio atual
+- [x] Expor rota de descoberta compatível para os APKs receberem o endereço atualizado
+- [x] Validar os contratos sem redirecionar nem interromper aplicativos existentes
+- [x] Manter a central separada de URLs operacionais existentes para não expor nem substituir configurações privadas

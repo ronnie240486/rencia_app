@@ -17,7 +17,7 @@ export const OWNER_ONLY_ROUTE_PREFIXES = [
   "/busca", "/monitor-listas", "/diagnostico", "/chatbot", "/central", "/saude", "/seguranca",
   "/permissoes", "/avisos", "/backups", "/cobrancas-revendas", "/relatorio-revendas",
   "/loja-painel", "/ranking-apps", "/atualizacoes", "/carousel", "/panel-functions",
-  "/gpcpro", "/maximus", "/ultra-player", "/nuvix-config", "/aplicativos/",
+  "/gpcpro", "/maximus", "/ultra-player", "/nuvix-config", "/aplicativos/", "/enderecos-servidor",
 ];
 
 export function isOwnerOnlyRoute(path: string) {

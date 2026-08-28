@@ -37,6 +37,7 @@ import { bulkDeviceUpdateSchema } from "./deviceBulk";
 import { autoBackupSettings, backupSnapshots, historyRetentionSettings } from "../drizzle/schema";
 import { createBackupSnapshot, restoreBackupSnapshot, AUTO_BACKUP_CRON } from "./backupService";
 import { createGoogleDriveAuthorizationUrl } from "./googleDriveBackup";
+import { appServerSettingKey } from "./appServerDirectory";
 import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 import { parse as parseCookie } from "cookie";
 import { chooseLocalLoginAccount } from "./loginSelection";
@@ -186,6 +187,39 @@ const ownerProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 export const appRouter = router({
   system: systemRouter,
+
+  appServerDirectory: router({
+    get: ownerProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      const rows = await db.select().from(appSettings);
+      const settings = Object.fromEntries(rows.map((row) => [row.key, row.value ?? ""]));
+      return {
+        origins: Object.fromEntries(Object.entries(MANAGED_APP_CATALOG).map(([appId]) => [appId, settings[appServerSettingKey(appId as ManagedAppId)] || ""])),
+      };
+    }),
+    update: ownerProcedure.input(z.object({ origins: z.record(z.string(), z.string().max(512)) })).mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      for (const [candidateId, value] of Object.entries(input.origins)) {
+        if (!isManagedAppId(candidateId)) continue;
+        const trimmed = value.trim();
+        if (trimmed) {
+          try {
+            const url = new URL(trimmed);
+            if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("protocolo");
+          } catch {
+            throw new TRPCError({ code: "BAD_REQUEST", message: `O endereço de ${MANAGED_APP_CATALOG[candidateId].displayName} é inválido.` });
+          }
+        }
+        const key = appServerSettingKey(candidateId);
+        const existing = (await db.select({ id: appSettings.id }).from(appSettings).where(eq(appSettings.key, key)).limit(1))[0];
+        if (existing) await db.update(appSettings).set({ value: trimmed }).where(eq(appSettings.id, existing.id));
+        else await db.insert(appSettings).values({ key, value: trimmed });
+      }
+      return { saved: true };
+    }),
+  }),
 
   backups: router({
     overview: ownerProcedure.query(async ({ ctx }) => {
