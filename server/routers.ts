@@ -45,19 +45,58 @@ import { LIST_FAILOVER_CRON, recordFailoverRun, runListFailoverSweep } from "./l
 import { commandExpiresAt, REMOTE_COMMAND_LABELS, REMOTE_COMMAND_TYPES, type RemoteCommandType } from "./remoteCommands";
 import { buildDnsTargets, collectDnsTargetDeviceIds, normalizeDnsHost } from "./remoteCommandDns";
 import { hashPassword } from "./auth";
-import { normalizeResellerPermissions, RESELLER_PERMISSION_KEYS } from "../shared/resellerPermissions";
+import { normalizeResellerPermissions, parseResellerAccessPolicy, RESELLER_PERMISSION_KEYS, serializeResellerAccessPolicy } from "../shared/resellerPermissions";
 
 async function requireGrantedPanelPermission(db: any, user: any, permission: string) {
   if (user?.isOwner) return;
   const row = (await db.select({ permissions: resellerPermissions.permissions }).from(resellerPermissions)
     .where(eq(resellerPermissions.resellerId, user.id)).limit(1))[0];
-  let parsed: unknown = [];
-  try { parsed = row?.permissions ? JSON.parse(row.permissions) : []; } catch { parsed = []; }
-  if (!normalizeResellerPermissions(parsed).includes(permission as any)) {
+  if (!parseResellerAccessPolicy(row?.permissions).permissions.includes(permission as any)) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Esta ferramenta não foi liberada para sua conta." });
   }
 }
-import { isManagedAppId, MANAGED_APP_CATALOG } from "../shared/appCatalog";
+
+function managedAppIdForValue(value: string | null | undefined) {
+  const normalized = (value ?? "").trim().toLocaleLowerCase("pt-BR");
+  if (!normalized) return null;
+  return Object.values(MANAGED_APP_CATALOG).find((app) => app.id === normalized || app.deviceAliases.some((alias) => alias.toLocaleLowerCase("pt-BR") === normalized))?.id ?? null;
+}
+
+async function getAllowedAppsForUser(db: any, user: any) {
+  if (user?.isOwner) return null;
+  const row = (await db.select({ permissions: resellerPermissions.permissions }).from(resellerPermissions)
+    .where(eq(resellerPermissions.resellerId, user.id)).limit(1))[0];
+  return parseResellerAccessPolicy(row?.permissions).allowedApps;
+}
+
+async function requireAllowedResellerApp(db: any, user: any, appValue: string | null | undefined) {
+  const allowedApps = await getAllowedAppsForUser(db, user);
+  if (allowedApps === null || !appValue?.trim()) return;
+  const appId = managedAppIdForValue(appValue);
+  if (!appId || !allowedApps.includes(appId)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Este aplicativo não está liberado para o seu plano. Fale com o proprietário do painel." });
+  }
+}
+
+function managedAppIdForSettingsKey(key: string) {
+  const normalized = key.trim().toLocaleLowerCase("pt-BR");
+  const publicMatch = normalized.match(/^public_([a-z0-9]+)_/);
+  if (publicMatch && isManagedAppId(publicMatch[1])) return publicMatch[1];
+  const directMatch = Object.keys(MANAGED_APP_CATALOG).find((appId) => normalized.startsWith(`${appId}_`));
+  if (directMatch && isManagedAppId(directMatch)) return directMatch;
+  if (normalized.startsWith("ultra_")) return "fusion";
+  if (normalized.startsWith("maximus_") || normalized.startsWith("gpcpro_")) return "maximus";
+  if (normalized.startsWith("trial_") || normalized.startsWith("apk_") || normalized.startsWith("lock_")) return "ouropro";
+  return null;
+}
+
+async function requireAllowedResellerSettings(db: any, user: any, keys: string[]) {
+  const allowedApps = await getAllowedAppsForUser(db, user);
+  if (allowedApps === null) return;
+  const restrictedApp = keys.map(managedAppIdForSettingsKey).find((appId) => appId && !allowedApps.includes(appId));
+  if (restrictedApp) throw new TRPCError({ code: "FORBIDDEN", message: "As configurações deste aplicativo não estão liberadas para o seu plano." });
+}
+import { isManagedAppId, MANAGED_APP_CATALOG, type ManagedAppId } from "../shared/appCatalog";
 import { PENDING_LOGIN_MAC } from "./appLogin";
 
 export const revendaUpdateInputSchema = z.object({
@@ -321,9 +360,7 @@ export const appRouter = router({
       if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Revenda não encontrada." });
       const row = (await db.select({ permissions: resellerPermissions.permissions }).from(resellerPermissions)
         .where(eq(resellerPermissions.resellerId, input.resellerId)).limit(1))[0];
-      let parsed: unknown = [];
-      try { parsed = row?.permissions ? JSON.parse(row.permissions) : []; } catch { parsed = []; }
-      return { permissions: normalizeResellerPermissions(parsed) };
+      return { permissions: parseResellerAccessPolicy(row?.permissions).permissions };
     }),
     set: protectedProcedure.input(z.object({ resellerId: z.number().positive(), permissions: z.array(z.string()).max(RESELLER_PERMISSION_KEYS.length) })).mutation(async ({ ctx, input }) => {
       if (!ctx.user.isOwner) throw new TRPCError({ code: "FORBIDDEN", message: "Somente o proprietário pode configurar permissões." });
@@ -331,11 +368,46 @@ export const appRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
       const target = (await db.select({ id: users.id }).from(users).where(and(eq(users.id, input.resellerId), eq(users.resellerId, ctx.user.id))).limit(1))[0];
       if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Revenda não encontrada." });
+      const existing = (await db.select({ permissions: resellerPermissions.permissions }).from(resellerPermissions).where(eq(resellerPermissions.resellerId, input.resellerId)).limit(1))[0];
+      const existingPolicy = parseResellerAccessPolicy(existing?.permissions);
       const permissions = normalizeResellerPermissions(input.permissions);
-      const values = { resellerId: input.resellerId, permissions: JSON.stringify(permissions), updatedBy: ctx.user.id };
+      const values = { resellerId: input.resellerId, permissions: serializeResellerAccessPolicy({ permissions, allowedApps: existingPolicy.allowedApps }), updatedBy: ctx.user.id };
       await db.insert(resellerPermissions).values(values).onDuplicateKeyUpdate({ set: { permissions: values.permissions, updatedBy: values.updatedBy } });
       await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "reseller_permission", entityId: input.resellerId, action: "updated", summary: `Permissões da revenda atualizadas (${permissions.length} liberações).`, afterData: { permissions } });
       return { success: true, permissions };
+    }),
+  }),
+
+  resellerAppAccess: router({
+    me: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { allowedApps: Object.keys(MANAGED_APP_CATALOG), isRestricted: false };
+      const allowedApps = await getAllowedAppsForUser(db, ctx.user);
+      return { allowedApps: allowedApps ?? Object.keys(MANAGED_APP_CATALOG), isRestricted: allowedApps !== null };
+    }),
+    get: protectedProcedure.input(z.object({ resellerId: z.number().positive() })).query(async ({ ctx, input }) => {
+      if (!ctx.user.isOwner) throw new TRPCError({ code: "FORBIDDEN", message: "Somente o proprietário pode definir os aplicativos de uma revenda." });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      const target = (await db.select({ id: users.id }).from(users).where(and(eq(users.id, input.resellerId), eq(users.resellerId, ctx.user.id))).limit(1))[0];
+      if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Revenda não encontrada." });
+      const row = (await db.select({ permissions: resellerPermissions.permissions }).from(resellerPermissions).where(eq(resellerPermissions.resellerId, input.resellerId)).limit(1))[0];
+      const policy = parseResellerAccessPolicy(row?.permissions);
+      return { allowedApps: policy.allowedApps ?? Object.keys(MANAGED_APP_CATALOG), isLegacyAllApps: policy.allowedApps === null };
+    }),
+    set: protectedProcedure.input(z.object({ resellerId: z.number().positive(), allowedApps: z.array(z.string().refine(isManagedAppId, "Aplicativo inválido.")).max(Object.keys(MANAGED_APP_CATALOG).length) })).mutation(async ({ ctx, input }) => {
+      if (!ctx.user.isOwner) throw new TRPCError({ code: "FORBIDDEN", message: "Somente o proprietário pode definir os aplicativos de uma revenda." });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco indisponível" });
+      const target = (await db.select({ id: users.id }).from(users).where(and(eq(users.id, input.resellerId), eq(users.resellerId, ctx.user.id))).limit(1))[0];
+      if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Revenda não encontrada." });
+      const row = (await db.select({ permissions: resellerPermissions.permissions }).from(resellerPermissions).where(eq(resellerPermissions.resellerId, input.resellerId)).limit(1))[0];
+      const existingPolicy = parseResellerAccessPolicy(row?.permissions);
+      const allowedApps = Array.from(new Set(input.allowedApps)) as ManagedAppId[];
+      const values = { resellerId: input.resellerId, permissions: serializeResellerAccessPolicy({ permissions: existingPolicy.permissions, allowedApps }), updatedBy: ctx.user.id };
+      await db.insert(resellerPermissions).values(values).onDuplicateKeyUpdate({ set: { permissions: values.permissions, updatedBy: values.updatedBy } });
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "reseller_app_access", entityId: input.resellerId, action: "updated", summary: `Aplicativos da revenda atualizados (${allowedApps.length} liberados).`, afterData: { allowedApps } });
+      return { success: true, allowedApps };
     }),
   }),
 
@@ -505,6 +577,9 @@ export const appRouter = router({
         maxConcurrentConnections: z.number().int().min(1).max(10).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+        await requireAllowedResellerApp(db, ctx.user, input.app);
         const planInfo = await getUserPlanInfo(ctx.user.id);
         const stats = await getDeviceStats(ctx.user.id);
         if (!planInfo) {
@@ -562,6 +637,11 @@ export const appRouter = router({
         const data = { ...rest, ...(normalizedMac ? { mac: normalizedMac } : {}) };
         const device = await getDeviceById(id, ctx.user.id);
         if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
+        if (input.app !== undefined && input.app !== device.app) {
+          const db = await getDb();
+          if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+          await requireAllowedResellerApp(db, ctx.user, input.app);
+        }
         await updateDevice(id, ctx.user.id, data);
         await recordAudit({
           ownerId: ctx.user.id,
@@ -593,6 +673,7 @@ export const appRouter = router({
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         const selectedDevices = await db.select().from(devices).where(and(eq(devices.ownerId, ctx.user.id), inArray(devices.id, input.ids)));
         if (selectedDevices.length !== input.ids.length) throw new TRPCError({ code: "NOT_FOUND", message: "Um ou mais clientes não foram encontrados." });
+        if (input.app) await requireAllowedResellerApp(db, ctx.user, input.app);
 
         const updateData: Record<string, unknown> = {};
         if (input.status) updateData.status = input.status;
@@ -1779,6 +1860,7 @@ export const appRouter = router({
     })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      await requireAllowedResellerApp(db, ctx.user, input.appId);
       const username = input.xtUsername.trim();
       const alreadyExists = await db.select({ id: appCredentials.id }).from(appCredentials).where(eq(appCredentials.username, username)).limit(1);
       if (alreadyExists.length) throw new TRPCError({ code: "CONFLICT", message: "Este login já está cadastrado. Escolha outro." });
@@ -2213,12 +2295,15 @@ export const appRouter = router({
       return result;
     }),
 
-    getAll: protectedProcedure.query(async () => {
+    getAll: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return {};
       const rows = await db.select().from(appSettings);
+      const allowedApps = await getAllowedAppsForUser(db, ctx.user);
       const result: Record<string, string> = {};
       for (const row of rows) {
+        const appId = managedAppIdForSettingsKey(row.key);
+        if (allowedApps !== null && (!appId || !allowedApps.includes(appId))) continue;
         result[row.key] = row.value ?? "";
       }
       return result;
@@ -2233,6 +2318,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         await requireGrantedPanelPermission(db, ctx.user, "app_settings");
+        await requireAllowedResellerSettings(db, ctx.user, [input.key]);
         await db.insert(appSettings)
           .values({ key: input.key, value: input.value })
           .onDuplicateKeyUpdate({ set: { value: input.value } });
@@ -2245,6 +2331,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         await requireGrantedPanelPermission(db, ctx.user, "app_settings");
+        await requireAllowedResellerSettings(db, ctx.user, Object.keys(input));
         for (const [key, value] of Object.entries(input)) {
           await db.insert(appSettings)
             .values({ key, value })
@@ -2263,6 +2350,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         await requireGrantedPanelPermission(db, ctx.user, "app_settings");
+        await requireAllowedResellerSettings(db, ctx.user, [input.field]);
         const { storagePut } = await import("./storage");
         const match = input.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
         if (!match) throw new TRPCError({ code: "BAD_REQUEST", message: "dataUrl inválido" });
@@ -2280,7 +2368,11 @@ export const appRouter = router({
         filename: z.string().min(1),
         contentType: z.string().min(1),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+        await requireGrantedPanelPermission(db, ctx.user, "app_settings");
+        await requireAllowedResellerSettings(db, ctx.user, [input.field]);
         const forgeUrl = (ENV.forgeApiUrl ?? "").replace(/\/+$/, "");
         const forgeKey = ENV.forgeApiKey ?? "";
         if (!forgeUrl || !forgeKey) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Storage não configurado" });
@@ -2301,6 +2393,8 @@ export const appRouter = router({
     getSettings: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return null;
+      await requireGrantedPanelPermission(db, ctx.user, "app_settings");
+      await requireAllowedResellerApp(db, ctx.user, "maximus");
       const rows = await db.select().from(appSettings).where(
         sql`key LIKE 'maximus_%'`
       );
@@ -2337,9 +2431,11 @@ export const appRouter = router({
         apkUpdateUrl: z.string().url().or(z.literal("")).optional(),
         apkVersion: z.string().max(80).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        await requireGrantedPanelPermission(db, ctx.user, "app_settings");
+        await requireAllowedResellerApp(db, ctx.user, "maximus");
         
         for (const [key, value] of Object.entries(input)) {
           if (value !== undefined) {

@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { toDateOnly } from "@shared/dateOnly";
+import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
 
 /**
  * Monta a URL M3U8 a partir dos campos XteamCode (usuário, senha, servidor).
@@ -45,6 +46,7 @@ export default function UserEdit() {
   const deviceId = parseInt(params.id ?? "0", 10);
 
   const { data: appsData } = trpc.apps.list.useQuery();
+  const { data: resellerAppAccess } = trpc.resellerAppAccess.me.useQuery();
   const { data: device, isLoading, error } = trpc.devices.getById.useQuery(
     { id: deviceId },
     { enabled: !isNaN(deviceId) && deviceId > 0, refetchOnMount: "always" }
@@ -70,6 +72,9 @@ export default function UserEdit() {
     telefone: "",
     maxConcurrentConnections: 1,
   });
+  const allowedAppOptions = resellerAppAccess?.isRestricted
+    ? CLIENT_APP_OPTIONS.filter((option) => Object.values(MANAGED_APP_CATALOG).some((app) => resellerAppAccess.allowedApps.includes(app.id) && app.deviceAliases.includes(option.value as never)))
+    : CLIENT_APP_OPTIONS;
 
   // formKey força re-render dos Select quando os dados chegam do servidor
   const [formKey, setFormKey] = useState(0);
@@ -370,7 +375,7 @@ export default function UserEdit() {
                   <SelectValue placeholder="Selecione o app" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CLIENT_APP_OPTIONS.map((appOption) => (
+                  {allowedAppOptions.map((appOption) => (
                     <SelectItem key={appOption.value} value={appOption.value}>
                       <span className="flex items-center gap-2">
                         <AppLogoBadge logoUrl={appOption.logoUrl} label={appOption.label} />

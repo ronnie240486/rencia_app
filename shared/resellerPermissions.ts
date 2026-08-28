@@ -1,3 +1,5 @@
+import { isManagedAppId, type ManagedAppId } from "./appCatalog";
+
 export const RESELLER_PERMISSION_CATALOG = [
   { key: "app_logins", label: "Login dos Aplicativos", description: "Gerenciar credenciais de acesso dos aplicativos.", routes: ["/credenciais-app"] },
   { key: "manage_resellers", label: "Revendas", description: "Criar e administrar sub-revendas próprias.", routes: ["/revendas"] },
@@ -23,6 +25,30 @@ export function normalizeResellerPermissions(value: unknown): ResellerPermission
   if (!Array.isArray(value)) return [];
   const valid = new Set<string>(RESELLER_PERMISSION_KEYS);
   return Array.from(new Set(value.filter((item): item is string => typeof item === "string" && valid.has(item)))) as ResellerPermissionKey[];
+}
+
+export type ResellerAccessPolicy = {
+  permissions: ResellerPermissionKey[];
+  /** null mantém o comportamento legado: todos os aplicativos continuam liberados. */
+  allowedApps: ManagedAppId[] | null;
+};
+
+export function parseResellerAccessPolicy(value: unknown): ResellerAccessPolicy {
+  let parsed = value;
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); } catch { parsed = []; }
+  }
+  if (Array.isArray(parsed)) return { permissions: normalizeResellerPermissions(parsed), allowedApps: null };
+  if (!parsed || typeof parsed !== "object") return { permissions: [], allowedApps: null };
+  const source = parsed as { permissions?: unknown; allowedApps?: unknown };
+  const allowedApps = Array.isArray(source.allowedApps)
+    ? Array.from(new Set(source.allowedApps.filter((app): app is ManagedAppId => typeof app === "string" && isManagedAppId(app))))
+    : null;
+  return { permissions: normalizeResellerPermissions(source.permissions), allowedApps };
+}
+
+export function serializeResellerAccessPolicy(policy: ResellerAccessPolicy) {
+  return JSON.stringify({ permissions: normalizeResellerPermissions(policy.permissions), allowedApps: policy.allowedApps });
 }
 
 export function permissionForRoute(path: string): ResellerPermissionKey | null {

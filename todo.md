@@ -1403,3 +1403,9 @@
 - [x] Adicionar Future ao cadastro, edição, configurações e rotas compatíveis do aplicativo
 - [x] Exibir Future na loja e no ranking sem criar código Downloader ou link de APK inexistente
 - [x] Validar a integração em computador e celular sem alterar clientes, MACs, listas ou configurações
+
+## Aplicativos por plano de revenda (28/08/2026)
+- [x] Permitir selecionar os aplicativos liberados para cada revenda na tela de Revendas
+- [x] Preservar as permissões e os clientes existentes ao definir aplicativos da revenda
+- [x] Restringir cadastro, menu e configurações da revenda aos aplicativos liberados
+- [x] Validar o controle por plano em computador e celular

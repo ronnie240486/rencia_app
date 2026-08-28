@@ -10,7 +10,7 @@ import { CLIENT_APP_OPTIONS } from "@/lib/clientAppOptions";
 import { AppLogoBadge } from "@/components/AppLogoBadge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, CalendarSearch, Loader2, Plus, Save, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -65,6 +65,7 @@ export default function UserCreate() {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
   const { data: appsData } = trpc.apps.list.useQuery();
+  const { data: resellerAppAccess } = trpc.resellerAppAccess.me.useQuery();
 
   const [form, setForm] = useState({
     accessMode: "MAC" as "MAC" | "LOGIN_PASSWORD",
@@ -80,6 +81,20 @@ export default function UserCreate() {
   const [listas, setListas] = useState<ListaItem[]>([newLista(true)]);
   const [dnsList, setDnsList] = useState<Array<{ id: string; titulo: string; host: string }>>([]);
   const [createdDeviceId, setCreatedDeviceId] = useState<number | null>(null);
+  const allowedAppOptions = useMemo(() => {
+    if (!resellerAppAccess?.isRestricted) return CLIENT_APP_OPTIONS;
+    return CLIENT_APP_OPTIONS.filter((option) => {
+      const appId = APP_ID_BY_NAME[option.value];
+      return appId && resellerAppAccess.allowedApps.includes(appId);
+    });
+  }, [resellerAppAccess]);
+
+  useEffect(() => {
+    if (!allowedAppOptions.length) return;
+    setForm((current) => allowedAppOptions.some((option) => option.value === current.app)
+      ? current
+      : { ...current, app: allowedAppOptions[0].value });
+  }, [allowedAppOptions]);
 
   const lookupExpirationMutation = trpc.devices.lookupExpiration.useMutation({
     onSuccess: (result) => {
@@ -291,7 +306,7 @@ export default function UserCreate() {
                   <SelectValue placeholder="Selecione um app" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CLIENT_APP_OPTIONS.map((appOption) => (
+                  {allowedAppOptions.map((appOption) => (
                     <SelectItem key={appOption.value} value={appOption.value}>
                       <span className="flex items-center gap-2">
                         <AppLogoBadge logoUrl={appOption.logoUrl} label={appOption.label} />

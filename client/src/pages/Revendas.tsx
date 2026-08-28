@@ -26,6 +26,7 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import { formatDateOnlyPtBr, toDateOnly } from "@shared/dateOnly";
 import { RESELLER_PERMISSION_CATALOG } from "@shared/resellerPermissions";
+import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
 
 interface RevendaForm {
   name: string;
@@ -56,6 +57,7 @@ export default function Revendas() {
   const [form, setForm] = useState<RevendaForm>(emptyForm);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [permissionTarget, setPermissionTarget] = useState<{ id: number; name: string } | null>(null);
+  const [appAccessTarget, setAppAccessTarget] = useState<{ id: number; name: string } | null>(null);
 
   const utils = trpc.useUtils();
   const { data, isLoading, refetch } = trpc.revendas.list.useQuery({ search, page, pageSize: 20 });
@@ -103,6 +105,21 @@ export default function Revendas() {
       ? selectedPermissions.filter(item => item !== permission)
       : [...selectedPermissions, permission];
     savePermissionsMut.mutate({ resellerId: permissionTarget.id, permissions: next });
+  };
+  const { data: appAccessData, isLoading: appAccessLoading } = trpc.resellerAppAccess.get.useQuery(
+    { resellerId: appAccessTarget?.id ?? 0 },
+    { enabled: Boolean(appAccessTarget) },
+  );
+  const saveAppAccessMut = trpc.resellerAppAccess.set.useMutation({
+    onSuccess: () => { toast.success("Aplicativos liberados para esta revenda."); utils.resellerAppAccess.get.invalidate(); },
+    onError: (error) => toast.error(error.message),
+  });
+  const selectedApps = (appAccessData?.allowedApps ?? []) as string[];
+  const toggleAllowedApp = (appId: string) => {
+    if (!appAccessTarget) return;
+    const next = selectedApps.includes(appId) ? selectedApps.filter((item) => item !== appId) : [...selectedApps, appId];
+    if (next.length === 0) { toast.error("Libere pelo menos um aplicativo para a revenda."); return; }
+    saveAppAccessMut.mutate({ resellerId: appAccessTarget.id, allowedApps: next });
   };
 
   const openCreate = () => { setEditId(null); setForm(emptyForm); setShowDialog(true); };
@@ -283,6 +300,9 @@ export default function Revendas() {
                           <Button size="icon" variant="ghost" className="h-7 w-7 text-primary hover:text-primary" title="Permissões desta revenda" onClick={() => setPermissionTarget({ id: r.id, name: r.name ?? r.email ?? "Revenda" })}>
                             <Shield size={13} />
                           </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-cyan-600 hover:text-cyan-700" title="Aplicativos liberados no plano" onClick={() => setAppAccessTarget({ id: r.id, name: r.name ?? r.email ?? "Revenda" })}>
+                            <Smartphone size={13} />
+                          </Button>
                           <Button
                             size="icon" variant="ghost"
                             className={`h-7 w-7 ${r.isActive ? "text-orange-500 hover:text-orange-600" : "text-green-500 hover:text-green-600"}`}
@@ -382,6 +402,7 @@ export default function Revendas() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
             {editId && <Button variant="outline" type="button" className="gap-2" onClick={() => setPermissionTarget({ id: editId, name: form.name || form.email || "Revenda" })}><Shield size={14} /> Permissões</Button>}
+            {editId && <Button variant="outline" type="button" className="gap-2" onClick={() => setAppAccessTarget({ id: editId, name: form.name || form.email || "Revenda" })}><Smartphone size={14} /> Aplicativos</Button>}
             <Button className="btn-save" onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>
               {(createMut.isPending || updateMut.isPending) && <Loader2 size={14} className="mr-2 animate-spin" />}
               {editId ? "Salvar" : "Criar"}
@@ -408,6 +429,27 @@ export default function Revendas() {
             })}
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setPermissionTarget(null)}>Concluir</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(appAccessTarget)} onOpenChange={(open) => !open && setAppAccessTarget(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Aplicativos do plano — {appAccessTarget?.name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Escolha os aplicativos que esta revenda poderá cadastrar e configurar. Você pode liberar 1, 2, 3 ou mais, conforme o plano.</p>
+          {appAccessData?.isLegacyAllApps && <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">Esta revenda está no padrão antigo, com todos os aplicativos liberados. Ao marcar ou desmarcar um item, você define o plano sem mexer nos clientes já cadastrados.</div>}
+          <div className="grid max-h-[55vh] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+            {appAccessLoading ? <div className="col-span-full flex justify-center py-8"><Loader2 className="animate-spin" /></div> : Object.values(MANAGED_APP_CATALOG).map((app) => {
+              const active = selectedApps.includes(app.id);
+              return <button key={app.id} type="button" onClick={() => toggleAllowedApp(app.id)} disabled={saveAppAccessMut.isPending} className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${active ? "border-cyan-600 bg-cyan-50 text-cyan-950 shadow-sm dark:border-cyan-400 dark:bg-cyan-950/30 dark:text-cyan-50" : "border-border hover:bg-muted/50"}`}>
+                <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-bold ${active ? "border-cyan-600 bg-cyan-600 text-white" : "border-muted-foreground/40"}`}>{active ? "✓" : ""}</div>
+                <img src={app.defaultLogoUrl} alt="" className="h-9 w-9 rounded-lg border bg-muted object-cover" />
+                <span className="font-medium">{app.displayName}</span>
+              </button>;
+            })}
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setAppAccessTarget(null)}>Concluir</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

@@ -65,6 +65,14 @@ interface NavGroup {
   items: NavItem[];
 }
 
+function appIdForNavigationRoute(href: string) {
+  if (href === "/settings") return "ouropro";
+  if (href === "/ultra-player") return "fusion";
+  if (href === "/gpcpro") return "maximus";
+  const match = href.match(/^\/aplicativos\/([^/]+)$/);
+  return match?.[1] ?? null;
+}
+
 const navGroups: NavGroup[] = [
   {
     label: "Início e Clientes",
@@ -167,6 +175,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     return saved === "dark";
   });
   const { data: settings } = trpc.settings.getAll.useQuery();
+  const { data: resellerAppAccess } = trpc.resellerAppAccess.me.useQuery(undefined, { enabled: isAuthenticated });
 
   useEffect(() => {
     if (isDark) {
@@ -331,7 +340,14 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     );
   }
 
-  const visibleNavGroups = getVisibleNavigationGroups(navGroups, isAdmin, isOwner, grantedPermissions);
+  const visibleNavGroups = getVisibleNavigationGroups(navGroups, isAdmin, isOwner, grantedPermissions)
+    .map((group) => group.label === "Aplicativos" && resellerAppAccess?.allowedApps
+      ? { ...group, items: group.items.filter((item) => {
+        const appId = appIdForNavigationRoute(item.href);
+        return !appId || resellerAppAccess.allowedApps.includes(appId);
+      }) }
+      : group)
+    .filter((group) => group.items.length > 0);
   const isItemActive = (item: NavItem) => location === item.href || (item.href !== "/" && location.startsWith(item.href));
   const toggleNavGroup = (label: string) => {
     setOpenNavGroups(current => current.includes(label)
