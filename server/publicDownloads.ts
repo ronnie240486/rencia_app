@@ -1,4 +1,4 @@
-export type PublicAppSlug = "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence";
+export type PublicAppSlug = "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence" | "future";
 
 export interface PublicDownloadApp {
   slug: PublicAppSlug;
@@ -27,6 +27,7 @@ const FALLBACK_LOGOS: Record<PublicAppSlug, string> = {
   ominus: "/manus-storage/ominus-logo-20260827_e24d6cd3.jpg",
   magnus: "/manus-storage/magnus-logo-20260827_850f6f6f.jpg",
   excellence: "/manus-storage/excellence-logo-20260827_31e22412.png",
+  future: "/manus-storage/future-logo-20260827_1a714bae.jpg",
 };
 
 function safePublicUrl(value: string | undefined): string {
@@ -81,6 +82,7 @@ export function buildPublicDownloadApps(settings: Settings): PublicDownloadApp[]
     { slug: "ominus", name: "Ominus", accent: "indigo", fallbackDownload: settings.ominus_apk_download_url, fallbackVersion: settings.ominus_apk_version, fallbackLogo: settings.ominus_logo_url },
     { slug: "magnus", name: "Magnus", accent: "orange", fallbackDownload: settings.magnus_apk_download_url, fallbackVersion: settings.magnus_apk_version, fallbackLogo: settings.magnus_logo_url },
     { slug: "excellence", name: "Excellence", accent: "violet", fallbackDownload: settings.excellence_apk_download_url, fallbackVersion: settings.excellence_apk_version, fallbackLogo: settings.excellence_logo_url },
+    { slug: "future", name: "Future", accent: "cyan", fallbackDownload: settings.future_apk_download_url, fallbackVersion: settings.future_apk_version, fallbackLogo: settings.future_logo_url },
   ];
 
   return definitions.flatMap((definition) => {

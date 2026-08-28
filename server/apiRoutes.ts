@@ -98,7 +98,7 @@ const UPLOAD_FIELD_KEYS: Record<string, string> = {
   ultra_icon_series_url: "ultra_icon_series_url",
 };
 
-const GENERIC_APP_UPLOAD_FIELD = /^(prestige|optimus|imperio|infinitus|supremus|evolux|ominus|magnus|excellence)_(logo_url|banner_url|background_url|message_image_url|icon_live_tv_url|icon_movies_url|icon_series_url)$/;
+const GENERIC_APP_UPLOAD_FIELD = /^(prestige|optimus|imperio|infinitus|supremus|evolux|ominus|magnus|excellence|future)_(logo_url|banner_url|background_url|message_image_url|icon_live_tv_url|icon_movies_url|icon_series_url)$/;
 
 // Cache de configurações para evitar query no banco a cada request
 let settingsCache: Record<string, string> = {};

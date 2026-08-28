@@ -19,5 +19,6 @@ export const CLIENT_APP_OPTIONS: ClientAppOption[] = [
   { value: "Ominus", label: "Ominus", logoUrl: MANAGED_APP_CATALOG.ominus.defaultLogoUrl },
   { value: "Magnus", label: "Magnus", logoUrl: MANAGED_APP_CATALOG.magnus.defaultLogoUrl },
   { value: "Excellence", label: "Excellence", logoUrl: MANAGED_APP_CATALOG.excellence.defaultLogoUrl },
+  { value: "Future", label: "Future", logoUrl: MANAGED_APP_CATALOG.future.defaultLogoUrl },
   { value: "Outro", label: "Outro aplicativo" },
 ];

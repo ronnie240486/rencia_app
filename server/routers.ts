@@ -2898,7 +2898,7 @@ export const appRouter = router({
   ranking: router({
     appStats: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();  
-      if (!db) return { ouropro: 0, maximus: 0, ultra: 0, prestige: 0, optimus: 0, imperio: 0, infinitus: 0, supremus: 0, evolux: 0, ominus: 0, magnus: 0, excellence: 0, nexus: 0, total: 0 };
+      if (!db) return { ouropro: 0, maximus: 0, ultra: 0, prestige: 0, optimus: 0, imperio: 0, infinitus: 0, supremus: 0, evolux: 0, ominus: 0, magnus: 0, excellence: 0, future: 0, nexus: 0, total: 0 };
       
       const result = await db.select({
         app: devices.app,
@@ -2926,6 +2926,7 @@ export const appRouter = router({
       const ominus = counts['Ominus'] || 0;
       const magnus = (counts['Magnus'] || 0) + (counts['Magnus TV'] || 0);
       const excellence = counts['Excellence'] || 0;
+      const future = (counts['Future'] || 0) + (counts['Future Player'] || 0);
       const nexus = (counts['Nexus'] || 0) + (counts['Nexus Player'] || 0);
       
       return {
@@ -2941,8 +2942,9 @@ export const appRouter = router({
         ominus,
         magnus,
         excellence,
+        future,
         nexus,
-        total: ouropro + maximus + ultra + prestige + optimus + imperio + infinitus + supremus + evolux + ominus + magnus + excellence + nexus
+        total: ouropro + maximus + ultra + prestige + optimus + imperio + infinitus + supremus + evolux + ominus + magnus + excellence + future + nexus
       };
     }),
   }),

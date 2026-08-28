@@ -4,7 +4,7 @@ import { Download, Loader2, PackageOpen, ShieldCheck, Smartphone } from "lucide-
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 type DownloadApp = {
-  slug: "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence";
+  slug: "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence" | "future";
   name: string;
   version: string;
   downloadUrl: string;
@@ -40,6 +40,7 @@ const SHORT_DOWNLOAD_SLUGS: Record<string, DownloadApp["slug"]> = {
   "/om": "ominus",
   "/g": "magnus",
   "/ex": "excellence",
+  "/f": "future",
 };
 
 const APP_SHOWCASES: Partial<Record<DownloadApp["slug"], { title: string; images: Array<{ url: string; label: string }> }>> = {

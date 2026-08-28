@@ -1397,3 +1397,9 @@
 - [x] Criar recomendações operacionais priorizadas usando apenas situações confirmadas
 - [x] Oferecer atalhos seguros para a tela correta, sem executar alterações automaticamente
 - [x] Validar a central em computador e celular sem alterar clientes, MACs, listas ou configurações
+
+## Aplicativo Future (27/08/2026)
+- [x] Publicar o logo fornecido do Future nos pontos visuais do painel
+- [x] Adicionar Future ao cadastro, edição, configurações e rotas compatíveis do aplicativo
+- [x] Exibir Future na loja e no ranking sem criar código Downloader ou link de APK inexistente
+- [x] Validar a integração em computador e celular sem alterar clientes, MACs, listas ou configurações

@@ -19,4 +19,14 @@ describe("configuração dos novos aplicativos", () => {
     ], ["Optimus"]);
     expect(device).toEqual({ id: 2, app: "Optimus" });
   });
+
+  it("mantém Future na rota genérica com configuração isolada", () => {
+    const config = buildGenericAppConfig("future", "Future", {
+      future_logo_url: "/manus-storage/future-logo-20260827_1a714bae.jpg",
+      future_apk_version: "1.0.0",
+    }, ["https://lista.example/future"]);
+    const device = findDeviceForManagedApp([{ id: 3, app: "Future" }, { id: 4, app: "OuroPro" }], ["Future", "Future Player"]);
+    expect(config).toMatchObject({ app_id: "future", app_name: "Future", apk_version: "1.0.0" });
+    expect(device).toEqual({ id: 3, app: "Future" });
+  });
 });

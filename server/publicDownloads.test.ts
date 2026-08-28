@@ -11,7 +11,7 @@ describe("loja pública de downloads", () => {
       public_maximus_active: "false",
     });
 
-    expect(apps).toHaveLength(11);
+    expect(apps).toHaveLength(12);
     expect(apps.find((app) => app.slug === "ouropro")).toMatchObject({ version: "7.1.0", isAvailable: true });
     expect(apps.find((app) => app.slug === "ultra")).toMatchObject({ isAvailable: false });
     expect(apps.find((app) => app.slug === "maximus")).toBeUndefined();
@@ -53,8 +53,10 @@ describe("loja pública de downloads", () => {
       ominus_apk_download_url: "https://files.exemplo.com/ominus.apk",
       magnus_apk_download_url: "https://files.exemplo.com/magnus.apk",
       excellence_apk_download_url: "https://files.exemplo.com/excellence.apk",
+      future_apk_download_url: "https://files.exemplo.com/future.apk",
     });
 
-    expect(apps.filter((app) => app.isAvailable).map((app) => app.slug)).toEqual(["ominus", "magnus", "excellence"]);
+    expect(apps.filter((app) => app.isAvailable).map((app) => app.slug)).toEqual(["ominus", "magnus", "excellence", "future"]);
+    expect(apps.find((app) => app.slug === "future")).toMatchObject({ name: "Future", logoUrl: "/manus-storage/future-logo-20260827_1a714bae.jpg" });
   });
 });

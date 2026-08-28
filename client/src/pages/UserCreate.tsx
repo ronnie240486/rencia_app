@@ -44,6 +44,7 @@ const APP_ID_BY_NAME: Record<string, string> = {
   Ominus: "ominus",
   Magnus: "magnus",
   Excellence: "excellence",
+  Future: "future",
 };
 
 function newLista(isPrimary = false): ListaItem {
