@@ -20,8 +20,10 @@ import {
   Unlock,
   Users,
   Shield,
+  Link2,
+  Copy,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { formatDateOnlyPtBr, toDateOnly } from "@shared/dateOnly";
@@ -58,6 +60,10 @@ export default function Revendas() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [permissionTarget, setPermissionTarget] = useState<{ id: number; name: string } | null>(null);
   const [appAccessTarget, setAppAccessTarget] = useState<{ id: number; name: string } | null>(null);
+  const [inviteTarget, setInviteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [inviteApps, setInviteApps] = useState<string[]>([]);
+  const [inviteExpiresAt, setInviteExpiresAt] = useState(() => new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10));
+  const [inviteLink, setInviteLink] = useState("");
 
   const utils = trpc.useUtils();
   const { data, isLoading, refetch } = trpc.revendas.list.useQuery({ search, page, pageSize: 20 });
@@ -110,6 +116,10 @@ export default function Revendas() {
     { resellerId: appAccessTarget?.id ?? 0 },
     { enabled: Boolean(appAccessTarget) },
   );
+  const { data: inviteAppAccessData, isLoading: inviteAppsLoading } = trpc.resellerAppAccess.get.useQuery(
+    { resellerId: inviteTarget?.id ?? 0 },
+    { enabled: Boolean(inviteTarget) },
+  );
   const saveAppAccessMut = trpc.resellerAppAccess.set.useMutation({
     onSuccess: () => { toast.success("Aplicativos liberados para esta revenda."); utils.resellerAppAccess.get.invalidate(); },
     onError: (error) => toast.error(error.message),
@@ -120,6 +130,29 @@ export default function Revendas() {
     const next = selectedApps.includes(appId) ? selectedApps.filter((item) => item !== appId) : [...selectedApps, appId];
     if (next.length === 0) { toast.error("Libere pelo menos um aplicativo para a revenda."); return; }
     saveAppAccessMut.mutate({ resellerId: appAccessTarget.id, allowedApps: next });
+  };
+  useEffect(() => {
+    if (!inviteTarget) return;
+    setInviteApps((inviteAppAccessData?.allowedApps ?? []) as string[]);
+    setInviteLink("");
+  }, [inviteTarget?.id, inviteAppAccessData?.allowedApps]);
+  const createStoreInviteMut = trpc.storeInvites.create.useMutation({
+    onSuccess: (result) => { setInviteLink(`${window.location.origin}/convite/${result.token}`); toast.success("Convite privado da revenda criado."); },
+    onError: (error) => toast.error(error.message),
+  });
+  const openQuickInvite = (target: { id: number; name: string }) => {
+    setInviteTarget(target);
+    setInviteLink("");
+    setInviteExpiresAt(new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10));
+  };
+  const toggleInviteApp = (appId: string) => setInviteApps((current) => current.includes(appId) ? current.filter((id) => id !== appId) : [...current, appId]);
+  const createQuickInvite = () => {
+    if (!inviteTarget || !inviteApps.length) { toast.error("Selecione pelo menos um aplicativo para o convite."); return; }
+    createStoreInviteMut.mutate({ recipientType: "revenda", resellerId: inviteTarget.id, label: inviteTarget.name, allowedApps: inviteApps, expiresAt: new Date(`${inviteExpiresAt}T23:59:59`).toISOString() });
+  };
+  const copyInviteLink = async () => {
+    try { await navigator.clipboard.writeText(inviteLink); toast.success("Link copiado."); }
+    catch { toast.error("Não foi possível copiar o link automaticamente."); }
   };
 
   const openCreate = () => { setEditId(null); setForm(emptyForm); setShowDialog(true); };
@@ -303,6 +336,9 @@ export default function Revendas() {
                           <Button size="icon" variant="ghost" className="h-7 w-7 text-cyan-600 hover:text-cyan-700" title="Aplicativos liberados no plano" onClick={() => setAppAccessTarget({ id: r.id, name: r.name ?? r.email ?? "Revenda" })}>
                             <Smartphone size={13} />
                           </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-indigo-600 hover:text-indigo-700" title="Criar convite privado desta revenda" onClick={() => openQuickInvite({ id: r.id, name: r.name ?? r.email ?? "Revenda" })}>
+                            <Link2 size={13} />
+                          </Button>
                           <Button
                             size="icon" variant="ghost"
                             className={`h-7 w-7 ${r.isActive ? "text-orange-500 hover:text-orange-600" : "text-green-500 hover:text-green-600"}`}
@@ -403,6 +439,7 @@ export default function Revendas() {
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
             {editId && <Button variant="outline" type="button" className="gap-2" onClick={() => setPermissionTarget({ id: editId, name: form.name || form.email || "Revenda" })}><Shield size={14} /> Permissões</Button>}
             {editId && <Button variant="outline" type="button" className="gap-2" onClick={() => setAppAccessTarget({ id: editId, name: form.name || form.email || "Revenda" })}><Smartphone size={14} /> Aplicativos</Button>}
+            {editId && <Button variant="outline" type="button" className="gap-2" onClick={() => openQuickInvite({ id: editId, name: form.name || form.email || "Revenda" })}><Link2 size={14} /> Convite</Button>}
             <Button className="btn-save" onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>
               {(createMut.isPending || updateMut.isPending) && <Loader2 size={14} className="mr-2 animate-spin" />}
               {editId ? "Salvar" : "Criar"}
@@ -450,6 +487,14 @@ export default function Revendas() {
             })}
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setAppAccessTarget(null)}>Concluir</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(inviteTarget)} onOpenChange={(open) => !open && setInviteTarget(null)}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader><DialogTitle>Convite privado de {inviteTarget?.name}</DialogTitle></DialogHeader>
+          {inviteLink ? <div className="space-y-4"><p className="text-sm text-muted-foreground">O link mostra somente os aplicativos selecionados para esta revenda. Copie-o antes de fechar esta janela.</p><div className="flex gap-2"><Input value={inviteLink} readOnly className="font-mono text-xs" /><Button onClick={copyInviteLink} className="gap-1"><Copy size={15} /> Copiar</Button></div></div> : <div className="space-y-4"><p className="text-sm text-muted-foreground">Os aplicativos abaixo vieram do plano desta revenda. Você pode ajustar a seleção somente para este convite.</p><div><Label className="text-xs font-medium">Validade do link</Label><Input type="date" value={inviteExpiresAt} onChange={(event) => setInviteExpiresAt(event.target.value)} className="mt-1 max-w-xs" /></div><div className="grid gap-2 sm:grid-cols-2">{Object.values(MANAGED_APP_CATALOG).map((app) => { const selected = inviteApps.includes(app.id); return <button type="button" key={app.id} onClick={() => toggleInviteApp(app.id)} disabled={inviteAppsLoading} className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${selected ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30" : "hover:bg-muted/50"}`}><span className={`grid h-5 w-5 place-items-center rounded border text-xs ${selected ? "border-indigo-600 bg-indigo-600 text-white" : "border-muted-foreground/40"}`}>{selected ? "✓" : ""}</span><img src={app.defaultLogoUrl} alt="" className="h-8 w-8 rounded-lg border bg-muted object-cover" /><span className="font-medium">{app.displayName}</span></button>; })}</div></div>}
+          <DialogFooter><Button variant="outline" onClick={() => setInviteTarget(null)}>{inviteLink ? "Fechar" : "Cancelar"}</Button>{!inviteLink && <Button onClick={createQuickInvite} disabled={createStoreInviteMut.isPending || inviteAppsLoading} className="gap-2">{createStoreInviteMut.isPending && <Loader2 size={15} className="animate-spin" />}<Link2 size={15} /> Criar link da revenda</Button>}</DialogFooter>
         </DialogContent>
       </Dialog>
 

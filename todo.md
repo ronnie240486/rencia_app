@@ -1421,3 +1421,8 @@
 - [x] Mostrar no convite somente os aplicativos liberados, sem acesso ao painel
 - [x] Fechar a loja pública aberta e manter a visão completa de aplicativos apenas para o proprietário
 - [x] Validar convites e acesso filtrado em computador e celular sem alterar clientes, MACs, listas ou configurações
+
+## Atalho de convite por revenda (28/08/2026)
+- [x] Adicionar na tela de Revendas um atalho para gerar convite privado da revenda
+- [x] Pré-preencher a seleção com os aplicativos liberados no plano da revenda
+- [x] Validar o atalho em computador e celular sem alterar dados existentes
