@@ -15,6 +15,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { colors, spacing } from '@/src/theme';
 import { checkMac, reportPlaybackFailure } from '@/src/api/client';
+import { useHeartbeat } from '@/src/hooks/use-heartbeat';
 import { getSession, saveSession } from '@/src/state/session';
 
 const HIDE_AFTER_MS = 3500;
@@ -48,6 +49,9 @@ export default function PlayerScreen() {
   const switchInProgress = useRef(false);
 
   const isLive = String(params.id || '').startsWith('live-');
+  const channelName = params.name || 'Reprodução';
+  const activeSession = getSession();
+  useHeartbeat(activeSession?.mac, channelName);
 
   const player = useVideoPlayer(params.stream || '', (p) => {
     p.loop = false;
@@ -147,7 +151,6 @@ export default function PlayerScreen() {
     revealControls();
   };
 
-  const channelName = params.name || 'Reprodução';
   const logo = params.logo;
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
 

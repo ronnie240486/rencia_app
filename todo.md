@@ -269,6 +269,10 @@
 - [x] Dashboard: coluna ASSISTINDO atualiza em tempo real via polling
 - [x] Endpoint GET /api/v5/heartbeat — Novo endpoint para registrar heartbeat do dispositivo (23/07/2026)
 - [x] Dispositivo com MAC 0C:49:70:13:28:86 aparecendo como "online" no dashboard (23/07/2026)
+- [ ] Manter o status online e o conteúdo assistido enquanto o APK permanece aberto sem trocar de episódio
+- [x] Aceitar os campos `content`, `current_content` e `currentContent` na atividade enviada pelo APK
+- [x] Conectar o heartbeat de um minuto ao player da fonte disponível do Maximus Player
+- [ ] Gerar e instalar APK atualizado para validar a presença contínua em aparelho real
 
 ## Testes e Validação (23/07/2026)
 - [x] Criar testes vitest para protocolo Xtream Codes (server/xtreamcodes.test.ts)
@@ -1446,6 +1450,8 @@
 - [x] Corrigir a abertura do ranking quando a permissão foi liberada para a revenda
 - [x] Mostrar no ranking apenas os aplicativos e clientes da própria revenda
 - [ ] Validar a permissão e o isolamento do ranking em sessão de revenda
+- [ ] Registrar uma evidência visual da sessão real de revenda sem alterar dados existentes
+- [ ] Investigar a revenda que continua sem visualizar o Ranking após selecionar a permissão
 
 ## Atalho de convite por revenda (28/08/2026)
 - [x] Adicionar na tela de Revendas um atalho para gerar convite privado da revenda

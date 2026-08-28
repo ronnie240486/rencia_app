@@ -7,3 +7,9 @@ export function normalizeHeartbeatContent(value: unknown): string | undefined {
   const content = value.trim();
   return content ? content.slice(0, 500) : undefined;
 }
+
+/** Aceita os nomes de campo usados pelas versões atuais e anteriores dos APKs. */
+export function readHeartbeatContent(payload: Record<string, unknown> | null | undefined): string | undefined {
+  if (!payload) return undefined;
+  return normalizeHeartbeatContent(payload.content ?? payload.current_content ?? payload.currentContent);
+}

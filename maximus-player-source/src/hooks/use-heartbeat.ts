@@ -2,11 +2,16 @@ import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 
 /**
- * Hook que envia heartbeat periódico com o canal atual sendo assistido.
- * Envia para o backend a cada 30 segundos.
+ * Hook que renova a presença e mantém o conteúdo atual no painel enquanto
+ * a tela de reprodução estiver aberta, mesmo sem troca de canal ou episódio.
  */
 export function useHeartbeat(mac: string | undefined, currentChannel: string | undefined) {
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentChannelRef = useRef(currentChannel);
+
+  useEffect(() => {
+    currentChannelRef.current = currentChannel;
+  }, [currentChannel]);
 
   useEffect(() => {
     if (!mac) return;
@@ -18,7 +23,8 @@ export function useHeartbeat(mac: string | undefined, currentChannel: string | u
 
         const payload = {
           mac,
-          current_content: currentChannel || 'Sem canal',
+          content: currentChannelRef.current || undefined,
+          app_id: 'maximus',
           device_type: Platform.OS === 'web' ? 'web' : Platform.OS, // 'android', 'ios', 'web'
           timestamp: new Date().toISOString(),
         };
@@ -44,13 +50,14 @@ export function useHeartbeat(mac: string | undefined, currentChannel: string | u
     // Enviar heartbeat imediatamente
     sendHeartbeat();
 
-    // Configurar intervalo de 30 segundos
-    heartbeatIntervalRef.current = setInterval(sendHeartbeat, 30000);
+    // Renova a sessão a cada minuto com o mesmo título, caso o usuário
+    // permaneça assistindo ao mesmo episódio por bastante tempo.
+    heartbeatIntervalRef.current = setInterval(sendHeartbeat, 60_000);
 
     return () => {
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
       }
     };
-  }, [mac, currentChannel]);
+  }, [mac]);
 }

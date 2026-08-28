@@ -30,7 +30,7 @@ import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
 import { getBackupDownload } from "./backupService";
 import { buildUltraPlayerConfig, normalizeMacAddress } from "./ultraPlayerConfig";
-import { normalizeHeartbeatContent } from "./heartbeatContent";
+import { normalizeHeartbeatContent, readHeartbeatContent } from "./heartbeatContent";
 import { acknowledgeRemoteCommand, claimRemoteCommandForMac } from "./remoteCommands";
 import { buildPublicDownloadApps } from "./publicDownloads";
 import { acknowledgeListNotificationForMac, buildApkExpirationNotice, buildApkExpirationResponseFields, getListNotificationsForMac } from "./apkListNotifications";
@@ -1952,7 +1952,7 @@ export function registerApiRoutes(app: Express) {
       // Formato 1: { mac, content } — plain JSON
       if (body && body.mac) {
         macAddress = String(body.mac).trim().toUpperCase();
-        currentContent = body.content ? String(body.content).trim() : null;
+        currentContent = readHeartbeatContent(body) ?? null;
       }
 
       // Formato 2: { data: "<BASE64>" } — mesmo formato do /api/guim.php
