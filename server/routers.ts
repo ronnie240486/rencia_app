@@ -49,6 +49,7 @@ import { buildDnsTargets, collectDnsTargetDeviceIds, normalizeDnsHost } from "./
 import { hashPassword } from "./auth";
 import { normalizeResellerPermissions, parseResellerAccessPolicy, RESELLER_PERMISSION_KEYS, serializeResellerAccessPolicy } from "../shared/resellerPermissions";
 import { createStoreInviteToken, hashStoreInviteToken, normalizeStoreInviteApps, serializeStoreInviteApps } from "./storeInvites";
+import { isAppSettingVisibleToReseller } from "./appSettingsVisibility";
 
 async function requireGrantedPanelPermission(db: any, user: any, permission: string) {
   if (user?.isOwner) return;
@@ -2394,7 +2395,7 @@ export const appRouter = router({
       const result: Record<string, string> = {};
       for (const row of rows) {
         const appId = managedAppIdForSettingsKey(row.key);
-        if (allowedApps !== null && (!appId || !allowedApps.includes(appId))) continue;
+        if (!isAppSettingVisibleToReseller(allowedApps, appId)) continue;
         result[row.key] = row.value ?? "";
       }
       return result;

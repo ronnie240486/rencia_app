@@ -1426,6 +1426,22 @@
 - [x] Corrigir convite válido que abre sem carregar os aplicativos selecionados
 - [x] Validar o convite existente sem alterar a seleção, os dados nem os links de download
 
+## Atualização de clientes para revendas (28/08/2026)
+- [ ] Corrigir a atualização da lista de clientes após cadastro ou edição pelo proprietário
+- [ ] Garantir que a revenda dona veja a alteração sem expor clientes de outras revendas
+- [ ] Validar a sincronização no painel compartilhado sem alterar os dados dos clientes
+
+## Sincronização de funções para revendas (28/08/2026)
+- [ ] Atualizar automaticamente o menu e as funções liberadas no painel de cada revenda
+- [ ] Mostrar aplicativos e melhorias de layout compartilhadas sem mostrar clientes do proprietário
+- [ ] Validar permissões e isolamento de clientes após a atualização compartilhada
+
+## Layout unificado para revendas (28/08/2026)
+- [x] Identificar por que a revenda abre um layout de painel antigo
+- [x] Entregar o mesmo layout atualizado do painel de back-end para proprietário e revendas
+- [x] Preservar permissões e isolamento dos clientes no layout compartilhado
+- [ ] Validar em sessão de proprietário e sessão de revenda
+
 ## Atalho de convite por revenda (28/08/2026)
 - [x] Adicionar na tela de Revendas um atalho para gerar convite privado da revenda
 - [x] Pré-preencher a seleção com os aplicativos liberados no plano da revenda
