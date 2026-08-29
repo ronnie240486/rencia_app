@@ -1,4 +1,4 @@
-import { boolean, decimal, int, mysqlEnum, mysqlTable, text, timestamp, varchar, date } from "drizzle-orm/mysql-core";
+import { boolean, decimal, int, mysqlEnum, mysqlTable, text, timestamp, varchar, date, uniqueIndex } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 
 export const users = mysqlTable("users", {
@@ -86,6 +86,7 @@ export const devices = mysqlTable("devices", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSeen: timestamp("lastSeen"),
   currentContent: text("currentContent"), // canal/série/filme que está assistindo
+  lastActiveAppId: varchar("lastActiveAppId", { length: 64 }), // APK que enviou a última atividade
   telefone: varchar("telefone", { length: 32 }),
   forceShowChannel: boolean("forceShowChannel").default(false).notNull(), // força envio do canal mesmo sem Device Type = TV
   activeDeviceUrlId: int("activeDeviceUrlId"), // null = lista principal legada; id = lista extra priorizada
@@ -95,6 +96,19 @@ export const devices = mysqlTable("devices", {
 
 export type Device = typeof devices.$inferSelect;
 export type InsertDevice = typeof devices.$inferInsert;
+
+// Aplicativos adicionais liberados para o mesmo cliente/MAC. O campo devices.app
+// continua como aplicativo principal para preservar cadastros e rotas existentes.
+export const deviceAppLinks = mysqlTable("device_app_links", {
+  id: int("id").autoincrement().primaryKey(),
+  deviceId: int("deviceId").notNull(),
+  appId: varchar("appId", { length: 64 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  deviceAppUnique: uniqueIndex("device_app_links_device_app_unique").on(table.deviceId, table.appId),
+}));
+
+export type DeviceAppLink = typeof deviceAppLinks.$inferSelect;
 
 // Sessões ativas dos APKs. São removidas após inatividade para não alterar cadastros existentes.
 export const appSessions = mysqlTable("app_sessions", {

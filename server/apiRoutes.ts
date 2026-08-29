@@ -24,8 +24,8 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials, suggestions, storeInvites } from "../drizzle/schema";
-import { eq, or, and, asc, desc, sql } from "drizzle-orm";
+import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials, suggestions, storeInvites, deviceAppLinks } from "../drizzle/schema";
+import { eq, or, and, asc, desc, sql, inArray } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
 import { getBackupDownload } from "./backupService";
@@ -44,7 +44,7 @@ import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistrati
 import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
-import { selectActivityDevice } from "./activityDeviceSelection";
+import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
 import { comparePassword } from "./auth";
 import { isLoginAccessAllowed, resolveLoginMacBinding } from "./appLogin";
 import { canAccessResellerPortal, chooseResellerPortalAccount } from "./resellerPortal";
@@ -74,6 +74,23 @@ const uploadApk = multer({
     else cb(new Error("Apenas arquivos .apk são permitidos"));
   },
 });
+
+/**
+ * Seleciona o cadastro principal ou o vínculo adicional do app que fez a chamada.
+ * Nunca escolhe um app por adivinhação quando o mesmo MAC aparece em vários cadastros.
+ */
+async function selectDeviceForReportedApp<T extends { id: number; app: string | null }>(db: any, rows: T[], reportedApp: string | null): Promise<T | undefined> {
+  const primaryMatch = selectActivityDevice(rows, reportedApp);
+  if (primaryMatch || !reportedApp) return primaryMatch;
+  const appId = resolveManagedAppId(reportedApp);
+  if (!appId || rows.length === 0) return undefined;
+  const links = await db.select({ deviceId: deviceAppLinks.deviceId })
+    .from(deviceAppLinks)
+    .where(and(inArray(deviceAppLinks.deviceId, rows.map((row) => row.id)), eq(deviceAppLinks.appId, appId)))
+    .limit(1);
+  const linkedDeviceId = links[0]?.deviceId;
+  return linkedDeviceId ? rows.find((row) => row.id === linkedDeviceId) : undefined;
+}
 
 // Chaves de configuração válidas para upload de imagem
 const UPLOAD_FIELD_KEYS: Record<string, string> = {
@@ -1832,11 +1849,12 @@ export function registerApiRoutes(app: Express) {
       const appDef = MANAGED_APP_CATALOG[appId];
       const macDevices = await db.select().from(devices).where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())));
       if (!macDevices.length) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
-      const device = findDeviceForManagedApp(macDevices, appDef.deviceAliases);
+      const device = await selectDeviceForReportedApp(db, macDevices, appId)
+        ?? findDeviceForManagedApp(macDevices, appDef.deviceAliases);
       if (!device) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
       // Marca atividade no cadastro do aplicativo consultado, inclusive quando o MAC
       // também existe em outro app (por exemplo, Ouro Pro e Optimus).
-      await db.update(devices).set({ lastSeen: new Date() }).where(eq(devices.id, device.id));
+      await db.update(devices).set({ lastSeen: new Date(), lastActiveAppId: appId }).where(eq(devices.id, device.id));
       const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
       const settings = await getSettings();
       res.setHeader("Cache-Control", "no-store");
@@ -1858,7 +1876,8 @@ export function registerApiRoutes(app: Express) {
       const appDef = MANAGED_APP_CATALOG[appId];
       const macDevices = await db.select().from(devices).where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())));
       if (!macDevices.length) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
-      const device = findDeviceForManagedApp(macDevices, appDef.deviceAliases);
+      const device = await selectDeviceForReportedApp(db, macDevices, appId)
+        ?? findDeviceForManagedApp(macDevices, appDef.deviceAliases);
       if (!device) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
       const settings = await getSettings();
       res.json({ registered: true, allowed: device.status === "Liberado", ...buildAppUpdateResponse(appDef.displayName, settings[`${appId}_apk_download_url`] || "", settings[`${appId}_apk_version`] || "1.0.0") });
@@ -2002,18 +2021,24 @@ export function registerApiRoutes(app: Express) {
       // Nunca limpar o canal anterior
       if (currentContent) updateSet.currentContent = currentContent;
       if (reportedAppVersion) updateSet.appVersion = reportedAppVersion;
+      const reportedManagedAppId = resolveManagedAppId(reportedAppId);
+      if (reportedManagedAppId) updateSet.lastActiveAppId = reportedManagedAppId;
 
       const sameMacRows = await db.select().from(devices).where(or(
         eq(devices.mac, formattedMac),
         eq(devices.mac, macAddress),
       ));
-      const activityDevice = selectActivityDevice(sameMacRows, reportedAppId);
+      const activityDevice = await selectDeviceForReportedApp(db, sameMacRows, reportedAppId);
       if (reportedAppId && !activityDevice) {
         res.status(403).json({ ok: false, error: "MAC não vinculado ao aplicativo informado" });
         return;
       }
 
-      const sessionDevice = activityDevice ?? (sameMacRows.length === 1 ? sameMacRows[0] : undefined);
+      if (!activityDevice && sameMacRows.length > 1) {
+        res.status(409).json({ ok: false, code: "APP_IDENTIFICATION_REQUIRED", error: "Informe app_id para este MAC cadastrado em mais de um aplicativo." });
+        return;
+      }
+      const sessionDevice = activityDevice ?? sameMacRows[0];
       let session: { enforced: boolean; active_sessions?: number; maximum_connections?: number } = { enforced: false };
       if (sessionKey && sessionDevice) {
         const decision = await registerApkSession({
@@ -2044,7 +2069,7 @@ export function registerApiRoutes(app: Express) {
       if (activityDevice) {
         await db.update(devices).set(updateSet).where(eq(devices.id, activityDevice.id));
       } else {
-        // Compatibilidade temporária para APKs antigos que ainda não informam o app.
+        // Compatibilidade apenas para MACs com um único cadastro no painel.
         await db.update(devices).set(updateSet).where(or(
           eq(devices.mac, formattedMac),
           eq(devices.mac, macAddress),
@@ -4502,12 +4527,16 @@ export function registerApiRoutes(app: Express) {
           eq(devices.mac, mac.toLowerCase()),
           eq(devices.mac, mac.toUpperCase()),
         ));
-        const activityDevice = selectActivityDevice(sameMacRows, reportedAppId);
+        const activityDevice = await selectDeviceForReportedApp(db, sameMacRows, reportedAppId);
         if (reportedAppId && !activityDevice) {
           res.status(403).json({ success: false, message: "MAC não vinculado ao aplicativo informado" });
           return;
         }
-        const sessionDevice = activityDevice ?? (sameMacRows.length === 1 ? sameMacRows[0] : undefined);
+        if (!activityDevice && sameMacRows.length > 1) {
+          res.status(409).json({ success: false, code: "APP_IDENTIFICATION_REQUIRED", message: "Informe app_id para este MAC cadastrado em mais de um aplicativo." });
+          return;
+        }
+        const sessionDevice = activityDevice ?? sameMacRows[0];
         if (sessionKey && sessionDevice) {
           const decision = await registerApkSession({
             deviceId: sessionDevice.id,
@@ -4805,7 +4834,7 @@ export function registerApiRoutes(app: Express) {
           eq(devices.mac, mac),
         ));
 
-      const device = selectActivityDevice(result, reportedAppId) ?? (reportedAppId ? undefined : result[0]);
+      const device = await selectDeviceForReportedApp(db, result, reportedAppId) ?? (result.length === 1 ? result[0] : undefined);
       if (!device) {
         res.json({ content: '', mac: macWithColons, lastSeen: '', registered: false });
         return;
@@ -4863,7 +4892,7 @@ export function registerApiRoutes(app: Express) {
           eq(devices.mac, mac),
         ));
 
-      const device = selectActivityDevice(result, reportedAppId) ?? (reportedAppId ? undefined : result[0]);
+      const device = await selectDeviceForReportedApp(db, result, reportedAppId) ?? (result.length === 1 ? result[0] : undefined);
       if (!device) {
         res.status(404).json({ success: false, error: 'device not found', mac: macWithColons });
         return;
@@ -4871,7 +4900,7 @@ export function registerApiRoutes(app: Express) {
 
       // Atualizar currentContent
       await db.update(devices)
-        .set({ currentContent: currentContent || null })
+        .set({ currentContent: currentContent || null, lastActiveAppId: resolveManagedAppId(reportedAppId) ?? device.lastActiveAppId })
         .where(eq(devices.id, device.id));
 
       res.json({

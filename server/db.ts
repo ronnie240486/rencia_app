@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gte, inArray, like, lt, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { appCredentials, apps, auditLogs, customerNotes, deviceListNotificationReceipts, deviceTags, devices, deviceUrls, InsertUser, listFailoverEvents, listHealthChecks, localCredentials, maintenanceTasks, notices, payments, remoteDeviceCommands, users } from "../drizzle/schema";
+import { appCredentials, apps, auditLogs, customerNotes, deviceAppLinks, deviceListNotificationReceipts, deviceTags, devices, deviceUrls, InsertUser, listFailoverEvents, listHealthChecks, localCredentials, maintenanceTasks, notices, payments, remoteDeviceCommands, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 import { countDevicePlaylists } from "./devicePlaylistCount";
@@ -217,6 +217,7 @@ export async function deleteManyDevices(ids: number[], ownerId: number) {
 
 /** Remove todos os rastros operacionais de dispositivos antes de liberar os MACs. */
 async function deleteDeviceReferences(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, deviceIds: number[]) {
+  await db.delete(deviceAppLinks).where(inArray(deviceAppLinks.deviceId, deviceIds));
   await db.delete(appCredentials).where(inArray(appCredentials.deviceId, deviceIds));
   await db.delete(deviceListNotificationReceipts).where(inArray(deviceListNotificationReceipts.deviceId, deviceIds));
   await db.delete(remoteDeviceCommands).where(inArray(remoteDeviceCommands.deviceId, deviceIds));
@@ -534,6 +535,7 @@ export async function getConnectedDevices(ownerId: number, minutesAgo = 30) {
     mac: devices.mac,
     nomeServer: devices.nomeServer,
     app: devices.app,
+    lastActiveAppId: devices.lastActiveAppId,
     tipo: devices.tipo,
     status: devices.status,
     lastSeen: devices.lastSeen,

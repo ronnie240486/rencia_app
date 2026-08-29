@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull, like, or, gt } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions, storeInvites, googleDriveBackupConnections } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions, storeInvites, googleDriveBackupConnections, deviceAppLinks } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
@@ -627,6 +627,44 @@ export const appRouter = router({
         const device = await getDeviceById(input.id, ctx.user.id);
         if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
         return device;
+      }),
+
+    linkedApps: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+        const device = await getDeviceById(input.id, ctx.user.id);
+        if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
+        const links = await db.select({ appId: deviceAppLinks.appId }).from(deviceAppLinks).where(eq(deviceAppLinks.deviceId, device.id));
+        const primaryAppId = managedAppIdForValue(device.app);
+        return Array.from(new Set([primaryAppId, ...links.map((link) => link.appId)].filter(Boolean))) as string[];
+      }),
+
+    setLinkedApps: protectedProcedure
+      .input(z.object({ id: z.number(), appIds: z.array(z.string().trim().min(1)).max(Object.keys(MANAGED_APP_CATALOG).length) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+        const device = await getDeviceById(input.id, ctx.user.id);
+        if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
+        const appIds = Array.from(new Set(input.appIds.map((appId) => appId.toLowerCase())));
+        if (appIds.some((appId) => !isManagedAppId(appId))) throw new TRPCError({ code: "BAD_REQUEST", message: "Um dos aplicativos informados é inválido." });
+        for (const appId of appIds) await requireAllowedResellerApp(db, ctx.user, appId);
+        const primaryAppId = managedAppIdForValue(device.app);
+        const additionalAppIds = appIds.filter((appId) => appId !== primaryAppId);
+        await db.delete(deviceAppLinks).where(eq(deviceAppLinks.deviceId, device.id));
+        if (additionalAppIds.length) await db.insert(deviceAppLinks).values(additionalAppIds.map((appId) => ({ deviceId: device.id, appId })));
+        await recordAudit({
+          ownerId: ctx.user.id,
+          actorUserId: ctx.user.id,
+          entityType: "device",
+          entityId: device.id,
+          action: "apps_linked",
+          summary: `Aplicativos vinculados ao cliente ${device.nomeServer}`,
+          afterData: { appIds: primaryAppId ? [primaryAppId, ...additionalAppIds] : additionalAppIds },
+        });
+        return { success: true, appIds: primaryAppId ? [primaryAppId, ...additionalAppIds] : additionalAppIds };
       }),
 
     recentList: protectedProcedure
@@ -3094,27 +3132,40 @@ export const appRouter = router({
       .from(devices)
       .where(and(eq(devices.ownerId, ctx.user.id), isNotNull(devices.app)))
       .groupBy(devices.app);
+
+      const linkedResult = await db.select({
+        appId: deviceAppLinks.appId,
+        count: sql`COUNT(*)`,
+      })
+        .from(deviceAppLinks)
+        .innerJoin(devices, eq(deviceAppLinks.deviceId, devices.id))
+        .where(eq(devices.ownerId, ctx.user.id))
+        .groupBy(deviceAppLinks.appId);
       
       const counts = result.reduce((acc: any, row: any) => {
         const appName = row.app || 'Sem App';
         acc[appName] = Number(row.count) || 0;
         return acc;
       }, {});
+      const linkedCounts = linkedResult.reduce((acc: Record<string, number>, row: any) => {
+        acc[row.appId] = Number(row.count) || 0;
+        return acc;
+      }, {});
       
-      const ouropro = counts['OuroPro'] || 0;
-      const maximus = (counts['Maximus'] || 0) + (counts['Maximus Player'] || 0);
-      const ultra = (counts['Ultra Player'] || 0) + (counts['Fusion'] || 0);
-      const prestige = counts['Prestige'] || 0;
-      const optimus = counts['Optimus'] || 0;
-      const imperio = (counts['Império Play'] || 0) + (counts['Imperio Play'] || 0);
-      const infinitus = counts['Infinitus'] || 0;
-      const supremus = counts['Supremus'] || 0;
-      const evolux = counts['Evolux'] || 0;
-      const ominus = counts['Ominus'] || 0;
-      const magnus = (counts['Magnus'] || 0) + (counts['Magnus TV'] || 0);
-      const excellence = counts['Excellence'] || 0;
-      const future = (counts['Future'] || 0) + (counts['Future Player'] || 0);
-      const nexus = (counts['Nexus'] || 0) + (counts['Nexus Player'] || 0);
+      const ouropro = (counts['OuroPro'] || 0) + (counts['Ouro Pro'] || 0) + (linkedCounts.ouropro || 0);
+      const maximus = (counts['Maximus'] || 0) + (counts['Maximus Player'] || 0) + (linkedCounts.maximus || 0);
+      const ultra = (counts['Ultra Player'] || 0) + (counts['Fusion'] || 0) + (linkedCounts.fusion || 0);
+      const prestige = (counts['Prestige'] || 0) + (linkedCounts.prestige || 0);
+      const optimus = (counts['Optimus'] || 0) + (linkedCounts.optimus || 0);
+      const imperio = (counts['Império Play'] || 0) + (counts['Imperio Play'] || 0) + (linkedCounts.imperio || 0);
+      const infinitus = (counts['Infinitus'] || 0) + (linkedCounts.infinitus || 0);
+      const supremus = (counts['Supremus'] || 0) + (counts['Supreme'] || 0) + (linkedCounts.supremus || 0);
+      const evolux = (counts['Evolux'] || 0) + (linkedCounts.evolux || 0);
+      const ominus = (counts['Ominus'] || 0) + (linkedCounts.ominus || 0);
+      const magnus = (counts['Magnus'] || 0) + (counts['Magnus TV'] || 0) + (linkedCounts.magnus || 0);
+      const excellence = (counts['Excellence'] || 0) + (linkedCounts.excellence || 0);
+      const future = (counts['Future'] || 0) + (counts['Future Player'] || 0) + (linkedCounts.future || 0);
+      const nexus = (counts['Nexus'] || 0) + (counts['Nexus Player'] || 0) + (linkedCounts.nexus || 0);
       
       return {
         ouropro,

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { appCredentials, auditLogs, customerNotes, deviceListNotificationReceipts, deviceTags, devices, deviceUrls, listFailoverEvents, listHealthChecks, maintenanceTasks, notices, payments, remoteDeviceCommands } from "../drizzle/schema";
+import { appCredentials, auditLogs, customerNotes, deviceAppLinks, deviceListNotificationReceipts, deviceTags, devices, deviceUrls, listFailoverEvents, listHealthChecks, maintenanceTasks, notices, payments, remoteDeviceCommands } from "../drizzle/schema";
 
 const state = vi.hoisted(() => ({ deleteMock: vi.fn(), selectMock: vi.fn() }));
 
@@ -32,6 +32,7 @@ describe("deleteDevice", () => {
 
     const removedTables = state.deleteMock.mock.calls.map(([table]) => table);
     expect(removedTables).toEqual(expect.arrayContaining([
+      deviceAppLinks,
       appCredentials,
       deviceListNotificationReceipts,
       remoteDeviceCommands,
@@ -45,7 +46,7 @@ describe("deleteDevice", () => {
       auditLogs,
       deviceUrls,
     ]));
-    expect(removedTables).toHaveLength(13);
+    expect(removedTables).toHaveLength(14);
     expect(state.selectMock).toHaveBeenCalledTimes(2);
     expect(removedTables.at(-1)).toBe(devices);
   });

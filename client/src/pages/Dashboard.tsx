@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -372,6 +373,9 @@ export default function Dashboard() {
                   {(connectedDevices ?? []).map(d => {
                     const isRecent = d.lastSeen && (Date.now() - new Date(d.lastSeen).getTime()) < 5 * 60 * 1000;
                     const isFixed = d.forceShowChannel === true;
+                    const activeApp = d.lastActiveAppId && d.lastActiveAppId in MANAGED_APP_CATALOG
+                      ? MANAGED_APP_CATALOG[d.lastActiveAppId as keyof typeof MANAGED_APP_CATALOG].displayName
+                      : d.app;
                     return (
                       <TableRow key={d.id}>
                         <TableCell>
@@ -390,7 +394,7 @@ export default function Dashboard() {
                         </TableCell>
                         <TableCell className="text-xs font-mono"><span>{d.mac}</span></TableCell>
                         <TableCell className="text-xs"><span>{d.nomeServer}</span></TableCell>
-                        <TableCell><Badge variant="outline" className="text-xs"><span>{d.app || "—"}</span></Badge></TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs"><span>{activeApp || "—"}</span></Badge></TableCell>
                         <TableCell>
                           <Badge variant="secondary" className="text-xs"><span>{d.tipo}</span></Badge>
                         </TableCell>

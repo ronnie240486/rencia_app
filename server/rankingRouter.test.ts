@@ -1,13 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let groupedRows: Array<{ app: string; count: number }> = [];
-const where = vi.fn(() => ({
+let linkedGroupedRows: Array<{ appId: string; count: number }> = [];
+const primaryWhere = vi.fn(() => ({
   groupBy: async () => groupedRows,
+}));
+const linkedWhere = vi.fn(() => ({
+  groupBy: async () => linkedGroupedRows,
 }));
 const database = {
   select: vi.fn(() => ({
     from: () => ({
-      where,
+      where: primaryWhere,
+      innerJoin: () => ({ where: linkedWhere }),
     }),
   })),
 };
@@ -33,6 +38,7 @@ const context = {
 describe("ranking.appStats", () => {
   beforeEach(() => {
     groupedRows = [];
+    linkedGroupedRows = [];
     vi.clearAllMocks();
   });
 
@@ -43,15 +49,17 @@ describe("ranking.appStats", () => {
       { app: "Magnus TV", count: 1 },
       { app: "Excellence", count: 5 },
     ];
+    linkedGroupedRows = [{ appId: "future", count: 2 }];
 
     const result = await appRouter.createCaller(context).ranking.appStats();
 
-    expect(result).toMatchObject({ ominus: 2, magnus: 4, excellence: 5, total: 11 });
+    expect(result).toMatchObject({ ominus: 2, magnus: 4, excellence: 5, future: 2, total: 13 });
   });
 
   it("aplica o filtro de proprietário antes de agrupar o ranking", async () => {
     await appRouter.createCaller(context).ranking.appStats();
 
-    expect(where).toHaveBeenCalledTimes(1);
+    expect(primaryWhere).toHaveBeenCalledTimes(1);
+    expect(linkedWhere).toHaveBeenCalledTimes(1);
   });
 });

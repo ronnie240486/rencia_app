@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { selectActivityDevice } from "./activityDeviceSelection";
+import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
 
 describe("selectActivityDevice", () => {
   const sameMacRows = [
@@ -18,6 +18,11 @@ describe("selectActivityDevice", () => {
 
   it("seleciona Ominus sem atualizar o cadastro Excellence", () => {
     expect(selectActivityDevice(sameMacRows, "ominus")).toMatchObject({ id: 3, app: "Ominus" });
+  });
+
+  it("normaliza Future e Excellence para os IDs técnicos do catálogo", () => {
+    expect(resolveManagedAppId("Future Player")).toBe("future");
+    expect(resolveManagedAppId("Excellence")).toBe("excellence");
   });
 
   it("não escolhe um cadastro por adivinhação quando o APK não informa aplicativo", () => {

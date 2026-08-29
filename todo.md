@@ -278,6 +278,12 @@
 - [x] Fazer o botão Forçar canal fixar o último conteúdo na lista sem prazo até ser desligado
 - [x] Impedir que registros fixados há horas ou dias sejam contados como dispositivos em exibição
 
+## Mesmo MAC em vários aplicativos (28/08/2026)
+- [x] Permitir cadastros separados para o mesmo MAC em APKs diferentes sem substituir o outro aplicativo
+- [x] Identificar o aplicativo que enviou a atividade e atualizar somente o cadastro correspondente
+- [x] Contabilizar instalações e ranking por aplicativo sem misturar o mesmo MAC entre APKs
+- [ ] Validar em painel e endpoints que Future e Excellence permanecem separados
+
 ## Testes e Validação (23/07/2026)
 - [x] Criar testes vitest para protocolo Xtream Codes (server/xtreamcodes.test.ts)
 - [x] Validar autenticação com MAC address

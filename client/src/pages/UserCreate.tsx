@@ -77,6 +77,7 @@ export default function UserCreate() {
     tipo: "Usuario" as "Usuario" | "Revenda" | "UltraMaster" | "Master",
     telefone: "",
   });
+  const [linkedAppIds, setLinkedAppIds] = useState<string[]>(["ouropro"]);
 
   const [listas, setListas] = useState<ListaItem[]>([newLista(true)]);
   const [dnsList, setDnsList] = useState<Array<{ id: string; titulo: string; host: string }>>([]);
@@ -91,9 +92,16 @@ export default function UserCreate() {
 
   useEffect(() => {
     if (!allowedAppOptions.length) return;
-    setForm((current) => allowedAppOptions.some((option) => option.value === current.app)
-      ? current
-      : { ...current, app: allowedAppOptions[0].value });
+    const fallbackApp = allowedAppOptions[0].value;
+    const allowedAppIds = new Set(allowedAppOptions.map((option) => APP_ID_BY_NAME[option.value]));
+    setForm((current) => ({
+      ...current,
+      app: allowedAppOptions.some((option) => option.value === current.app) ? current.app : fallbackApp,
+    }));
+    setLinkedAppIds((selected) => Array.from(new Set([
+      ...selected.filter((appId) => allowedAppIds.has(appId)),
+      APP_ID_BY_NAME[fallbackApp],
+    ].filter(Boolean))));
   }, [allowedAppOptions]);
 
   const lookupExpirationMutation = trpc.devices.lookupExpiration.useMutation({
@@ -108,8 +116,11 @@ export default function UserCreate() {
     onError: (error) => toast.error(error.message || "Não foi possível consultar a validade da lista."),
   });
 
+  const setLinkedAppsMutation = trpc.devices.setLinkedApps.useMutation();
+
   const createMutation = trpc.devices.create.useMutation({
     onSuccess: async (data) => {
+      await setLinkedAppsMutation.mutateAsync({ id: data.id, appIds: linkedAppIds });
       // Adicionar listas extras (além da principal)
       const extras = listas.slice(1);
       for (const lista of extras) {
@@ -301,7 +312,15 @@ export default function UserCreate() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP DO CLIENTE:</Label>
-              <Select value={form.app} onValueChange={(value) => setForm(f => ({ ...f, app: value }))}>
+              <Select value={form.app} onValueChange={(value) => {
+                const previousAppId = APP_ID_BY_NAME[form.app];
+                const nextAppId = APP_ID_BY_NAME[value];
+                setForm(f => ({ ...f, app: value }));
+                if (nextAppId) setLinkedAppIds((selected) => Array.from(new Set([
+                  ...selected.filter((appId) => appId !== previousAppId),
+                  nextAppId,
+                ])));
+              }}>
                 <SelectTrigger className="h-10">
                   <SelectValue placeholder="Selecione um app" />
                 </SelectTrigger>
@@ -316,6 +335,27 @@ export default function UserCreate() {
                   ))}
                 </SelectContent>
               </Select>
+              <div className="mt-3 rounded-lg border border-dashed p-3">
+                <p className="text-xs font-semibold text-foreground">Aplicativos liberados para este cliente</p>
+                <p className="mt-1 text-xs text-muted-foreground">Marque os APKs que poderão usar este mesmo MAC. O cadastro do cliente continua único.</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {allowedAppOptions.map((appOption) => {
+                    const appId = APP_ID_BY_NAME[appOption.value];
+                    const checked = linkedAppIds.includes(appId);
+                    return <label key={appOption.value} className="flex cursor-pointer items-center gap-2 rounded-md border p-2 text-sm hover:bg-muted/50">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(event) => setLinkedAppIds((selected) => event.target.checked
+                          ? Array.from(new Set([...selected, appId]))
+                          : selected.filter((id) => id !== appId))}
+                      />
+                      <AppLogoBadge logoUrl={appOption.logoUrl} label={appOption.label} />
+                      <span>{appOption.label}</span>
+                    </label>;
+                  })}
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

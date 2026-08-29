@@ -51,6 +51,10 @@ export default function UserEdit() {
     { id: deviceId },
     { enabled: !isNaN(deviceId) && deviceId > 0, refetchOnMount: "always" }
   );
+  const { data: linkedApps } = trpc.devices.linkedApps.useQuery(
+    { id: deviceId },
+    { enabled: !isNaN(deviceId) && deviceId > 0 },
+  );
 
   const [form, setForm] = useState({
     modoSelecao: "XTeamCode" as "XTeamCode" | "M3U8",
@@ -79,6 +83,7 @@ export default function UserEdit() {
   // formKey força re-render dos Select quando os dados chegam do servidor
   const [formKey, setFormKey] = useState(0);
   const [hasUserEdited, setHasUserEdited] = useState(false);
+  const [linkedAppIds, setLinkedAppIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (device && !hasUserEdited) {
@@ -114,7 +119,12 @@ export default function UserEdit() {
     }
   }, [device, hasUserEdited]);
 
+  useEffect(() => {
+    if (linkedApps) setLinkedAppIds(linkedApps);
+  }, [linkedApps]);
+
   const utils = trpc.useUtils();
+  const setLinkedAppsMutation = trpc.devices.setLinkedApps.useMutation();
 
   const lookupExpirationMutation = trpc.devices.lookupExpiration.useMutation({
     onSuccess: (result) => {
@@ -142,7 +152,8 @@ export default function UserEdit() {
   };
 
   const updateMutation = trpc.devices.update.useMutation({
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
+      await setLinkedAppsMutation.mutateAsync({ id: deviceId, appIds: linkedAppIds });
       if (result.device) {
         utils.devices.getById.setData({ id: deviceId }, result.device);
       }
@@ -369,7 +380,16 @@ export default function UserEdit() {
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">APP DO CLIENTE:</Label>
               <Select
                 value={form.app}
-                onValueChange={v => setForm(f => ({ ...f, app: v }))}
+                onValueChange={v => {
+                  setHasUserEdited(true);
+                  const previousAppId = Object.values(MANAGED_APP_CATALOG).find((app) => app.deviceAliases.includes(form.app as never))?.id;
+                  setForm(f => ({ ...f, app: v }));
+                  const nextAppId = Object.values(MANAGED_APP_CATALOG).find((app) => app.deviceAliases.includes(v as never))?.id;
+                  if (nextAppId) setLinkedAppIds((selected) => Array.from(new Set([
+                    ...selected.filter((appId) => appId !== previousAppId),
+                    nextAppId,
+                  ])));
+                }}
               >
                 <SelectTrigger className="h-10 w-full">
                   <SelectValue placeholder="Selecione o app" />
@@ -385,6 +405,31 @@ export default function UserEdit() {
                   ))}
                 </SelectContent>
               </Select>
+              <div className="mt-3 rounded-lg border border-dashed p-3">
+                <p className="text-xs font-semibold text-foreground">Aplicativos liberados para este cliente</p>
+                <p className="mt-1 text-xs text-muted-foreground">Marque os APKs que podem usar este mesmo MAC. Não será criado outro cliente.</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {allowedAppOptions.map((appOption) => {
+                    const appId = Object.values(MANAGED_APP_CATALOG).find((app) => app.deviceAliases.includes(appOption.value as never))?.id;
+                    if (!appId) return null;
+                    const checked = linkedAppIds.includes(appId);
+                    return <label key={appOption.value} className="flex cursor-pointer items-center gap-2 rounded-md border p-2 text-sm hover:bg-muted/50">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(event) => {
+                          setHasUserEdited(true);
+                          setLinkedAppIds((selected) => event.target.checked
+                            ? Array.from(new Set([...selected, appId]))
+                            : selected.filter((id) => id !== appId));
+                        }}
+                      />
+                      <AppLogoBadge logoUrl={appOption.logoUrl} label={appOption.label} />
+                      <span>{appOption.label}</span>
+                    </label>;
+                  })}
+                </div>
+              </div>
             </div>
 
             {/* Status */}
