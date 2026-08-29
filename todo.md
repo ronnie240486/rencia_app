@@ -1487,6 +1487,8 @@
 - [ ] Manter os dados necessários para restaurar clientes, MACs, listas, revendas e aplicativos fora do Manus
 - [x] Validar a exportação completa sem alterar ou remover dados existentes
 - [x] Fazer o botão Baixar no PC salvar o arquivo JSON em vez de abrir a página no navegador
+- [ ] Corrigir o erro interno ao confirmar a importação do JSON portável em hospedagem externa
+- [x] Permitir a restauração dos dados principais quando tabelas opcionais não existirem no painel de destino
 
 ## Central de endereço dos aplicativos (28/08/2026)
 - [x] Auditar quais aplicativos já consultam rotas de configuração do painel

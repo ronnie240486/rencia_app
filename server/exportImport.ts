@@ -63,6 +63,16 @@ export function normalizeBackupDeviceUrls(rawUrls: unknown, backupDevices: any[]
   return entries;
 }
 
+/** Mantém a restauração principal mesmo se uma tabela opcional não existir no destino. */
+export async function importOptionalSection(label: string, action: () => Promise<void>, warnings: string[]) {
+  try {
+    await action();
+  } catch (error) {
+    console.warn(`[Import] ${label} não foi restaurado nesta instalação:`, error);
+    warnings.push(label);
+  }
+}
+
 export async function exportBackup(ownerId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
@@ -274,6 +284,7 @@ export async function importBackup(ownerId: number, backup: any) {
 
     const sourceUsers = Array.isArray(backup.data?.users) ? backup.data.users : [];
     const sourceUserIdMap = new Map<number, number>();
+    const optionalImportWarnings: string[] = [];
 
     // Importar usuários sem reaproveitar IDs internos. Os vínculos são refeitos
     // em seguida por e-mail/openId, que não mudam ao restaurar em outro banco.
@@ -454,27 +465,31 @@ export async function importBackup(ownerId: number, backup: any) {
       }
     }
 
-    if (Array.isArray(backup.data?.ultraPlayerConfig)) {
+    await importOptionalSection("Configurações do Ultra Player", async () => {
+      if (!Array.isArray(backup.data?.ultraPlayerConfig)) return;
       for (const config of backup.data.ultraPlayerConfig) {
         const { id, ownerId: _ownerId, ...configData } = config;
         await db.insert(ultraPlayerConfig).values({ ...configData, ownerId }).onDuplicateKeyUpdate({ set: configData });
       }
-    }
-    if (Array.isArray(backup.data?.appCredentials)) {
+    }, optionalImportWarnings);
+    await importOptionalSection("Credenciais dos aplicativos", async () => {
+      if (!Array.isArray(backup.data?.appCredentials)) return;
       for (const credential of backup.data.appCredentials) {
         const { id, ownerId: _ownerId, deviceId, ...credentialData } = credential;
         const targetDeviceId = targetDeviceIdBySourceId.get(Number(deviceId));
         if (!targetDeviceId) continue;
         await db.insert(appCredentials).values({ ...credentialData, ownerId, deviceId: targetDeviceId }).onDuplicateKeyUpdate({ set: { ...credentialData, ownerId, deviceId: targetDeviceId } });
       }
-    }
-    if (Array.isArray(backup.data?.messageTemplates)) {
+    }, optionalImportWarnings);
+    await importOptionalSection("Modelos de mensagens", async () => {
+      if (!Array.isArray(backup.data?.messageTemplates)) return;
       for (const template of backup.data.messageTemplates) {
         const { id, ownerId: _ownerId, ...templateData } = template;
         await db.insert(messageTemplates).values({ ...templateData, ownerId });
       }
-    }
-    if (Array.isArray(backup.data?.resellerPermissions)) {
+    }, optionalImportWarnings);
+    await importOptionalSection("Permissões de revendas", async () => {
+      if (!Array.isArray(backup.data?.resellerPermissions)) return;
       for (const permission of backup.data.resellerPermissions) {
         const { id, resellerId, updatedBy, ...permissionData } = permission;
         const targetResellerId = sourceUserIdMap.get(Number(resellerId));
@@ -482,15 +497,22 @@ export async function importBackup(ownerId: number, backup: any) {
         if (!targetResellerId) continue;
         await db.insert(resellerPermissions).values({ ...permissionData, resellerId: targetResellerId, updatedBy: targetUpdatedBy }).onDuplicateKeyUpdate({ set: { ...permissionData, updatedBy: targetUpdatedBy } });
       }
-    }
-    if (Array.isArray(backup.data?.apps)) {
+    }, optionalImportWarnings);
+    await importOptionalSection("Catálogo de aplicativos", async () => {
+      if (!Array.isArray(backup.data?.apps)) return;
       for (const app of backup.data.apps) {
         const { id, ...appData } = app;
         await db.insert(apps).values(appData);
       }
-    }
+    }, optionalImportWarnings);
 
-    return { success: true, message: "Backup importado com sucesso" };
+    return {
+      success: true,
+      message: optionalImportWarnings.length
+        ? "Backup principal importado. Alguns recursos opcionais precisam de atualização no painel de destino."
+        : "Backup importado com sucesso",
+      optionalImportWarnings,
+    };
   } catch (error) {
     console.error("[Import] Erro ao importar backup:", error);
     throw error;
