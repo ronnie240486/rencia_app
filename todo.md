@@ -13,6 +13,8 @@
 - [x] Preparar a ativação futura do WhatsApp Business sem alterar os servidores cadastrados
 - [x] Criar estado persistente e testado para preparar a conexão futura do WhatsApp Business
 - [ ] Publicar a central e ativar o agendamento diário de avisos no painel
+- [x] Reposicionar o atalho de Servidores IPTV logo após DNS no grupo Operação
+- [ ] Confirmar a exibição do atalho no menu móvel publicado
 
 ## Acesso de APK por Login e Senha
 - [x] Criar credenciais seguras de aplicativo vinculadas aos clientes, listas, validade e status existentes

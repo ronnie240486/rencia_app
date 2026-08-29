@@ -33,6 +33,12 @@ describe("organização da barra lateral", () => {
     expect(getVisibleNavigationGroups(permissionGroups, false, false, ["app_distribution"])[0].items.map(item => item.label)).toEqual(["Ranking de Apps"]);
   });
 
+  it("exibe Servidores IPTV quando a permissão de servidores é liberada", () => {
+    const permissionGroups = [{ items: [{ label: "Servidores IPTV", ownerOnly: true, permissionKey: "server_management" }] }];
+
+    expect(getVisibleNavigationGroups(permissionGroups, false, false, ["server_management"])[0].items.map(item => item.label)).toEqual(["Servidores IPTV"]);
+  });
+
   it("identifica rotas administrativas que uma revenda não pode abrir manualmente", () => {
     expect(isOwnerOnlyRoute("/settings")).toBe(true);
     expect(isOwnerOnlyRoute("/aplicativos/optimus")).toBe(true);
