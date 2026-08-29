@@ -22,6 +22,7 @@
 - [x] Fixar os botões Cancelar e Salvar do formulário de servidores no celular enquanto os campos rolam
 - [x] Remover da tela o campo Lista do servidor, preservando qualquer informação já salva
 - [x] Substituir o modal de edição travado por uma experiência móvel com rolagem nativa da página
+- [x] Adicionar botão com confirmação para apagar somente o histórico de mensagens dos servidores IPTV
 
 ## Acesso de APK por Login e Senha
 - [x] Criar credenciais seguras de aplicativo vinculadas aos clientes, listas, validade e status existentes

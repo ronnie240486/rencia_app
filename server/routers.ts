@@ -443,6 +443,14 @@ export const appRouter = router({
       if (setting) await db.update(iptvServerAlertSettings).set({ enabled: false, scheduleCronTaskUid: null }).where(eq(iptvServerAlertSettings.id, setting.id));
       return { enabled: false };
     }),
+    clearAlertHistory: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      await requireGrantedPanelPermission(db, ctx.user, "server_management");
+      const saved = await db.select({ id: iptvServerAlertLogs.id }).from(iptvServerAlertLogs).where(eq(iptvServerAlertLogs.ownerId, ctx.user.id));
+      if (saved.length) await db.delete(iptvServerAlertLogs).where(eq(iptvServerAlertLogs.ownerId, ctx.user.id));
+      return { cleared: saved.length };
+    }),
     prepareWhatsAppBusiness: protectedProcedure.mutation(async ({ ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
