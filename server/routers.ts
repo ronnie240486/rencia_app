@@ -13,7 +13,7 @@ import {
   getConnectedDevices, updateUserProfile,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull, like, or, gt } from "drizzle-orm";
-import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions, storeInvites, googleDriveBackupConnections, deviceAppLinks } from "../drizzle/schema";
+import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions, storeInvites, googleDriveBackupConnections, deviceAppLinks, iptvServers, iptvServerAlertLogs, iptvServerAlertSettings, iptvServerWhatsAppBusinessSettings } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
@@ -50,6 +50,9 @@ import { hashPassword } from "./auth";
 import { normalizeResellerPermissions, parseResellerAccessPolicy, RESELLER_PERMISSION_KEYS, serializeResellerAccessPolicy } from "../shared/resellerPermissions";
 import { createStoreInviteToken, hashStoreInviteToken, normalizeStoreInviteApps, serializeStoreInviteApps } from "./storeInvites";
 import { isAppSettingVisibleToReseller } from "./appSettingsVisibility";
+import { buildIptvServerAlertMessage, buildIptvServerWhatsAppUrl, daysUntilServerExpiration, IPTV_SERVER_ALERT_CRON, shouldAlertIptvServer } from "./iptvServerAlerts";
+import { runIptvServerAlertSweep } from "./iptvServerAlertService";
+import { prepareIptvServerWhatsAppBusiness } from "./iptvServerWhatsAppBusiness";
 
 async function requireGrantedPanelPermission(db: any, user: any, permission: string) {
   if (user?.isOwner) return;
@@ -289,6 +292,136 @@ export const appRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       await db.delete(backupSnapshots).where(eq(backupSnapshots.ownerId, ctx.user.id));
       return { success: true };
+    }),
+  }),
+
+  iptvServers: router({
+    overview: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { servers: [], expiring: [], alerts: [], setting: null, whatsappBusiness: { status: "not_configured", enabled: false } };
+      await requireGrantedPanelPermission(db, ctx.user, "server_management");
+      const servers = await db.select().from(iptvServers).where(eq(iptvServers.ownerId, ctx.user.id)).orderBy(iptvServers.expiresAt);
+      const alerts = await db.select().from(iptvServerAlertLogs).where(eq(iptvServerAlertLogs.ownerId, ctx.user.id)).orderBy(desc(iptvServerAlertLogs.createdAt)).limit(100);
+      const setting = (await db.select().from(iptvServerAlertSettings).where(eq(iptvServerAlertSettings.ownerId, ctx.user.id)).limit(1))[0] ?? null;
+      const whatsappBusiness = (await db.select().from(iptvServerWhatsAppBusinessSettings).where(eq(iptvServerWhatsAppBusinessSettings.ownerId, ctx.user.id)).limit(1))[0] ?? { status: "not_configured" as const, enabled: false };
+      const now = new Date();
+      const expiring = servers.filter((server) => shouldAlertIptvServer(server, now)).map((server) => ({
+        ...server,
+        daysUntilExpiration: daysUntilServerExpiration(server.expiresAt, now),
+        message: buildIptvServerAlertMessage(server, now),
+      }));
+      return { servers, expiring, alerts, setting, whatsappBusiness };
+    }),
+    create: protectedProcedure.input(z.object({
+      name: z.string().trim().min(2).max(255),
+      server: z.string().trim().min(2).max(512),
+      expiresAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data de vencimento inválida."),
+      reminderDays: z.number().int().min(0).max(30).optional().default(3),
+    })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      await requireGrantedPanelPermission(db, ctx.user, "server_management");
+      const result = await db.insert(iptvServers).values({
+        ownerId: ctx.user.id,
+        name: input.name,
+        server: input.server,
+        expiresAt: new Date(`${input.expiresAt}T00:00:00.000Z`),
+        reminderDays: input.reminderDays,
+      });
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "iptv_server", entityId: Number(result[0].insertId), action: "created", summary: `Servidor IPTV ${input.name} cadastrado`, afterData: input });
+      return { id: Number(result[0].insertId) };
+    }),
+    update: protectedProcedure.input(z.object({
+      id: z.number().int().positive(),
+      name: z.string().trim().min(2).max(255),
+      server: z.string().trim().min(2).max(512),
+      expiresAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      reminderDays: z.number().int().min(0).max(30),
+      isActive: z.boolean(),
+    })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      await requireGrantedPanelPermission(db, ctx.user, "server_management");
+      await db.update(iptvServers).set({
+        name: input.name,
+        server: input.server,
+        expiresAt: new Date(`${input.expiresAt}T00:00:00.000Z`),
+        reminderDays: input.reminderDays,
+        isActive: input.isActive,
+      }).where(and(eq(iptvServers.id, input.id), eq(iptvServers.ownerId, ctx.user.id)));
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "iptv_server", entityId: input.id, action: "updated", summary: `Servidor IPTV ${input.name} atualizado`, afterData: input });
+      return { success: true };
+    }),
+    remove: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      await requireGrantedPanelPermission(db, ctx.user, "server_management");
+      await db.delete(iptvServerAlertLogs).where(and(eq(iptvServerAlertLogs.serverId, input.id), eq(iptvServerAlertLogs.ownerId, ctx.user.id)));
+      await db.delete(iptvServers).where(and(eq(iptvServers.id, input.id), eq(iptvServers.ownerId, ctx.user.id)));
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "iptv_server", entityId: input.id, action: "deleted", summary: "Servidor IPTV removido" });
+      return { success: true };
+    }),
+    prepareWhatsApp: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      await requireGrantedPanelPermission(db, ctx.user, "server_management");
+      const server = (await db.select().from(iptvServers).where(and(eq(iptvServers.id, input.id), eq(iptvServers.ownerId, ctx.user.id))).limit(1))[0];
+      if (!server) throw new TRPCError({ code: "NOT_FOUND", message: "Servidor não encontrado." });
+      const message = buildIptvServerAlertMessage(server);
+      const alertDate = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`);
+      const existing = (await db.select({ id: iptvServerAlertLogs.id }).from(iptvServerAlertLogs).where(and(
+        eq(iptvServerAlertLogs.serverId, server.id), eq(iptvServerAlertLogs.alertDate, alertDate), eq(iptvServerAlertLogs.channel, "whatsapp_ready"),
+      )).limit(1))[0];
+      if (!existing) await db.insert(iptvServerAlertLogs).values({ serverId: server.id, ownerId: ctx.user.id, alertDate, channel: "whatsapp_ready", message });
+      return { message, url: buildIptvServerWhatsAppUrl(message) };
+    }),
+    runAlertsNow: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      await requireGrantedPanelPermission(db, ctx.user, "server_management");
+      return runIptvServerAlertSweep(db, ctx.user.id);
+    }),
+    enableDailyAlerts: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      await requireGrantedPanelPermission(db, ctx.user, "server_management");
+      const setting = (await db.select().from(iptvServerAlertSettings).where(eq(iptvServerAlertSettings.ownerId, ctx.user.id)).limit(1))[0];
+      if (setting?.scheduleCronTaskUid) {
+        await db.update(iptvServerAlertSettings).set({ enabled: true }).where(eq(iptvServerAlertSettings.id, setting.id));
+        return { enabled: true, existingSchedule: true };
+      }
+      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (!sessionToken) throw new TRPCError({ code: "UNAUTHORIZED", message: "Sua sessão expirou. Entre novamente para ativar os avisos." });
+      const job = await createHeartbeatJob({
+        name: `avisos-servidores-iptv-${ctx.user.id}`,
+        cron: IPTV_SERVER_ALERT_CRON,
+        path: "/api/scheduled/iptv-server-alerts",
+        description: "Avisos diários de vencimento de servidores IPTV às 09:00 de Brasília",
+      }, sessionToken);
+      if (setting) await db.update(iptvServerAlertSettings).set({ enabled: true, scheduleCronTaskUid: job.taskUid }).where(eq(iptvServerAlertSettings.id, setting.id));
+      else await db.insert(iptvServerAlertSettings).values({ ownerId: ctx.user.id, enabled: true, scheduleCronTaskUid: job.taskUid });
+      return { enabled: true, existingSchedule: false, nextExecutionAt: job.nextExecutionAt ?? null };
+    }),
+    disableDailyAlerts: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      await requireGrantedPanelPermission(db, ctx.user, "server_management");
+      const setting = (await db.select().from(iptvServerAlertSettings).where(eq(iptvServerAlertSettings.ownerId, ctx.user.id)).limit(1))[0];
+      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (setting?.scheduleCronTaskUid) await deleteHeartbeatJob(setting.scheduleCronTaskUid, sessionToken);
+      if (setting) await db.update(iptvServerAlertSettings).set({ enabled: false, scheduleCronTaskUid: null }).where(eq(iptvServerAlertSettings.id, setting.id));
+      return { enabled: false };
+    }),
+    prepareWhatsAppBusiness: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      await requireGrantedPanelPermission(db, ctx.user, "server_management");
+      const serverCount = (await db.select({ id: iptvServers.id }).from(iptvServers).where(eq(iptvServers.ownerId, ctx.user.id))).length;
+      const preparation = prepareIptvServerWhatsAppBusiness(serverCount);
+      const current = (await db.select().from(iptvServerWhatsAppBusinessSettings).where(eq(iptvServerWhatsAppBusinessSettings.ownerId, ctx.user.id)).limit(1))[0];
+      if (current) await db.update(iptvServerWhatsAppBusinessSettings).set({ status: preparation.status, enabled: false }).where(eq(iptvServerWhatsAppBusinessSettings.id, current.id));
+      else await db.insert(iptvServerWhatsAppBusinessSettings).values({ ownerId: ctx.user.id, status: preparation.status, enabled: false });
+      return preparation;
     }),
   }),
 

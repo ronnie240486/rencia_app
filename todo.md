@@ -5,6 +5,15 @@
 - [x] Atualizar o Maximus com o código Downloader 4851546 e o link curto aftv.news/4851546
 - [x] Validar a exibição do código na loja e nas configurações do Maximus
 
+## Organização de servidores IPTV (28/08/2026)
+- [x] Criar área independente para cadastrar Nome, Servidor e Vencimento
+- [x] Manter servidores separados de clientes, MACs, listas e aplicativos
+- [ ] Configurar aviso automático no painel e mensagem pronta para WhatsApp antes do vencimento de cada servidor
+- [x] Criar histórico dos avisos enviados e validação idempotente do fluxo
+- [x] Preparar a ativação futura do WhatsApp Business sem alterar os servidores cadastrados
+- [x] Criar estado persistente e testado para preparar a conexão futura do WhatsApp Business
+- [ ] Publicar a central e ativar o agendamento diário de avisos no painel
+
 ## Acesso de APK por Login e Senha
 - [x] Criar credenciais seguras de aplicativo vinculadas aos clientes, listas, validade e status existentes
 - [x] Criar rota pública de login do APK com resposta de configuração, imagens, mensagens e listas

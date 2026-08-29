@@ -7,6 +7,7 @@ export const RESELLER_PERMISSION_CATALOG = [
   { key: "list_monitor", label: "Monitor e Diagnóstico", description: "Acompanhar o monitoramento de listas.", routes: ["/monitor-listas", "/diagnostico"] },
   { key: "app_settings", label: "Configurações dos Aplicativos", description: "Alterar visuais e configurações dos aplicativos.", routes: ["/settings", "/ultra-player", "/gpcpro", "/maximus", "/nuvix-config", "/aplicativos/"] },
   { key: "server_directory", label: "Central de Endereços", description: "Definir o domínio central usado pelos aplicativos.", routes: ["/enderecos-servidor"] },
+  { key: "server_management", label: "Servidores IPTV", description: "Organizar servidores próprios e seus avisos de vencimento.", routes: ["/servidores-iptv"] },
   { key: "app_distribution", label: "Loja, Ranking e Atualizações", description: "Gerenciar distribuição e atualizações dos aplicativos.", routes: ["/loja-painel", "/ranking-apps", "/atualizacoes"] },
   { key: "reseller_finance", label: "Financeiro de Revendas", description: "Ver cobranças e relatórios de sub-revendas.", routes: ["/cobrancas-revendas", "/relatorio-revendas"] },
   { key: "chatbot", label: "Chatbot de Avisos", description: "Configurar automações e avisos de chatbot.", routes: ["/chatbot"] },

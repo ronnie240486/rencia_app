@@ -1,0 +1,42 @@
+export const IPTV_SERVER_ALERT_CRON = "0 0 12 * * *";
+
+export type IptvServerAlertCandidate = {
+  id: number;
+  name: string;
+  server: string;
+  expiresAt: Date | string;
+  reminderDays: number;
+  isActive: boolean;
+};
+
+function asDateOnly(value: Date | string) {
+  if (typeof value === "string") return value.slice(0, 10);
+  return value.toISOString().slice(0, 10);
+}
+
+export function daysUntilServerExpiration(expiresAt: Date | string, now = new Date()) {
+  const target = new Date(`${asDateOnly(expiresAt)}T00:00:00.000Z`).getTime();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return Math.round((target - today) / 86_400_000);
+}
+
+export function buildIptvServerAlertMessage(server: Pick<IptvServerAlertCandidate, "name" | "server" | "expiresAt">, now = new Date()) {
+  const days = daysUntilServerExpiration(server.expiresAt, now);
+  const date = new Date(`${asDateOnly(server.expiresAt)}T00:00:00.000Z`).toLocaleDateString("pt-BR", { timeZone: "UTC" });
+  const timing = days < 0
+    ? `venceu há ${Math.abs(days)} dia${Math.abs(days) === 1 ? "" : "s"}`
+    : days === 0
+      ? "vence hoje"
+      : days === 1
+        ? "vence amanhã"
+        : `vence em ${days} dias`;
+  return `Atenção: o servidor IPTV ${server.name} (${server.server}) ${timing}, em ${date}.`;
+}
+
+export function shouldAlertIptvServer(server: IptvServerAlertCandidate, now = new Date()) {
+  return server.isActive && daysUntilServerExpiration(server.expiresAt, now) <= Math.max(0, server.reminderDays);
+}
+
+export function buildIptvServerWhatsAppUrl(message: string) {
+  return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}

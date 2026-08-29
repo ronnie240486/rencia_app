@@ -54,6 +54,7 @@ import GenericAppSettings from "./pages/GenericAppSettings";
 import AppCredentials from "./pages/AppCredentials";
 import StoreInvites from "./pages/StoreInvites";
 import AppServerDirectory from "./pages/AppServerDirectory";
+import IptvServers from "./pages/IptvServers";
 
 function Router() {
   return (
@@ -95,6 +96,7 @@ function Router() {
       <Route path="/loja-painel" component={Loja} />
       <Route path="/convites-loja" component={StoreInvites} />
       <Route path="/enderecos-servidor" component={AppServerDirectory} />
+      <Route path="/servidores-iptv" component={IptvServers} />
       <Route path={"/carousel"} component={CarouselManager} />
       <Route path={"/panel-functions"} component={PanelFunctions} />
       <Route path={"/sugestoes"} component={Suggestions} />

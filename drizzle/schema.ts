@@ -1,4 +1,4 @@
-import { boolean, decimal, int, mysqlEnum, mysqlTable, text, timestamp, varchar, date, uniqueIndex } from "drizzle-orm/mysql-core";
+import { boolean, decimal, int, index, mysqlEnum, mysqlTable, text, timestamp, varchar, date, uniqueIndex } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 
 export const users = mysqlTable("users", {
@@ -163,6 +163,63 @@ export const appSettings = mysqlTable("app_settings", {
 });
 export type AppSetting = typeof appSettings.$inferSelect;
 export type InsertAppSetting = typeof appSettings.$inferInsert;
+
+// Organização administrativa de servidores IPTV. Não possui MAC, lista ou vínculo com clientes.
+export const iptvServers = mysqlTable("iptv_servers", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  server: varchar("server", { length: 512 }).notNull(),
+  expiresAt: date("expiresAt").notNull(),
+  reminderDays: int("reminderDays").default(3).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  ownerExpiry: index("iptv_servers_owner_expiry_idx").on(table.ownerId, table.expiresAt),
+}));
+
+export type IptvServer = typeof iptvServers.$inferSelect;
+
+// Histórico idempotente dos alertas para evitar avisos duplicados no mesmo dia.
+export const iptvServerAlertLogs = mysqlTable("iptv_server_alert_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  serverId: int("serverId").notNull(),
+  ownerId: int("ownerId").notNull(),
+  alertDate: date("alertDate").notNull(),
+  channel: mysqlEnum("channel", ["panel", "whatsapp_ready", "whatsapp_business"]).notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  alertOncePerDay: uniqueIndex("iptv_server_alert_once_per_day").on(table.serverId, table.alertDate, table.channel),
+  ownerCreated: index("iptv_server_alert_owner_created_idx").on(table.ownerId, table.createdAt),
+}));
+
+export type IptvServerAlertLog = typeof iptvServerAlertLogs.$inferSelect;
+
+// Um agendamento diário por proprietário para criar os avisos de vencimento dos seus servidores.
+export const iptvServerAlertSettings = mysqlTable("iptv_server_alert_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull().unique(),
+  enabled: boolean("enabled").default(true).notNull(),
+  scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }),
+  lastRunAt: timestamp("lastRunAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type IptvServerAlertSetting = typeof iptvServerAlertSettings.$inferSelect;
+
+// Mantém o estado da futura conexão oficial do WhatsApp Business. As credenciais ficam em segredos do ambiente, nunca nesta tabela.
+export const iptvServerWhatsAppBusinessSettings = mysqlTable("iptv_server_whatsapp_business_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull().unique(),
+  status: mysqlEnum("status", ["not_configured", "ready", "active", "error"]).default("not_configured").notNull(),
+  enabled: boolean("enabled").default(false).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type IptvServerWhatsAppBusinessSetting = typeof iptvServerWhatsAppBusinessSettings.$inferSelect;
 
 // Configurações exclusivas do Ultra Player, separadas do OuroPro e Maximus
 export const ultraPlayerConfig = mysqlTable("ultra_player_config", {
