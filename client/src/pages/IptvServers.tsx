@@ -5,7 +5,6 @@ import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -53,6 +52,25 @@ export default function IptvServers() {
   const isSaving = create.isPending || update.isPending;
   const hasDailySchedule = Boolean(overview.data?.setting?.enabled && overview.data?.setting?.scheduleCronTaskUid);
 
+  if (dialogOpen) return <AdminLayout title={draft.id ? "Editar servidor" : "Cadastrar servidor"}>
+    <div className="mx-auto min-h-full max-w-lg bg-background">
+      <header className="sticky top-0 z-20 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+        <div className="flex items-center gap-3"><Button type="button" variant="outline" size="sm" onClick={() => setDialogOpen(false)}>Voltar</Button><div className="min-w-0"><h1 className="truncate text-base font-bold">{draft.id ? "Editar servidor" : "Cadastrar servidor"}</h1><p className="text-xs text-muted-foreground">Cadastro independente do painel de clientes.</p></div></div>
+      </header>
+      <div className="space-y-4 px-4 py-5 pb-6">
+        <div className="grid gap-2"><Label htmlFor="server-person">Nome da pessoa</Label><Input id="server-person" value={draft.personName} onChange={(event) => setDraft((value) => ({ ...value, personName: event.target.value }))} placeholder="Ex.: João Silva" /></div>
+        <div className="grid gap-2"><Label htmlFor="server-phone">Telefone da pessoa</Label><Input id="server-phone" inputMode="tel" value={draft.personPhone} onChange={(event) => setDraft((value) => ({ ...value, personPhone: event.target.value }))} placeholder="Ex.: (11) 99999-1234" /><p className="text-xs text-muted-foreground">A mensagem pronta será aberta para este número.</p></div>
+        <div className="grid gap-2"><Label htmlFor="server-name">Nome do servidor</Label><Input id="server-name" value={draft.name} onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))} placeholder="Ex.: Servidor Principal" /></div>
+        <div className="grid gap-2"><Label htmlFor="server-address">Servidor</Label><Input id="server-address" value={draft.server} onChange={(event) => setDraft((value) => ({ ...value, server: event.target.value }))} placeholder="Ex.: https://servidor.exemplo.com" /></div>
+        <div className="grid gap-2"><Label htmlFor="server-notes">Observação</Label><textarea id="server-notes" value={draft.notes} onChange={(event) => setDraft((value) => ({ ...value, notes: event.target.value }))} placeholder="Ex.: Renovar pelo WhatsApp antes do vencimento" className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring" /></div>
+        <div className="grid gap-2"><Label>Pagamento</Label><div className="grid grid-cols-2 gap-2"><Button type="button" variant={draft.paymentStatus === "paid" ? "default" : "outline"} className={draft.paymentStatus === "paid" ? "bg-emerald-600 hover:bg-emerald-700" : ""} onClick={() => setDraft((value) => ({ ...value, paymentStatus: "paid" }))}>Pago</Button><Button type="button" variant={draft.paymentStatus === "unpaid" ? "default" : "outline"} className={draft.paymentStatus === "unpaid" ? "bg-amber-600 hover:bg-amber-700" : ""} onClick={() => setDraft((value) => ({ ...value, paymentStatus: "unpaid" }))}>Não pago</Button></div></div>
+        <div className="grid gap-4 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="server-expiration">Vencimento</Label><Input id="server-expiration" type="date" value={draft.expiresAt} onChange={(event) => setDraft((value) => ({ ...value, expiresAt: event.target.value }))} /></div><div className="grid gap-2"><Label htmlFor="server-reminder">Avisar antes</Label><Input id="server-reminder" type="number" min={0} max={30} value={draft.reminderDays} onChange={(event) => setDraft((value) => ({ ...value, reminderDays: Math.min(30, Math.max(0, Number(event.target.value) || 0)) }))} /><p className="text-xs text-muted-foreground">Quantidade de dias.</p></div></div>
+        {draft.id && <div className="flex items-center justify-between rounded-lg border p-3"><div><p className="text-sm font-medium">Servidor ativo</p><p className="text-xs text-muted-foreground">Pausado não gera avisos.</p></div><Switch checked={draft.isActive} onCheckedChange={(checked) => setDraft((value) => ({ ...value, isActive: checked }))} /></div>}
+      </div>
+      <div className="sticky bottom-0 border-t bg-background px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"><div className="mx-auto grid max-w-lg grid-cols-2 gap-2"><Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button><Button type="button" onClick={submit} disabled={isSaving} className="btn-save gap-2">{isSaving && <Loader2 className="animate-spin" size={15} />} Salvar</Button></div></div>
+    </div>
+  </AdminLayout>;
+
   return <AdminLayout title="Servidores IPTV">
     <div className="mx-auto max-w-6xl space-y-5 p-1 sm:p-3">
       <section className="rounded-2xl border bg-card p-5 shadow-sm">
@@ -75,27 +93,6 @@ export default function IptvServers() {
       <Card><CardHeader><CardTitle className="text-base">Histórico de avisos</CardTitle><CardDescription>Registros gerados pela verificação automática e pela abertura de mensagens prontas.</CardDescription></CardHeader><CardContent className="space-y-2">{overview.data?.alerts.slice(0, 8).map((alert) => <div key={alert.id} className="flex gap-3 rounded-lg border p-3"><Clock3 className="mt-0.5 shrink-0 text-muted-foreground" size={16} /><div className="min-w-0"><p className="text-sm">{alert.message}</p><p className="mt-1 text-xs text-muted-foreground">{alert.channel === "panel" ? "Aviso no painel" : alert.channel === "whatsapp_ready" ? "Mensagem pronta para WhatsApp" : "WhatsApp Business"} · {new Date(alert.createdAt).toLocaleString("pt-BR")}</p></div></div>)}{!overview.data?.alerts.length && <p className="py-4 text-sm text-muted-foreground">Os avisos aparecerão aqui depois da primeira verificação.</p>}</CardContent></Card>
     </div>
 
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
-        <DialogHeader className="shrink-0 border-b px-4 pb-3 pt-5 sm:px-6">
-          <DialogTitle>{draft.id ? "Editar servidor" : "Cadastrar servidor"}</DialogTitle>
-          <DialogDescription>Este cadastro é independente e não cria cliente, MAC ou lista do painel.</DialogDescription>
-        </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
-          <div className="grid gap-4">
-            <div className="grid gap-2"><Label htmlFor="server-person">Nome da pessoa</Label><Input id="server-person" value={draft.personName} onChange={(event) => setDraft((value) => ({ ...value, personName: event.target.value }))} placeholder="Ex.: João Silva" /></div>
-            <div className="grid gap-2"><Label htmlFor="server-phone">Telefone da pessoa</Label><Input id="server-phone" inputMode="tel" value={draft.personPhone} onChange={(event) => setDraft((value) => ({ ...value, personPhone: event.target.value }))} placeholder="Ex.: (11) 99999-1234" /><p className="text-xs text-muted-foreground">A mensagem pronta será aberta para este número.</p></div>
-            <div className="grid gap-2"><Label htmlFor="server-name">Nome do servidor</Label><Input id="server-name" value={draft.name} onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))} placeholder="Ex.: Servidor Principal" /></div>
-            <div className="grid gap-2"><Label htmlFor="server-address">Servidor</Label><Input id="server-address" value={draft.server} onChange={(event) => setDraft((value) => ({ ...value, server: event.target.value }))} placeholder="Ex.: https://servidor.exemplo.com" /></div>
-            <div className="grid gap-2"><Label htmlFor="server-notes">Observação</Label><textarea id="server-notes" value={draft.notes} onChange={(event) => setDraft((value) => ({ ...value, notes: event.target.value }))} placeholder="Ex.: Renovar pelo WhatsApp antes do vencimento" className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring" /></div>
-            <div className="grid gap-2"><Label>Pagamento</Label><div className="grid grid-cols-2 gap-2"><Button type="button" variant={draft.paymentStatus === "paid" ? "default" : "outline"} className={draft.paymentStatus === "paid" ? "bg-emerald-600 hover:bg-emerald-700" : ""} onClick={() => setDraft((value) => ({ ...value, paymentStatus: "paid" }))}>Pago</Button><Button type="button" variant={draft.paymentStatus === "unpaid" ? "default" : "outline"} className={draft.paymentStatus === "unpaid" ? "bg-amber-600 hover:bg-amber-700" : ""} onClick={() => setDraft((value) => ({ ...value, paymentStatus: "unpaid" }))}>Não pago</Button></div></div>
-            <div className="grid gap-2 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="server-expiration">Vencimento</Label><Input id="server-expiration" type="date" value={draft.expiresAt} onChange={(event) => setDraft((value) => ({ ...value, expiresAt: event.target.value }))} /></div><div className="grid gap-2"><Label htmlFor="server-reminder">Avisar antes</Label><Input id="server-reminder" type="number" min={0} max={30} value={draft.reminderDays} onChange={(event) => setDraft((value) => ({ ...value, reminderDays: Math.min(30, Math.max(0, Number(event.target.value) || 0)) }))} /><p className="text-xs text-muted-foreground">Quantidade de dias.</p></div></div>
-            {draft.id && <div className="flex items-center justify-between rounded-lg border p-3"><div><p className="text-sm font-medium">Servidor ativo</p><p className="text-xs text-muted-foreground">Pausado não gera avisos.</p></div><Switch checked={draft.isActive} onCheckedChange={(checked) => setDraft((value) => ({ ...value, isActive: checked }))} /></div>}
-          </div>
-        </div>
-        <DialogFooter className="shrink-0 border-t bg-background px-4 py-3 sm:px-6"><Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button><Button onClick={submit} disabled={isSaving} className="btn-save gap-2">{isSaving && <Loader2 className="animate-spin" size={15} />} Salvar</Button></DialogFooter>
-      </DialogContent>
-    </Dialog>
   </AdminLayout>;
 }
 
