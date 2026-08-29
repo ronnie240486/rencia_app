@@ -1489,6 +1489,8 @@
 - [x] Fazer o botão Baixar no PC salvar o arquivo JSON em vez de abrir a página no navegador
 - [ ] Corrigir o erro interno ao confirmar a importação do JSON portável em hospedagem externa
 - [x] Permitir a restauração dos dados principais quando tabelas opcionais não existirem no painel de destino
+- [ ] Confirmar e corrigir a versão ou falha específica do Railway que mantém o erro interno
+- [x] Esclarecer e proteger a restauração do backup completo quando a sessão de destino for uma revenda
 
 ## Central de endereço dos aplicativos (28/08/2026)
 - [x] Auditar quais aplicativos já consultam rotas de configuração do painel

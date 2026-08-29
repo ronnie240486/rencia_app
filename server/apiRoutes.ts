@@ -52,6 +52,7 @@ import { normalizeApkSessionKey, registerApkSession } from "./appSessionControl"
 import { filterDownloadsForInvite, hashStoreInviteToken } from "./storeInvites";
 import { connectGoogleDriveBackup, readGoogleDriveOAuthState } from "./googleDriveBackup";
 import { appServerSettingKey, buildAppServerDirectory } from "./appServerDirectory";
+import { BACKUP_RESTORE_OWNER_MESSAGE, canRestoreCompleteBackup } from "./backupAccess";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -4961,6 +4962,14 @@ export function registerApiRoutes(app: Express) {
         res.status(401).json({ success: false, error: 'Unauthorized' });
         return;
       }
+      const db = await getDb();
+      const account = db
+        ? (await db.select({ isOwner: users.isOwner, role: users.role }).from(users).where(eq(users.id, userId)).limit(1))[0]
+        : null;
+      if (!canRestoreCompleteBackup(account)) {
+        res.status(403).json({ success: false, error: BACKUP_RESTORE_OWNER_MESSAGE });
+        return;
+      }
       const backup = req.body;
       const result = await importBackup(userId, backup);
       res.json(result);
@@ -4974,6 +4983,13 @@ export function registerApiRoutes(app: Express) {
     try {
       const user = await sdk.authenticateRequest(req);
       if (!user?.id) return res.status(401).json({ success: false, error: 'Unauthorized' });
+      const db = await getDb();
+      const account = db
+        ? (await db.select({ isOwner: users.isOwner, role: users.role }).from(users).where(eq(users.id, user.id)).limit(1))[0]
+        : null;
+      if (!canRestoreCompleteBackup(account)) {
+        return res.status(403).json({ success: false, error: BACKUP_RESTORE_OWNER_MESSAGE });
+      }
       const preview = await previewBackupImport(user.id, req.body);
       res.json({ success: true, preview });
     } catch (error) {
