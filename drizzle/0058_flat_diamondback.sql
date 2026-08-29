@@ -1,0 +1,1 @@
+ALTER TABLE `iptv_servers` ADD `personPhone` varchar(30) DEFAULT '' NOT NULL;

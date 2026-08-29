@@ -50,7 +50,7 @@ import { hashPassword } from "./auth";
 import { normalizeResellerPermissions, parseResellerAccessPolicy, RESELLER_PERMISSION_KEYS, serializeResellerAccessPolicy } from "../shared/resellerPermissions";
 import { createStoreInviteToken, hashStoreInviteToken, normalizeStoreInviteApps, serializeStoreInviteApps } from "./storeInvites";
 import { isAppSettingVisibleToReseller } from "./appSettingsVisibility";
-import { buildIptvServerAlertMessage, buildIptvServerWhatsAppUrl, daysUntilServerExpiration, IPTV_SERVER_ALERT_CRON, shouldAlertIptvServer } from "./iptvServerAlerts";
+import { buildIptvServerAlertMessage, buildIptvServerWhatsAppUrl, daysUntilServerExpiration, IPTV_SERVER_ALERT_CRON, normalizeIptvServerWhatsAppPhone, shouldAlertIptvServer } from "./iptvServerAlerts";
 import { runIptvServerAlertSweep } from "./iptvServerAlertService";
 import { prepareIptvServerWhatsAppBusiness } from "./iptvServerWhatsAppBusiness";
 
@@ -314,6 +314,7 @@ export const appRouter = router({
     }),
     create: protectedProcedure.input(z.object({
       personName: z.string().trim().min(2).max(255),
+      personPhone: z.string().trim().min(10).max(30).refine((value) => Boolean(normalizeIptvServerWhatsAppPhone(value)), "Informe DDD e número da pessoa."),
       name: z.string().trim().min(2).max(255),
       server: z.string().trim().min(2).max(512),
       playlist: z.string().trim().max(1024).optional().default(""),
@@ -328,6 +329,7 @@ export const appRouter = router({
       const result = await db.insert(iptvServers).values({
         ownerId: ctx.user.id,
         personName: input.personName,
+        personPhone: input.personPhone,
         name: input.name,
         server: input.server,
         playlist: input.playlist,
@@ -342,6 +344,7 @@ export const appRouter = router({
     update: protectedProcedure.input(z.object({
       id: z.number().int().positive(),
       personName: z.string().trim().min(2).max(255),
+      personPhone: z.string().trim().min(10).max(30).refine((value) => Boolean(normalizeIptvServerWhatsAppPhone(value)), "Informe DDD e número da pessoa."),
       name: z.string().trim().min(2).max(255),
       server: z.string().trim().min(2).max(512),
       playlist: z.string().trim().max(1024),
@@ -356,6 +359,7 @@ export const appRouter = router({
       await requireGrantedPanelPermission(db, ctx.user, "server_management");
       await db.update(iptvServers).set({
         personName: input.personName,
+        personPhone: input.personPhone,
         name: input.name,
         server: input.server,
         playlist: input.playlist,
@@ -391,13 +395,16 @@ export const appRouter = router({
       await requireGrantedPanelPermission(db, ctx.user, "server_management");
       const server = (await db.select().from(iptvServers).where(and(eq(iptvServers.id, input.id), eq(iptvServers.ownerId, ctx.user.id))).limit(1))[0];
       if (!server) throw new TRPCError({ code: "NOT_FOUND", message: "Servidor não encontrado." });
+      if (!server.personPhone.trim()) throw new TRPCError({ code: "BAD_REQUEST", message: "Informe o telefone da pessoa antes de abrir a mensagem no WhatsApp." });
       const message = buildIptvServerAlertMessage(server);
+      const url = buildIptvServerWhatsAppUrl(server.personPhone, message);
+      if (!url) throw new TRPCError({ code: "BAD_REQUEST", message: "Telefone inválido. Informe DDD e número da pessoa." });
       const alertDate = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`);
       const existing = (await db.select({ id: iptvServerAlertLogs.id }).from(iptvServerAlertLogs).where(and(
         eq(iptvServerAlertLogs.serverId, server.id), eq(iptvServerAlertLogs.alertDate, alertDate), eq(iptvServerAlertLogs.channel, "whatsapp_ready"),
       )).limit(1))[0];
       if (!existing) await db.insert(iptvServerAlertLogs).values({ serverId: server.id, ownerId: ctx.user.id, alertDate, channel: "whatsapp_ready", message });
-      return { message, url: buildIptvServerWhatsAppUrl(message) };
+      return { message, url };
     }),
     runAlertsNow: protectedProcedure.mutation(async ({ ctx }) => {
       const db = await getDb();

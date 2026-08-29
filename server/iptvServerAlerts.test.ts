@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildIptvServerAlertMessage, buildIptvServerWhatsAppUrl, daysUntilServerExpiration, shouldAlertIptvServer } from "./iptvServerAlerts";
+import { buildIptvServerAlertMessage, buildIptvServerWhatsAppUrl, daysUntilServerExpiration, normalizeIptvServerWhatsAppPhone, shouldAlertIptvServer } from "./iptvServerAlerts";
 import { runIptvServerAlertSweep } from "./iptvServerAlertService";
 import { iptvServerAlertLogs, iptvServers } from "../drizzle/schema";
 
@@ -13,10 +13,13 @@ describe("alertas de vencimento de servidores IPTV", () => {
   });
 
   it("gera uma mensagem pronta e um link de WhatsApp seguro", () => {
-    const message = buildIptvServerAlertMessage({ name: "Servidor Principal", server: "https://servidor.exemplo", expiresAt: "2026-08-30" }, now);
+    const message = buildIptvServerAlertMessage({ personName: "Ana", name: "Servidor Principal", server: "https://servidor.exemplo", expiresAt: "2026-08-30" }, now);
     expect(message).toContain("vence amanhã");
+    expect(message).toContain("Olá, Ana");
     expect(message).toContain("Servidor Principal");
-    expect(buildIptvServerWhatsAppUrl(message)).toContain("https://wa.me/?text=");
+    expect(normalizeIptvServerWhatsAppPhone("(11) 99999-1234")).toBe("5511999991234");
+    expect(buildIptvServerWhatsAppUrl("(11) 99999-1234", message)).toContain("https://wa.me/5511999991234?text=");
+    expect(buildIptvServerWhatsAppUrl("123", message)).toBeNull();
   });
 
   it("cria alerta no painel e histórico apenas uma vez no mesmo dia", async () => {

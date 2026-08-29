@@ -169,6 +169,7 @@ export const iptvServers = mysqlTable("iptv_servers", {
   id: int("id").autoincrement().primaryKey(),
   ownerId: int("ownerId").notNull(),
   personName: varchar("personName", { length: 255 }).default("").notNull(),
+  personPhone: varchar("personPhone", { length: 30 }).default("").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   server: varchar("server", { length: 512 }).notNull(),
   playlist: varchar("playlist", { length: 1024 }).default("").notNull(),
