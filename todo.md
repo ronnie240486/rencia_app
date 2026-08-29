@@ -1,6 +1,10 @@
 # Rencia App - TODO
 # Atualização Ultra Player: uploads visuais, Loja e Ranking registrados abaixo como pendentes prioritários.
 
+## Link de download Maximus (28/08/2026)
+- [x] Atualizar o Maximus com o código Downloader 4851546 e o link curto aftv.news/4851546
+- [x] Validar a exibição do código na loja e nas configurações do Maximus
+
 ## Acesso de APK por Login e Senha
 - [x] Criar credenciais seguras de aplicativo vinculadas aos clientes, listas, validade e status existentes
 - [x] Criar rota pública de login do APK com resposta de configuração, imagens, mensagens e listas
@@ -1495,6 +1499,7 @@
 - [ ] Atualizar o backend ativo no Railway para aceitar e restaurar o backup completo 4.0.0
 - [ ] Corrigir a importação externa que conclui sem restaurar clientes, MACs e listas no Dashboard
 - [x] Preparar atualização aditiva do banco no Railway para receber o backend e backup 4.0
+- [ ] Destravar a fila do Railway e confirmar uma única implantação do backend 4.0
 
 ## Central de endereço dos aplicativos (28/08/2026)
 - [x] Auditar quais aplicativos já consultam rotas de configuração do painel

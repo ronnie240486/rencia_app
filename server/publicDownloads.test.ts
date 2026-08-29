@@ -22,6 +22,20 @@ describe("loja pública de downloads", () => {
     expect(apps[0]).toMatchObject({ slug: "ouropro", downloadUrl: "/ouropro", version: "7.0" });
   });
 
+  it("expõe o código Downloader e o link curto configurados para o Maximus", () => {
+    const apps = buildPublicDownloadApps({
+      public_maximus_download_url: "https://aftv.news/4851546",
+      public_maximus_downloader_code: "4851546",
+      public_maximus_aftv_url: "https://aftv.news/4851546",
+    });
+
+    expect(apps.find((app) => app.slug === "maximus")).toMatchObject({
+      downloadUrl: "https://aftv.news/4851546",
+      downloaderCode: "4851546",
+      aftvUrl: "https://aftv.news/4851546",
+    });
+  });
+
   it("expõe o Império Play com o APK e a versão configurados", () => {
     const apps = buildPublicDownloadApps({
       imperio_apk_download_url: "https://files.exemplo.com/imperio-play.apk",
