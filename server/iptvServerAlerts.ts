@@ -23,17 +23,9 @@ export function daysUntilServerExpiration(expiresAt: Date | string, now = new Da
 }
 
 export function buildIptvServerAlertMessage(server: Pick<IptvServerAlertCandidate, "personName" | "name" | "server" | "expiresAt">, now = new Date()) {
-  const days = daysUntilServerExpiration(server.expiresAt, now);
   const date = new Date(`${asDateOnly(server.expiresAt)}T00:00:00.000Z`).toLocaleDateString("pt-BR", { timeZone: "UTC" });
-  const timing = days < 0
-    ? `venceu há ${Math.abs(days)} dia${Math.abs(days) === 1 ? "" : "s"}`
-    : days === 0
-      ? "vence hoje"
-      : days === 1
-        ? "vence amanhã"
-        : `vence em ${days} dias`;
-  const greeting = server.personName?.trim() ? `Olá, ${server.personName.trim()}. ` : "";
-  return `${greeting}Atenção: o servidor IPTV ${server.name} (${server.server}) ${timing}, em ${date}.`;
+  const greeting = server.personName?.trim() ? `Olá, ${server.personName.trim()}! ` : "Olá! ";
+  return `${greeting}Passando para avisar que seu vencimento é no dia ${date}. Para evitar interrupções, fale conosco para renovar. Obrigado!`;
 }
 
 export function shouldAlertIptvServer(server: IptvServerAlertCandidate, now = new Date()) {

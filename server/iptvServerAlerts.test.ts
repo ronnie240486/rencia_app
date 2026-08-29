@@ -14,9 +14,11 @@ describe("alertas de vencimento de servidores IPTV", () => {
 
   it("gera uma mensagem pronta e um link de WhatsApp seguro", () => {
     const message = buildIptvServerAlertMessage({ personName: "Ana", name: "Servidor Principal", server: "https://servidor.exemplo", expiresAt: "2026-08-30" }, now);
-    expect(message).toContain("vence amanhã");
-    expect(message).toContain("Olá, Ana");
-    expect(message).toContain("Servidor Principal");
+    expect(message).toContain("Olá, Ana!");
+    expect(message).toContain("30/08/2026");
+    expect(message).toContain("fale conosco para renovar");
+    expect(message).not.toContain("Servidor Principal");
+    expect(message).not.toContain("servidor.exemplo");
     expect(normalizeIptvServerWhatsAppPhone("(11) 99999-1234")).toBe("5511999991234");
     expect(buildIptvServerWhatsAppUrl("(11) 99999-1234", message)).toContain("https://wa.me/5511999991234?text=");
     expect(buildIptvServerWhatsAppUrl("123", message)).toBeNull();
