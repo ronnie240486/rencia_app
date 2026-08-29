@@ -192,6 +192,13 @@ export default function Users() {
     setSelected(new Set());
   };
 
+  const updateSearchInput = (value: string) => {
+    setSearchInput(value);
+    setSearch(value);
+    setPage(1);
+    setSelected(new Set());
+  };
+
   const startVoiceSearch = () => {
     const speechWindow = window as Window & typeof globalThis & {
       SpeechRecognition?: VoiceRecognitionConstructor;
@@ -222,10 +229,7 @@ export default function Users() {
       const transcript = event.results[0]?.[0]?.transcript ?? "";
       const term = normalizeVoiceSearchTranscript(transcript);
       if (!term) return toast.error("Não foi possível identificar a busca falada.");
-      setSearchInput(term);
-      setSearch(term);
-      setPage(1);
-      setSelected(new Set());
+      updateSearchInput(term);
       toast.success(`Buscando por: ${term}`);
     };
     recognition.start();
@@ -347,7 +351,7 @@ export default function Users() {
           <Input
             placeholder="Buscar por nome, MAC ou telefone..."
             value={searchInput}
-            onChange={e => setSearchInput(e.target.value)}
+            onChange={e => updateSearchInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleSearch()}
             className="h-8 text-sm max-w-xs"
           />
@@ -359,6 +363,7 @@ export default function Users() {
             <Search className="w-3 h-3 mr-1" />
             Buscar
           </Button>
+          <p className="basis-full text-xs text-muted-foreground">Servidores IPTV ficam separados dos clientes em <strong>Operação → Servidores IPTV</strong>.</p>
           {selected.size > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

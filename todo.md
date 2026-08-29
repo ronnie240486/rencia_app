@@ -28,6 +28,8 @@
 - [x] Melhorar a busca por voz para preencher e filtrar automaticamente os servidores
 - [ ] Confirmar em celular real a permissão de microfone e o resultado da busca por voz
 - [x] Fazer a busca reconhecer palavras separadas do nome ou servidor, como Club Epic Elite
+- [x] Fazer a busca da tela de Usuários filtrar automaticamente enquanto o nome é digitado ou falado
+- [ ] Destacar na Central de Servidores que seus registros são separados dos clientes e ficam somente em Operação
 
 ## Acesso de APK por Login e Senha
 - [x] Criar credenciais seguras de aplicativo vinculadas aos clientes, listas, validade e status existentes

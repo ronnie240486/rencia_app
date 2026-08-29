@@ -129,6 +129,7 @@ export default function IptvServers() {
           <div className="flex gap-4"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Server size={24} /></div><div><p className="text-xs font-bold uppercase tracking-widest text-primary">Controle independente</p><h1 className="mt-1 text-2xl font-black">Central de Servidores IPTV</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">Organize somente nome, endereço e vencimento. Esta área não acessa nem altera clientes, MACs, listas ou aplicativos.</p></div></div>
           <Button onClick={openCreate} className="btn-save gap-2"><Plus size={16} /> Cadastrar servidor</Button>
         </div>
+        <p className="mt-4 rounded-lg border border-dashed border-primary/25 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">Área separada: os servidores cadastrados aqui ficam somente em <strong>Operação → Servidores IPTV</strong> e não aparecem na lista de Usuários.</p>
       </section>
 
       <div className="grid gap-3 sm:grid-cols-3">
