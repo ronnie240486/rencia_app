@@ -23,6 +23,10 @@
 - [x] Remover da tela o campo Lista do servidor, preservando qualquer informação já salva
 - [x] Substituir o modal de edição travado por uma experiência móvel com rolagem nativa da página
 - [x] Adicionar botão com confirmação para apagar somente o histórico de mensagens dos servidores IPTV
+- [x] Separar a Conferência de vencimentos em uma aba própria com botão exclusivo de verificação
+- [x] Adicionar busca instantânea por nome da pessoa e servidor na Central de Servidores
+- [x] Melhorar a busca por voz para preencher e filtrar automaticamente os servidores
+- [ ] Confirmar em celular real a permissão de microfone e o resultado da busca por voz
 
 ## Acesso de APK por Login e Senha
 - [x] Criar credenciais seguras de aplicativo vinculadas aos clientes, listas, validade e status existentes
