@@ -7,5 +7,6 @@ export type IptvServerSearchItem = {
 export function matchesIptvServerSearch(item: IptvServerSearchItem, searchTerm: string) {
   const normalized = searchTerm.trim().toLocaleLowerCase("pt-BR");
   if (!normalized) return true;
-  return [item.personName, item.name, item.server].some((value) => value?.toLocaleLowerCase("pt-BR").includes(normalized));
+  const searchable = [item.personName, item.name, item.server].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR");
+  return normalized.split(/\s+/).every((term) => searchable.includes(term));
 }

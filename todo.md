@@ -27,6 +27,7 @@
 - [x] Adicionar busca instantânea por nome da pessoa e servidor na Central de Servidores
 - [x] Melhorar a busca por voz para preencher e filtrar automaticamente os servidores
 - [ ] Confirmar em celular real a permissão de microfone e o resultado da busca por voz
+- [x] Fazer a busca reconhecer palavras separadas do nome ou servidor, como Club Epic Elite
 
 ## Acesso de APK por Login e Senha
 - [x] Criar credenciais seguras de aplicativo vinculadas aos clientes, listas, validade e status existentes
