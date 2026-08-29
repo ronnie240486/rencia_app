@@ -19,6 +19,8 @@
 - [x] Adicionar status e botão de alternância Pago/Não pago para cada servidor
 - [x] Adicionar telefone da pessoa e usar esse número como destinatário da mensagem pronta de WhatsApp
 - [x] Simplificar a mensagem de vencimento para incluir apenas nome da pessoa e data, sem servidor ou lista
+- [x] Fixar os botões Cancelar e Salvar do formulário de servidores no celular enquanto os campos rolam
+- [x] Remover da tela o campo Lista do servidor, preservando qualquer informação já salva
 
 ## Acesso de APK por Login e Senha
 - [x] Criar credenciais seguras de aplicativo vinculadas aos clientes, listas, validade e status existentes
