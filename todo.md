@@ -15,6 +15,8 @@
 - [ ] Publicar a central e ativar o agendamento diário de avisos no painel
 - [x] Reposicionar o atalho de Servidores IPTV logo após DNS no grupo Operação
 - [ ] Confirmar a exibição do atalho no menu móvel publicado
+- [x] Adicionar Nome da pessoa, Lista do servidor e Observação ao cadastro independente de servidores
+- [x] Adicionar status e botão de alternância Pago/Não pago para cada servidor
 
 ## Acesso de APK por Login e Senha
 - [x] Criar credenciais seguras de aplicativo vinculadas aos clientes, listas, validade e status existentes

@@ -313,8 +313,12 @@ export const appRouter = router({
       return { servers, expiring, alerts, setting, whatsappBusiness };
     }),
     create: protectedProcedure.input(z.object({
+      personName: z.string().trim().min(2).max(255),
       name: z.string().trim().min(2).max(255),
       server: z.string().trim().min(2).max(512),
+      playlist: z.string().trim().max(1024).optional().default(""),
+      notes: z.string().trim().max(2000).optional().default(""),
+      paymentStatus: z.enum(["paid", "unpaid"]).optional().default("unpaid"),
       expiresAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data de vencimento inválida."),
       reminderDays: z.number().int().min(0).max(30).optional().default(3),
     })).mutation(async ({ ctx, input }) => {
@@ -323,8 +327,12 @@ export const appRouter = router({
       await requireGrantedPanelPermission(db, ctx.user, "server_management");
       const result = await db.insert(iptvServers).values({
         ownerId: ctx.user.id,
+        personName: input.personName,
         name: input.name,
         server: input.server,
+        playlist: input.playlist,
+        notes: input.notes || null,
+        paymentStatus: input.paymentStatus,
         expiresAt: new Date(`${input.expiresAt}T00:00:00.000Z`),
         reminderDays: input.reminderDays,
       });
@@ -333,8 +341,12 @@ export const appRouter = router({
     }),
     update: protectedProcedure.input(z.object({
       id: z.number().int().positive(),
+      personName: z.string().trim().min(2).max(255),
       name: z.string().trim().min(2).max(255),
       server: z.string().trim().min(2).max(512),
+      playlist: z.string().trim().max(1024),
+      notes: z.string().trim().max(2000),
+      paymentStatus: z.enum(["paid", "unpaid"]),
       expiresAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       reminderDays: z.number().int().min(0).max(30),
       isActive: z.boolean(),
@@ -343,14 +355,26 @@ export const appRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
       await requireGrantedPanelPermission(db, ctx.user, "server_management");
       await db.update(iptvServers).set({
+        personName: input.personName,
         name: input.name,
         server: input.server,
+        playlist: input.playlist,
+        notes: input.notes || null,
+        paymentStatus: input.paymentStatus,
         expiresAt: new Date(`${input.expiresAt}T00:00:00.000Z`),
         reminderDays: input.reminderDays,
         isActive: input.isActive,
       }).where(and(eq(iptvServers.id, input.id), eq(iptvServers.ownerId, ctx.user.id)));
       await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "iptv_server", entityId: input.id, action: "updated", summary: `Servidor IPTV ${input.name} atualizado`, afterData: input });
       return { success: true };
+    }),
+    setPaymentStatus: protectedProcedure.input(z.object({ id: z.number().int().positive(), paymentStatus: z.enum(["paid", "unpaid"]) })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      await requireGrantedPanelPermission(db, ctx.user, "server_management");
+      await db.update(iptvServers).set({ paymentStatus: input.paymentStatus }).where(and(eq(iptvServers.id, input.id), eq(iptvServers.ownerId, ctx.user.id)));
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "iptv_server", entityId: input.id, action: "payment_updated", summary: `Servidor IPTV marcado como ${input.paymentStatus === "paid" ? "pago" : "não pago"}` });
+      return { success: true, paymentStatus: input.paymentStatus };
     }),
     remove: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
