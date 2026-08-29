@@ -239,6 +239,58 @@ export function normalizeImportMac(mac: unknown): string {
   return String(mac ?? "").replace(/[^a-fA-F0-9]/g, "").toUpperCase();
 }
 
+/**
+ * Converte o backup completo atual no contrato usado pelos painéis antigos.
+ * O formato 2.0 mantém clientes, MACs, listas, DNS e configurações básicas.
+ */
+export function buildLegacyV2Backup(fullBackup: any) {
+  const sourceData = fullBackup?.data ?? {};
+  const sourceDevices = (Array.isArray(sourceData.devices) ? sourceData.devices : []).map((device: any) => {
+    const {
+      id, ownerId, mac, nomeServer, tipo, modoSelecao, app, urlM3u8, urlEpg, valor, status,
+      dataCadastro, dataExpiracao, createdAt, updatedAt, lastSeen, currentContent, telefone,
+    } = device;
+    return {
+      id, ownerId, mac, nomeServer, tipo, modoSelecao, app, urlM3u8, urlEpg, valor, status,
+      dataCadastro, dataExpiracao, createdAt, updatedAt, lastSeen, currentContent, telefone,
+    };
+  });
+  const sourceDeviceIdByMac = new Map(sourceDevices.map((device: any) => [normalizeImportMac(device.mac), device.id]));
+  const legacyDeviceUrls: Record<number, any[]> = {};
+
+  for (const url of normalizeBackupDeviceUrls(sourceData.deviceUrls, sourceDevices)) {
+    const sourceDeviceId = Number(url.backupDeviceId ?? sourceDeviceIdByMac.get(normalizeImportMac(url.deviceMac)) ?? url.deviceId);
+    if (!sourceDeviceId) continue;
+    const { backupDeviceId, deviceMac, ...legacyUrl } = url;
+    legacyDeviceUrls[sourceDeviceId] ??= [];
+    legacyDeviceUrls[sourceDeviceId].push({ ...legacyUrl, deviceId: sourceDeviceId });
+  }
+
+  return {
+    version: "2.0.0",
+    exportDate: fullBackup?.exportDate ?? new Date().toISOString(),
+    ownerId: fullBackup?.ownerId,
+    data: {
+      owner: sourceData.owner ?? null,
+      users: Array.isArray(sourceData.users) ? sourceData.users : [],
+      devices: sourceDevices,
+      deviceUrls: legacyDeviceUrls,
+      dns: Array.isArray(sourceData.dns) ? sourceData.dns : [],
+      nuvixConfig: Array.isArray(sourceData.nuvixConfig) ? sourceData.nuvixConfig : [],
+      playerCredentials: Array.isArray(sourceData.playerCredentials) ? sourceData.playerCredentials : [],
+      appSettings: Array.isArray(sourceData.appSettings) ? sourceData.appSettings : [],
+      carouselSlides: Array.isArray(sourceData.carouselSlides) ? sourceData.carouselSlides : [],
+      carouselConfig: Array.isArray(sourceData.carouselConfig) ? sourceData.carouselConfig : [],
+      suggestions: Array.isArray(sourceData.suggestions) ? sourceData.suggestions : [],
+      notices: Array.isArray(sourceData.notices) ? sourceData.notices : [],
+    },
+  };
+}
+
+export async function exportLegacyV2Backup(ownerId: number) {
+  return buildLegacyV2Backup(await exportBackup(ownerId));
+}
+
 export function analyzeImportDevices(incoming: any[], existing: Array<{ id: number; mac: string; nomeServer: string | null }>) {
   const existingByMac = new Map(existing.map((device) => [normalizeImportMac(device.mac), device]));
   const seen = new Set<string>();

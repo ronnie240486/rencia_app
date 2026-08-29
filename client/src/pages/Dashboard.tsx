@@ -127,6 +127,23 @@ export default function Dashboard() {
     }
   };
 
+  const handleLegacyExport = async () => {
+    try {
+      const response = await fetch('/api/v5/export-backup-v2', { method: 'GET', credentials: 'include' });
+      if (!response.ok) throw new Error('Não foi possível gerar o backup compatível.');
+      const data = await response.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-compativel-v2-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Não foi possível gerar o backup compatível.');
+    }
+  };
+
   useEffect(() => {
     if (!user?.isOwner) return;
     const currentWeek = backupWeekKey();
@@ -244,6 +261,10 @@ export default function Dashboard() {
               <Download className="w-4 h-4 mr-1" />
               <span>{"Backup completo"}</span>
             </Button>
+            {user?.isOwner && <Button variant="outline" size="sm" onClick={handleLegacyExport}>
+              <Download className="w-4 h-4 mr-1" />
+              <span>{"Backup p/ painel antigo"}</span>
+            </Button>}
             <Button variant="outline" size="sm" disabled={previewingImport} onClick={() => document.getElementById('importFile')?.click()}>
               <Upload className="w-4 h-4 mr-1" />
               <span>{"Importar"}</span>

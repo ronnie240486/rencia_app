@@ -27,7 +27,7 @@ import { getDb } from "./db";
 import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials, suggestions, storeInvites, deviceAppLinks } from "../drizzle/schema";
 import { eq, or, and, asc, desc, sql, inArray } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
-import { exportBackup, importBackup, previewBackupImport } from "./exportImport";
+import { exportBackup, exportLegacyV2Backup, importBackup, previewBackupImport } from "./exportImport";
 import { getBackupDownload } from "./backupService";
 import { buildUltraPlayerConfig, normalizeMacAddress } from "./ultraPlayerConfig";
 import { normalizeHeartbeatContent, readHeartbeatContent } from "./heartbeatContent";
@@ -4943,6 +4943,24 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error('[API] /api/v5/export-backup error:', error);
       res.status(500).json({ success: false, error: 'Internal error' });
+    }
+  });
+
+  app.get('/api/v5/export-backup-v2', async (req: Request, res: Response) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if (!user?.id) return res.status(401).json({ success: false, error: 'Unauthorized' });
+      const db = await getDb();
+      const account = db
+        ? (await db.select({ isOwner: users.isOwner, role: users.role }).from(users).where(eq(users.id, user.id)).limit(1))[0]
+        : null;
+      if (!canRestoreCompleteBackup(account)) {
+        return res.status(403).json({ success: false, error: BACKUP_RESTORE_OWNER_MESSAGE });
+      }
+      res.json(await exportLegacyV2Backup(user.id));
+    } catch (error) {
+      console.error('[API] /api/v5/export-backup-v2 error:', error);
+      res.status(500).json({ success: false, error: 'Não foi possível gerar o backup compatível.' });
     }
   });
 

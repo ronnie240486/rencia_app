@@ -1491,6 +1491,7 @@
 - [x] Permitir a restauração dos dados principais quando tabelas opcionais não existirem no painel de destino
 - [ ] Confirmar e corrigir a versão ou falha específica do Railway que mantém o erro interno
 - [x] Esclarecer e proteger a restauração do backup completo quando a sessão de destino for uma revenda
+- [x] Gerar backup compatível com o importador externo que aceita somente versão 2.0.0
 
 ## Central de endereço dos aplicativos (28/08/2026)
 - [x] Auditar quais aplicativos já consultam rotas de configuração do painel

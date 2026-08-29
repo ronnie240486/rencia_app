@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeImportDevices, importOptionalSection, isSupportedBackupVersion, normalizeBackupDeviceUrls, normalizeImportMac } from "./exportImport";
+import { analyzeImportDevices, buildLegacyV2Backup, importOptionalSection, isSupportedBackupVersion, normalizeBackupDeviceUrls, normalizeImportMac } from "./exportImport";
 
 describe("prévia de importação", () => {
   it("normaliza MACs e separa novos, existentes, repetidos e inválidos", () => {
@@ -40,5 +40,21 @@ describe("prévia de importação", () => {
       throw new Error("Tabela opcional ausente");
     }, warnings);
     expect(warnings).toEqual(["Catálogo de aplicativos"]);
+  });
+
+  it("gera um backup 2.0 compatível com listas vinculadas aos IDs originais dos clientes", () => {
+    const legacy = buildLegacyV2Backup({
+      version: "4.0.0",
+      exportDate: "2026-08-29T00:00:00.000Z",
+      ownerId: 1,
+      data: {
+        devices: [{ id: 42, mac: "AA:BB:CC:DD:EE:FF", nomeServer: "Cliente", lastActiveAppId: "future" }],
+        deviceUrls: [{ id: 7, backupDeviceId: 42, deviceMac: "AA:BB:CC:DD:EE:FF", nome: "Lista 1", ordem: 0 }],
+        users: [], dns: [], nuvixConfig: [], playerCredentials: [], appSettings: [], carouselSlides: [], carouselConfig: [], suggestions: [], notices: [],
+      },
+    });
+    expect(legacy.version).toBe("2.0.0");
+    expect(legacy.data.deviceUrls[42]).toEqual([expect.objectContaining({ deviceId: 42, nome: "Lista 1" })]);
+    expect(legacy.data.devices[0]).not.toHaveProperty("lastActiveAppId");
   });
 });
