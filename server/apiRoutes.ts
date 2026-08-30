@@ -45,6 +45,7 @@ import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
+import { buildHeartbeatMacLookup } from "./heartbeatMac";
 import { comparePassword } from "./auth";
 import { isLoginAccessAllowed, resolveLoginMacBinding } from "./appLogin";
 import { canAccessResellerPortal, chooseResellerPortalAccount } from "./resellerPortal";
@@ -4502,7 +4503,8 @@ export function registerApiRoutes(app: Express) {
   app.get('/api/v5/heartbeat', async (req, res) => {
     try {
       const db = await getDb();
-      const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : "";
+      const rawMac = typeof req.query.mac === "string" ? req.query.mac : "";
+      const { canonical: mac, candidates: macCandidates } = buildHeartbeatMacLookup(rawMac);
       const reportedAppId = String(req.query.app_id ?? req.query.appId ?? req.query.app ?? req.query.application ?? "").trim() || null;
       const sessionKey = normalizeApkSessionKey(req.query.session_id ?? req.query.sessionId ?? req.query.session);
       if (!mac) {
@@ -4524,9 +4526,7 @@ export function registerApiRoutes(app: Express) {
         if (currentContent) updateData.currentContent = currentContent;
 
         const sameMacRows = await db.select().from(devices).where(or(
-          eq(devices.mac, mac),
-          eq(devices.mac, mac.toLowerCase()),
-          eq(devices.mac, mac.toUpperCase()),
+          ...macCandidates.map((candidate) => eq(devices.mac, candidate)),
         ));
         const activityDevice = await selectDeviceForReportedApp(db, sameMacRows, reportedAppId);
         if (reportedAppId && !activityDevice) {
@@ -4564,9 +4564,7 @@ export function registerApiRoutes(app: Express) {
           await db.update(devices).set(updateData).where(eq(devices.id, activityDevice.id));
         } else {
           await db.update(devices).set(updateData).where(or(
-            eq(devices.mac, mac),
-            eq(devices.mac, mac.toLowerCase()),
-            eq(devices.mac, mac.toUpperCase()),
+            ...macCandidates.map((candidate) => eq(devices.mac, candidate)),
           ));
         }
       }
@@ -4901,7 +4899,7 @@ export function registerApiRoutes(app: Express) {
 
       // Atualizar currentContent
       await db.update(devices)
-        .set({ currentContent: currentContent || null, lastActiveAppId: resolveManagedAppId(reportedAppId) ?? device.lastActiveAppId })
+        .set({ lastSeen: new Date(), currentContent: currentContent || null, lastActiveAppId: resolveManagedAppId(reportedAppId) ?? device.lastActiveAppId })
         .where(eq(devices.id, device.id));
 
       res.json({
