@@ -1,0 +1,10 @@
+POST https://renciaapp.manus.space/api/v5/update-watching
+Content-Type: application/json
+
+{
+  "mac": "AA:BB:CC:DD:EE:FF",
+  "app": "ouropro",
+  "currentContent": "Nome do canal ou episódio"
+}
+
+Usar ao trocar o conteúdo. O heartbeat continua obrigatório durante a reprodução.

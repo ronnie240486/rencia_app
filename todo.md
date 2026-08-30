@@ -1543,3 +1543,4 @@
 - [x] Corrigir a versão publicada para exibir 15min, 30min, 1h e 2h mantendo a retenção de Assistindo em duas horas
 - [x] Adicionar filtro Online agora para exibir somente aparelhos ativos no momento
 - [x] Investigar e corrigir Assistindo que some mesmo com o dispositivo online há poucos minutos
+- [x] Criar PDF simplificado com todas as rotas atuais do painel, APKs, mensagens, servidores, avisos e presença online

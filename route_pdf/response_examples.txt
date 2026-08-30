@@ -1,0 +1,11 @@
+Códigos importantes para o APK:
+
+200 — chamada aceita; ler success/registered e continuar o fluxo.
+400 — parâmetro obrigatório ausente ou inválido; revisar MAC e campos enviados.
+403 — o MAC não está vinculado ao aplicativo informado; não tentar usar cadastro de outro APK.
+404 — dispositivo ou rota de recurso não encontrado; mostrar estado de cadastro conforme a tela.
+409 APP_IDENTIFICATION_REQUIRED — o MAC existe em vários aplicativos; enviar app/app_id.
+409 CONNECTION_LIMIT_REACHED — limite de sessões atingido; interromper a reprodução conforme a regra do painel.
+503 — serviço temporariamente indisponível; tentar novamente com espera progressiva.
+
+Nunca registrar em log público tokens, senhas, URLs privadas ou o conteúdo completo de respostas administrativas.

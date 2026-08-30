@@ -1,0 +1,6 @@
+GET https://renciaapp.manus.space/api/v5/heartbeat?mac=AA:BB:CC:DD:EE:FF&app=ouropro&session_id=UUID&current_content=Nome%20do%20episodio
+
+Chamar a cada 60 segundos durante a reprodução.
+Resposta esperada: { "success": true, "mac": "...", "content": "...", "session": { "allowed": true } }
+
+Se o mesmo MAC estiver em mais de um APK, app/app_id é obrigatório.

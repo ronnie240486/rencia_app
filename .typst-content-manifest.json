@@ -1,0 +1,11 @@
+{
+  "task_kind": "new-document",
+  "output": "pdf",
+  "signals": ["technical-route-reference", "portrait"],
+  "hard_constraints": ["Brazilian Portuguese", "include current HTTP and tRPC routes", "include APK integration examples"],
+  "content_features": {
+    "code_blocks": 8,
+    "defined_terms": 18,
+    "portrait_images": 0
+  }
+}

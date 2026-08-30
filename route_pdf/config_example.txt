@@ -1,0 +1,3 @@
+GET https://renciaapp.manus.space/api/v5/apps/ouropro/config?mac=AA:BB:CC:DD:EE:FF
+
+O mesmo padrão pode ser usado para maximus, excellence, future, magnus e ominus, trocando o appId. O servidor devolve somente a configuração autorizada para o aplicativo e o proprietário do cadastro.

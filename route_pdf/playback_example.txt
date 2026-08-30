@@ -1,0 +1,8 @@
+POST https://renciaapp.manus.space/api/v5/playback-failure
+Content-Type: application/json
+{ "mac": "AA:BB:CC:DD:EE:FF", "app": "ouropro", "failed_url": "https://servidor.example/lista" }
+
+GET https://renciaapp.manus.space/api/v5/remote-commands?mac=AA:BB:CC:DD:EE:FF
+POST https://renciaapp.manus.space/api/v5/remote-commands/ack
+GET https://renciaapp.manus.space/api/v5/list-notifications?mac=AA:BB:CC:DD:EE:FF
+POST https://renciaapp.manus.space/api/v5/list-notifications/ack
