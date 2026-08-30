@@ -1534,3 +1534,7 @@
 - [x] Expor rota de descoberta compatível para os APKs receberem o endereço atualizado
 - [x] Validar os contratos sem redirecionar nem interromper aplicativos existentes
 - [x] Manter a central separada de URLs operacionais existentes para não expor nem substituir configurações privadas
+- [ ] Avaliar alternativa de provedor oficial para WhatsApp Business automático caso a configuração direta da Meta não funcione
+- [ ] Preparar teste de envio automático pelo WhatsApp usando Twilio com remetente Business confirmado
+- [x] Corrigir conteúdo em Assistindo que desaparece enquanto a série continua sendo reproduzida no APK
+- [x] Aumentar a janela de exibição do status Assistindo de 15 minutos para 2 horas

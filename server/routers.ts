@@ -30,6 +30,7 @@ import { buildApkUpdateOverview, buildConfiguredAppVersions } from "./apkUpdates
 import { buildBulkMessageRecipients, normalizeBulkMessageDnsHost } from "./bulkMessages";
 import { buildOperationHealthOverview } from "./operationHealth";
 import { getConnectionState } from "./customerProfile";
+import { CONNECTED_WINDOW_MINUTES, isWithinConnectedWindow } from "./connectedWindow";
 import { hasConfirmedListFailure, probeListUrl } from "./listHealth";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
 import { buildServerPilotOverview } from "./serverPilot";
@@ -2063,7 +2064,7 @@ export const appRouter = router({
       if (!db) return { checked: 0, online: 0, offline: 0, items: [] };
       const rows = await db.select({ id: devices.id, nomeServer: devices.nomeServer, mac: devices.mac, status: devices.status, lastSeen: devices.lastSeen }).from(devices).where(eq(devices.ownerId, ctx.user.id)).orderBy(desc(devices.lastSeen)).limit(200);
       const now = Date.now();
-      const items = rows.map((row) => ({ ...row, online: row.status === "Liberado" && !!row.lastSeen && now - new Date(row.lastSeen).getTime() <= 15 * 60_000 }));
+      const items = rows.map((row) => ({ ...row, online: row.status === "Liberado" && isWithinConnectedWindow(row.lastSeen, now) }));
       return { checked: items.length, online: items.filter((item) => item.online).length, offline: items.filter((item) => !item.online).length, items };
     }),
   }),
@@ -2959,7 +2960,7 @@ export const appRouter = router({
   connected: router({
     list: protectedProcedure
       .input(z.object({
-        minutesAgo: z.number().min(1).max(1440).optional().default(30),
+        minutesAgo: z.number().min(1).max(1440).optional().default(CONNECTED_WINDOW_MINUTES),
       }))
       .query(async ({ ctx, input }) => {
         return getConnectedDevices(ctx.user.id, input.minutesAgo);

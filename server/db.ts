@@ -4,6 +4,7 @@ import { appCredentials, apps, auditLogs, customerNotes, deviceAppLinks, deviceL
 import { ENV } from './_core/env';
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 import { countDevicePlaylists } from "./devicePlaylistCount";
+import { CONNECTED_WINDOW_MINUTES } from "./connectedWindow";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -525,7 +526,7 @@ export async function getUserPlanInfo(userId: number) {
  * Retorna dispositivos que tiveram atividade dentro da janela escolhida no painel.
  * Registros fixados manualmente não são tratados como atividade atual.
  */
-export async function getConnectedDevices(ownerId: number, minutesAgo = 30) {
+export async function getConnectedDevices(ownerId: number, minutesAgo = CONNECTED_WINDOW_MINUTES) {
   const db = await getDb();
   if (!db) return [];
   const cutoff = new Date(Date.now() - minutesAgo * 60 * 1000);
