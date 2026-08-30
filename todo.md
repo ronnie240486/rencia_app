@@ -1538,3 +1538,5 @@
 - [ ] Preparar teste de envio automático pelo WhatsApp usando Twilio com remetente Business confirmado
 - [x] Corrigir conteúdo em Assistindo que desaparece enquanto a série continua sendo reproduzida no APK
 - [x] Aumentar a janela de exibição do status Assistindo de 15 minutos para 2 horas
+- [x] Restaurar filtros de 15 minutos, 30 minutos, 1 hora e 2 horas sem reduzir a retenção de Assistindo para duas horas
+- [x] Manter Assistindo visível enquanto o aparelho estiver online, independentemente do filtro selecionado, ocultando somente após perder atividade

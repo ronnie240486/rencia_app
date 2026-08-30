@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
+import { getConnectedQueryMinutes, isWithinConnectedWindow } from "@shared/connectedWindow";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -93,7 +94,7 @@ export default function Dashboard() {
   const [recentSearch, setRecentSearch] = useState("");
   // APKs antigos do OuroPro podem registrar o episódio apenas ao iniciá-lo.
   // Duas horas evitam que esse último conteúdo suma logo depois de iniciar.
-  const connectedFilter = 120;
+  const [connectedFilter, setConnectedFilter] = useState(120);
   const [pendingBackup, setPendingBackup] = useState<any | null>(null);
   const [importPreview, setImportPreview] = useState<any | null>(null);
   const [previewingImport, setPreviewingImport] = useState(false);
@@ -206,7 +207,8 @@ export default function Dashboard() {
   const { data: recentDevices, isLoading: recentLoading } = trpc.devices.recentList.useQuery({ search: recentSearch, limit: 5 });
   const { data: expiringSoon } = trpc.devices.expiringSoon.useQuery({ days: 7 });
   const { data: connectedDevices, isLoading: connectedLoading, isFetching: connectedRefreshing, refetch: refetchConnected } = trpc.connected.list.useQuery(
-    { minutesAgo: connectedFilter },
+    // O filtro escolhido continua visível, mas a listagem nunca remove Assistindo antes de 2 horas.
+    { minutesAgo: getConnectedQueryMinutes(connectedFilter) },
     { refetchInterval: 60_000 } // atualiza a cada 1 minuto para mostrar canal assistido em tempo real
   );
 
@@ -332,7 +334,22 @@ export default function Dashboard() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">Últimas 2 horas</span>
+                <span className="text-xs text-muted-foreground">{"Últimos:"}</span>
+                {[15, 30, 60, 120].map(m => (
+                  <Button
+                    key={m}
+                    size="sm"
+                    variant={connectedFilter === m ? "default" : "outline"}
+                    className={`h-7 px-2.5 text-xs font-semibold transition-colors ${
+                      connectedFilter === m
+                        ? "dark:bg-amber-500 dark:text-white dark:hover:bg-amber-500"
+                        : "text-foreground dark:text-foreground"
+                    }`}
+                    onClick={() => setConnectedFilter(m)}
+                  >
+                    <span>{m < 60 ? `${m}min` : `${m / 60}h`}</span>
+                  </Button>
+                ))}
                 <Button
                   size="sm"
                   variant="ghost"
@@ -377,7 +394,7 @@ export default function Dashboard() {
                 </TableHeader>
                 <TableBody>
                   {(connectedDevices ?? []).map(d => {
-                    const isRecent = d.lastSeen && (Date.now() - new Date(d.lastSeen).getTime()) < connectedFilter * 60 * 1000;
+                    const isRecent = isWithinConnectedWindow(d.lastSeen);
                     const isFixed = d.forceShowChannel === true;
                     const activeApp = d.lastActiveAppId && d.lastActiveAppId in MANAGED_APP_CATALOG
                       ? MANAGED_APP_CATALOG[d.lastActiveAppId as keyof typeof MANAGED_APP_CATALOG].displayName

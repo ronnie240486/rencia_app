@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { CONNECTED_WINDOW_MS, CONNECTED_WINDOW_MINUTES, isWithinConnectedWindow } from "./connectedWindow";
+import { CONNECTED_WINDOW_MS, CONNECTED_WINDOW_MINUTES, getConnectedQueryMinutes, isWithinConnectedWindow } from "./connectedWindow";
 
 describe("janela de dispositivos conectados", () => {
   const now = new Date("2026-08-30T12:00:00.000Z").getTime();
+
+  it("mantém a janela máxima de Assistindo para todos os filtros do painel", () => {
+    expect([15, 30, 60, 120].map(getConnectedQueryMinutes)).toEqual([120, 120, 120, 120]);
+  });
 
   it("mantém o conteúdo visível por duas horas", () => {
     expect(CONNECTED_WINDOW_MINUTES).toBe(120);
