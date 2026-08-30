@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
-import { getConnectedQueryMinutes, isWithinConnectedWindow } from "@shared/connectedWindow";
+import { getConnectedQueryMinutes, isWithinConnectedWindow, type ConnectedFilter } from "@shared/connectedWindow";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -94,7 +94,7 @@ export default function Dashboard() {
   const [recentSearch, setRecentSearch] = useState("");
   // APKs antigos do OuroPro podem registrar o episódio apenas ao iniciá-lo.
   // Duas horas evitam que esse último conteúdo suma logo depois de iniciar.
-  const [connectedFilter, setConnectedFilter] = useState(120);
+  const [connectedFilter, setConnectedFilter] = useState<ConnectedFilter>(120);
   const [pendingBackup, setPendingBackup] = useState<any | null>(null);
   const [importPreview, setImportPreview] = useState<any | null>(null);
   const [previewingImport, setPreviewingImport] = useState(false);
@@ -319,7 +319,7 @@ export default function Dashboard() {
         {/* ─── Dispositivos Conectados ─── */}
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                 <CardTitle className="text-sm font-semibold">
@@ -333,7 +333,22 @@ export default function Dashboard() {
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
+                <Button
+                  size="sm"
+                  variant={connectedFilter === "online" ? "default" : "outline"}
+                  className={`h-7 px-2.5 text-xs font-semibold transition-colors ${
+                    connectedFilter === "online"
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                      : "text-foreground dark:text-foreground"
+                  }`}
+                  onClick={() => setConnectedFilter("online")}
+                  aria-pressed={connectedFilter === "online"}
+                  title="Mostrar somente dispositivos online agora"
+                >
+                  <Wifi className="mr-1.5 h-3.5 w-3.5" />
+                  <span>Online agora</span>
+                </Button>
                 <span className="text-xs text-muted-foreground">{"Últimos:"}</span>
                 {[15, 30, 60, 120].map(m => (
                   <Button
@@ -374,7 +389,7 @@ export default function Dashboard() {
                 <WifiOff className="w-8 h-8 opacity-30" />
                 <p className="text-sm">
                   <span>{"Nenhum dispositivo conectado nos últimos "}</span>
-                  <span>{connectedFilter < 60 ? `${connectedFilter} minutos` : `${connectedFilter / 60} hora(s)`}</span>
+                  <span>{connectedFilter === "online" ? "agora" : "as últimas 2 horas"}</span>
                 </p>
               </div>
             ) : (

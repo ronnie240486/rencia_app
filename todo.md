@@ -1540,3 +1540,5 @@
 - [x] Aumentar a janela de exibição do status Assistindo de 15 minutos para 2 horas
 - [x] Restaurar filtros de 15 minutos, 30 minutos, 1 hora e 2 horas sem reduzir a retenção de Assistindo para duas horas
 - [x] Manter Assistindo visível enquanto o aparelho estiver online, independentemente do filtro selecionado, ocultando somente após perder atividade
+- [x] Corrigir a versão publicada para exibir 15min, 30min, 1h e 2h mantendo a retenção de Assistindo em duas horas
+- [x] Adicionar filtro Online agora para exibir somente aparelhos ativos no momento
