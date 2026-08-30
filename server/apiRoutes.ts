@@ -4578,16 +4578,19 @@ export function registerApiRoutes(app: Express) {
   });
 
   /**
-   * GET /api/v5/remote-commands?mac=AA:BB:CC:DD:EE:FF
+   * GET /api/v5/remote-commands?mac=AA:BB:CC:DD:EE:FF&app=excellence
    * O APK consulta esta rota no mesmo ciclo do heartbeat. Um único comando é entregue por vez.
+   * O parâmetro app é obrigatório quando o mesmo MAC existe em mais de um APK.
    */
   app.get('/api/v5/remote-commands', async (req: Request, res: Response) => {
     try {
       const mac = typeof req.query.mac === 'string' ? req.query.mac : '';
+      const reportedApp = typeof req.query.app === 'string' ? req.query.app : (typeof req.query.app_id === 'string' ? req.query.app_id : null);
       const db = await getDb();
       if (!db) { res.status(503).json({ success: false, error: 'Banco indisponível' }); return; }
-      const result = await claimRemoteCommandForMac(db, mac);
+      const result = await claimRemoteCommandForMac(db, mac, reportedApp);
       if (!result.registered) { res.status(404).json({ success: false, error: 'MAC não cadastrado', command: null }); return; }
+      if (result.appMatched === false) { res.status(409).json({ success: false, error: 'APP_IDENTIFICATION_REQUIRED', command: null }); return; }
       res.json({ success: true, command: result.command });
     } catch (error) {
       console.error('[API] /api/v5/remote-commands error:', error);
@@ -4700,12 +4703,13 @@ export function registerApiRoutes(app: Express) {
     try {
       const body = req.body as Record<string, unknown>;
       const mac = String(body?.mac ?? '');
+      const reportedApp = typeof body?.app === 'string' ? body.app : (typeof body?.app_id === 'string' ? body.app_id : null);
       const commandId = Number(body?.command_id ?? body?.commandId);
       const status = body?.status === 'executed' || body?.status === 'failed' ? body.status : null;
       if (!mac || !Number.isInteger(commandId) || commandId <= 0 || !status) { res.status(400).json({ success: false, error: 'mac, command_id e status são obrigatórios' }); return; }
       const db = await getDb();
       if (!db) { res.status(503).json({ success: false, error: 'Banco indisponível' }); return; }
-      const result = await acknowledgeRemoteCommand(db, mac, commandId, status, typeof body?.result_message === 'string' ? body.result_message : undefined);
+      const result = await acknowledgeRemoteCommand(db, mac, commandId, status, typeof body?.result_message === 'string' ? body.result_message : undefined, reportedApp);
       res.status(result.ok ? 200 : 400).json({ success: result.ok, error: result.ok ? undefined : result.error });
     } catch (error) {
       console.error('[API] /api/v5/remote-commands/ack error:', error);

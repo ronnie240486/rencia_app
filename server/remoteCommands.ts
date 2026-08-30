@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { devices, remoteDeviceCommands } from "../drizzle/schema";
 import { normalizeMacAddress } from "./ultraPlayerConfig";
+import { selectActivityDevice } from "./activityDeviceSelection";
 
 export const REMOTE_COMMAND_TYPES = ["refresh_playlist", "switch_playlist", "update_dns", "show_message", "restart_player", "sync_access"] as const;
 export const REMOTE_COMMAND_STATUSES = ["queued", "delivered", "executed", "failed", "expired", "cancelled"] as const;
@@ -62,14 +63,24 @@ export async function expireRemoteCommands(db: any, now = new Date(), deviceId?:
 }
 
 /** Retorna sempre o primeiro comando pendente para que o APK consiga processar em ordem. */
-export async function claimRemoteCommandForMac(db: any, macInput: string) {
+export function selectRemoteCommandCandidates<T extends { id: number; app: string | null | undefined }>(rows: T[], reportedApp?: string | null) {
+  if (!reportedApp?.trim()) return rows;
+  const selected = selectActivityDevice(rows, reportedApp);
+  return selected ? [selected] : [];
+}
+
+export async function claimRemoteCommandForMac(db: any, macInput: string, reportedApp?: string | null) {
   const mac = normalizeMacAddress(macInput);
   if (!mac) return { registered: false, command: null };
-  const candidateDevices = await db.select().from(devices)
+  const allCandidateDevices = await db.select().from(devices)
     .where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())))
     .orderBy(desc(devices.updatedAt), desc(devices.id));
-  if (!candidateDevices.length) return { registered: false, command: null };
+  if (!allCandidateDevices.length) return { registered: false, command: null };
 
+  const candidateDevices = selectRemoteCommandCandidates(allCandidateDevices, reportedApp);
+  if (reportedApp?.trim() && !candidateDevices.length) {
+    return { registered: true, appMatched: false, command: null };
+  }
   const now = new Date();
   await Promise.all(candidateDevices.map((device: { id: number }) => expireRemoteCommands(db, now, device.id)));
   const command = (await db.select().from(remoteDeviceCommands)
@@ -80,22 +91,24 @@ export async function claimRemoteCommandForMac(db: any, macInput: string) {
     .orderBy(asc(remoteDeviceCommands.createdAt), asc(remoteDeviceCommands.id))
     .limit(1))[0];
   const device = selectDeviceForRemoteCommand(candidateDevices, command);
-  if (!command || !device) return { registered: true, device: candidateDevices[0], command: null };
+  if (!command || !device) return { registered: true, appMatched: true, device: candidateDevices[0], command: null };
   if (command.status === "queued") {
     await db.update(remoteDeviceCommands).set({ status: "delivered", deliveredAt: now }).where(eq(remoteDeviceCommands.id, command.id));
     command.status = "delivered";
     command.deliveredAt = now;
   }
-  return { registered: true, device, command: mapRemoteCommand(command) };
+  return { registered: true, appMatched: true, device, command: mapRemoteCommand(command) };
 }
 
-export async function acknowledgeRemoteCommand(db: any, macInput: string, commandId: number, status: "executed" | "failed", resultMessage?: string) {
+export async function acknowledgeRemoteCommand(db: any, macInput: string, commandId: number, status: "executed" | "failed", resultMessage?: string, reportedApp?: string | null) {
   const mac = normalizeMacAddress(macInput);
   if (!mac) return { ok: false, error: "MAC inválido" };
-  const candidateDevices = await db.select().from(devices)
+  const allCandidateDevices = await db.select().from(devices)
     .where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())))
     .orderBy(desc(devices.updatedAt), desc(devices.id));
-  if (!candidateDevices.length) return { ok: false, error: "Dispositivo não encontrado" };
+  if (!allCandidateDevices.length) return { ok: false, error: "Dispositivo não encontrado" };
+  const candidateDevices = selectRemoteCommandCandidates(allCandidateDevices, reportedApp);
+  if (reportedApp?.trim() && !candidateDevices.length) return { ok: false, error: "Aplicativo não encontrado para este MAC" };
 
   const command = (await db.select().from(remoteDeviceCommands)
     .where(and(eq(remoteDeviceCommands.id, commandId), inArray(remoteDeviceCommands.deviceId, candidateDevices.map((device: { id: number }) => device.id))))
