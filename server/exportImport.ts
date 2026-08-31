@@ -47,6 +47,20 @@ export type PortableDeviceUrl = Record<string, any> & {
 export function isSupportedBackupVersion(version: unknown) {
   return ['2.0.0', '3.0.0', '4.0.0'].includes(String(version));
 }
+function reviveDates<T>(value: T): T {
+  if (Array.isArray(value)) return value.map((item) => reviveDates(item)) as unknown as T;
+  if (value && typeof value === "object") {
+    const out: any = {};
+    for (const [key, val] of Object.entries(value as any)) {
+      out[key] = reviveDates(val);
+    }
+    return out;
+  }
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(value)) {
+    return new Date(value) as unknown as T;
+  }
+  return value;
+}
 
 /** Converte o formato antigo por ID para entradas portáteis vinculadas ao MAC. */
 export function normalizeBackupDeviceUrls(rawUrls: unknown, backupDevices: any[] = []): PortableDeviceUrl[] {
