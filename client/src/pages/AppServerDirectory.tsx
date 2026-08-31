@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 const CURRENT_ORIGIN = "https://renciaapp.manus.space";
+const FALLBACK_ORIGIN = "https://renciaapp-production.up.railway.app";
 const managedApps = Object.values(MANAGED_APP_CATALOG);
 
 function settingKey(appId: ManagedAppId) {
@@ -29,20 +30,31 @@ export default function AppServerDirectory() {
     onError: (error) => toast.error(error.message),
   });
   const [values, setValues] = useState<Record<string, string>>({});
+  const [fallbackValues, setFallbackValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!directory) return;
     setValues(Object.fromEntries(managedApps.map((app) => [settingKey(app.id), String(directory.origins[app.id] || "")] )));
+    setFallbackValues(Object.fromEntries(managedApps.map((app) => [settingKey(app.id), String(directory.fallbacks?.[app.id] || "")] )));
   }, [directory]);
 
-  const hasChanges = useMemo(() => managedApps.some((app) => String(directory?.origins[app.id] || "") !== (values[settingKey(app.id)] || "")), [directory, values]);
+  const hasChanges = useMemo(() => managedApps.some((app) =>
+    String(directory?.origins[app.id] || "") !== (values[settingKey(app.id)] || "")
+    || String(directory?.fallbacks?.[app.id] || "") !== (fallbackValues[settingKey(app.id)] || "")
+  ), [directory, values, fallbackValues]);
   const copy = async (text: string) => { try { await navigator.clipboard.writeText(text); toast.success("Rota copiada."); } catch { toast.error("Não foi possível copiar a rota."); } };
   const saveDirectory = () => {
     for (const app of managedApps) {
-      const value = values[settingKey(app.id)] || "";
-      if (value && !normalizeOrigin(value)) { toast.error(`O endereço de ${app.displayName} precisa começar com http:// ou https://.`); return; }
+      const key = settingKey(app.id);
+      const value = values[key] || "";
+      const fallbackValue = fallbackValues[key] || "";
+      if (value && !normalizeOrigin(value)) { toast.error(`O endereço principal de ${app.displayName} precisa começar com http:// ou https://.`); return; }
+      if (fallbackValue && !normalizeOrigin(fallbackValue)) { toast.error(`O endereço reserva de ${app.displayName} precisa começar com http:// ou https://.`); return; }
     }
-    save.mutate({ origins: Object.fromEntries(managedApps.map((app) => [app.id, values[settingKey(app.id)] || ""])) });
+    save.mutate({
+      origins: Object.fromEntries(managedApps.map((app) => [app.id, values[settingKey(app.id)] || ""])),
+      fallbacks: Object.fromEntries(managedApps.map((app) => [app.id, fallbackValues[settingKey(app.id)] || ""])),
+    });
   };
 
   return <AdminLayout title="Central de Endereços"><div className="mx-auto max-w-6xl space-y-6 p-1 sm:p-3">
@@ -53,11 +65,13 @@ export default function AppServerDirectory() {
     <div className="grid gap-4 md:grid-cols-2">{managedApps.map((app) => {
       const key = settingKey(app.id);
       const configured = normalizeOrigin(values[key] || "");
+      const fallback = normalizeOrigin(fallbackValues[key] || "");
       const origin = configured || CURRENT_ORIGIN;
+      const reserve = fallback || FALLBACK_ORIGIN;
       const discovery = `${origin}/api/v5/apps/${app.id}/discovery`;
-      return <Card key={app.id}><CardHeader className="pb-3"><div className="flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted p-1.5">{app.defaultLogoUrl ? <img src={app.defaultLogoUrl} alt="" className="h-full w-full object-contain" /> : <Link2 className="text-muted-foreground" size={20} />}</div><div><CardTitle className="text-base">{app.displayName}</CardTitle><CardDescription>{values[key] ? "Domínio próprio preparado" : "Usando endereço atual"}</CardDescription></div></div></CardHeader><CardContent className="space-y-3"><div className="space-y-1.5"><Label htmlFor={key}>Endereço da API</Label><Input id={key} type="url" placeholder={CURRENT_ORIGIN} value={values[key] || ""} onChange={(event) => setValues((current) => ({ ...current, [key]: event.target.value }))} /><p className="text-xs text-muted-foreground">Use somente o domínio, por exemplo: `https://appplus.top`.</p></div><div className="rounded-lg bg-muted/60 p-2"><p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Rota para o desenvolvedor integrar</p><div className="flex items-center gap-1"><code className="min-w-0 flex-1 break-all text-xs">{discovery}</code><Button variant="ghost" size="icon" title="Copiar rota" onClick={() => copy(discovery)}><Copy size={15} /></Button></div></div></CardContent></Card>;
+      return <Card key={app.id}><CardHeader className="pb-3"><div className="flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted p-1.5">{app.defaultLogoUrl ? <img src={app.defaultLogoUrl} alt="" className="h-full w-full object-contain" /> : <Link2 className="text-muted-foreground" size={20} />}</div><div><CardTitle className="text-base">{app.displayName}</CardTitle><CardDescription>{values[key] ? "Domínio próprio preparado" : "Usando endereço atual"}</CardDescription></div></div></CardHeader><CardContent className="space-y-3"><div className="grid gap-3 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor={key}>URL principal · Manus</Label><Input id={key} type="url" placeholder={CURRENT_ORIGIN} value={values[key] || ""} onChange={(event) => setValues((current) => ({ ...current, [key]: event.target.value }))} /><p className="text-xs text-muted-foreground">Usada primeiro pelo APK.</p></div><div className="space-y-1.5"><Label htmlFor={`${key}-fallback`}>URL reserva · Railway</Label><Input id={`${key}-fallback`} type="url" placeholder={FALLBACK_ORIGIN} value={fallbackValues[key] || ""} onChange={(event) => setFallbackValues((current) => ({ ...current, [key]: event.target.value }))} /><p className="text-xs text-muted-foreground">Usada somente se a principal falhar.</p></div></div><div className="rounded-lg bg-muted/60 p-2"><p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Rotas para o desenvolvedor integrar</p><div className="flex items-center gap-1"><code className="min-w-0 flex-1 break-all text-xs">Principal: {discovery}<br />Reserva: {reserve}/api/v5/apps/{app.id}/discovery</code><Button variant="ghost" size="icon" title="Copiar rota principal" onClick={() => copy(discovery)}><Copy size={15} /></Button></div></div></CardContent></Card>;
     })}</div>
 
-    <Card><CardHeader><CardTitle>Como funciona</CardTitle><CardDescription>O APK consulta a rota de descoberta na abertura e salva as rotas retornadas. No futuro, você poderá apontar esse domínio para outro servidor sem pedir nova atualização do APK.</CardDescription></CardHeader><CardContent><code className="block break-all rounded-lg bg-muted p-3 text-xs">GET https://SEU-DOMINIO/api/v5/apps/ID_DO_APP/discovery</code></CardContent></Card>
+    <Card><CardHeader><CardTitle>Como funciona</CardTitle><CardDescription>O APK consulta a descoberta principal na abertura. Se Manus não responder, tenta Railway. O APK deve guardar o endereço que respondeu e não repetir comandos POST nos dois endereços.</CardDescription></CardHeader><CardContent className="space-y-2"><code className="block break-all rounded-lg bg-muted p-3 text-xs">GET https://SEU-DOMINIO/api/v5/apps/ID_DO_APP/discovery</code><p className="text-xs text-muted-foreground">Os dois ambientes precisam compartilhar o mesmo banco ou a mesma configuração para mostrar os mesmos clientes, MACs e comandos.</p></CardContent></Card>
   </div></AdminLayout>;
 }

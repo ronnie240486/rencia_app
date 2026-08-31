@@ -52,7 +52,7 @@ import { canAccessResellerPortal, chooseResellerPortalAccount } from "./reseller
 import { normalizeApkSessionKey, registerApkSession } from "./appSessionControl";
 import { filterDownloadsForInvite, hashStoreInviteToken } from "./storeInvites";
 import { connectGoogleDriveBackup, readGoogleDriveOAuthState } from "./googleDriveBackup";
-import { appServerSettingKey, buildAppServerDirectory } from "./appServerDirectory";
+import { appServerFallbackSettingKey, appServerSettingKey, buildAppServerDirectory } from "./appServerDirectory";
 import { BACKUP_RESTORE_OWNER_MESSAGE, canRestoreCompleteBackup } from "./backupAccess";
 
 // Multer: armazena em memória para depois enviar ao S3
@@ -1827,7 +1827,7 @@ export function registerApiRoutes(app: Express) {
       const settings = await getSettings();
       const appDef = MANAGED_APP_CATALOG[appId];
       res.setHeader("Cache-Control", "no-store");
-      res.json({ managed: true, ...buildAppServerDirectory(appId, appDef.displayName, settings[appServerSettingKey(appId)]) });
+      res.json({ managed: true, ...buildAppServerDirectory(appId, appDef.displayName, settings[appServerSettingKey(appId)], settings[appServerFallbackSettingKey(appId)]) });
     } catch (error) {
       console.error("[API] descoberta de endereço do aplicativo", error);
       res.status(500).json({ managed: false, error: "Não foi possível obter o endereço do aplicativo." });

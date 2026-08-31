@@ -1,9 +1,14 @@
 import type { ManagedAppId } from "../shared/appCatalog";
 
 export const CURRENT_PANEL_ORIGIN = "https://renciaapp.manus.space";
+export const FALLBACK_PANEL_ORIGIN = "https://renciaapp-production.up.railway.app";
 
 export function appServerSettingKey(appId: ManagedAppId) {
   return `app_api_origin_${appId}`;
+}
+
+export function appServerFallbackSettingKey(appId: ManagedAppId) {
+  return `app_api_fallback_origin_${appId}`;
 }
 
 function withoutTrailingSlash(value: string) {
@@ -23,17 +28,22 @@ export function normalizeAppServerOrigin(value: string | null | undefined, fallb
   }
 }
 
-export function buildAppServerDirectory(appId: ManagedAppId, appName: string, configuredOrigin?: string | null) {
-  const origin = normalizeAppServerOrigin(configuredOrigin);
-  const prefix = `${origin}/api/v5/apps/${appId}`;
+export function buildAppServerDirectory(appId: ManagedAppId, appName: string, configuredOrigin?: string | null, configuredFallbackOrigin?: string | null) {
+  const primaryOrigin = normalizeAppServerOrigin(configuredOrigin, CURRENT_PANEL_ORIGIN);
+  const fallbackOrigin = normalizeAppServerOrigin(configuredFallbackOrigin, FALLBACK_PANEL_ORIGIN);
+  const origins = [primaryOrigin, fallbackOrigin].filter((origin, index, all) => all.indexOf(origin) === index);
+  const primaryPrefix = `${primaryOrigin}/api/v5/apps/${appId}`;
   return {
     app_id: appId,
     app_name: appName,
-    api_origin: origin,
-    discovery_url: `${prefix}/discovery`,
-    config_url: `${prefix}/config`,
-    update_url: `${prefix}/update`,
-    heartbeat_url: `${origin}/api/v5/heartbeat`,
-    migration_ready: Boolean(configuredOrigin?.trim()),
+    api_origin: primaryOrigin,
+    primary_api_origin: primaryOrigin,
+    fallback_api_origin: fallbackOrigin,
+    api_origins: origins,
+    discovery_url: `${primaryPrefix}/discovery`,
+    config_url: `${primaryPrefix}/config`,
+    update_url: `${primaryPrefix}/update`,
+    heartbeat_url: `${primaryOrigin}/api/v5/heartbeat`,
+    migration_ready: Boolean(configuredOrigin?.trim() || configuredFallbackOrigin?.trim()),
   };
 }

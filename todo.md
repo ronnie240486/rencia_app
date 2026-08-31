@@ -1545,3 +1545,4 @@
 - [x] Investigar e corrigir Assistindo que some mesmo com o dispositivo online há poucos minutos
 - [x] Criar PDF simplificado com todas as rotas atuais do painel, APKs, mensagens, servidores, avisos e presença online
 - [x] Corrigir a entrega de comandos remotos no Excellence e documentar consulta, execução e confirmação pelo APK
+- [x] Permitir que cada APK use Manus e Railway como endereços alternativos, com fallback e sem misturar dados

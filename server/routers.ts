@@ -38,7 +38,7 @@ import { bulkDeviceUpdateSchema } from "./deviceBulk";
 import { autoBackupSettings, backupSnapshots, historyRetentionSettings } from "../drizzle/schema";
 import { createBackupSnapshot, restoreBackupSnapshot, AUTO_BACKUP_CRON } from "./backupService";
 import { createGoogleDriveAuthorizationUrl } from "./googleDriveBackup";
-import { appServerSettingKey } from "./appServerDirectory";
+import { appServerFallbackSettingKey, appServerSettingKey } from "./appServerDirectory";
 import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 import { parse as parseCookie } from "cookie";
 import { chooseLocalLoginAccount } from "./loginSelection";
@@ -201,12 +201,17 @@ export const appRouter = router({
       const settings = Object.fromEntries(rows.map((row) => [row.key, row.value ?? ""]));
       return {
         origins: Object.fromEntries(Object.entries(MANAGED_APP_CATALOG).map(([appId]) => [appId, settings[appServerSettingKey(appId as ManagedAppId)] || ""])),
+        fallbacks: Object.fromEntries(Object.entries(MANAGED_APP_CATALOG).map(([appId]) => [appId, settings[appServerFallbackSettingKey(appId as ManagedAppId)] || ""])),
       };
     }),
-    update: ownerProcedure.input(z.object({ origins: z.record(z.string(), z.string().max(512)) })).mutation(async ({ input }) => {
+    update: ownerProcedure.input(z.object({ origins: z.record(z.string(), z.string().max(512)), fallbacks: z.record(z.string(), z.string().max(512)).optional() })).mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
-      for (const [candidateId, value] of Object.entries(input.origins)) {
+      const entries = [
+        ...Object.entries(input.origins).map(([candidateId, value]) => [candidateId, value, false] as const),
+        ...Object.entries(input.fallbacks ?? {}).map(([candidateId, value]) => [candidateId, value, true] as const),
+      ];
+      for (const [candidateId, value, isFallback] of entries) {
         if (!isManagedAppId(candidateId)) continue;
         const trimmed = value.trim();
         if (trimmed) {
@@ -217,7 +222,7 @@ export const appRouter = router({
             throw new TRPCError({ code: "BAD_REQUEST", message: `O endereço de ${MANAGED_APP_CATALOG[candidateId].displayName} é inválido.` });
           }
         }
-        const key = appServerSettingKey(candidateId);
+        const key = isFallback ? appServerFallbackSettingKey(candidateId) : appServerSettingKey(candidateId);
         const existing = (await db.select({ id: appSettings.id }).from(appSettings).where(eq(appSettings.key, key)).limit(1))[0];
         if (existing) await db.update(appSettings).set({ value: trimmed }).where(eq(appSettings.id, existing.id));
         else await db.insert(appSettings).values({ key, value: trimmed });
