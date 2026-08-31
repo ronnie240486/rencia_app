@@ -383,7 +383,7 @@ export async function importBackup(ownerId: number, backup: any) {
       }
     }
 
-       // Importar dispositivos (evita duplicar pelo MAC, já que não existe índice único nessa coluna)
+      // Importar dispositivos (evita duplicar pelo MAC, já que não existe índice único nessa coluna)
     if (backup.data?.devices && Array.isArray(backup.data.devices)) {
       const existingDevices = await db.select({ id: devices.id, mac: devices.mac }).from(devices).where(eq(devices.ownerId, ownerId));
       const existingByMac = new Map(existingDevices.map((d) => [normalizeImportMac(d.mac), d.id]));
@@ -401,6 +401,13 @@ export async function importBackup(ownerId: number, backup: any) {
         } catch (err) {
           console.warn(`[Import] Erro ao importar device ${device.mac}:`, err);
         }
+      }
+      // Remove deste dono os dispositivos que não constam mais no backup (sincronização completa: espelha o Manus)
+      const backupMacs = new Set(backup.data.devices.map((d: any) => normalizeImportMac(d.mac)));
+      const currentOwnerDevices = await db.select({ id: devices.id, mac: devices.mac }).from(devices).where(eq(devices.ownerId, ownerId));
+      const idsToRemove = currentOwnerDevices.filter((d) => !backupMacs.has(normalizeImportMac(d.mac))).map((d) => d.id);
+      if (idsToRemove.length > 0) {
+        await db.delete(devices).where(inArray(devices.id, idsToRemove));
       }
     }
 
