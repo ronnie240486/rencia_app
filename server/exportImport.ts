@@ -383,12 +383,21 @@ export async function importBackup(ownerId: number, backup: any) {
       }
     }
 
-    // Importar dispositivos
+       // Importar dispositivos (evita duplicar pelo MAC, já que não existe índice único nessa coluna)
     if (backup.data?.devices && Array.isArray(backup.data.devices)) {
+      const existingDevices = await db.select({ id: devices.id, mac: devices.mac }).from(devices).where(eq(devices.ownerId, ownerId));
+      const existingByMac = new Map(existingDevices.map((d) => [normalizeImportMac(d.mac), d.id]));
       for (const device of backup.data.devices) {
         const { id, ...deviceData } = device;
         try {
-          await db.insert(devices).values({ ...deviceData, ownerId }).onDuplicateKeyUpdate({ set: deviceData });
+          const existingId = existingByMac.get(normalizeImportMac(device.mac));
+          if (existingId) {
+            await db.update(devices).set(deviceData).where(eq(devices.id, existingId));
+          } else {
+            const [result] = await db.insert(devices).values({ ...deviceData, ownerId });
+            const newId = (result as any).insertId;
+            if (newId) existingByMac.set(normalizeImportMac(device.mac), Number(newId));
+          }
         } catch (err) {
           console.warn(`[Import] Erro ao importar device ${device.mac}:`, err);
         }
