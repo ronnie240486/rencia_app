@@ -392,7 +392,7 @@ export async function importBackup(ownerId: number, backup: any) {
         try {
           const existingId = existingByMac.get(normalizeImportMac(device.mac));
           if (existingId) {
-            await db.update(devices).set(deviceData).where(eq(devices.id, existingId));
+                       await db.update(devices).set({ ...deviceData, ownerId }).where(eq(devices.id, existingId));
           } else {
             const [result] = await db.insert(devices).values({ ...deviceData, ownerId });
             const newId = (result as any).insertId;
