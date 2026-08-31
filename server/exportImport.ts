@@ -343,10 +343,11 @@ export async function importBackup(ownerId: number, backup: any) {
   if (!db) throw new Error("Database unavailable");
 
   try {
-    // Validar versão
+        // Validar versão
     if (!isSupportedBackupVersion(backup.version)) {
       throw new Error("Versão de backup incompatível.");
     }
+    backup.data = reviveDates(backup.data);
 
     const sourceUsers = Array.isArray(backup.data?.users) ? backup.data.users : [];
     const sourceUserIdMap = new Map<number, number>();
