@@ -36,7 +36,7 @@ import {
   autoBackupSettings,
   historyRetentionSettings,
 } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { buildPortableBackupManifest } from "./portableBackupManifest";
 
 export type PortableDeviceUrl = Record<string, any> & {
