@@ -34,7 +34,7 @@ function isDevProxyEnv(req: Request): boolean {
 
 export function getSessionCookieOptions(
   req: Request
-): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
+): Pick<CookieOptions, "domain" | "httpOnly" | "maxAge" | "path" | "sameSite" | "secure"> {
   const secure = isSecureRequest(req);
   // Use "lax" in dev/proxy environments so that cookies survive OAuth redirects.
   // Use "none" only in production with a stable domain where cross-site cookies are needed.
@@ -45,5 +45,6 @@ export function getSessionCookieOptions(
     path: "/",
     sameSite,
     secure,
+    maxAge: 1000 * 60 * 60 * 24 * 30, // 30 dias
   };
 }
