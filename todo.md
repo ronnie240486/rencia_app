@@ -1584,15 +1584,15 @@
 - [ ] Corrigir o segundo MAC que não aparece salvo junto do MAC principal
 - [ ] Corrigir o erro SQLite idx_catalog_series_identity que impede o Future de baixar a lista do painel
 
-- [ ] Garantir que o primeiro MAC permaneça principal e que o MAC do celular seja adicionado como secundário com APK próprio, herdando listas e permissões e aparecendo no cartão do cliente
+- [x] Garantir que o primeiro MAC permaneça principal e que o MAC do celular seja adicionado como secundário com APK próprio, herdando listas e permissões e aparecendo no cartão do cliente
 
-- [ ] Corrigir definitivamente o segundo MAC que não está sendo gravado ou retornado no cartão da lista de usuários
+- [x] Corrigir definitivamente o segundo MAC que não está sendo gravado ou retornado no cartão da lista de usuários
 
-- [ ] Fazer o segundo MAC ser gravado no mesmo cliente e aparecer na tela principal abaixo do MAC principal, com o APK correspondente
+- [x] Fazer o segundo MAC ser gravado no mesmo cliente e aparecer na tela principal abaixo do MAC principal, com o APK correspondente
 
-- [ ] Fazer Salvar Alterações gravar automaticamente o MAC secundário preenchido e atualizar a tela principal com os dois MACs
+- [x] Fazer Salvar Alterações gravar automaticamente o MAC secundário preenchido e atualizar a tela principal com os dois MACs
 
-- [ ] Fazer o MAC secundário herdar e receber as mesmas listas do cliente principal
+- [x] Fazer o MAC secundário herdar e receber as mesmas listas do cliente principal
 - [ ] Fazer a exclusão do MAC secundário persistir imediatamente após a primeira exclusão
 
 - [x] Adicionar edição individual do MAC principal e de cada MAC secundário, incluindo troca do APK associado
@@ -1601,8 +1601,10 @@
 - [ ] Corrigir definitivamente a ativação das listas no segundo MAC e impedir que o MAC excluído volte após atualizar
 
 - [ ] Corrigir a playlist excluída que continua aparecendo no PrimeX após atualizar ou abrir o aplicativo
-- [ ] Fazer o MAC secundário do PrimeX receber a lista ativa do cliente e exibir o APK associado
+- [x] Fazer o MAC secundário do PrimeX receber a lista ativa do cliente e exibir o APK associado
 
-- [ ] Persistir o APK escolhido no MAC secundário e entregar a lista ativa do mesmo cliente após salvar
+- [x] Persistir o APK escolhido no MAC secundário e entregar a lista ativa do mesmo cliente após salvar
 
-- [ ] Fazer o Evolux no MAC secundário localizar e receber a mesma playlist ativa do cliente principal
+- [x] Fazer o Evolux no MAC secundário localizar e receber a mesma playlist ativa do cliente principal
+
+- [x] Fazer o mesmo MAC receber a lista tanto como principal quanto como reserva, sem depender da posição do cadastro

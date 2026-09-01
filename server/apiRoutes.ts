@@ -45,7 +45,7 @@ import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
-import { findDeviceByAnyMac } from "./deviceMacLookup";
+import { findDeviceByAnyMac, findDeviceMatchByAnyMac } from "./deviceMacLookup";
 import { buildHeartbeatMacLookup } from "./heartbeatMac";
 import { comparePassword } from "./auth";
 import { isLoginAccessAllowed, resolveLoginMacBinding } from "./appLogin";
@@ -2499,24 +2499,17 @@ export function registerApiRoutes(app: Express) {
 
       console.log(`[API-V5-CHECK-MAC] Received MAC: "${mac}" | Normalized: "${macNormalized}" | WithColons: "${macWithColons}"`);
 
-      const result = await db
-        .select()
-        .from(devices)
-        .where(or(
-          eq(devices.mac, macWithColons),
-          eq(devices.mac, macNormalized),
-          eq(devices.mac, mac),
-        ))
-        .limit(1);
+      const resolvedMatch = await findDeviceMatchByAnyMac(db, macWithColons);
+      const deviceMatch = resolvedMatch?.device ?? null;
 
-      console.log(`[API-V5-CHECK-MAC] Query result: ${result.length} device(s) found`);
+      console.log(`[API-V5-CHECK-MAC] Query result: ${deviceMatch ? 1 : 0} device(s) found`);
       const maximusSettings = await getSettings();
       const testConfig = maximusTestConfiguration(maximusSettings);
-      if (result.length > 0) {
-        console.log(`[API-V5-CHECK-MAC] Device found: MAC=${result[0].mac}, Status=${result[0].status}`);
+      if (deviceMatch) {
+        console.log(`[API-V5-CHECK-MAC] Device found: MAC=${deviceMatch.mac}, Status=${deviceMatch.status}, primary=${resolvedMatch?.primary}`);
       }
 
-      if (result.length === 0) {
+      if (!deviceMatch) {
         res.json({
           success: false,
           error: "Device not found",
@@ -2527,7 +2520,7 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
-      const device = result[0];
+      const device = deviceMatch;
       const now = new Date();
       const expired = device.dataExpiracao != null && daysUntilDateOnly(device.dataExpiracao, now) < 0;
       const expirationNotice = buildApkExpirationNotice(device, now);
@@ -2549,7 +2542,7 @@ export function registerApiRoutes(app: Express) {
           success: false,
           error: "Device blocked",
           status: device.status,
-          mac: device.mac,
+          mac: macWithColons,
           expire_date: device.dataExpiracao ? new Date(device.dataExpiracao).toISOString().split("T")[0] : null,
           ...buildApkExpirationResponseFields(expirationNotice),
           registered: true,
@@ -2663,7 +2656,7 @@ export function registerApiRoutes(app: Express) {
       res.json({
         success: true,
         registered: true,
-        mac: device.mac,
+        mac: macWithColons,
         status: device.status,
         expire_date: expireDate,
         ...buildApkExpirationResponseFields(expirationNotice),
