@@ -117,6 +117,14 @@ export function isManagedAppId(value: string): value is ManagedAppId {
   return Object.prototype.hasOwnProperty.call(MANAGED_APP_CATALOG, value);
 }
 
+export function managedAppIdForValue(value: string | null | undefined): ManagedAppId | null {
+  const normalized = (value ?? "").trim();
+  if (!normalized) return null;
+  if (isManagedAppId(normalized)) return normalized;
+  const match = Object.values(MANAGED_APP_CATALOG).find((app) => app.deviceAliases.includes(normalized as never));
+  return match?.id ?? null;
+}
+
 export function isFusionDeviceApp(value: string | null | undefined) {
   return MANAGED_APP_CATALOG.fusion.deviceAliases.includes((value || "").trim() as "Ultra Player" | "Fusion");
 }

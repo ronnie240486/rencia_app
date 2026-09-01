@@ -1,6 +1,7 @@
 import { eq, or } from "drizzle-orm";
 import { deviceMacs, devices } from "../drizzle/schema";
 import { normalizeMacForStorage } from "../shared/mac";
+import { managedAppIdForValue } from "../shared/appCatalog";
 
 /** Encontra o cadastro e informa qual APK está associado ao MAC encontrado. */
 export async function findDeviceMatchByAnyMac(db: any, rawMac: string) {
@@ -21,7 +22,7 @@ export async function findDeviceMatchByAnyMac(db: any, rawMac: string) {
   const linked = await db.select().from(devices)
     .where(eq(devices.id, alias[0].deviceId))
     .limit(1);
-  return linked[0] ? { device: linked[0], appId: alias[0].appId ?? null, primary: false } : null;
+  return linked[0] ? { device: linked[0], appId: alias[0].appId ?? managedAppIdForValue(linked[0].app) ?? null, primary: false } : null;
 }
 
 /** Encontra o cadastro principal pelo MAC original ou por um MAC adicional. */

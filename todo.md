@@ -1599,3 +1599,10 @@
 - [x] Garantir que as rotas de listas usem o MAC secundário para localizar o mesmo cliente e entregar as listas herdadas
 
 - [ ] Corrigir definitivamente a ativação das listas no segundo MAC e impedir que o MAC excluído volte após atualizar
+
+- [ ] Corrigir a playlist excluída que continua aparecendo no PrimeX após atualizar ou abrir o aplicativo
+- [ ] Fazer o MAC secundário do PrimeX receber a lista ativa do cliente e exibir o APK associado
+
+- [ ] Persistir o APK escolhido no MAC secundário e entregar a lista ativa do mesmo cliente após salvar
+
+- [ ] Fazer o Evolux no MAC secundário localizar e receber a mesma playlist ativa do cliente principal

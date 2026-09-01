@@ -4,7 +4,7 @@ import { appCredentials, apps, auditLogs, customerNotes, deviceAppLinks, deviceL
 import { ENV } from './_core/env';
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 import { normalizeMacForStorage } from "../shared/mac";
-import { isManagedAppId } from "../shared/appCatalog";
+import { isManagedAppId, managedAppIdForValue } from "../shared/appCatalog";
 import { countDevicePlaylists } from "./devicePlaylistCount";
 import { CONNECTED_WINDOW_MINUTES } from "./connectedWindow";
 import { addIptvServerRevenue, parseIptvServerValue } from "./iptvServerRevenue";
@@ -199,9 +199,10 @@ export async function listDeviceMacs(deviceId: number, ownerId: number) {
   const aliases = await db.select({ id: deviceMacs.id, mac: deviceMacs.mac, appId: deviceMacs.appId, createdAt: deviceMacs.createdAt })
     .from(deviceMacs).where(eq(deviceMacs.deviceId, deviceId)).orderBy(asc(deviceMacs.createdAt), asc(deviceMacs.id));
   const primary = await db.select({ mac: devices.mac, app: devices.app }).from(devices).where(eq(devices.id, deviceId)).limit(1);
+  const primaryAppId = managedAppIdForValue(primary[0]?.app);
   return [
-    ...(primary[0]?.mac ? [{ id: 0, mac: primary[0].mac, appId: primary[0].app, createdAt: null as Date | null, primary: true }] : []),
-    ...aliases.map((alias) => ({ ...alias, primary: false })),
+    ...(primary[0]?.mac ? [{ id: 0, mac: primary[0].mac, appId: primaryAppId ?? primary[0].app, createdAt: null as Date | null, primary: true }] : []),
+    ...aliases.map((alias) => ({ ...alias, appId: alias.appId ?? primaryAppId, primary: false })),
   ];
 }
 
