@@ -1840,18 +1840,18 @@ export function registerApiRoutes(app: Express) {
       const db = await getDb();
       if (!db) { res.status(503).json({ registered: false, error: "Banco de dados indisponível." }); return; }
       const appDef = MANAGED_APP_CATALOG[appId];
-      const macDevices = await db.select().from(devices).where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())));
-      if (!macDevices.length) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
-      const device = await selectDeviceForReportedApp(db, macDevices, appId)
-        ?? findDeviceForManagedApp(macDevices, appDef.deviceAliases);
-      if (!device) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
+      const resolvedMatch = await findDeviceMatchByAnyMac(db, mac);
+      const device = resolvedMatch?.device ?? null;
+      if (!device) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
+      const resolvedAppId = resolvedMatch?.appId?.toLowerCase() ?? null;
+      if (resolvedAppId && resolvedAppId !== appId) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
       // Marca atividade no cadastro do aplicativo consultado, inclusive quando o MAC
       // também existe em outro app (por exemplo, Ouro Pro e Optimus).
       await db.update(devices).set({ lastSeen: new Date(), lastActiveAppId: appId }).where(eq(devices.id, device.id));
       const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
       const settings = await getSettings();
       res.setHeader("Cache-Control", "no-store");
-      res.json({ registered: true, allowed: device.status === "Liberado", mac: device.mac, ...buildGenericAppConfig(appId, appDef.displayName, settings, [device.urlM3u8 || "", ...extras.map((item) => item.url || "")]) });
+      res.json({ registered: true, allowed: device.status === "Liberado", mac, ...buildGenericAppConfig(appId, appDef.displayName, settings, [device.urlM3u8 || "", ...extras.map((item) => item.url || "")]) });
     } catch (error) {
       console.error("[API] configuração de aplicativo genérico", error);
       res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do aplicativo." });
@@ -1867,11 +1867,11 @@ export function registerApiRoutes(app: Express) {
       const db = await getDb();
       if (!db) { res.status(503).json({ error: "Banco de dados indisponível." }); return; }
       const appDef = MANAGED_APP_CATALOG[appId];
-      const macDevices = await db.select().from(devices).where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())));
-      if (!macDevices.length) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
-      const device = await selectDeviceForReportedApp(db, macDevices, appId)
-        ?? findDeviceForManagedApp(macDevices, appDef.deviceAliases);
-      if (!device) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
+      const resolvedMatch = await findDeviceMatchByAnyMac(db, mac);
+      const device = resolvedMatch?.device ?? null;
+      if (!device) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
+      const resolvedAppId = resolvedMatch?.appId?.toLowerCase() ?? null;
+      if (resolvedAppId && resolvedAppId !== appId) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
       const settings = await getSettings();
       res.json({ registered: true, allowed: device.status === "Liberado", ...buildAppUpdateResponse(appDef.displayName, settings[`${appId}_apk_download_url`] || "", settings[`${appId}_apk_version`] || "1.0.0") });
     } catch (error) {
