@@ -1576,3 +1576,7 @@
 
 - [x] Permitir editar e salvar o MAC principal na tela de edição do cliente
 - [x] Corrigir o salvamento dos MACs secundários e exibir principal e reserva claramente após salvar
+
+- [x] Permitir escolher o APK usado por cada MAC secundário, mantendo o mesmo cliente, listas e permissões
+
+- [x] Corrigir a falha reportada em que o MAC principal não aparece editável e o MAC secundário não aparece após o salvamento

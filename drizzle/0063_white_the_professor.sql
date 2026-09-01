@@ -1,0 +1,1 @@
+ALTER TABLE `device_macs` ADD `appId` varchar(64);

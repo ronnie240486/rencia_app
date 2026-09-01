@@ -104,6 +104,7 @@ export const deviceMacs = mysqlTable("device_macs", {
   id: int("id").autoincrement().primaryKey(),
   deviceId: int("deviceId").notNull(),
   mac: varchar("mac", { length: 64 }).notNull().unique(),
+  appId: varchar("appId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({
   deviceMacDeviceIdx: index("device_macs_device_idx").on(table.deviceId),

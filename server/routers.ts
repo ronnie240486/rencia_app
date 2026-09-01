@@ -820,10 +820,10 @@ export const appRouter = router({
       }),
 
     addMac: protectedProcedure
-      .input(z.object({ id: z.number(), mac: z.string().trim().min(1) }))
+      .input(z.object({ id: z.number(), mac: z.string().trim().min(1), appId: z.string().trim().min(1).optional() }))
       .mutation(async ({ ctx, input }) => {
         try {
-          const result = await addDeviceMac(input.id, ctx.user.id, input.mac);
+          const result = await addDeviceMac(input.id, ctx.user.id, input.mac, input.appId);
           await recordAudit({
             ownerId: ctx.user.id,
             actorUserId: ctx.user.id,

@@ -4,6 +4,7 @@ import { appCredentials, apps, auditLogs, customerNotes, deviceAppLinks, deviceL
 import { ENV } from './_core/env';
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 import { normalizeMacForStorage } from "../shared/mac";
+import { isManagedAppId } from "../shared/appCatalog";
 import { countDevicePlaylists } from "./devicePlaylistCount";
 import { CONNECTED_WINDOW_MINUTES } from "./connectedWindow";
 import { addIptvServerRevenue, parseIptvServerValue } from "./iptvServerRevenue";
@@ -177,34 +178,39 @@ export async function listDeviceMacs(deviceId: number, ownerId: number) {
   if (!db) return [];
   const owned = await db.select({ id: devices.id }).from(devices).where(and(eq(devices.id, deviceId), eq(devices.ownerId, ownerId))).limit(1);
   if (!owned.length) return [];
-  const aliases = await db.select({ id: deviceMacs.id, mac: deviceMacs.mac, createdAt: deviceMacs.createdAt })
+  const aliases = await db.select({ id: deviceMacs.id, mac: deviceMacs.mac, appId: deviceMacs.appId, createdAt: deviceMacs.createdAt })
     .from(deviceMacs).where(eq(deviceMacs.deviceId, deviceId)).orderBy(asc(deviceMacs.createdAt), asc(deviceMacs.id));
-  const primary = await db.select({ mac: devices.mac }).from(devices).where(eq(devices.id, deviceId)).limit(1);
+  const primary = await db.select({ mac: devices.mac, app: devices.app }).from(devices).where(eq(devices.id, deviceId)).limit(1);
   return [
-    ...(primary[0]?.mac ? [{ id: 0, mac: primary[0].mac, createdAt: null as Date | null, primary: true }] : []),
+    ...(primary[0]?.mac ? [{ id: 0, mac: primary[0].mac, appId: primary[0].app, createdAt: null as Date | null, primary: true }] : []),
     ...aliases.map((alias) => ({ ...alias, primary: false })),
   ];
 }
 
-export async function addDeviceMac(deviceId: number, ownerId: number, rawMac: string) {
+export async function addDeviceMac(deviceId: number, ownerId: number, rawMac: string, appId?: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const mac = normalizeMacForStorage(rawMac);
   if (!mac) throw new Error("MAC inválido. Informe 12 caracteres hexadecimais.");
+  const normalizedAppId = appId?.trim().toLowerCase() || null;
+  if (normalizedAppId && !isManagedAppId(normalizedAppId)) throw new Error("APK inválido para este MAC.");
   const owned = await db.select({ id: devices.id, mac: devices.mac }).from(devices)
     .where(and(eq(devices.id, deviceId), eq(devices.ownerId, ownerId))).limit(1);
   if (!owned.length) throw new Error("Cliente não encontrado.");
   if (owned[0].mac && normalizeMacForStorage(owned[0].mac) === mac) return { id: 0, mac, primary: true };
-  const existing = await db.select({ id: deviceMacs.id, deviceId: deviceMacs.deviceId }).from(deviceMacs).where(eq(deviceMacs.mac, mac)).limit(1);
+  const existing = await db.select({ id: deviceMacs.id, deviceId: deviceMacs.deviceId, appId: deviceMacs.appId }).from(deviceMacs).where(eq(deviceMacs.mac, mac)).limit(1);
   if (existing.length) {
-    if (existing[0].deviceId === deviceId) return { id: existing[0].id, mac, primary: false };
+    if (existing[0].deviceId === deviceId) {
+      if (normalizedAppId && existing[0].appId !== normalizedAppId) await db.update(deviceMacs).set({ appId: normalizedAppId }).where(eq(deviceMacs.id, existing[0].id));
+      return { id: existing[0].id, mac, appId: normalizedAppId || existing[0].appId, primary: false };
+    }
     throw new Error("Este MAC já está vinculado a outro cliente.");
   }
   if (!owned[0].mac) {
     await db.update(devices).set({ mac }).where(eq(devices.id, deviceId));
     return { id: 0, mac, primary: true };
   }
-  const result = await db.insert(deviceMacs).values({ deviceId, mac });
+  const result = await db.insert(deviceMacs).values({ deviceId, mac, appId: normalizedAppId });
   return { id: Number((result as any)[0]?.insertId ?? (result as any).insertId), mac, primary: false };
 }
 

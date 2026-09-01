@@ -41,6 +41,21 @@ function parseXteamUrl(url: string): { server: string; username: string; passwor
   }
 }
 
+function appForMac(appId: string | null | undefined) {
+  if (!appId) return null;
+  return Object.values(MANAGED_APP_CATALOG).find((app) => app.id === appId || (app.deviceAliases as readonly string[]).includes(appId)) ?? null;
+}
+
+function MacAppBadge({ appId }: { appId: string | null | undefined }) {
+  const app = appForMac(appId);
+  return (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      {app?.defaultLogoUrl ? <img src={app.defaultLogoUrl} alt="" className="h-6 w-6 rounded-md object-cover" /> : <div className="h-6 w-6 rounded-md bg-muted" />}
+      <span>APK: <strong className="text-foreground">{app?.displayName ?? appId ?? "Não definido"}</strong></span>
+    </div>
+  );
+}
+
 export default function UserEdit() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -85,6 +100,7 @@ export default function UserEdit() {
   const allowedAppOptions = resellerAppAccess?.isRestricted
     ? CLIENT_APP_OPTIONS.filter((option) => Object.values(MANAGED_APP_CATALOG).some((app) => resellerAppAccess.allowedApps.includes(app.id) && app.deviceAliases.includes(option.value as never)))
     : CLIENT_APP_OPTIONS;
+  const availableMacApps = Object.values(MANAGED_APP_CATALOG).filter((app) => !resellerAppAccess?.isRestricted || resellerAppAccess.allowedApps.includes(app.id));
 
   // formKey força re-render dos Select quando os dados chegam do servidor
   const [formKey, setFormKey] = useState(0);
@@ -92,6 +108,7 @@ export default function UserEdit() {
   const [linkedAppIds, setLinkedAppIds] = useState<string[]>([]);
   const [isMacEditorOpen, setIsMacEditorOpen] = useState(false);
   const [additionalMac, setAdditionalMac] = useState("");
+  const [additionalAppId, setAdditionalAppId] = useState("");
 
   useEffect(() => {
     if (device && !hasUserEdited) {
@@ -137,6 +154,7 @@ export default function UserEdit() {
   const addMacMutation = trpc.devices.addMac.useMutation({
     onSuccess: async () => {
       setAdditionalMac("");
+      setAdditionalAppId("");
       setIsMacEditorOpen(false);
       await utils.devices.macs.invalidate({ id: deviceId });
       await utils.devices.getById.invalidate({ id: deviceId });
@@ -203,7 +221,11 @@ export default function UserEdit() {
       toast.error("Cole o MAC do novo aparelho.");
       return;
     }
-    addMacMutation.mutate({ id: deviceId, mac: additionalMac });
+    if (!additionalAppId) {
+      toast.error("Escolha qual APK será usado neste MAC.");
+      return;
+    }
+    addMacMutation.mutate({ id: deviceId, mac: additionalMac, appId: additionalAppId });
   };
 
   const handleMacChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -311,12 +333,14 @@ export default function UserEdit() {
                             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">PRINCIPAL</span>
                           </div>
                           <Input value={form.mac} onChange={handleMacChange} placeholder="00:00:00:00:00:00" maxLength={17} className="h-10 font-mono" />
+                          <MacAppBadge appId={item.appId} />
                           <p className="mt-1 text-[11px] text-muted-foreground">Edite e clique em “Salvar Alterações” no final da página.</p>
                         </div>
                       ) : (
                         <div className="min-w-0 flex-1">
                           <div className="mb-1 flex items-center gap-2"><span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">MAC secundário / reserva</span></div>
                           <span className="font-mono text-sm tracking-wide">{item.mac}</span>
+                          <MacAppBadge appId={item.appId} />
                         </div>
                       )}
                       {!item.primary && <Button type="button" variant="ghost" size="icon" className="h-8 w-8 self-end text-destructive sm:self-center" aria-label={`Remover MAC ${item.mac}`} onClick={() => removeMacMutation.mutate({ id: deviceId, macId: item.id })} disabled={removeMacMutation.isPending}><Trash2 className="h-4 w-4" /></Button>}
@@ -327,11 +351,23 @@ export default function UserEdit() {
               {isMacEditorOpen && (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MAC DO NOVO APARELHO</Label>
+                  <div className="mt-2">
+                    <Select value={additionalAppId} onValueChange={setAdditionalAppId}>
+                      <SelectTrigger className="h-10 bg-background"><SelectValue placeholder="Escolha o APK deste aparelho" /></SelectTrigger>
+                      <SelectContent>
+                        {availableMacApps.map((app) => (
+                          <SelectItem key={app.id} value={app.id}>
+                            <span className="flex items-center gap-2"><img src={app.defaultLogoUrl} alt="" className="h-5 w-5 rounded object-cover" /> {app.displayName}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                     <Input placeholder="00:00:00:00:00:00" value={additionalMac} onChange={handleAdditionalMacChange} maxLength={17} className="h-10 font-mono" autoFocus />
                     <Button type="button" className="h-10 shrink-0" onClick={handleAddMac} disabled={addMacMutation.isPending}>{addMacMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vincular MAC"}</Button>
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">Cole somente o MAC. Não é necessário repetir nome, lista ou usuário.</p>
+                  <p className="mt-2 text-xs text-muted-foreground">Cole somente o MAC e escolha o APK que será usado neste aparelho. Não é necessário repetir nome, lista ou usuário.</p>
                 </div>
               )}
             </div>
