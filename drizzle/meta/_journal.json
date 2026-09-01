@@ -428,6 +428,13 @@
       "when": 1788226766734,
       "tag": "0060_oval_the_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "5",
+      "when": 1788228335526,
+      "tag": "0061_swift_scorpion",
+      "breakpoints": true
     }
   ]
 }

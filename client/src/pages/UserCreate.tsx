@@ -71,6 +71,7 @@ export default function UserCreate() {
     accessMode: "MAC" as "MAC" | "LOGIN_PASSWORD" | "NO_MAC",
     mac: "",
     nomeServer: "",
+    nomeServidor: "",
     app: "OuroPro",
     valor: "",
     dataExpiracao: "",
@@ -222,6 +223,7 @@ export default function UserCreate() {
         xtPassword: principal.xtPassword,
         appId,
         nomeServer: form.nomeServer.trim(),
+        nomeServidor: form.nomeServidor.trim() || undefined,
         tipo: form.tipo,
         urlEpg: principal.urlEpg || undefined,
         valor: form.valor || undefined,
@@ -245,6 +247,7 @@ export default function UserCreate() {
       mac: form.mac.trim() || undefined,
       accessMode: String(form.accessMode) === "LOGIN_PASSWORD" ? "LOGIN_PASSWORD" : "MAC",
       nomeServer: form.nomeServer.trim(),
+      nomeServidor: form.nomeServidor.trim() || undefined,
       modoSelecao: principal.modo,
       tipo: form.tipo,
       app: form.app,
@@ -306,14 +309,25 @@ export default function UserCreate() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                NOME DO SERVER: <span className="text-red-500">*</span>
+                NOME DO CLIENTE: <span className="text-red-500">*</span>
               </Label>
               <Input
-                placeholder="Nome do servidor"
+                placeholder="Nome do cliente"
                 value={form.nomeServer}
                 onChange={e => setForm(f => ({ ...f, nomeServer: e.target.value }))}
                 className="h-10"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">NOME DO SERVIDOR:</Label>
+              <Input
+                placeholder="Opcional — não impede o cadastro"
+                value={form.nomeServidor}
+                onChange={e => setForm(f => ({ ...f, nomeServidor: e.target.value }))}
+                className="h-10"
+              />
+              <p className="text-xs text-muted-foreground">Você pode preencher depois, se necessário.</p>
             </div>
 
             <div className="space-y-1.5">

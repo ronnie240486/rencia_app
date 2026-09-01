@@ -1,0 +1,1 @@
+ALTER TABLE `devices` ADD `nomeServidor` varchar(255);

@@ -1557,3 +1557,6 @@
 - [x] Permitir cadastrar usuário sem MAC e adicionar o MAC depois pelo Editar
 - [x] Mostrar aplicativos disponíveis no menu fechado de cada cliente
 - [x] Concluir o fluxo de cadastro sem MAC, adicionar MAC posteriormente e mostrar aplicativos disponíveis no cartão do cliente
+- [x] Ocultar também o atalho Login dos Aplicativos do menu principal sem apagar suas funções internas
+- [x] Separar Nome do cliente obrigatório e Nome do servidor opcional no cadastro de usuário
+- [x] Garantir que aplicativos liberados apareçam no menu fechado do cliente

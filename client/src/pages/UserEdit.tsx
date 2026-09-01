@@ -60,6 +60,7 @@ export default function UserEdit() {
     modoSelecao: "XTeamCode" as "XTeamCode" | "M3U8",
     mac: "",
     nomeServer: "",
+    nomeServidor: "",
     // M3U8
     urlM3u8: "",
     // XteamCode
@@ -102,6 +103,7 @@ export default function UserEdit() {
         modoSelecao: modo,
         mac: device.mac ?? "",
         nomeServer: device.nomeServer ?? "",
+        nomeServidor: device.nomeServidor ?? "",
         urlM3u8: device.urlM3u8 ?? "",
         xtServer,
         xtUsername,
@@ -192,6 +194,7 @@ export default function UserEdit() {
       id: deviceId,
       mac: form.mac.trim() || undefined,
       nomeServer: form.nomeServer.trim(),
+      nomeServidor: form.nomeServidor.trim() || undefined,
       modoSelecao: form.modoSelecao,
       tipo: form.tipo,
       status: form.status,
@@ -257,17 +260,27 @@ export default function UserEdit() {
               {form.mac || isMacEditorOpen ? <Input placeholder="00:00:00:00:00:00" value={form.mac} onChange={handleMacChange} maxLength={17} className="h-10 font-mono" /> : <p className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">Nenhum MAC vinculado. Cadastre o cliente primeiro e adicione o aparelho depois por este botão.</p>}
             </div>
 
-            {/* Nome do Server */}
+            {/* Nome do cliente e nome do servidor */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                NOME DO SERVER: <span className="text-red-500">*</span>
+                NOME DO CLIENTE: <span className="text-red-500">*</span>
               </Label>
               <Input
-                placeholder="Nome do servidor"
+                placeholder="Nome do cliente"
                 value={form.nomeServer}
                 onChange={e => setForm(f => ({ ...f, nomeServer: e.target.value }))}
                 className="h-10"
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">NOME DO SERVIDOR:</Label>
+              <Input
+                placeholder="Opcional — não impede o cadastro"
+                value={form.nomeServidor}
+                onChange={e => setForm(f => ({ ...f, nomeServidor: e.target.value }))}
+                className="h-10"
+              />
+              <p className="text-xs text-muted-foreground">Você pode preencher depois, se necessário.</p>
             </div>
 
             {/* Modo de Seleção */}

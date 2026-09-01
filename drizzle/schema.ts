@@ -71,7 +71,8 @@ export const devices = mysqlTable("devices", {
   ownerId: int("ownerId").notNull(),
   mac: varchar("mac", { length: 64 }),
   accessMode: mysqlEnum("accessMode", ["MAC", "LOGIN_PASSWORD"]).default("MAC").notNull(),
-  nomeServer: varchar("nomeServer", { length: 255 }).notNull(),
+  nomeServer: varchar("nomeServer", { length: 255 }).notNull(), // nome do cliente, preservado por compatibilidade
+  nomeServidor: varchar("nomeServidor", { length: 255 }), // nome do servidor opcional
   tipo: mysqlEnum("tipo", ["Usuario", "Revenda", "UltraMaster", "Master"]).default("Usuario").notNull(),
   modoSelecao: mysqlEnum("modoSelecao", ["XTeamCode", "M3U8"]).default("XTeamCode").notNull(),
   app: varchar("app", { length: 128 }),

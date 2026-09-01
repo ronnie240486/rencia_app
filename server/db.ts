@@ -136,6 +136,7 @@ export async function createDevice(data: {
   mac: string | null | undefined;
   accessMode?: "MAC" | "LOGIN_PASSWORD";
   nomeServer: string;
+  nomeServidor?: string | null;
   tipo?: "Usuario" | "Revenda" | "UltraMaster" | "Master";
   modoSelecao?: "XTeamCode" | "M3U8";
   app?: string;
@@ -153,6 +154,7 @@ export async function createDevice(data: {
     mac: data.mac ?? null,
     accessMode: data.accessMode ?? "MAC",
     nomeServer: data.nomeServer,
+    nomeServidor: data.nomeServidor?.trim() || null,
     tipo: data.tipo ?? "Usuario",
     modoSelecao: data.modoSelecao ?? "M3U8",
     app: data.app ?? null,
@@ -172,6 +174,7 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
   mac?: string | null;
   accessMode: "MAC" | "LOGIN_PASSWORD";
   nomeServer: string;
+  nomeServidor?: string | null;
   tipo: "Usuario" | "Revenda" | "UltraMaster" | "Master";
   modoSelecao: "XTeamCode" | "M3U8";
   app: string;
@@ -188,6 +191,7 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
   if (data.mac !== undefined) updateData.mac = data.mac;
   if (data.accessMode !== undefined) updateData.accessMode = data.accessMode;
   if (data.nomeServer !== undefined) updateData.nomeServer = data.nomeServer;
+  if (data.nomeServidor !== undefined) updateData.nomeServidor = data.nomeServidor?.trim() || null;
   if (data.tipo !== undefined) updateData.tipo = data.tipo;
   if (data.modoSelecao !== undefined) updateData.modoSelecao = data.modoSelecao;
   if (data.app !== undefined) updateData.app = data.app;
