@@ -1583,3 +1583,5 @@
 
 - [ ] Corrigir o segundo MAC que não aparece salvo junto do MAC principal
 - [ ] Corrigir o erro SQLite idx_catalog_series_identity que impede o Future de baixar a lista do painel
+
+- [ ] Garantir que o primeiro MAC permaneça principal e que o MAC do celular seja adicionado como secundário com APK próprio, herdando listas e permissões e aparecendo no cartão do cliente

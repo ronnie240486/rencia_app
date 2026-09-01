@@ -77,6 +77,14 @@ function ClientAppAvatar({ appName, customerName }: { appName?: string | null; c
   return <div aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">{customerName.slice(0, 1).toUpperCase()}</div>;
 }
 
+function MacAppBadge({ appId }: { appId?: string | null }) {
+  const app = findClientAppOption(appId);
+  return <span className="ml-1 inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/5 px-1.5 py-0.5 align-middle font-sans text-[10px] text-foreground">
+    {app?.logoUrl ? <AppLogoBadge logoUrl={app.logoUrl} label="" className="h-4 w-4 rounded object-cover" /> : null}
+    {app?.label ?? appId ?? "APK não definido"}
+  </span>;
+}
+
 function AvailableApps({ primaryApp, linkedAppIds }: { primaryApp?: string | null; linkedAppIds?: string[] }) {
   const appNames = Array.from(new Set([primaryApp, ...(linkedAppIds ?? [])].filter((value): value is string => Boolean(value && value.trim()))));
   if (appNames.length === 0) return <span className="text-xs text-muted-foreground">Nenhum aplicativo liberado</span>;
@@ -426,7 +434,14 @@ export default function Users() {
                 <ClientAppAvatar appName={device.app} customerName={device.nomeServer} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-muted-foreground">Cliente</p><p className="truncate font-semibold text-foreground">{device.nomeServer}</p></div><StatusBadge status={device.status as DeviceStatus} /></div>
-                          <p className="mt-1 font-mono text-xs text-muted-foreground">{device.mac || "Sem MAC — adicione em Editar"}</p>
+                          <div className="mt-1 space-y-1">
+                            {device.macs?.length ? device.macs.map((macItem) => (
+                              <div key={macItem.primary ? "primary-mac" : `secondary-mac-${macItem.id}-${macItem.mac}`} className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted-foreground">
+                                <span className={macItem.primary ? "font-semibold text-primary" : ""}>{macItem.primary ? "Principal" : "Reserva"}: {macItem.mac}</span>
+                                <MacAppBadge appId={macItem.appId} />
+                              </div>
+                            )) : <span>{device.mac || "Sem MAC — adicione em Editar"}</span>}
+                          </div>
                 </div>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 border-y py-3">
@@ -501,7 +516,9 @@ export default function Users() {
                           aria-label={`Selecionar ${d.mac}`}
                         />
                       </TableCell>
-                      <TableCell className="text-xs font-mono">{d.mac || <span className="text-muted-foreground">Sem MAC</span>}</TableCell>
+                      <TableCell className="text-xs font-mono">
+                        {d.macs?.length ? <div className="space-y-1">{d.macs.map((macItem) => <div key={macItem.primary ? "primary-mac" : `secondary-mac-${macItem.id}-${macItem.mac}`} className={macItem.primary ? "font-semibold text-primary" : "text-muted-foreground"}>{macItem.primary ? "Principal" : "Reserva"}: {macItem.mac} <MacAppBadge appId={macItem.appId} /></div>)}</div> : d.mac || <span className="text-muted-foreground">Sem MAC</span>}
+                      </TableCell>
                       <TableCell className="text-xs font-medium"><div>{d.nomeServer}</div><div className="mt-1"><AvailableApps primaryApp={d.app} linkedAppIds={(d as typeof d & { linkedAppIds?: string[] }).linkedAppIds} /></div></TableCell>
                       <TableCell><TipoBadge tipo={d.tipo as DeviceTipo} /></TableCell>
                       <TableCell className="text-xs">

@@ -107,15 +107,29 @@ export async function listDevices(ownerId: number, opts: {
     .where(inArray(deviceUrls.deviceId, data.map((device) => device.id)))
     .groupBy(deviceUrls.deviceId);
   const playlistCountByDevice = new Map(playlistRows.map((item) => [item.deviceId, Number(item.count)]));
-  const linkedAppRows = data.length === 0 ? [] : await db
-    .select({ deviceId: deviceAppLinks.deviceId, appId: deviceAppLinks.appId })
-    .from(deviceAppLinks)
-    .where(inArray(deviceAppLinks.deviceId, data.map((device) => device.id)));
+  const deviceIds = data.map((device) => device.id);
+  const [linkedAppRows, macRows] = await Promise.all([
+    data.length === 0 ? Promise.resolve([]) : db
+      .select({ deviceId: deviceAppLinks.deviceId, appId: deviceAppLinks.appId })
+      .from(deviceAppLinks)
+      .where(inArray(deviceAppLinks.deviceId, deviceIds)),
+    data.length === 0 ? Promise.resolve([]) : db
+      .select({ deviceId: deviceMacs.deviceId, id: deviceMacs.id, mac: deviceMacs.mac, appId: deviceMacs.appId, createdAt: deviceMacs.createdAt })
+      .from(deviceMacs)
+      .where(inArray(deviceMacs.deviceId, deviceIds))
+      .orderBy(asc(deviceMacs.createdAt), asc(deviceMacs.id)),
+  ]);
   const linkedAppsByDevice = new Map<number, string[]>();
   for (const row of linkedAppRows) {
     const current = linkedAppsByDevice.get(row.deviceId) ?? [];
     current.push(row.appId);
     linkedAppsByDevice.set(row.deviceId, current);
+  }
+  const macsByDevice = new Map<number, Array<{ id: number; mac: string; appId: string | null; createdAt: Date | null; primary: boolean }>>();
+  for (const row of macRows) {
+    const current = macsByDevice.get(row.deviceId) ?? [];
+    current.push({ ...row, primary: false });
+    macsByDevice.set(row.deviceId, current);
   }
 
   return {
@@ -123,6 +137,10 @@ export async function listDevices(ownerId: number, opts: {
       ...device,
       playlistCount: countDevicePlaylists(device.urlM3u8, playlistCountByDevice.get(device.id) ?? 0),
       linkedAppIds: linkedAppsByDevice.get(device.id) ?? [],
+      macs: [
+        ...(device.mac ? [{ id: 0, mac: device.mac, appId: device.app, createdAt: null, primary: true }] : []),
+        ...(macsByDevice.get(device.id) ?? []),
+      ],
     })),
     total: totalRows[0]?.count ?? 0,
   };
