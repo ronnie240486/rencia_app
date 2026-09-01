@@ -82,6 +82,7 @@ export async function listDevices(ownerId: number, opts: {
     const searchConditions = [
       like(devices.mac, `%${search}%`),
       like(devices.nomeServer, `%${search}%`),
+      like(devices.nomeServidor, `%${search}%`),
       like(devices.telefone, `%${search}%`),
     ];
     if (normalizedPhoneSearch.length >= 8) {

@@ -21,17 +21,31 @@ function formatDateOnly(date: Date) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
 }
 
-/** Aceita timestamp Unix, ISO, YYYY-MM-DD e datas usuais retornadas por provedores IPTV. */
+function isValidDateOnly(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return false;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+/** Aceita timestamp Unix, ISO, YYYY-MM-DD, DD/MM/YYYY e datas usuais retornadas por provedores IPTV. */
 export function parseProviderExpiration(value: unknown): string | null {
   if (value === null || value === undefined || value === "" || value === "0") return null;
-  const raw = String(value).trim();
-  if (!raw) return null;
+  const raw = String(value).trim().replace(/^['"]|['"]$/g, "");
+  if (!raw || raw === "0" || raw.toLowerCase() === "null") return null;
 
   if (/^\d{10,13}$/.test(raw)) {
     const numeric = Number(raw);
     return formatDateOnly(new Date(raw.length === 10 ? numeric * 1000 : numeric));
   }
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return isValidDateOnly(raw) ? raw : null;
+
+  const brazilian = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:\s|T|$)/);
+  if (brazilian) {
+    const [, day, month, year] = brazilian;
+    const normalized = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    return isValidDateOnly(normalized) ? normalized : null;
+  }
 
   const parsed = new Date(raw.replace(" ", "T"));
   return formatDateOnly(parsed);
@@ -71,20 +85,59 @@ export function buildXtreamMetadataUrl(input: PlaylistExpirationInput): string |
   return `${base}/player_api.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
 }
 
-function expirationFromPayload(payload: unknown) {
-  if (!payload || typeof payload !== "object") return null;
+const EXPIRATION_KEYS = [
+  "exp_date", "expiration_date", "expires_at", "expiry_date", "expirationDate", "expire_date",
+  "expires", "expires_on", "expiresOn", "valid_until", "validUntil", "validade", "data_expiracao",
+];
+
+function expirationFromPayload(payload: unknown, depth = 0): string | null {
+  if (!payload || typeof payload !== "object" || depth > 3) return null;
   const record = payload as Record<string, unknown>;
-  const userInfo = record.user_info && typeof record.user_info === "object"
-    ? record.user_info as Record<string, unknown>
-    : record;
-  return parseProviderExpiration(
-    userInfo.exp_date ?? userInfo.expiration_date ?? userInfo.expires_at ?? userInfo.expiry_date,
-  );
+  for (const key of EXPIRATION_KEYS) {
+    const parsed = parseProviderExpiration(record[key]);
+    if (parsed) return parsed;
+  }
+  for (const key of ["user_info", "user", "account", "data", "result", "info", "metadata"]) {
+    const nested = expirationFromPayload(record[key], depth + 1);
+    if (nested) return nested;
+  }
+  return null;
 }
 
 function expirationFromText(text: string) {
-  const match = text.match(/(?:exp_date|expiration_date|expires_at|expiry_date)\s*[=:]\s*["']?([^"'\s,&<]+)/i);
-  return match ? parseProviderExpiration(match[1]) : null;
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const parsed = expirationFromPayload(JSON.parse(trimmed));
+      if (parsed) return parsed;
+    } catch {
+      // Continua com a leitura textual para respostas JSON incompletas.
+    }
+  }
+
+  const keyPattern = new RegExp(`(?:${EXPIRATION_KEYS.join("|")})\\s*[=:]\\s*["']?([^"'\\s,&<>]+)`, "i");
+  const keyed = text.match(keyPattern);
+  if (keyed) {
+    const parsed = parseProviderExpiration(keyed[1]);
+    if (parsed) return parsed;
+  }
+
+  const natural = text.match(/(?:expira(?:\u00e7\u00e3o|[c\u00e7][a\u00e3]o)?|validade|valid until|expires?)[^0-9]{0,24}(\d{1,2}[\/-]\d{1,2}[\/-]\d{4}|\d{4}-\d{2}-\d{2})/i);
+  return natural ? parseProviderExpiration(natural[1]) : null;
+}
+
+function expirationFromUrl(urlValue: string) {
+  try {
+    const url = new URL(urlValue);
+    for (const key of EXPIRATION_KEYS) {
+      const parsed = parseProviderExpiration(url.searchParams.get(key));
+      if (parsed) return parsed;
+    }
+  } catch {
+    // URL já será validada pela consulta principal.
+  }
+  return null;
 }
 
 function success(expirationDate: string, source: PlaylistExpirationLookup["source"]): PlaylistExpirationLookup {
@@ -133,6 +186,9 @@ export async function lookupPlaylistExpiration(
   if (!playlistUrl) {
     return { found: false, expirationDate: null, source: "none", message: "Informe uma lista com URL ou dados XTeam para consultar a validade." };
   }
+  const urlExpiration = expirationFromUrl(playlistUrl);
+  if (urlExpiration) return success(urlExpiration, "playlist-body");
+
   const validatedPlaylist = await validateListUrl(playlistUrl);
   if (!validatedPlaylist.valid) return { found: false, expirationDate: null, source: "none", message: validatedPlaylist.message };
 

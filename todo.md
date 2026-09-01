@@ -1562,3 +1562,5 @@
 - [x] Garantir que aplicativos liberados apareçam no menu fechado do cliente
 - [x] Transformar Aplicativos liberados para este cliente em menu suspenso fechado no cadastro e na edição
 - [x] Fechar também o título e a instrução de Aplicativos liberados, deixando toda a seção recolhida até o toque
+- [x] Mostrar Servidor ao lado do Valor no cartão de usuário
+- [x] Corrigir a leitura da data de validade das listas quando o provedor retorna formatos diferentes

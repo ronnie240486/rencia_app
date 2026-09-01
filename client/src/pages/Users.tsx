@@ -433,6 +433,7 @@ export default function Users() {
                 <div className="rounded-xl bg-primary/10 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Playlists</p><p className="mt-0.5 text-lg font-bold text-primary">{device.playlistCount}</p></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Nível</p><p className="mt-0.5 truncate text-sm font-semibold text-foreground">{device.tipo}</p></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Valor</p><p className="mt-0.5 text-sm font-semibold text-foreground">{device.valor ? `R$ ${Number(device.valor).toFixed(2)}` : "—"}</p></div>
+                <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Servidor</p><p className="mt-0.5 truncate text-sm font-semibold text-foreground">{(device as typeof device & { nomeServidor?: string }).nomeServidor || "—"}</p></div>
                 <div className="col-span-2 rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Aplicativos disponíveis para este cliente</p><div className="mt-1"><AvailableApps primaryApp={device.app} linkedAppIds={(device as typeof device & { linkedAppIds?: string[] }).linkedAppIds} /></div></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Cadastro</p><p className="mt-0.5 text-sm font-semibold text-foreground">{formatDate(device.dataCadastro)}</p></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Expiração</p><p className="mt-0.5 text-sm font-semibold text-foreground">{formatDate(device.dataExpiracao)}</p></div>
@@ -465,6 +466,7 @@ export default function Users() {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">NOME DO SERVER</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">TIPO</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">VALOR</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">SERVIDOR</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">STATUS</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">CADASTRO</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">EXPIRAÇÃO</TableHead>
@@ -475,14 +477,14 @@ export default function Users() {
                 {isLoading ? (
                   Array.from({ length: 10 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 9 }).map((_, j) => (
+                      {Array.from({ length: 10 }).map((_, j) => (
                         <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : devices.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-sm text-muted-foreground py-12">
+                    <TableCell colSpan={10} className="text-center text-sm text-muted-foreground py-12">
                       Nenhum usuário encontrado.
                     </TableCell>
                   </TableRow>
@@ -505,6 +507,7 @@ export default function Users() {
                       <TableCell className="text-xs">
                         {d.valor ? `R$ ${Number(d.valor).toFixed(2)}` : "—"}
                       </TableCell>
+                      <TableCell className="max-w-[12rem] truncate text-xs">{(d as typeof d & { nomeServidor?: string }).nomeServidor || "—"}</TableCell>
                       <TableCell><StatusBadge status={d.status as DeviceStatus} /></TableCell>
                       <TableCell className="text-xs">{formatDate(d.dataCadastro)}</TableCell>
                       <TableCell className="text-xs">{formatDate(d.dataExpiracao)}</TableCell>
