@@ -1,5 +1,6 @@
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -9,7 +10,7 @@ import { trpc } from "@/lib/trpc";
 import { CLIENT_APP_OPTIONS } from "@/lib/clientAppOptions";
 import { AppLogoBadge } from "@/components/AppLogoBadge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, CalendarSearch, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarSearch, ChevronDown, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
@@ -356,25 +357,36 @@ export default function UserCreate() {
                 </SelectContent>
               </Select>
               <div className="mt-3 rounded-lg border border-dashed p-3">
-                <p className="text-xs font-semibold text-foreground">Aplicativos liberados para este cliente</p>
-                <p className="mt-1 text-xs text-muted-foreground">Marque os APKs que poderão usar este mesmo MAC. O cadastro do cliente continua único.</p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {allowedAppOptions.map((appOption) => {
-                    const appId = APP_ID_BY_NAME[appOption.value];
-                    const checked = linkedAppIds.includes(appId);
-                    return <label key={appOption.value} className="flex cursor-pointer items-center gap-2 rounded-md border p-2 text-sm hover:bg-muted/50">
-                      <input
-                        type="checkbox"
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="outline" className="h-10 w-full justify-between gap-2 text-left">
+                      <span>{linkedAppIds.length ? `Aplicativos liberados (${linkedAppIds.length})` : "Aplicativos liberados para este cliente"}</span>
+                      <ChevronDown className="h-4 w-4 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-[min(22rem,calc(100vw-3rem))]">
+                    <div className="px-2 py-1.5">
+                      <p className="text-xs font-semibold text-foreground">Aplicativos liberados para este cliente</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Marque os APKs que poderão usar este mesmo MAC.</p>
+                    </div>
+                    {allowedAppOptions.map((appOption) => {
+                      const appId = APP_ID_BY_NAME[appOption.value];
+                      const checked = linkedAppIds.includes(appId);
+                      return <DropdownMenuCheckboxItem
+                        key={appOption.value}
                         checked={checked}
-                        onChange={(event) => setLinkedAppIds((selected) => event.target.checked
+                        onCheckedChange={(value) => setLinkedAppIds((selected) => value
                           ? Array.from(new Set([...selected, appId]))
                           : selected.filter((id) => id !== appId))}
-                      />
-                      <AppLogoBadge logoUrl={appOption.logoUrl} label={appOption.label} />
-                      <span>{appOption.label}</span>
-                    </label>;
-                  })}
-                </div>
+                      >
+                        <span className="flex items-center gap-2">
+                          <AppLogoBadge logoUrl={appOption.logoUrl} label={appOption.label} />
+                          <span>{appOption.label}</span>
+                        </span>
+                      </DropdownMenuCheckboxItem>;
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 

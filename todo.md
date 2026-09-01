@@ -1560,3 +1560,5 @@
 - [x] Ocultar também o atalho Login dos Aplicativos do menu principal sem apagar suas funções internas
 - [x] Separar Nome do cliente obrigatório e Nome do servidor opcional no cadastro de usuário
 - [x] Garantir que aplicativos liberados apareçam no menu fechado do cliente
+- [x] Transformar Aplicativos liberados para este cliente em menu suspenso fechado no cadastro e na edição
+- [x] Fechar também o título e a instrução de Aplicativos liberados, deixando toda a seção recolhida até o toque
