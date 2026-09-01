@@ -1587,3 +1587,7 @@
 - [ ] Garantir que o primeiro MAC permaneça principal e que o MAC do celular seja adicionado como secundário com APK próprio, herdando listas e permissões e aparecendo no cartão do cliente
 
 - [ ] Corrigir definitivamente o segundo MAC que não está sendo gravado ou retornado no cartão da lista de usuários
+
+- [ ] Fazer o segundo MAC ser gravado no mesmo cliente e aparecer na tela principal abaixo do MAC principal, com o APK correspondente
+
+- [ ] Fazer Salvar Alterações gravar automaticamente o MAC secundário preenchido e atualizar a tela principal com os dois MACs

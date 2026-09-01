@@ -199,7 +199,12 @@ export default function UserEdit() {
 
   const updateMutation = trpc.devices.update.useMutation({
     onSuccess: async (result) => {
+      if (additionalMac.trim()) {
+        await addMacMutation.mutateAsync({ id: deviceId, mac: additionalMac, appId: additionalAppId });
+      }
       await setLinkedAppsMutation.mutateAsync({ id: deviceId, appIds: linkedAppIds });
+      await utils.devices.macs.invalidate({ id: deviceId });
+      await refetchDeviceMacs();
       if (result.device) {
         utils.devices.getById.setData({ id: deviceId }, result.device);
       }
@@ -239,6 +244,7 @@ export default function UserEdit() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nomeServer.trim()) { toast.error("Nome do server é obrigatório."); return; }
+    if (additionalMac.trim() && !additionalAppId) { toast.error("Escolha o APK do MAC secundário antes de salvar."); return; }
 
     let urlM3u8 = form.urlM3u8;
     if (form.modoSelecao === "XTeamCode") {
@@ -364,11 +370,10 @@ export default function UserEdit() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <div className="mt-2">
                     <Input placeholder="00:00:00:00:00:00" value={additionalMac} onChange={handleAdditionalMacChange} maxLength={17} className="h-10 font-mono" autoFocus />
-                    <Button type="button" className="h-10 shrink-0" onClick={handleAddMac} disabled={addMacMutation.isPending}>{addMacMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vincular MAC"}</Button>
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">Cole somente o MAC e escolha o APK que será usado neste aparelho. Não é necessário repetir nome, lista ou usuário.</p>
+                  <p className="mt-2 text-xs text-muted-foreground">Cole somente o MAC, escolha o APK e toque em “Salvar Alterações” no final. Não é necessário repetir nome, lista ou usuário.</p>
                 </div>
               )}
             </div>
