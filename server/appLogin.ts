@@ -20,7 +20,7 @@ export function isLoginAccessAllowed(state: LoginAccessState, now = new Date()):
  * disso, o aparelho fica vinculado àquela credencial para evitar uso indevido
  * do mesmo acesso em outro dispositivo.
  */
-export function resolveLoginMacBinding(currentMac: string, incomingMac?: string | null) {
+export function resolveLoginMacBinding(currentMac: string | null, incomingMac?: string | null) {
   const normalizedIncomingMac = incomingMac ? normalizeMacForStorage(incomingMac) : null;
   const isPending = !currentMac || currentMac === PENDING_LOGIN_MAC;
 

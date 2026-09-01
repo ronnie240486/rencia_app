@@ -1,0 +1,1 @@
+ALTER TABLE `devices` MODIFY COLUMN `mac` varchar(64);

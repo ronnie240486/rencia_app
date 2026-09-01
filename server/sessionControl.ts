@@ -1,6 +1,6 @@
 export type SessionCandidate = {
   id: number;
-  mac: string;
+  mac: string | null;
   nomeServer: string;
   app: string | null;
   status: "Liberado" | "Bloqueado" | "Expirado";
@@ -13,12 +13,12 @@ export function buildSessionOverview(rows: SessionCandidate[], now = new Date(),
   const cutoff = now.getTime() - minutesWindow * 60 * 1000;
   const macCounts = new Map<string, number>();
   rows.forEach((row) => {
-    const key = row.mac.trim().toUpperCase();
+    const key = (row.mac ?? `NO_MAC:${row.id}`).trim().toUpperCase();
     macCounts.set(key, (macCounts.get(key) ?? 0) + 1);
   });
   return rows.map((row) => {
     const active = !!row.lastSeen && row.lastSeen.getTime() >= cutoff;
-    const repeatedMacCount = macCounts.get(row.mac.trim().toUpperCase()) ?? 1;
+    const repeatedMacCount = macCounts.get((row.mac ?? `NO_MAC:${row.id}`).trim().toUpperCase()) ?? 1;
     return {
       ...row,
       active,

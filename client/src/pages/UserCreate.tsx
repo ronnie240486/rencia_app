@@ -68,7 +68,7 @@ export default function UserCreate() {
   const { data: resellerAppAccess } = trpc.resellerAppAccess.me.useQuery();
 
   const [form, setForm] = useState({
-    accessMode: "MAC" as "MAC" | "LOGIN_PASSWORD",
+    accessMode: "MAC" as "MAC" | "LOGIN_PASSWORD" | "NO_MAC",
     mac: "",
     nomeServer: "",
     app: "OuroPro",
@@ -196,7 +196,7 @@ export default function UserCreate() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.accessMode === "MAC" && !form.mac.trim()) { toast.error("MAC do dispositivo é obrigatório."); return; }
+    if (form.accessMode === "MAC" && !form.mac.trim()) { toast.error("Informe o MAC ou escolha Cadastrar sem MAC."); return; }
     if (!form.nomeServer.trim()) { toast.error("Nome do server é obrigatório."); return; }
 
     const principal = listas[0];
@@ -242,7 +242,8 @@ export default function UserCreate() {
     }
 
     createMutation.mutate({
-      mac: form.mac.trim(),
+      mac: form.mac.trim() || undefined,
+      accessMode: String(form.accessMode) === "LOGIN_PASSWORD" ? "LOGIN_PASSWORD" : "MAC",
       nomeServer: form.nomeServer.trim(),
       modoSelecao: principal.modo,
       tipo: form.tipo,
@@ -274,14 +275,19 @@ export default function UserCreate() {
           <div className="bg-card rounded-xl border shadow-sm p-6 space-y-5">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Acesso do Cliente</p>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <button type="button" onClick={() => setForm(f => ({ ...f, accessMode: "MAC" }))} className={`rounded-lg border p-3 text-left transition-colors ${form.accessMode === "MAC" ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"}`}>
                 <p className="text-sm font-semibold text-foreground">Por MAC</p>
                 <p className="mt-1 text-xs text-muted-foreground">Mantém o modo atual de cadastro do aparelho.</p>
               </button>
               <button type="button" onClick={() => setForm(f => ({ ...f, accessMode: "LOGIN_PASSWORD" }))} className={`rounded-lg border p-3 text-left transition-colors ${form.accessMode === "LOGIN_PASSWORD" ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"}`}>
+
                 <p className="text-sm font-semibold text-foreground">Por login e senha</p>
                 <p className="mt-1 text-xs text-muted-foreground">O MAC será vinculado automaticamente no primeiro acesso do APK.</p>
+              </button>
+              <button type="button" onClick={() => setForm(f => ({ ...f, accessMode: "NO_MAC", mac: "" }))} className={`rounded-lg border p-3 text-left transition-colors ${form.accessMode === "NO_MAC" ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"}`}>
+                <p className="text-sm font-semibold text-foreground">Cadastrar sem MAC</p>
+                <p className="mt-1 text-xs text-muted-foreground">Adicione o MAC depois em Editar para liberar o aplicativo.</p>
               </button>
             </div>
 
@@ -296,7 +302,7 @@ export default function UserCreate() {
                 maxLength={17}
                 className="h-10 font-mono"
               />
-            </div> : <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground"><strong className="text-foreground">Sem dados inventados:</strong> o login, a senha e a DNS do aplicativo serão exatamente o <strong className="text-foreground">Usuário, Senha e URL do Servidor XTeam</strong> informados na Lista Principal abaixo.</div>}
+            </div> : form.accessMode === "LOGIN_PASSWORD" ? <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground"><strong className="text-foreground">Sem dados inventados:</strong> o login, a senha e a DNS do aplicativo serão exatamente o <strong className="text-foreground">Usuário, Senha e URL do Servidor XTeam</strong> informados na Lista Principal abaixo.</div> : <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground"><strong className="text-foreground">Cadastro provisório:</strong> nenhum MAC será salvo agora. Depois de entregar o aplicativo, abra <strong className="text-foreground">Editar → Adicionar MAC</strong> para vincular o aparelho.</div>}
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

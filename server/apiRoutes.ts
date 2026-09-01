@@ -726,7 +726,7 @@ export function registerApiRoutes(app: Express) {
               }
             }
 
-            if (serverUrl) {
+            if (serverUrl && device.mac) {
               // Limpar serverUrl para deixar apenas o host (protocolo + dominio + porta)
               let cleanServerUrl = serverUrl;
               try {
@@ -761,7 +761,7 @@ export function registerApiRoutes(app: Express) {
               break; 
             }
           }
-        } else if (device.urlM3u8) {
+        } else if (device.urlM3u8 && device.mac) {
           // Fallback: usar urlM3u8 do device principal se não houver deviceUrls
           let fUrl = device.urlM3u8;
           let fUser = "";
@@ -1266,7 +1266,7 @@ export function registerApiRoutes(app: Express) {
             } catch (e) {}
           }
 
-          if (serverUrl) {
+          if (serverUrl && device.mac) {
             // Limpar URL para deixar apenas o host
             let cleanUrl = serverUrl;
             try {
@@ -1284,7 +1284,7 @@ export function registerApiRoutes(app: Express) {
             });
           }
         }
-      } else if (device.urlM3u8) {
+      } else if (device.urlM3u8 && device.mac) {
         // Fallback para o device principal
         let fUrl = device.urlM3u8;
         let fUser = "";

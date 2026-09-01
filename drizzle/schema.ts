@@ -69,7 +69,7 @@ export type StoreInvite = typeof storeInvites.$inferSelect;
 export const devices = mysqlTable("devices", {
   id: int("id").autoincrement().primaryKey(),
   ownerId: int("ownerId").notNull(),
-  mac: varchar("mac", { length: 64 }).notNull(),
+  mac: varchar("mac", { length: 64 }),
   accessMode: mysqlEnum("accessMode", ["MAC", "LOGIN_PASSWORD"]).default("MAC").notNull(),
   nomeServer: varchar("nomeServer", { length: 255 }).notNull(),
   tipo: mysqlEnum("tipo", ["Usuario", "Revenda", "UltraMaster", "Master"]).default("Usuario").notNull(),

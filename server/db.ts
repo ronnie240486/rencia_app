@@ -104,11 +104,22 @@ export async function listDevices(ownerId: number, opts: {
     .where(inArray(deviceUrls.deviceId, data.map((device) => device.id)))
     .groupBy(deviceUrls.deviceId);
   const playlistCountByDevice = new Map(playlistRows.map((item) => [item.deviceId, Number(item.count)]));
+  const linkedAppRows = data.length === 0 ? [] : await db
+    .select({ deviceId: deviceAppLinks.deviceId, appId: deviceAppLinks.appId })
+    .from(deviceAppLinks)
+    .where(inArray(deviceAppLinks.deviceId, data.map((device) => device.id)));
+  const linkedAppsByDevice = new Map<number, string[]>();
+  for (const row of linkedAppRows) {
+    const current = linkedAppsByDevice.get(row.deviceId) ?? [];
+    current.push(row.appId);
+    linkedAppsByDevice.set(row.deviceId, current);
+  }
 
   return {
     data: data.map((device) => ({
       ...device,
       playlistCount: countDevicePlaylists(device.urlM3u8, playlistCountByDevice.get(device.id) ?? 0),
+      linkedAppIds: linkedAppsByDevice.get(device.id) ?? [],
     })),
     total: totalRows[0]?.count ?? 0,
   };
@@ -122,7 +133,7 @@ export async function getRecentDevices(ownerId: number, limit = 5) {
 
 export async function createDevice(data: {
   ownerId: number;
-  mac: string;
+  mac: string | null | undefined;
   accessMode?: "MAC" | "LOGIN_PASSWORD";
   nomeServer: string;
   tipo?: "Usuario" | "Revenda" | "UltraMaster" | "Master";
@@ -139,7 +150,7 @@ export async function createDevice(data: {
   if (!db) throw new Error("Database not available");
   const result = await db.insert(devices).values({
     ownerId: data.ownerId,
-    mac: data.mac,
+    mac: data.mac ?? null,
     accessMode: data.accessMode ?? "MAC",
     nomeServer: data.nomeServer,
     tipo: data.tipo ?? "Usuario",
@@ -158,7 +169,7 @@ export async function createDevice(data: {
 }
 
 export async function updateDevice(id: number, ownerId: number, data: Partial<{
-  mac: string;
+  mac?: string | null;
   accessMode: "MAC" | "LOGIN_PASSWORD";
   nomeServer: string;
   tipo: "Usuario" | "Revenda" | "UltraMaster" | "Master";
@@ -195,10 +206,9 @@ export async function deleteDevice(id: number, ownerId: number) {
   if (!db) throw new Error("Database not available");
   const owned = await db.select({ id: devices.id, mac: devices.mac }).from(devices).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId))).limit(1);
   if (!owned.length) return;
-  const duplicateDevices = await db.select({ id: devices.id })
-    .from(devices)
-    .where(sql`UPPER(REPLACE(${devices.mac}, '-', ':')) = ${owned[0].mac.trim().toUpperCase()}`);
-  const deviceIds = duplicateDevices.map((device) => device.id);
+  const deviceIds = owned[0].mac
+    ? (await db.select({ id: devices.id }).from(devices).where(sql`UPPER(REPLACE(${devices.mac}, '-', ':')) = ${owned[0].mac.trim().toUpperCase()}`)).map((device) => device.id)
+    : [id];
   await deleteDeviceReferences(db, deviceIds);
   await db.delete(devices).where(inArray(devices.id, deviceIds));
 }
@@ -209,10 +219,12 @@ export async function deleteManyDevices(ids: number[], ownerId: number) {
   if (ids.length === 0) return;
   const owned = await db.select({ id: devices.id, mac: devices.mac }).from(devices).where(and(inArray(devices.id, ids), eq(devices.ownerId, ownerId)));
   if (!owned.length) return;
-  const normalizedMacs = Array.from(new Set(owned.map((device) => device.mac.trim().toUpperCase())));
-  const allDuplicates = await db.select({ id: devices.id }).from(devices)
-    .where(inArray(sql`UPPER(REPLACE(${devices.mac}, '-', ':'))`, normalizedMacs));
-  const deviceIds = allDuplicates.map((device) => device.id);
+  const ownedWithMac = owned.filter((device): device is typeof device & { mac: string } => Boolean(device.mac));
+  const normalizedMacs = Array.from(new Set(ownedWithMac.map((device) => device.mac.trim().toUpperCase())));
+  const allDuplicates = normalizedMacs.length
+    ? await db.select({ id: devices.id }).from(devices).where(inArray(sql`UPPER(REPLACE(${devices.mac}, '-', ':'))`, normalizedMacs))
+    : [];
+  const deviceIds = Array.from(new Set([...allDuplicates.map((device) => device.id), ...owned.map((device) => device.id)]));
   await deleteDeviceReferences(db, deviceIds);
   await db.delete(devices).where(inArray(devices.id, deviceIds));
 }

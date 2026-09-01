@@ -3,7 +3,7 @@ import { formatDateOnlyPtBr } from "../shared/dateOnly";
 export type BulkMessageDevice = {
   id: number;
   nomeServer: string;
-  mac: string;
+  mac: string | null;
   app: string | null;
   telefone: string | null;
   urlM3u8: string | null;

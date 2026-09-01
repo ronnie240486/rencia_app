@@ -875,7 +875,8 @@ export const appRouter = router({
 
     create: protectedProcedure
       .input(z.object({
-        mac: z.string().min(1),
+        mac: z.string().trim().min(1).optional(),
+        accessMode: z.enum(["MAC", "LOGIN_PASSWORD"]).optional().default("MAC"),
         nomeServer: z.string().min(1),
         tipo: z.enum(["Usuario", "Revenda", "UltraMaster", "Master"]).optional().default("Usuario"),
         modoSelecao: z.enum(["XTeamCode", "M3U8"]).optional().default("XTeamCode"),
@@ -905,7 +906,7 @@ export const appRouter = router({
         if (stats.total >= limite) {
           throw new TRPCError({ code: "FORBIDDEN", message: `Limite de ${limite} devices atingido.` });
         }
-        const result = await createDevice({ ownerId: ctx.user.id, ...input });
+        const result = await createDevice({ ownerId: ctx.user.id, ...input, mac: input.mac ?? "" });
         await recordAudit({
           ownerId: ctx.user.id,
           actorUserId: ctx.user.id,

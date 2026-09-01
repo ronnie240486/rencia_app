@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { CLIENT_APP_OPTIONS } from "@/lib/clientAppOptions";
 import { AppLogoBadge } from "@/components/AppLogoBadge";
-import { AlertTriangle, ArrowLeft, CalendarSearch, ListPlus, Loader2, Save } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarSearch, ListPlus, Loader2, Plus, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
@@ -84,6 +84,7 @@ export default function UserEdit() {
   const [formKey, setFormKey] = useState(0);
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const [linkedAppIds, setLinkedAppIds] = useState<string[]>([]);
+  const [isMacEditorOpen, setIsMacEditorOpen] = useState(false);
 
   useEffect(() => {
     if (device && !hasUserEdited) {
@@ -175,7 +176,6 @@ export default function UserEdit() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.mac.trim()) { toast.error("MAC do dispositivo é obrigatório."); return; }
     if (!form.nomeServer.trim()) { toast.error("Nome do server é obrigatório."); return; }
 
     let urlM3u8 = form.urlM3u8;
@@ -190,7 +190,7 @@ export default function UserEdit() {
 
     updateMutation.mutate({
       id: deviceId,
-      mac: form.mac.trim(),
+      mac: form.mac.trim() || undefined,
       nomeServer: form.nomeServer.trim(),
       modoSelecao: form.modoSelecao,
       tipo: form.tipo,
@@ -250,16 +250,11 @@ export default function UserEdit() {
 
             {/* MAC */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                MAC DO DISPOSITIVO: <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                placeholder="00:00:00:00:00:00"
-                value={form.mac}
-                onChange={handleMacChange}
-                maxLength={17}
-                className="h-10 font-mono"
-              />
+              <div className="flex items-center justify-between gap-3">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MAC DO DISPOSITIVO{form.mac ? "" : " (OPCIONAL)"}</Label>
+                {!form.mac && !isMacEditorOpen && <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => setIsMacEditorOpen(true)}><Plus className="h-3.5 w-3.5" /> Adicionar MAC</Button>}
+              </div>
+              {form.mac || isMacEditorOpen ? <Input placeholder="00:00:00:00:00:00" value={form.mac} onChange={handleMacChange} maxLength={17} className="h-10 font-mono" /> : <p className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">Nenhum MAC vinculado. Cadastre o cliente primeiro e adicione o aparelho depois por este botão.</p>}
             </div>
 
             {/* Nome do Server */}

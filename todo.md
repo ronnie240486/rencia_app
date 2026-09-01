@@ -1553,3 +1553,7 @@
 - [ ] Padronizar as informações visíveis da Central para usar nome do servidor em vez de servidor isolado
 - [x] Corrigir valor de servidor IPTV que não foi contabilizado na Receita após cadastro
 - [x] Reverter o rótulo visível Nome do servidor para Servidor conforme solicitado
+- [x] Remover o botão Servidores IPTV do menu principal sem apagar a Central nem seus dados
+- [x] Permitir cadastrar usuário sem MAC e adicionar o MAC depois pelo Editar
+- [x] Mostrar aplicativos disponíveis no menu fechado de cada cliente
+- [x] Concluir o fluxo de cadastro sem MAC, adicionar MAC posteriormente e mostrar aplicativos disponíveis no cartão do cliente

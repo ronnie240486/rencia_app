@@ -77,6 +77,18 @@ function ClientAppAvatar({ appName, customerName }: { appName?: string | null; c
   return <div aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">{customerName.slice(0, 1).toUpperCase()}</div>;
 }
 
+function AvailableApps({ primaryApp, linkedAppIds }: { primaryApp?: string | null; linkedAppIds?: string[] }) {
+  const appNames = Array.from(new Set([primaryApp, ...(linkedAppIds ?? [])].filter((value): value is string => Boolean(value && value.trim()))));
+  if (appNames.length === 0) return <span className="text-xs text-muted-foreground">Nenhum aplicativo liberado</span>;
+  return <div className="flex flex-wrap items-center gap-1.5">{appNames.map((appName) => {
+    const app = findClientAppOption(appName);
+    return <span key={appName} className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-primary/5 px-1.5 py-1 text-[11px] font-medium text-foreground" title={app?.label ?? appName}>
+      <AppLogoBadge logoUrl={app?.logoUrl} label={app?.label ?? appName} className="h-5 w-5 rounded-full" />
+      <span className="max-w-28 truncate">{app?.label ?? appName}</span>
+    </span>;
+  })}</div>;
+}
+
 export default function Users() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -414,14 +426,14 @@ export default function Users() {
                 <ClientAppAvatar appName={device.app} customerName={device.nomeServer} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-muted-foreground">Cliente</p><p className="truncate font-semibold text-foreground">{device.nomeServer}</p></div><StatusBadge status={device.status as DeviceStatus} /></div>
-                  <p className="mt-1 font-mono text-xs text-muted-foreground">{device.mac}</p>
+                          <p className="mt-1 font-mono text-xs text-muted-foreground">{device.mac || "Sem MAC — adicione em Editar"}</p>
                 </div>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 border-y py-3">
                 <div className="rounded-xl bg-primary/10 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Playlists</p><p className="mt-0.5 text-lg font-bold text-primary">{device.playlistCount}</p></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Nível</p><p className="mt-0.5 truncate text-sm font-semibold text-foreground">{device.tipo}</p></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Valor</p><p className="mt-0.5 text-sm font-semibold text-foreground">{device.valor ? `R$ ${Number(device.valor).toFixed(2)}` : "—"}</p></div>
-                <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Aplicativo</p><p className="mt-0.5 truncate text-sm font-semibold text-foreground">{device.app || "Não informado"}</p></div>
+                <div className="col-span-2 rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Aplicativos disponíveis para este cliente</p><div className="mt-1"><AvailableApps primaryApp={device.app} linkedAppIds={(device as typeof device & { linkedAppIds?: string[] }).linkedAppIds} /></div></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Cadastro</p><p className="mt-0.5 text-sm font-semibold text-foreground">{formatDate(device.dataCadastro)}</p></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Expiração</p><p className="mt-0.5 text-sm font-semibold text-foreground">{formatDate(device.dataExpiracao)}</p></div>
               </div>
@@ -487,8 +499,8 @@ export default function Users() {
                           aria-label={`Selecionar ${d.mac}`}
                         />
                       </TableCell>
-                      <TableCell className="text-xs font-mono">{d.mac}</TableCell>
-                      <TableCell className="text-xs font-medium">{d.nomeServer}</TableCell>
+                      <TableCell className="text-xs font-mono">{d.mac || <span className="text-muted-foreground">Sem MAC</span>}</TableCell>
+                      <TableCell className="text-xs font-medium"><div>{d.nomeServer}</div><div className="mt-1"><AvailableApps primaryApp={d.app} linkedAppIds={(d as typeof d & { linkedAppIds?: string[] }).linkedAppIds} /></div></TableCell>
                       <TableCell><TipoBadge tipo={d.tipo as DeviceTipo} /></TableCell>
                       <TableCell className="text-xs">
                         {d.valor ? `R$ ${Number(d.valor).toFixed(2)}` : "—"}

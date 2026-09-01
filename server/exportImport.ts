@@ -305,8 +305,8 @@ export async function exportLegacyV2Backup(ownerId: number) {
   return buildLegacyV2Backup(await exportBackup(ownerId));
 }
 
-export function analyzeImportDevices(incoming: any[], existing: Array<{ id: number; mac: string; nomeServer: string | null }>) {
-  const existingByMac = new Map(existing.map((device) => [normalizeImportMac(device.mac), device]));
+export function analyzeImportDevices(incoming: any[], existing: Array<{ id: number; mac: string | null; nomeServer: string | null }>) {
+  const existingByMac = new Map(existing.filter((device) => device.mac).map((device) => [normalizeImportMac(device.mac), device]));
   const seen = new Set<string>();
   const duplicateInFile: any[] = [];
   const existingMatches: any[] = [];
