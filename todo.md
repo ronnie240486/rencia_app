@@ -1565,3 +1565,5 @@
 - [x] Mostrar Servidor ao lado do Valor no cartão de usuário
 - [x] Corrigir a leitura da data de validade das listas quando o provedor retorna formatos diferentes
 - [x] Permitir vários MACs no mesmo cliente, com botão para adicionar celular, TV ou outro dispositivo sem repetir listas
+
+- [x] Remover da Receita Mensal o valor de R$ 30,00 do cadastro inativo do Tom sem apagar o histórico
