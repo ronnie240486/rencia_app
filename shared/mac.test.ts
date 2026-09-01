@@ -7,6 +7,10 @@ describe("normalizeMacForStorage", () => {
     expect(normalizeMacForStorage("bd-33-00-93-dc-7a")).toBe("BD:33:00:93:DC:7A");
   });
 
+  it("mantém o mesmo MAC em formato canônico mesmo quando editado com separadores diferentes", () => {
+    expect(normalizeMacForStorage("aa:bb-cc.dd:ee ff")).toBe("AA:BB:CC:DD:EE:FF");
+  });
+
   it("rejeita MAC incompleto", () => {
     expect(normalizeMacForStorage("BD:33:00")).toBeNull();
   });

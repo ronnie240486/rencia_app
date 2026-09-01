@@ -299,14 +299,31 @@ export default function UserEdit() {
               <p className="text-xs text-muted-foreground">Celular, TV e outros aparelhos usam o mesmo cliente, listas e aplicativos liberados.</p>
               {deviceMacs?.length ? (
                 <div className="space-y-2">
+                  <p className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-medium text-primary">
+                    {deviceMacs.length === 1 ? "1 MAC salvo" : `${deviceMacs.length} MACs salvos`} · o primeiro é o principal e os demais são reservas/outros aparelhos.
+                  </p>
                   {deviceMacs.map((item) => (
-                    <div key={`${item.id}-${item.mac}`} className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 px-3 py-2">
-                      <span className="font-mono text-sm tracking-wide">{item.mac}</span>
-                      {item.primary ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">PRINCIPAL</span> : <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label={`Remover MAC ${item.mac}`} onClick={() => removeMacMutation.mutate({ id: deviceId, macId: item.id })} disabled={removeMacMutation.isPending}><Trash2 className="h-4 w-4" /></Button>}
+                    <div key={`${item.id}-${item.mac}`} className="flex flex-col gap-2 rounded-lg border bg-muted/20 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                      {item.primary ? (
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex items-center gap-2">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-primary">MAC principal</span>
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">PRINCIPAL</span>
+                          </div>
+                          <Input value={form.mac} onChange={handleMacChange} placeholder="00:00:00:00:00:00" maxLength={17} className="h-10 font-mono" />
+                          <p className="mt-1 text-[11px] text-muted-foreground">Edite e clique em “Salvar Alterações” no final da página.</p>
+                        </div>
+                      ) : (
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex items-center gap-2"><span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">MAC secundário / reserva</span></div>
+                          <span className="font-mono text-sm tracking-wide">{item.mac}</span>
+                        </div>
+                      )}
+                      {!item.primary && <Button type="button" variant="ghost" size="icon" className="h-8 w-8 self-end text-destructive sm:self-center" aria-label={`Remover MAC ${item.mac}`} onClick={() => removeMacMutation.mutate({ id: deviceId, macId: item.id })} disabled={removeMacMutation.isPending}><Trash2 className="h-4 w-4" /></Button>}
                     </div>
                   ))}
                 </div>
-              ) : <p className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">Nenhum MAC vinculado. Você pode cadastrar o cliente e adicionar o aparelho depois.</p>}
+              ) : <div className="space-y-2"><p className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">Nenhum MAC vinculado. Você pode cadastrar o cliente e adicionar o aparelho depois.</p><p className="text-xs text-muted-foreground">O primeiro MAC adicionado será salvo automaticamente como principal.</p></div>}
               {isMacEditorOpen && (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MAC DO NOVO APARELHO</Label>

@@ -236,7 +236,33 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const updateData: Record<string, unknown> = {};
-  if (data.mac !== undefined) updateData.mac = data.mac;
+  if (data.mac !== undefined) {
+    const requestedMac = data.mac?.trim() ?? "";
+    const normalizedMac = requestedMac ? normalizeMacForStorage(requestedMac) : null;
+    if (requestedMac && !normalizedMac) throw new Error("MAC inválido. Informe 12 caracteres hexadecimais.");
+    const current = await db.select({ mac: devices.mac }).from(devices)
+      .where(and(eq(devices.id, id), eq(devices.ownerId, ownerId))).limit(1);
+    if (!current.length) throw new Error("Cliente não encontrado.");
+    const currentMac = current[0].mac ? normalizeMacForStorage(current[0].mac) : null;
+    if (normalizedMac && normalizedMac !== currentMac) {
+      const [deviceConflict, aliasConflict] = await Promise.all([
+        db.select({ id: devices.id }).from(devices).where(and(eq(devices.mac, normalizedMac), sql`${devices.id} <> ${id}`)).limit(1),
+        db.select({ id: deviceMacs.id, deviceId: deviceMacs.deviceId }).from(deviceMacs).where(eq(deviceMacs.mac, normalizedMac)).limit(1),
+      ]);
+      if (deviceConflict.length || (aliasConflict.length && aliasConflict[0].deviceId !== id)) {
+        throw new Error("Este MAC já está vinculado a outro cliente.");
+      }
+      if (aliasConflict.length && aliasConflict[0].deviceId === id) {
+        await db.delete(deviceMacs).where(eq(deviceMacs.id, aliasConflict[0].id));
+      }
+      if (currentMac && currentMac !== normalizedMac) {
+        const oldAlias = await db.select({ id: deviceMacs.id }).from(deviceMacs)
+          .where(and(eq(deviceMacs.deviceId, id), eq(deviceMacs.mac, currentMac))).limit(1);
+        if (!oldAlias.length) await db.insert(deviceMacs).values({ deviceId: id, mac: currentMac });
+      }
+    }
+    updateData.mac = normalizedMac;
+  }
   if (data.accessMode !== undefined) updateData.accessMode = data.accessMode;
   if (data.nomeServer !== undefined) updateData.nomeServer = data.nomeServer;
   if (data.nomeServidor !== undefined) updateData.nomeServidor = data.nomeServidor?.trim() || null;

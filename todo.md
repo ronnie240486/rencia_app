@@ -1573,3 +1573,6 @@
 - [x] Remover o Nexus do catálogo, ranking, loja, rotas e configurações de aplicativos sem apagar dados de outros APKs
 - [x] Exibir ranking global resumido na Home logo abaixo da seção de vencimentos
 - [x] Criar botão e aba exclusiva do proprietário com detalhes dos cadastros das revendas, quantidade, aplicativo, nome e servidor
+
+- [x] Permitir editar e salvar o MAC principal na tela de edição do cliente
+- [x] Corrigir o salvamento dos MACs secundários e exibir principal e reserva claramente após salvar
