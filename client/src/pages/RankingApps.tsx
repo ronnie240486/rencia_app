@@ -122,7 +122,7 @@ export default function RankingApps() {
               <Trophy className="w-10 h-10 text-yellow-500 animate-bounce" style={{ animationDelay: "0.2s" }} />
             </div>
             <p className="text-muted-foreground text-lg">
-              Veja quantos dos seus clientes usam os aplicativos disponíveis no seu painel
+              Veja a quantidade global de clientes e logins em cada aplicativo, somada entre o proprietário e todas as revendas
             </p>
           </div>
         </div>
@@ -217,12 +217,12 @@ export default function RankingApps() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Users className="w-4 h-4 text-blue-500" />
-                Total de Clientes
+                Total Global de Cadastros
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{totalUsers}</div>
-              <p className="text-xs text-muted-foreground mt-1">usando aplicativos</p>
+              <p className="text-xs text-muted-foreground mt-1">                somados entre todas as contas</p>
             </CardContent>
           </Card>
 
@@ -257,7 +257,7 @@ export default function RankingApps() {
         {totalUsers > 0 && (
           <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-200 dark:border-indigo-800">
             <CardHeader>
-              <CardTitle className="text-lg">Comparação de Mercado</CardTitle>
+              <CardTitle className="text-lg">Comparação Global de Aplicativos</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {ranking.map((app) => (
@@ -293,7 +293,7 @@ export default function RankingApps() {
           <Card className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800">
             <CardContent className="p-6 text-center">
               <p className="text-muted-foreground">
-                Nenhum cliente selecionou um aplicativo ainda. Os dados aparecerão aqui quando usuários forem cadastrados.
+                Ainda não há clientes ou logins vinculados aos aplicativos. Os totais aparecerão aqui quando os cadastros forem realizados.
               </p>
             </CardContent>
           </Card>

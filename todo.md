@@ -1567,3 +1567,5 @@
 - [x] Permitir vários MACs no mesmo cliente, com botão para adicionar celular, TV ou outro dispositivo sem repetir listas
 
 - [x] Remover da Receita Mensal o valor de R$ 30,00 do cadastro inativo do Tom sem apagar o histórico
+
+- [x] Tornar o ranking de aplicativos global, somando clientes/logins do proprietário e de todas as revendas para exibir os mesmos totais a todos

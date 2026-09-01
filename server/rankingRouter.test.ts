@@ -56,10 +56,12 @@ describe("ranking.appStats", () => {
     expect(result).toMatchObject({ ominus: 2, magnus: 4, excellence: 5, future: 2, total: 13 });
   });
 
-  it("aplica o filtro de proprietário antes de agrupar o ranking", async () => {
+  it("consulta o ranking em escopo global, sem restringir ao proprietário atual", async () => {
     await appRouter.createCaller(context).ranking.appStats();
 
     expect(primaryWhere).toHaveBeenCalledTimes(1);
     expect(linkedWhere).toHaveBeenCalledTimes(1);
+    expect(primaryWhere.mock.calls[0]).toHaveLength(1);
+    expect(linkedWhere.mock.calls[0]).toHaveLength(1);
   });
 });

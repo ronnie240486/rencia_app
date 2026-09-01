@@ -3355,7 +3355,7 @@ export const appRouter = router({
         count: sql`COUNT(*)`
       })
       .from(devices)
-      .where(and(eq(devices.ownerId, ctx.user.id), isNotNull(devices.app)))
+      .where(isNotNull(devices.app))
       .groupBy(devices.app);
 
       const linkedResult = await db.select({
@@ -3364,7 +3364,7 @@ export const appRouter = router({
       })
         .from(deviceAppLinks)
         .innerJoin(devices, eq(deviceAppLinks.deviceId, devices.id))
-        .where(eq(devices.ownerId, ctx.user.id))
+        .where(isNotNull(deviceAppLinks.appId))
         .groupBy(deviceAppLinks.appId);
       
       const counts = result.reduce((acc: any, row: any) => {
