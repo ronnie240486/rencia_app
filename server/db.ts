@@ -1,10 +1,11 @@
 import { and, count, desc, eq, gte, inArray, like, lt, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { appCredentials, apps, auditLogs, customerNotes, deviceAppLinks, deviceListNotificationReceipts, deviceTags, devices, deviceUrls, InsertUser, listFailoverEvents, listHealthChecks, localCredentials, maintenanceTasks, notices, payments, remoteDeviceCommands, users } from "../drizzle/schema";
+import { appCredentials, apps, auditLogs, customerNotes, deviceAppLinks, deviceListNotificationReceipts, deviceTags, devices, deviceUrls, InsertUser, iptvServers, listFailoverEvents, listHealthChecks, localCredentials, maintenanceTasks, notices, payments, remoteDeviceCommands, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 import { countDevicePlaylists } from "./devicePlaylistCount";
 import { CONNECTED_WINDOW_MINUTES } from "./connectedWindow";
+import { addIptvServerRevenue, parseIptvServerValue } from "./iptvServerRevenue";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -253,12 +254,13 @@ export async function getDeviceStats(ownerId: number) {
   const db = await getDb();
   if (!db) return { total: 0, revendas: 0, ultraMasters: 0, masters: 0, receitaMensal: 0 };
 
-  const [total, revendas, ultraMasters, masters, receita] = await Promise.all([
+  const [total, revendas, ultraMasters, masters, receita, receitaServidores] = await Promise.all([
     db.select({ count: count() }).from(devices).where(eq(devices.ownerId, ownerId)),
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "Revenda"))),
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "UltraMaster"))),
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "Master"))),
     db.select({ total: sql<string>`COALESCE(SUM(CAST(valor AS DECIMAL(10,2))), 0)` }).from(devices).where(and(eq(devices.ownerId, ownerId), or(eq(devices.status, 'Liberado'), eq(devices.status, 'Expirado')))),
+    db.select({ total: sql<string>`COALESCE(SUM(CAST(valor AS DECIMAL(10,2))), 0)` }).from(iptvServers).where(and(eq(iptvServers.ownerId, ownerId), eq(iptvServers.paymentStatus, "paid"))),
   ]);
 
   return {
@@ -266,7 +268,8 @@ export async function getDeviceStats(ownerId: number) {
     revendas: revendas[0]?.count ?? 0,
     ultraMasters: ultraMasters[0]?.count ?? 0,
     masters: masters[0]?.count ?? 0,
-    receitaMensal: parseFloat(receita[0]?.total ?? "0"),
+    receitaMensal: addIptvServerRevenue(parseIptvServerValue(receita[0]?.total), receitaServidores[0]?.total),
+    receitaServidores: parseIptvServerValue(receitaServidores[0]?.total),
   };
 }
 

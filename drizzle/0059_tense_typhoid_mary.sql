@@ -1,0 +1,1 @@
+ALTER TABLE `iptv_servers` ADD `valor` decimal(10,2) DEFAULT '0.00' NOT NULL;

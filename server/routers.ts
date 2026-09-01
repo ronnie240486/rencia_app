@@ -326,6 +326,7 @@ export const appRouter = router({
       playlist: z.string().trim().max(1024).optional().default(""),
       notes: z.string().trim().max(2000).optional().default(""),
       paymentStatus: z.enum(["paid", "unpaid"]).optional().default("unpaid"),
+      valor: z.coerce.number().min(0).max(99999999.99).optional().default(0),
       expiresAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data de vencimento inválida."),
       reminderDays: z.number().int().min(0).max(30).optional().default(3),
     })).mutation(async ({ ctx, input }) => {
@@ -341,6 +342,7 @@ export const appRouter = router({
         playlist: input.playlist,
         notes: input.notes || null,
         paymentStatus: input.paymentStatus,
+        valor: input.valor.toFixed(2),
         expiresAt: new Date(`${input.expiresAt}T00:00:00.000Z`),
         reminderDays: input.reminderDays,
       });
@@ -356,6 +358,7 @@ export const appRouter = router({
       playlist: z.string().trim().max(1024).optional(),
       notes: z.string().trim().max(2000),
       paymentStatus: z.enum(["paid", "unpaid"]),
+      valor: z.coerce.number().min(0).max(99999999.99),
       expiresAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       reminderDays: z.number().int().min(0).max(30),
       isActive: z.boolean(),
@@ -371,6 +374,7 @@ export const appRouter = router({
         ...(input.playlist === undefined ? {} : { playlist: input.playlist }),
         notes: input.notes || null,
         paymentStatus: input.paymentStatus,
+        valor: input.valor.toFixed(2),
         expiresAt: new Date(`${input.expiresAt}T00:00:00.000Z`),
         reminderDays: input.reminderDays,
         isActive: input.isActive,

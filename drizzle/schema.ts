@@ -175,6 +175,7 @@ export const iptvServers = mysqlTable("iptv_servers", {
   playlist: varchar("playlist", { length: 1024 }).default("").notNull(),
   notes: text("notes"),
   paymentStatus: mysqlEnum("paymentStatus", ["paid", "unpaid"]).default("unpaid").notNull(),
+  valor: decimal("valor", { precision: 10, scale: 2 }).default("0.00").notNull(),
   expiresAt: date("expiresAt").notNull(),
   reminderDays: int("reminderDays").default(3).notNull(),
   isActive: boolean("isActive").default(true).notNull(),
