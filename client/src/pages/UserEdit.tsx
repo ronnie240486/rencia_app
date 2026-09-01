@@ -360,7 +360,11 @@ export default function UserEdit() {
                           </div>
                           <Input value={form.mac} onChange={handleMacChange} placeholder="00:00:00:00:00:00" maxLength={17} className="h-10 font-mono" />
                           <MacAppBadge appId={item.appId} />
-                          <p className="mt-1 text-[11px] text-muted-foreground">Edite e clique em “Salvar Alterações” no final da página.</p>
+                          <Select value={form.app} onValueChange={(value) => { setHasUserEdited(true); setForm((current) => ({ ...current, app: value })); }}>
+                            <SelectTrigger className="mt-2 h-9 w-full max-w-xs text-xs"><SelectValue placeholder="APK do MAC principal" /></SelectTrigger>
+                            <SelectContent>{allowedAppOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+                          </Select>
+                          <p className="mt-1 text-[11px] text-muted-foreground">Edite o MAC ou o APK e clique em “Salvar Alterações” no final da página.</p>
                         </div>
                       ) : (
                         <div className="min-w-0 flex-1">
