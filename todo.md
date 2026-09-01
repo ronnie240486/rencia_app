@@ -1597,3 +1597,5 @@
 
 - [x] Adicionar edição individual do MAC principal e de cada MAC secundário, incluindo troca do APK associado
 - [x] Garantir que as rotas de listas usem o MAC secundário para localizar o mesmo cliente e entregar as listas herdadas
+
+- [ ] Corrigir definitivamente a ativação das listas no segundo MAC e impedir que o MAC excluído volte após atualizar
