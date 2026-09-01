@@ -14,7 +14,7 @@ export const INITIAL_OPEN_NAV_GROUPS: string[] = [];
 /** Rotas que pertencem exclusivamente ao proprietário do painel. */
 export const OWNER_ONLY_ROUTE_PREFIXES = [
   "/settings", "/app-settings", "/configuracoes", "/revendas", "/credenciais-app",
-  "/busca", "/monitor-listas", "/diagnostico", "/chatbot", "/central", "/saude", "/seguranca",
+  "/busca", "/cadastros-revendas", "/monitor-listas", "/diagnostico", "/chatbot", "/central", "/saude", "/seguranca",
   "/permissoes", "/avisos", "/backups", "/cobrancas-revendas", "/relatorio-revendas",
   "/loja-painel", "/ranking-apps", "/atualizacoes", "/carousel", "/panel-functions",
   "/gpcpro", "/maximus", "/ultra-player", "/nuvix-config", "/aplicativos/", "/enderecos-servidor", "/servidores-iptv",

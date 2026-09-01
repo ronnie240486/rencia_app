@@ -20,14 +20,13 @@ describe("catálogo de aplicativos do painel", () => {
     expect(MANAGED_APP_CATALOG.future.defaultLogoUrl).toBe("/manus-storage/future-logo-20260827_1a714bae.jpg");
   });
 
-  it("inclui as novas famílias sem quebrar Evolux e Nexus existentes", async () => {
+  it("inclui as novas famílias sem quebrar Evolux e Future existentes", async () => {
     const { NEW_MANAGED_APP_IDS } = await import("./appCatalog");
-    expect(NEW_MANAGED_APP_IDS).toEqual(["prestige", "optimus", "imperio", "infinitus", "supremus", "evolux", "ominus", "magnus", "excellence", "future", "nexus"]);
+    expect(NEW_MANAGED_APP_IDS).toEqual(["prestige", "optimus", "imperio", "infinitus", "supremus", "evolux", "ominus", "magnus", "excellence", "future"]);
     expect(MANAGED_APP_CATALOG.ominus.settingsRoute).toBe("/aplicativos/ominus");
     expect(MANAGED_APP_CATALOG.magnus.deviceAliases).toContain("Magnus TV");
     expect(MANAGED_APP_CATALOG.excellence.displayName).toBe("Excellence");
     expect(MANAGED_APP_CATALOG.evolux.displayName).toBe("Evolux");
     expect(MANAGED_APP_CATALOG.future.settingsRoute).toBe("/aplicativos/future");
-    expect(MANAGED_APP_CATALOG.nexus.deviceAliases).toContain("Nexus");
   });
 });

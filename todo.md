@@ -1569,3 +1569,7 @@
 - [x] Remover da Receita Mensal o valor de R$ 30,00 do cadastro inativo do Tom sem apagar o histórico
 
 - [x] Tornar o ranking de aplicativos global, somando clientes/logins do proprietário e de todas as revendas para exibir os mesmos totais a todos
+
+- [x] Remover o Nexus do catálogo, ranking, loja, rotas e configurações de aplicativos sem apagar dados de outros APKs
+- [x] Exibir ranking global resumido na Home logo abaixo da seção de vencimentos
+- [x] Criar botão e aba exclusiva do proprietário com detalhes dos cadastros das revendas, quantidade, aplicativo, nome e servidor

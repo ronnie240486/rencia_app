@@ -16,7 +16,8 @@ import {
   AlertTriangle, CalendarDays, Crown, Layers, Search, Shield,
   Star, Users, Wifi, WifiOff, RefreshCw, Activity, Download, Upload,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Link } from "wouter";
+import { useEffect, useMemo, useState } from "react";
 
 function EditCurrentContentButton({ deviceId, currentContent }: { deviceId: number; currentContent: string | null }) {
   const updateMutation = trpc.devices.updateCurrentContent.useMutation();
@@ -203,6 +204,7 @@ export default function Dashboard() {
   };
 
   const { data: stats, isLoading: statsLoading, error: statsError } = trpc.devices.stats.useQuery();
+  const { data: appStats } = trpc.ranking.appStats.useQuery();
   const { data: planInfo } = trpc.plan.info.useQuery();
   const { data: recentDevices, isLoading: recentLoading } = trpc.devices.recentList.useQuery({ search: recentSearch, limit: 5 });
   const { data: expiringSoon } = trpc.devices.expiringSoon.useQuery({ days: 7 });
@@ -226,6 +228,22 @@ export default function Dashboard() {
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+  const miniRanking = useMemo(() => [
+    { id: "ouropro", name: "Ouro Pro", logo: MANAGED_APP_CATALOG.ouropro.defaultLogoUrl, count: appStats?.ouropro ?? 0 },
+    { id: "maximus", name: "Maximus", logo: MANAGED_APP_CATALOG.maximus.defaultLogoUrl, count: appStats?.maximus ?? 0 },
+    { id: "fusion", name: "Fusion", logo: MANAGED_APP_CATALOG.fusion.defaultLogoUrl, count: appStats?.ultra ?? 0 },
+    { id: "prestige", name: "Prestige", logo: MANAGED_APP_CATALOG.prestige.defaultLogoUrl, count: appStats?.prestige ?? 0 },
+    { id: "optimus", name: "Optimus", logo: MANAGED_APP_CATALOG.optimus.defaultLogoUrl, count: appStats?.optimus ?? 0 },
+    { id: "imperio", name: "Império Play", logo: MANAGED_APP_CATALOG.imperio.defaultLogoUrl, count: appStats?.imperio ?? 0 },
+    { id: "infinitus", name: "Infinitus", logo: MANAGED_APP_CATALOG.infinitus.defaultLogoUrl, count: appStats?.infinitus ?? 0 },
+    { id: "supremus", name: "Supreme", logo: MANAGED_APP_CATALOG.supremus.defaultLogoUrl, count: appStats?.supremus ?? 0 },
+    { id: "evolux", name: "Evolux", logo: MANAGED_APP_CATALOG.evolux.defaultLogoUrl, count: appStats?.evolux ?? 0 },
+    { id: "ominus", name: "Ominus", logo: MANAGED_APP_CATALOG.ominus.defaultLogoUrl, count: appStats?.ominus ?? 0 },
+    { id: "magnus", name: "Magnus", logo: MANAGED_APP_CATALOG.magnus.defaultLogoUrl, count: appStats?.magnus ?? 0 },
+    { id: "excellence", name: "Excellence", logo: MANAGED_APP_CATALOG.excellence.defaultLogoUrl, count: appStats?.excellence ?? 0 },
+    { id: "future", name: "Future", logo: MANAGED_APP_CATALOG.future.defaultLogoUrl, count: appStats?.future ?? 0 },
+  ].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "pt-BR")), [appStats]);
 
   return (
     <AdminLayout title="Dashboard">
@@ -600,6 +618,36 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Star className="h-4 w-4 text-amber-500" /> Ranking global de aplicativos
+            </CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">Cadastros somados entre você e todas as revendas.</p>
+          </div>
+          <Link href="/ranking-apps" className="shrink-0 text-xs font-semibold text-primary hover:underline">Ver completo</Link>
+        </CardHeader>
+        <CardContent>
+          {miniRanking.some((app) => app.count > 0) ? (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              {miniRanking.slice(0, 5).map((app, index) => (
+                <div key={app.id} className="flex items-center gap-2 rounded-lg border bg-muted/20 p-2">
+                  <span className="w-5 text-center text-xs font-bold text-muted-foreground">#{index + 1}</span>
+                  <img src={app.logo} alt="" className="h-8 w-8 rounded-md object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold">{app.name}</p>
+                    <p className="text-xs text-muted-foreground">{app.count} {app.count === 1 ? "cadastro" : "cadastros"}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="py-4 text-center text-sm text-muted-foreground">Nenhum aplicativo possui cadastro ainda.</p>
+          )}
+        </CardContent>
+      </Card>
       </div>
     </AdminLayout>
   );

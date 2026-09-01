@@ -1,5 +1,36 @@
 export type ResellerFinancialRow = { amount: string | number; status: "pending" | "paid" | "overdue"; dueDate: Date | string | null };
 export type ResellerDeviceMetricRow = { app: string | null; status: string; lastSeen: Date | string | null };
+export type ResellerClientDetailInput = {
+  id: number;
+  ownerId: number;
+  clientName: string;
+  serverName: string | null;
+  app: string | null;
+  mac: string | null;
+  phone: string | null;
+  status: string;
+  expiresAt: Date | string | null;
+  lastSeen: Date | string | null;
+  value: string | number | null;
+};
+export type ResellerDetailOwner = { id: number; name: string | null; email: string | null };
+
+export function buildResellerClientDetails(
+  resellers: ResellerDetailOwner[],
+  devices: ResellerClientDetailInput[],
+) {
+  const resellerById = new Map(resellers.map((reseller) => [reseller.id, reseller]));
+  return devices.map((device) => {
+    const reseller = resellerById.get(device.ownerId);
+    return {
+      ...device,
+      resellerName: reseller?.name || "Revenda sem nome",
+      resellerEmail: reseller?.email || "Sem e-mail",
+      app: device.app?.trim() || "Sem aplicativo",
+    };
+  });
+}
+
 
 function timestamp(value: Date | string | null) {
   if (!value) return null;

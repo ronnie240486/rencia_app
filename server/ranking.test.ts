@@ -65,9 +65,10 @@ describe("App Ranking - Contabilização de Apps", () => {
     const allDevices = await db.select().from(devices);
 
     for (const device of allDevices) {
-      if (device.app) {
-        // Se app não é null, deve ser um dos valores válidos
-        const validApps = ["OuroPro", "Maximus", "Maximus Player", "Ultra Player", "Fusion", "Prestige", "Optimus", "Império Play", "Infinitus", "Supremus", "Evolux", "Ominus", "Magnus", "Magnus TV", "Excellence", "Future", "Future Player", "Nexus", "Outro"];
+      if (device.app && device.app !== "Nexus" && device.app !== "Nexus Player") {
+        // O catálogo operacional não aceita novos registros do app removido;
+        // registros históricos permanecem no banco para não alterar clientes existentes.
+        const validApps = ["OuroPro", "Maximus", "Maximus Player", "Ultra Player", "Fusion", "Prestige", "Optimus", "Império Play", "Infinitus", "Supremus", "Evolux", "Ominus", "Magnus", "Magnus TV", "Excellence", "Future", "Future Player", "Outro"];
         expect(validApps).toContain(device.app);
       }
     }

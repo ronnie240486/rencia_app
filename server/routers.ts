@@ -23,7 +23,7 @@ import { getEffectivePaymentStatus } from "./payments";
 import { buildFinancialReport } from "./financialReport";
 import { normalizeMessageTemplate } from "./messageTemplate";
 import { buildSessionOverview } from "./sessionControl";
-import { summarizeResellerDevicePerformance, summarizeResellerFinance } from "./resellerReport";
+import { buildResellerClientDetails, summarizeResellerDevicePerformance, summarizeResellerFinance } from "./resellerReport";
 import { buildRenewalAgenda } from "./renewalAgenda";
 import { buildMaintenanceOverview } from "./maintenanceCenter";
 import { buildApkUpdateOverview, buildConfiguredAppVersions } from "./apkUpdates";
@@ -1599,6 +1599,33 @@ export const appRouter = router({
           finance,
         };
       });
+    }),
+    details: ownerProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const resellers = await db.select({ id: users.id, name: users.name, email: users.email })
+        .from(users)
+        .where(eq(users.resellerId, ctx.user.id))
+        .orderBy(desc(users.createdAt));
+      if (!resellers.length) return [];
+      const resellerIds = resellers.map((reseller) => reseller.id);
+      const devicesRows = await db.select({
+        id: devices.id,
+        ownerId: devices.ownerId,
+        clientName: devices.nomeServer,
+        serverName: devices.nomeServidor,
+        app: devices.app,
+        mac: devices.mac,
+        phone: devices.telefone,
+        status: devices.status,
+        expiresAt: devices.dataExpiracao,
+        lastSeen: devices.lastSeen,
+        value: devices.valor,
+      })
+        .from(devices)
+        .where(inArray(devices.ownerId, resellerIds))
+        .orderBy(desc(devices.createdAt));
+      return buildResellerClientDetails(resellers, devicesRows);
     }),
   }),
 
@@ -3348,7 +3375,7 @@ export const appRouter = router({
   ranking: router({
     appStats: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();  
-      if (!db) return { ouropro: 0, maximus: 0, ultra: 0, prestige: 0, optimus: 0, imperio: 0, infinitus: 0, supremus: 0, evolux: 0, ominus: 0, magnus: 0, excellence: 0, future: 0, nexus: 0, total: 0 };
+      if (!db) return { ouropro: 0, maximus: 0, ultra: 0, prestige: 0, optimus: 0, imperio: 0, infinitus: 0, supremus: 0, evolux: 0, ominus: 0, magnus: 0, excellence: 0, future: 0, total: 0 };
       
       const result = await db.select({
         app: devices.app,
@@ -3390,7 +3417,6 @@ export const appRouter = router({
       const magnus = (counts['Magnus'] || 0) + (counts['Magnus TV'] || 0) + (linkedCounts.magnus || 0);
       const excellence = (counts['Excellence'] || 0) + (linkedCounts.excellence || 0);
       const future = (counts['Future'] || 0) + (counts['Future Player'] || 0) + (linkedCounts.future || 0);
-      const nexus = (counts['Nexus'] || 0) + (counts['Nexus Player'] || 0) + (linkedCounts.nexus || 0);
       
       return {
         ouropro,
@@ -3406,8 +3432,7 @@ export const appRouter = router({
         magnus,
         excellence,
         future,
-        nexus,
-        total: ouropro + maximus + ultra + prestige + optimus + imperio + infinitus + supremus + evolux + ominus + magnus + excellence + future + nexus
+        total: ouropro + maximus + ultra + prestige + optimus + imperio + infinitus + supremus + evolux + ominus + magnus + excellence + future
       };
     }),
   }),

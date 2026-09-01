@@ -37,6 +37,7 @@ import ListMonitor from "./pages/ListMonitor";
 import FinancialReports from "./pages/FinancialReports";
 import Sessions from "./pages/Sessions";
 import ResellerReport from "./pages/ResellerReport";
+import ResellerClients from "./pages/ResellerClients";
 import RenewalAgenda from "./pages/RenewalAgenda";
 import MaintenanceCenter from "./pages/MaintenanceCenter";
 import ApkUpdates from "./pages/ApkUpdates";
@@ -118,6 +119,7 @@ function Router() {
       <Route path="/monitor-listas" component={ListMonitor} />
       <Route path="/sessoes" component={Sessions} />
       <Route path="/relatorio-revendas" component={ResellerReport} />
+      <Route path="/cadastros-revendas" component={ResellerClients} />
       <Route path="/agenda-renovacao" component={RenewalAgenda} />
       <Route path="/manutencao" component={MaintenanceCenter} />
       <Route path="/atualizacoes" component={ApkUpdates} />
