@@ -1,8 +1,9 @@
-import { and, count, desc, eq, gte, inArray, like, lt, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, like, lt, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { appCredentials, apps, auditLogs, customerNotes, deviceAppLinks, deviceListNotificationReceipts, deviceTags, devices, deviceUrls, InsertUser, iptvServers, listFailoverEvents, listHealthChecks, localCredentials, maintenanceTasks, notices, payments, remoteDeviceCommands, users } from "../drizzle/schema";
+import { appCredentials, apps, auditLogs, customerNotes, deviceAppLinks, deviceListNotificationReceipts, deviceMacs, deviceTags, devices, deviceUrls, InsertUser, iptvServers, listFailoverEvents, listHealthChecks, localCredentials, maintenanceTasks, notices, payments, remoteDeviceCommands, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { dateOnlyForDatabase } from "../shared/dateOnly";
+import { normalizeMacForStorage } from "../shared/mac";
 import { countDevicePlaylists } from "./devicePlaylistCount";
 import { CONNECTED_WINDOW_MINUTES } from "./connectedWindow";
 import { addIptvServerRevenue, parseIptvServerValue } from "./iptvServerRevenue";
@@ -169,6 +170,52 @@ export async function createDevice(data: {
   // Retornar o id do device recém-criado
   const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
   return { id: Number(insertId) };
+}
+
+export async function listDeviceMacs(deviceId: number, ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const owned = await db.select({ id: devices.id }).from(devices).where(and(eq(devices.id, deviceId), eq(devices.ownerId, ownerId))).limit(1);
+  if (!owned.length) return [];
+  const aliases = await db.select({ id: deviceMacs.id, mac: deviceMacs.mac, createdAt: deviceMacs.createdAt })
+    .from(deviceMacs).where(eq(deviceMacs.deviceId, deviceId)).orderBy(asc(deviceMacs.createdAt), asc(deviceMacs.id));
+  const primary = await db.select({ mac: devices.mac }).from(devices).where(eq(devices.id, deviceId)).limit(1);
+  return [
+    ...(primary[0]?.mac ? [{ id: 0, mac: primary[0].mac, createdAt: null as Date | null, primary: true }] : []),
+    ...aliases.map((alias) => ({ ...alias, primary: false })),
+  ];
+}
+
+export async function addDeviceMac(deviceId: number, ownerId: number, rawMac: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const mac = normalizeMacForStorage(rawMac);
+  if (!mac) throw new Error("MAC inválido. Informe 12 caracteres hexadecimais.");
+  const owned = await db.select({ id: devices.id, mac: devices.mac }).from(devices)
+    .where(and(eq(devices.id, deviceId), eq(devices.ownerId, ownerId))).limit(1);
+  if (!owned.length) throw new Error("Cliente não encontrado.");
+  if (owned[0].mac && normalizeMacForStorage(owned[0].mac) === mac) return { id: 0, mac, primary: true };
+  const existing = await db.select({ id: deviceMacs.id, deviceId: deviceMacs.deviceId }).from(deviceMacs).where(eq(deviceMacs.mac, mac)).limit(1);
+  if (existing.length) {
+    if (existing[0].deviceId === deviceId) return { id: existing[0].id, mac, primary: false };
+    throw new Error("Este MAC já está vinculado a outro cliente.");
+  }
+  if (!owned[0].mac) {
+    await db.update(devices).set({ mac }).where(eq(devices.id, deviceId));
+    return { id: 0, mac, primary: true };
+  }
+  const result = await db.insert(deviceMacs).values({ deviceId, mac });
+  return { id: Number((result as any)[0]?.insertId ?? (result as any).insertId), mac, primary: false };
+}
+
+export async function removeDeviceMac(deviceId: number, ownerId: number, macId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const owned = await db.select({ id: devices.id }).from(devices).where(and(eq(devices.id, deviceId), eq(devices.ownerId, ownerId))).limit(1);
+  if (!owned.length) throw new Error("Cliente não encontrado.");
+  if (macId === 0) throw new Error("O MAC principal não pode ser removido por esta ação.");
+  await db.delete(deviceMacs).where(and(eq(deviceMacs.id, macId), eq(deviceMacs.deviceId, deviceId)));
+  return { success: true };
 }
 
 export async function updateDevice(id: number, ownerId: number, data: Partial<{

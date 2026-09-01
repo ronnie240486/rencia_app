@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, lt, or } from "drizzle-orm";
-import { devices, remoteDeviceCommands } from "../drizzle/schema";
+import { remoteDeviceCommands } from "../drizzle/schema";
 import { normalizeMacAddress } from "./ultraPlayerConfig";
+import { findDeviceByAnyMac } from "./deviceMacLookup";
 import { selectActivityDevice } from "./activityDeviceSelection";
 
 export const REMOTE_COMMAND_TYPES = ["refresh_playlist", "switch_playlist", "update_dns", "show_message", "restart_player", "sync_access"] as const;
@@ -72,10 +73,9 @@ export function selectRemoteCommandCandidates<T extends { id: number; app: strin
 export async function claimRemoteCommandForMac(db: any, macInput: string, reportedApp?: string | null) {
   const mac = normalizeMacAddress(macInput);
   if (!mac) return { registered: false, command: null };
-  const allCandidateDevices = await db.select().from(devices)
-    .where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())))
-    .orderBy(desc(devices.updatedAt), desc(devices.id));
-  if (!allCandidateDevices.length) return { registered: false, command: null };
+  const matchedDevice = await findDeviceByAnyMac(db, mac);
+  if (!matchedDevice) return { registered: false, command: null };
+  const allCandidateDevices = [matchedDevice];
 
   const candidateDevices = selectRemoteCommandCandidates(allCandidateDevices, reportedApp);
   if (reportedApp?.trim() && !candidateDevices.length) {
@@ -103,10 +103,9 @@ export async function claimRemoteCommandForMac(db: any, macInput: string, report
 export async function acknowledgeRemoteCommand(db: any, macInput: string, commandId: number, status: "executed" | "failed", resultMessage?: string, reportedApp?: string | null) {
   const mac = normalizeMacAddress(macInput);
   if (!mac) return { ok: false, error: "MAC inválido" };
-  const allCandidateDevices = await db.select().from(devices)
-    .where(or(eq(devices.mac, mac), eq(devices.mac, mac.toLowerCase())))
-    .orderBy(desc(devices.updatedAt), desc(devices.id));
-  if (!allCandidateDevices.length) return { ok: false, error: "Dispositivo não encontrado" };
+  const matchedDevice = await findDeviceByAnyMac(db, mac);
+  if (!matchedDevice) return { ok: false, error: "Dispositivo não encontrado" };
+  const allCandidateDevices = [matchedDevice];
   const candidateDevices = selectRemoteCommandCandidates(allCandidateDevices, reportedApp);
   if (reportedApp?.trim() && !candidateDevices.length) return { ok: false, error: "Aplicativo não encontrado para este MAC" };
 

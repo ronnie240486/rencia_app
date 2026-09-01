@@ -10,7 +10,7 @@ import {
   listApps, listDevices, seedApps, updateDevice, upsertUser, getDb,
   getDeviceUrls, addDeviceUrl, updateDeviceUrl, deleteDeviceUrl,
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
-  getConnectedDevices, updateUserProfile,
+  getConnectedDevices, updateUserProfile, listDeviceMacs, addDeviceMac, removeDeviceMac,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull, like, or, gt } from "drizzle-orm";
 import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions, storeInvites, googleDriveBackupConnections, deviceAppLinks, iptvServers, iptvServerAlertLogs, iptvServerAlertSettings, iptvServerWhatsAppBusinessSettings } from "../drizzle/schema";
@@ -809,6 +809,44 @@ export const appRouter = router({
         const device = await getDeviceById(input.id, ctx.user.id);
         if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
         return device;
+      }),
+
+    macs: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const device = await getDeviceById(input.id, ctx.user.id);
+        if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
+        return listDeviceMacs(input.id, ctx.user.id);
+      }),
+
+    addMac: protectedProcedure
+      .input(z.object({ id: z.number(), mac: z.string().trim().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const result = await addDeviceMac(input.id, ctx.user.id, input.mac);
+          await recordAudit({
+            ownerId: ctx.user.id,
+            actorUserId: ctx.user.id,
+            entityType: "device",
+            entityId: input.id,
+            action: "mac_added",
+            summary: `MAC adicional vinculado ao cliente ${input.id}`,
+            afterData: { mac: result.mac, primary: result.primary },
+          });
+          return { success: true, ...result };
+        } catch (error) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Não foi possível adicionar o MAC." });
+        }
+      }),
+
+    removeMac: protectedProcedure
+      .input(z.object({ id: z.number(), macId: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        try {
+          return await removeDeviceMac(input.id, ctx.user.id, input.macId);
+        } catch (error) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Não foi possível remover o MAC." });
+        }
       }),
 
     linkedApps: protectedProcedure

@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { CLIENT_APP_OPTIONS } from "@/lib/clientAppOptions";
 import { AppLogoBadge } from "@/components/AppLogoBadge";
-import { AlertTriangle, ArrowLeft, CalendarSearch, ChevronDown, ListPlus, Loader2, Plus, Save } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarSearch, ChevronDown, ListPlus, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
@@ -56,6 +56,10 @@ export default function UserEdit() {
     { id: deviceId },
     { enabled: !isNaN(deviceId) && deviceId > 0 },
   );
+  const { data: deviceMacs } = trpc.devices.macs.useQuery(
+    { id: deviceId },
+    { enabled: !isNaN(deviceId) && deviceId > 0 },
+  );
 
   const [form, setForm] = useState({
     modoSelecao: "XTeamCode" as "XTeamCode" | "M3U8",
@@ -87,6 +91,7 @@ export default function UserEdit() {
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const [linkedAppIds, setLinkedAppIds] = useState<string[]>([]);
   const [isMacEditorOpen, setIsMacEditorOpen] = useState(false);
+  const [additionalMac, setAdditionalMac] = useState("");
 
   useEffect(() => {
     if (device && !hasUserEdited) {
@@ -129,6 +134,24 @@ export default function UserEdit() {
 
   const utils = trpc.useUtils();
   const setLinkedAppsMutation = trpc.devices.setLinkedApps.useMutation();
+  const addMacMutation = trpc.devices.addMac.useMutation({
+    onSuccess: async () => {
+      setAdditionalMac("");
+      setIsMacEditorOpen(false);
+      await utils.devices.macs.invalidate({ id: deviceId });
+      await utils.devices.getById.invalidate({ id: deviceId });
+      await utils.devices.list.invalidate();
+      toast.success("MAC adicionado ao mesmo cliente.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const removeMacMutation = trpc.devices.removeMac.useMutation({
+    onSuccess: async () => {
+      await utils.devices.macs.invalidate({ id: deviceId });
+      toast.success("MAC adicional removido.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const lookupExpirationMutation = trpc.devices.lookupExpiration.useMutation({
     onSuccess: (result) => {
@@ -170,6 +193,19 @@ export default function UserEdit() {
   });
 
   // Formata MAC automaticamente: insere ":" a cada 2 dígitos hex
+  const handleAdditionalMacChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 12);
+    setAdditionalMac(raw.match(/.{1,2}/g)?.join(":") ?? raw);
+  };
+
+  const handleAddMac = () => {
+    if (!additionalMac.trim()) {
+      toast.error("Cole o MAC do novo aparelho.");
+      return;
+    }
+    addMacMutation.mutate({ id: deviceId, mac: additionalMac });
+  };
+
   const handleMacChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 12);
     const formatted = raw.match(/.{1,2}/g)?.join(":") ?? raw;
@@ -252,13 +288,35 @@ export default function UserEdit() {
           /* key={formKey} garante que todos os Select re-renderizam quando os dados chegam */
           <form key={formKey} onSubmit={handleSubmit} onChangeCapture={() => setHasUserEdited(true)} className="bg-card rounded-xl border shadow-sm p-6 space-y-5">
 
-            {/* MAC */}
-            <div className="space-y-1.5">
+            {/* MACs vinculados ao mesmo cliente */}
+            <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MAC DO DISPOSITIVO{form.mac ? "" : " (OPCIONAL)"}</Label>
-                {!form.mac && !isMacEditorOpen && <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => setIsMacEditorOpen(true)}><Plus className="h-3.5 w-3.5" /> Adicionar MAC</Button>}
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MACS DO CLIENTE</Label>
+                <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => setIsMacEditorOpen((open) => !open)}>
+                  <Plus className="h-3.5 w-3.5" /> Adicionar MAC
+                </Button>
               </div>
-              {form.mac || isMacEditorOpen ? <Input placeholder="00:00:00:00:00:00" value={form.mac} onChange={handleMacChange} maxLength={17} className="h-10 font-mono" /> : <p className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">Nenhum MAC vinculado. Cadastre o cliente primeiro e adicione o aparelho depois por este botão.</p>}
+              <p className="text-xs text-muted-foreground">Celular, TV e outros aparelhos usam o mesmo cliente, listas e aplicativos liberados.</p>
+              {deviceMacs?.length ? (
+                <div className="space-y-2">
+                  {deviceMacs.map((item) => (
+                    <div key={`${item.id}-${item.mac}`} className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 px-3 py-2">
+                      <span className="font-mono text-sm tracking-wide">{item.mac}</span>
+                      {item.primary ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">PRINCIPAL</span> : <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label={`Remover MAC ${item.mac}`} onClick={() => removeMacMutation.mutate({ id: deviceId, macId: item.id })} disabled={removeMacMutation.isPending}><Trash2 className="h-4 w-4" /></Button>}
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">Nenhum MAC vinculado. Você pode cadastrar o cliente e adicionar o aparelho depois.</p>}
+              {isMacEditorOpen && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MAC DO NOVO APARELHO</Label>
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <Input placeholder="00:00:00:00:00:00" value={additionalMac} onChange={handleAdditionalMacChange} maxLength={17} className="h-10 font-mono" autoFocus />
+                    <Button type="button" className="h-10 shrink-0" onClick={handleAddMac} disabled={addMacMutation.isPending}>{addMacMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vincular MAC"}</Button>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">Cole somente o MAC. Não é necessário repetir nome, lista ou usuário.</p>
+                </div>
+              )}
             </div>
 
             {/* Nome do cliente e nome do servidor */}

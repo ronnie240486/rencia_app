@@ -98,6 +98,20 @@ export const devices = mysqlTable("devices", {
 export type Device = typeof devices.$inferSelect;
 export type InsertDevice = typeof devices.$inferInsert;
 
+// MACs adicionais do mesmo cliente (TV, celular e outros aparelhos).
+// O dispositivo principal continua na coluna devices.mac para preservar compatibilidade.
+export const deviceMacs = mysqlTable("device_macs", {
+  id: int("id").autoincrement().primaryKey(),
+  deviceId: int("deviceId").notNull(),
+  mac: varchar("mac", { length: 64 }).notNull().unique(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  deviceMacDeviceIdx: index("device_macs_device_idx").on(table.deviceId),
+}));
+
+export type DeviceMac = typeof deviceMacs.$inferSelect;
+export type InsertDeviceMac = typeof deviceMacs.$inferInsert;
+
 // Aplicativos adicionais liberados para o mesmo cliente/MAC. O campo devices.app
 // continua como aplicativo principal para preservar cadastros e rotas existentes.
 export const deviceAppLinks = mysqlTable("device_app_links", {

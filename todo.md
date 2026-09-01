@@ -1564,3 +1564,4 @@
 - [x] Fechar também o título e a instrução de Aplicativos liberados, deixando toda a seção recolhida até o toque
 - [x] Mostrar Servidor ao lado do Valor no cartão de usuário
 - [x] Corrigir a leitura da data de validade das listas quando o provedor retorna formatos diferentes
+- [x] Permitir vários MACs no mesmo cliente, com botão para adicionar celular, TV ou outro dispositivo sem repetir listas

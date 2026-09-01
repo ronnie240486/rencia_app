@@ -45,6 +45,7 @@ import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
+import { findDeviceByAnyMac } from "./deviceMacLookup";
 import { buildHeartbeatMacLookup } from "./heartbeatMac";
 import { comparePassword } from "./auth";
 import { isLoginAccessAllowed, resolveLoginMacBinding } from "./appLogin";
@@ -2026,10 +2027,8 @@ export function registerApiRoutes(app: Express) {
       const reportedManagedAppId = resolveManagedAppId(reportedAppId);
       if (reportedManagedAppId) updateSet.lastActiveAppId = reportedManagedAppId;
 
-      const sameMacRows = await db.select().from(devices).where(or(
-        eq(devices.mac, formattedMac),
-        eq(devices.mac, macAddress),
-      ));
+      const matchedDevice = await findDeviceByAnyMac(db, formattedMac);
+      const sameMacRows = matchedDevice ? [matchedDevice] : [];
       const activityDevice = await selectDeviceForReportedApp(db, sameMacRows, reportedAppId);
       if (reportedAppId && !activityDevice) {
         res.status(403).json({ ok: false, error: "MAC não vinculado ao aplicativo informado" });
@@ -2102,16 +2101,12 @@ export function registerApiRoutes(app: Express) {
       const formattedMac = normalizedMac.length === 12
         ? normalizedMac.match(/.{2}/g)!.join(":")
         : mac;
-      const result = await db
-        .select({ currentContent: devices.currentContent, lastSeen: devices.lastSeen })
-        .from(devices)
-        .where(or(eq(devices.mac, formattedMac), eq(devices.mac, mac)))
-        .limit(1);
-      if (!result.length) {
+      const device = await findDeviceByAnyMac(db, formattedMac);
+      if (!device) {
         res.status(404).json({ ok: false, error: "Dispositivo não encontrado" });
         return;
       }
-      res.json({ ok: true, mac: formattedMac, content: result[0].currentContent, last_seen: result[0].lastSeen });
+      res.json({ ok: true, mac: formattedMac, content: device.currentContent, last_seen: device.lastSeen });
     } catch (error) {
       console.error("[API] GET /api/v4/heartbeat.php error:", error);
       res.status(500).json({ ok: false, error: "Erro interno" });
@@ -4828,15 +4823,8 @@ export function registerApiRoutes(app: Express) {
         ? macNormalized.match(/.{2}/g)!.join(':')
         : mac.toUpperCase();
 
-      const result = await db
-        .select()
-        .from(devices)
-        .where(or(
-          eq(devices.mac, macWithColons),
-          eq(devices.mac, macNormalized),
-          eq(devices.mac, mac),
-        ));
-
+      const matchedDevice = await findDeviceByAnyMac(db, macWithColons);
+      const result = matchedDevice ? [matchedDevice] : [];
       const device = await selectDeviceForReportedApp(db, result, reportedAppId) ?? (result.length === 1 ? result[0] : undefined);
       if (!device) {
         res.json({ content: '', mac: macWithColons, lastSeen: '', registered: false });
@@ -4886,15 +4874,8 @@ export function registerApiRoutes(app: Express) {
         : mac.toUpperCase();
 
       // Buscar device
-      const result = await db
-        .select()
-        .from(devices)
-        .where(or(
-          eq(devices.mac, macWithColons),
-          eq(devices.mac, macNormalized),
-          eq(devices.mac, mac),
-        ));
-
+      const matchedDevice = await findDeviceByAnyMac(db, macWithColons);
+      const result = matchedDevice ? [matchedDevice] : [];
       const device = await selectDeviceForReportedApp(db, result, reportedAppId) ?? (result.length === 1 ? result[0] : undefined);
       if (!device) {
         res.status(404).json({ success: false, error: 'device not found', mac: macWithColons });
