@@ -238,8 +238,10 @@ export async function removeDeviceMac(deviceId: number, ownerId: number, macId: 
   const owned = await db.select({ id: devices.id }).from(devices).where(and(eq(devices.id, deviceId), eq(devices.ownerId, ownerId))).limit(1);
   if (!owned.length) throw new Error("Cliente não encontrado.");
   if (macId === 0) throw new Error("O MAC principal não pode ser removido por esta ação.");
-  await db.delete(deviceMacs).where(and(eq(deviceMacs.id, macId), eq(deviceMacs.deviceId, deviceId)));
-  return { success: true };
+  const result = await db.delete(deviceMacs).where(and(eq(deviceMacs.id, macId), eq(deviceMacs.deviceId, deviceId)));
+  const affectedRows = Number((result as any)[0]?.affectedRows ?? (result as any).affectedRows ?? 0);
+  if (affectedRows === 0) throw new Error("MAC secundário não encontrado ou já foi removido.");
+  return { success: true, deletedId: macId };
 }
 
 export async function updateDevice(id: number, ownerId: number, data: Partial<{

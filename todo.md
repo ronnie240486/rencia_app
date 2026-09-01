@@ -1591,3 +1591,6 @@
 - [ ] Fazer o segundo MAC ser gravado no mesmo cliente e aparecer na tela principal abaixo do MAC principal, com o APK correspondente
 
 - [ ] Fazer Salvar Alterações gravar automaticamente o MAC secundário preenchido e atualizar a tela principal com os dois MACs
+
+- [ ] Fazer o MAC secundário herdar e receber as mesmas listas do cliente principal
+- [ ] Fazer a exclusão do MAC secundário persistir imediatamente após a primeira exclusão

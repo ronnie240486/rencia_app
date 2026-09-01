@@ -947,22 +947,10 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
-      // Busca case-insensitive: normalizar MAC para minúsculas
-      const macNormalized = macAddress.toLowerCase();
-      const result = await db
-        .select()
-        .from(devices)
-        .where(eq(devices.mac, macNormalized))
-        .limit(1);
-      // Se não encontrar em minúsculas, tentar maiúsculas (compatibilidade)
-      if (result.length === 0) {
-        const resultUpper = await db
-          .select()
-          .from(devices)
-          .where(eq(devices.mac, macAddress.toUpperCase()))
-          .limit(1);
-        if (resultUpper.length > 0) result.push(...resultUpper);
-      }
+      // Resolver pelo MAC principal ou por qualquer MAC secundário do mesmo cliente.
+      // O device encontrado é o principal, portanto as listas são herdadas automaticamente.
+      const resolvedDevice = await findDeviceByAnyMac(db, macAddress);
+      const result = resolvedDevice ? [resolvedDevice] : [];
 
       // Device não encontrado
       if (result.length === 0) {
@@ -1215,8 +1203,9 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
-      // Buscar dispositivo ignorando case
-      const result = await db.select().from(devices).where(or(eq(devices.mac, mac.toLowerCase()), eq(devices.mac, mac.toUpperCase()))).limit(1);
+      // Resolver pelo MAC principal ou por MAC secundário; as listas pertencem ao device principal.
+      const resolvedDevice = await findDeviceByAnyMac(db, mac);
+      const result = resolvedDevice ? [resolvedDevice] : [];
 
       if (result.length === 0) {
         res.json({ data: [] });
@@ -1369,7 +1358,8 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
-      const result = await db.select().from(devices).where(eq(devices.mac, mac)).limit(1);
+      const resolvedDevice = await findDeviceByAnyMac(db, mac);
+      const result = resolvedDevice ? [resolvedDevice] : [];
 
       if (result.length === 0) {
         res.json({ 
