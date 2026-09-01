@@ -1594,3 +1594,6 @@
 
 - [ ] Fazer o MAC secundário herdar e receber as mesmas listas do cliente principal
 - [ ] Fazer a exclusão do MAC secundário persistir imediatamente após a primeira exclusão
+
+- [x] Adicionar edição individual do MAC principal e de cada MAC secundário, incluindo troca do APK associado
+- [x] Garantir que as rotas de listas usem o MAC secundário para localizar o mesmo cliente e entregar as listas herdadas

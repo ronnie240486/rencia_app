@@ -232,6 +232,29 @@ export async function addDeviceMac(deviceId: number, ownerId: number, rawMac: st
   return { id: Number((result as any)[0]?.insertId ?? (result as any).insertId), mac, primary: false };
 }
 
+export async function updateDeviceMac(deviceId: number, ownerId: number, macId: number, rawMac: string, appId?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (macId <= 0) throw new Error("O MAC principal deve ser editado no formulário principal.");
+  const mac = normalizeMacForStorage(rawMac);
+  if (!mac) throw new Error("MAC inválido. Informe 12 caracteres hexadecimais.");
+  const normalizedAppId = appId?.trim().toLowerCase() || null;
+  if (!normalizedAppId || !isManagedAppId(normalizedAppId)) throw new Error("Escolha um APK válido para este MAC.");
+  const owned = await db.select({ id: devices.id, mac: devices.mac }).from(devices)
+    .where(and(eq(devices.id, deviceId), eq(devices.ownerId, ownerId))).limit(1);
+  if (!owned.length) throw new Error("Cliente não encontrado.");
+  if (owned[0].mac && normalizeMacForStorage(owned[0].mac) === mac) throw new Error("Este MAC é o principal deste cliente.");
+  const [deviceConflict, aliasConflict] = await Promise.all([
+    db.select({ id: devices.id }).from(devices).where(and(eq(devices.mac, mac), sql`${devices.id} <> ${deviceId}`)).limit(1),
+    db.select({ id: deviceMacs.id, deviceId: deviceMacs.deviceId }).from(deviceMacs).where(and(eq(deviceMacs.mac, mac), sql`${deviceMacs.id} <> ${macId}`)).limit(1),
+  ]);
+  if (deviceConflict.length || (aliasConflict.length && aliasConflict[0].deviceId !== deviceId)) throw new Error("Este MAC já está vinculado a outro cliente.");
+  const result = await db.update(deviceMacs).set({ mac, appId: normalizedAppId }).where(and(eq(deviceMacs.id, macId), eq(deviceMacs.deviceId, deviceId)));
+  const affectedRows = Number((result as any)[0]?.affectedRows ?? (result as any).affectedRows ?? 0);
+  if (affectedRows === 0) throw new Error("MAC secundário não encontrado.");
+  return { success: true, id: macId, mac, appId: normalizedAppId, primary: false };
+}
+
 export async function removeDeviceMac(deviceId: number, ownerId: number, macId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

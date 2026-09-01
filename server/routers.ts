@@ -10,7 +10,7 @@ import {
   listApps, listDevices, seedApps, updateDevice, upsertUser, getDb,
   getDeviceUrls, addDeviceUrl, updateDeviceUrl, deleteDeviceUrl,
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
-  getConnectedDevices, updateUserProfile, listDeviceMacs, addDeviceMac, removeDeviceMac,
+  getConnectedDevices, updateUserProfile, listDeviceMacs, addDeviceMac, updateDeviceMac, removeDeviceMac,
 } from "./db";
 import { eq, and, inArray, sql, desc, isNotNull, like, or, gt } from "drizzle-orm";
 import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions, storeInvites, googleDriveBackupConnections, deviceAppLinks, iptvServers, iptvServerAlertLogs, iptvServerAlertSettings, iptvServerWhatsAppBusinessSettings } from "../drizzle/schema";
@@ -839,6 +839,15 @@ export const appRouter = router({
         }
       }),
 
+    updateMac: protectedProcedure
+      .input(z.object({ id: z.number(), macId: z.number().int().positive(), mac: z.string().trim().min(1), appId: z.string().trim().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        try {
+          return await updateDeviceMac(input.id, ctx.user.id, input.macId, input.mac, input.appId);
+        } catch (error) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Não foi possível editar o MAC." });
+        }
+      }),
     removeMac: protectedProcedure
       .input(z.object({ id: z.number(), macId: z.number().int().positive() }))
       .mutation(async ({ ctx, input }) => {

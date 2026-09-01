@@ -109,6 +109,9 @@ export default function UserEdit() {
   const [isMacEditorOpen, setIsMacEditorOpen] = useState(false);
   const [additionalMac, setAdditionalMac] = useState("");
   const [additionalAppId, setAdditionalAppId] = useState("");
+  const [editingMacId, setEditingMacId] = useState<number | null>(null);
+  const [editingMacValue, setEditingMacValue] = useState("");
+  const [editingMacAppId, setEditingMacAppId] = useState("");
 
   useEffect(() => {
     if (device && !hasUserEdited) {
@@ -161,6 +164,17 @@ export default function UserEdit() {
       await utils.devices.getById.invalidate({ id: deviceId });
       await utils.devices.list.invalidate();
       toast.success("MAC adicionado ao mesmo cliente.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const updateMacMutation = trpc.devices.updateMac.useMutation({
+    onSuccess: async () => {
+      setEditingMacId(null);
+      setEditingMacValue("");
+      setEditingMacAppId("");
+      await utils.devices.macs.invalidate({ id: deviceId });
+      await refetchDeviceMacs();
+      toast.success("MAC secundário atualizado.");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -232,6 +246,11 @@ export default function UserEdit() {
       return;
     }
     addMacMutation.mutate({ id: deviceId, mac: additionalMac, appId: additionalAppId });
+  };
+
+  const handleEditingMacChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 12);
+    setEditingMacValue(raw.match(/.{1,2}/g)?.join(":") ?? raw);
   };
 
   const handleMacChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -346,11 +365,19 @@ export default function UserEdit() {
                       ) : (
                         <div className="min-w-0 flex-1">
                           <div className="mb-1 flex items-center gap-2"><span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">MAC secundário / reserva</span></div>
-                          <span className="font-mono text-sm tracking-wide">{item.mac}</span>
-                          <MacAppBadge appId={item.appId} />
+                          {editingMacId === item.id ? (
+                            <div className="space-y-2">
+                              <Input value={editingMacValue} onChange={handleEditingMacChange} placeholder="00:00:00:00:00:00" maxLength={17} className="h-10 font-mono" />
+                              <Select value={editingMacAppId} onValueChange={setEditingMacAppId}>
+                                <SelectTrigger className="h-10 bg-background"><SelectValue placeholder="Escolha o APK deste aparelho" /></SelectTrigger>
+                                <SelectContent>{availableMacApps.map((app) => <SelectItem key={app.id} value={app.id}><span className="flex items-center gap-2"><img src={app.defaultLogoUrl} alt="" className="h-5 w-5 rounded object-cover" />{app.displayName}</span></SelectItem>)}</SelectContent>
+                              </Select>
+                              <div className="flex gap-2"><Button type="button" size="sm" onClick={() => { if (!editingMacValue || !editingMacAppId) { toast.error("Informe o MAC e escolha o APK."); return; } updateMacMutation.mutate({ id: deviceId, macId: item.id, mac: editingMacValue, appId: editingMacAppId }); }} disabled={updateMacMutation.isPending}>Salvar MAC</Button><Button type="button" size="sm" variant="ghost" onClick={() => setEditingMacId(null)}>Cancelar</Button></div>
+                            </div>
+                          ) : <><span className="font-mono text-sm tracking-wide">{item.mac}</span><MacAppBadge appId={item.appId} /></>}
                         </div>
                       )}
-                      {!item.primary && <Button type="button" variant="ghost" size="icon" className="h-8 w-8 self-end text-destructive sm:self-center" aria-label={`Remover MAC ${item.mac}`} onClick={() => removeMacMutation.mutate({ id: deviceId, macId: item.id })} disabled={removeMacMutation.isPending}><Trash2 className="h-4 w-4" /></Button>}
+                      {!item.primary && <div className="flex items-center gap-1 self-end sm:self-center"><Button type="button" variant="ghost" size="sm" className="h-8 px-2" aria-label={`Editar MAC ${item.mac}`} onClick={() => { setEditingMacId(item.id); setEditingMacValue(item.mac); setEditingMacAppId(item.appId ?? ""); }}>Editar</Button><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label={`Remover MAC ${item.mac}`} onClick={() => removeMacMutation.mutate({ id: deviceId, macId: item.id })} disabled={removeMacMutation.isPending}><Trash2 className="h-4 w-4" /></Button></div>}
                     </div>
                   ))}
                 </div>
