@@ -18,9 +18,7 @@ interface AppRanking {
 export default function RankingApps() {
   // Buscar estatísticas de apps
   const { data: appStats } = trpc.ranking.appStats.useQuery();
-  const { data: resellerAppAccess } = trpc.resellerAppAccess.me.useQuery();
-  const allowedApps = resellerAppAccess?.isRestricted ? resellerAppAccess.allowedApps : null;
-  
+
   const appCounts = useMemo(() => {
     return {
       'Ouro Pro': appStats?.ouropro || 0,
@@ -80,14 +78,13 @@ export default function RankingApps() {
     ];
 
     return apps
-      .filter((app) => !allowedApps || allowedApps.includes(app.id))
       .sort((a, b) => b.users - a.users)
       .map((app, idx) => ({
         ...app,
         position: idx + 1,
         percentage: totalUsers > 0 ? Math.round((app.users / totalUsers) * 100) : 0,
       }));
-  }, [allowedApps, appCounts, totalUsers]);
+  }, [appCounts, totalUsers]);
 
   const colorClasses = {
     yellow: "border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-yellow-50 via-yellow-50 to-yellow-100/50 dark:from-yellow-950/40 dark:via-yellow-900/20 dark:to-yellow-800/30",
