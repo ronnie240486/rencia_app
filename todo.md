@@ -1580,3 +1580,6 @@
 - [x] Permitir escolher o APK usado por cada MAC secundário, mantendo o mesmo cliente, listas e permissões
 
 - [x] Corrigir a falha reportada em que o MAC principal não aparece editável e o MAC secundário não aparece após o salvamento
+
+- [ ] Corrigir o segundo MAC que não aparece salvo junto do MAC principal
+- [ ] Corrigir o erro SQLite idx_catalog_series_identity que impede o Future de baixar a lista do painel

@@ -71,7 +71,7 @@ export default function UserEdit() {
     { id: deviceId },
     { enabled: !isNaN(deviceId) && deviceId > 0 },
   );
-  const { data: deviceMacs } = trpc.devices.macs.useQuery(
+  const { data: deviceMacs, refetch: refetchDeviceMacs } = trpc.devices.macs.useQuery(
     { id: deviceId },
     { enabled: !isNaN(deviceId) && deviceId > 0 },
   );
@@ -157,6 +157,7 @@ export default function UserEdit() {
       setAdditionalAppId("");
       setIsMacEditorOpen(false);
       await utils.devices.macs.invalidate({ id: deviceId });
+      await refetchDeviceMacs();
       await utils.devices.getById.invalidate({ id: deviceId });
       await utils.devices.list.invalidate();
       toast.success("MAC adicionado ao mesmo cliente.");
@@ -325,7 +326,7 @@ export default function UserEdit() {
                     {deviceMacs.length === 1 ? "1 MAC salvo" : `${deviceMacs.length} MACs salvos`} · o primeiro é o principal e os demais são reservas/outros aparelhos.
                   </p>
                   {deviceMacs.map((item) => (
-                    <div key={`${item.id}-${item.mac}`} className="flex flex-col gap-2 rounded-lg border bg-muted/20 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div key={item.primary ? "primary-mac" : `secondary-mac-${item.id}-${item.mac}`} className="flex flex-col gap-2 rounded-lg border bg-muted/20 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                       {item.primary ? (
                         <div className="min-w-0 flex-1">
                           <div className="mb-1 flex items-center gap-2">
