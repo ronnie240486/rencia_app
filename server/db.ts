@@ -260,7 +260,7 @@ export async function getDeviceStats(ownerId: number) {
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "UltraMaster"))),
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "Master"))),
     db.select({ total: sql<string>`COALESCE(SUM(CAST(valor AS DECIMAL(10,2))), 0)` }).from(devices).where(and(eq(devices.ownerId, ownerId), or(eq(devices.status, 'Liberado'), eq(devices.status, 'Expirado')))),
-    db.select({ total: sql<string>`COALESCE(SUM(CAST(valor AS DECIMAL(10,2))), 0)` }).from(iptvServers).where(and(eq(iptvServers.ownerId, ownerId), eq(iptvServers.paymentStatus, "paid"))),
+    db.select({ total: sql<string>`COALESCE(SUM(CAST(valor AS DECIMAL(10,2))), 0)` }).from(iptvServers).where(eq(iptvServers.ownerId, ownerId)),
   ]);
 
   return {

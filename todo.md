@@ -1550,3 +1550,6 @@
 - [ ] Preparar Railway como reserva ativa para assumir se o Manus ficar indisponível, com dados e rotas preservados
 - [x] Trocar o rótulo visível SERVIDOR por NOME DO SERVIDOR na Central de Servidores IPTV
 - [x] Adicionar valor aos servidores IPTV e exibir receita desses registros na Home, mantendo a data de expiração
+- [ ] Padronizar as informações visíveis da Central para usar nome do servidor em vez de servidor isolado
+- [x] Corrigir valor de servidor IPTV que não foi contabilizado na Receita após cadastro
+- [x] Reverter o rótulo visível Nome do servidor para Servidor conforme solicitado
