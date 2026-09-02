@@ -1625,3 +1625,5 @@
 - [x] Criar botão Renovar que avance a validade em um mês e registre o valor recebido no fechamento mensal
 
 - [x] Corrigir o botão Renovar que não está visível nos cartões da tela publicada de Usuários
+
+- [ ] Restaurar a abertura da lista 1 e a troca automática para a lista 2, preservando as listas cadastradas

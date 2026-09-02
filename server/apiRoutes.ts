@@ -3420,15 +3420,8 @@ export function registerApiRoutes(app: Express) {
         ? macNormalized.match(/.{2}/g)!.join(":")
         : mac.toUpperCase();
 
-      const result = await db
-        .select()
-        .from(devices)
-        .where(or(
-          eq(devices.mac, macWithColons),
-          eq(devices.mac, macNormalized),
-          eq(devices.mac, mac),
-        ))
-        .limit(1);
+      const resolvedDevice = await findDeviceByAnyMac(db, macWithColons);
+      const result = resolvedDevice ? [resolvedDevice] : [];
 
       if (result.length === 0) {
         res.json({
@@ -3687,15 +3680,13 @@ export function registerApiRoutes(app: Express) {
       // Normalizar MAC
       const macWithColons = mac.includes(":") ? mac : `${mac.slice(0, 2)}:${mac.slice(2, 4)}:${mac.slice(4, 6)}:${mac.slice(6, 8)}:${mac.slice(8, 10)}:${mac.slice(10, 12)}`;
 
-      // Buscar device
-      const device = await db.select().from(devices).where(eq(devices.mac, macWithColons)).limit(1);
-
-      if (device.length === 0) {
+            // Buscar device principal ou reserva
+      const resolvedDevice = await findDeviceByAnyMac(db, macWithColons);
+      if (!resolvedDevice) {
         res.json({ success: false, playlists: [], message: "MAC não encontrado" });
         return;
       }
-
-      const dev = device[0];
+      const dev = resolvedDevice;
 
       // Buscar playlists do device
       const playlists = await db.select().from(deviceUrls).where(eq(deviceUrls.deviceId, dev.id)).orderBy(deviceUrls.ordem);
