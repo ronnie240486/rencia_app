@@ -397,13 +397,14 @@ export async function getDeviceStats(ownerId: number) {
   monthStart.setDate(1);
   const nextMonthStart = new Date(monthStart);
   nextMonthStart.setMonth(nextMonthStart.getMonth() + 1);
-  const [total, revendas, ultraMasters, masters, receita, receitaServidores] = await Promise.all([
+  const [total, revendas, ultraMasters, masters, receita, receitaServidores, receitaRenovacoes] = await Promise.all([
     db.select({ count: count() }).from(devices).where(eq(devices.ownerId, ownerId)),
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "Revenda"))),
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "UltraMaster"))),
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "Master"))),
     db.select({ total: sql<string>`COALESCE(SUM(CAST(valor AS DECIMAL(10,2))), 0)` }).from(devices).where(and(eq(devices.ownerId, ownerId), or(eq(devices.status, 'Liberado'), eq(devices.status, 'Expirado')), gte(devices.dataCadastro, monthStart), lt(devices.dataCadastro, nextMonthStart))),
     db.select({ total: sql<string>`COALESCE(SUM(CAST(valor AS DECIMAL(10,2))), 0)` }).from(iptvServers).where(and(eq(iptvServers.ownerId, ownerId), gte(iptvServers.createdAt, monthStart), lt(iptvServers.createdAt, nextMonthStart))),
+    db.select({ total: sql<string>`COALESCE(SUM(CAST(amount AS DECIMAL(10,2))), 0)` }).from(payments).where(and(eq(payments.ownerId, ownerId), eq(payments.status, "paid"), gte(payments.paidAt, monthStart), lt(payments.paidAt, nextMonthStart))),
   ]);
 
   return {
@@ -411,7 +412,7 @@ export async function getDeviceStats(ownerId: number) {
     revendas: revendas[0]?.count ?? 0,
     ultraMasters: ultraMasters[0]?.count ?? 0,
     masters: masters[0]?.count ?? 0,
-    receitaMensal: addIptvServerRevenue(parseIptvServerValue(receita[0]?.total), receitaServidores[0]?.total),
+    receitaMensal: addIptvServerRevenue(parseIptvServerValue(receita[0]?.total), receitaServidores[0]?.total) + parseIptvServerValue(receitaRenovacoes[0]?.total),
     receitaServidores: parseIptvServerValue(receitaServidores[0]?.total),
   };
 }

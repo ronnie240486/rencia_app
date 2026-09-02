@@ -1635,3 +1635,7 @@
 - [ ] Fazer o OuroPro chamar a próxima playlist automaticamente quando a Lista 1 travar, sem retornar falso limite de conexões
 
 - [x] Corrigir o limite de conexões que retorna para 1 depois de salvar o valor 2
+
+- [ ] Corrigir a consulta de validade da lista Onix e manter fallback manual quando o provedor não liberar a informação
+
+- [x] Corrigir a renovação confirmada de R$ 30,00 que não foi contabilizada na Receita Mensal
