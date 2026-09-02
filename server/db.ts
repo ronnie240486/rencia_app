@@ -282,6 +282,7 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
   dataExpiracao: string;
   status: "Liberado" | "Bloqueado" | "Expirado";
   telefone: string;
+  maxConcurrentConnections?: number;
 }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -320,6 +321,9 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
   if (data.dataExpiracao !== undefined) updateData.dataExpiracao = data.dataExpiracao ? dateOnlyForDatabase(data.dataExpiracao) : null;
   if (data.status !== undefined) updateData.status = data.status;
   if (data.telefone !== undefined) updateData.telefone = data.telefone;
+  if (data.maxConcurrentConnections !== undefined) {
+    updateData.maxConcurrentConnections = Math.max(1, Math.min(10, Number(data.maxConcurrentConnections)));
+  }
   if (Object.keys(updateData).length === 0) return;
   await db.update(devices).set(updateData).where(and(eq(devices.id, id), eq(devices.ownerId, ownerId)));
 }

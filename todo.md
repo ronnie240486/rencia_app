@@ -1627,3 +1627,11 @@
 - [x] Corrigir o botão Renovar que não está visível nos cartões da tela publicada de Usuários
 
 - [ ] Restaurar a abertura da lista 1 e a troca automática para a lista 2, preservando as listas cadastradas
+
+- [ ] Restaurar o failover automático: quando a Lista 1 falhar, tentar a Lista 2 antes de exibir erro de limite de conexões
+
+- [ ] Investigar e restaurar o failover do OuroPro, que funcionava antes e agora interrompe a reprodução ou não tenta a lista seguinte
+
+- [ ] Fazer o OuroPro chamar a próxima playlist automaticamente quando a Lista 1 travar, sem retornar falso limite de conexões
+
+- [x] Corrigir o limite de conexões que retorna para 1 depois de salvar o valor 2
