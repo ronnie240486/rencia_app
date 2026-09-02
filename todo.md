@@ -1618,3 +1618,8 @@
 - [x] Fechar e zerar a Receita Mensal no dia 1 de cada mês somente após gerar o relatório do mês anterior
 - [x] Exibir modal completo com clientes, receita, listas, pagamentos e demais indicadores do fechamento
 - [x] Permitir baixar/exportar o relatório e copiar mensagem pronta para WhatsApp, mantendo histórico mensal
+
+- [x] Registrar cada renovação/pagamento de cliente existente no mês correspondente, somando novamente o valor sem duplicar o mesmo evento
+
+- [x] Fazer a edição de MAC atualizar o registro existente, sem criar outro MAC nem manter o anterior
+- [x] Criar botão Renovar que avance a validade em um mês e registre o valor recebido no fechamento mensal

@@ -305,11 +305,6 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
       if (aliasConflict.length && aliasConflict[0].deviceId === id) {
         await db.delete(deviceMacs).where(eq(deviceMacs.id, aliasConflict[0].id));
       }
-      if (currentMac && currentMac !== normalizedMac) {
-        const oldAlias = await db.select({ id: deviceMacs.id }).from(deviceMacs)
-          .where(and(eq(deviceMacs.deviceId, id), eq(deviceMacs.mac, currentMac))).limit(1);
-        if (!oldAlias.length) await db.insert(deviceMacs).values({ deviceId: id, mac: currentMac });
-      }
     }
     updateData.mac = normalizedMac;
   }

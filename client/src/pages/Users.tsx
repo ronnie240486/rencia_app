@@ -179,6 +179,14 @@ export default function Users() {
     ]);
   };
 
+  const renewMutation = trpc.renewals.renew.useMutation({
+    onSuccess: async (result) => {
+      await invalidateDeviceData();
+      toast.success(result.duplicate ? "Renovação já registrada neste mês." : `Renovado até ${formatDate(result.expirationDate)} e valor contabilizado.`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const updateStatusMutation = trpc.devices.update.useMutation({
     onSuccess: async () => {
       await invalidateDeviceData();
@@ -456,6 +464,7 @@ export default function Users() {
               <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-3">
                 <Link href={`/cliente/${device.id}`}><Button size="sm" variant="outline" className="w-full gap-1">360°</Button></Link>
                 <Button size="sm" variant="outline" className="w-full gap-1" onClick={() => setDeleteId(device.id)}><Trash2 className="h-3.5 w-3.5" /> Excluir</Button>
+                <Button size="sm" variant="outline" className="w-full gap-1 text-emerald-700" disabled={renewMutation.isPending} onClick={() => { if (window.confirm(`Registrar renovação de ${device.nomeServer} por R$ ${Number(device.valor || 30).toFixed(2)}?`)) renewMutation.mutate({ deviceId: device.id, amount: Number(device.valor || 30) }); }}>Renovar</Button>
                 <Button size="sm" variant="outline" className="w-full gap-1" disabled={updateStatusMutation.isPending} onClick={() => updateStatusMutation.mutate({ id: device.id, status: device.status === "Bloqueado" ? "Liberado" : "Bloqueado" })}>{device.status === "Bloqueado" ? <UnlockKeyhole className="h-3.5 w-3.5" /> : <LockKeyhole className="h-3.5 w-3.5" />}{device.status === "Bloqueado" ? "Liberar" : "Bloquear"}</Button>
                 <Link href={`/users/${device.id}/edit`}><Button size="sm" variant="outline" className="w-full gap-1"><Pencil className="h-3.5 w-3.5" /> Editar</Button></Link>
               </div>
