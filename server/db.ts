@@ -393,14 +393,18 @@ export async function deleteExpiredDevices(ownerId: number) {
 export async function getDeviceStats(ownerId: number) {
   const db = await getDb();
   if (!db) return { total: 0, revendas: 0, ultraMasters: 0, masters: 0, receitaMensal: 0 };
-
+  const monthStart = new Date();
+  monthStart.setHours(0, 0, 0, 0);
+  monthStart.setDate(1);
+  const nextMonthStart = new Date(monthStart);
+  nextMonthStart.setMonth(nextMonthStart.getMonth() + 1);
   const [total, revendas, ultraMasters, masters, receita, receitaServidores] = await Promise.all([
     db.select({ count: count() }).from(devices).where(eq(devices.ownerId, ownerId)),
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "Revenda"))),
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "UltraMaster"))),
     db.select({ count: count() }).from(devices).where(and(eq(devices.ownerId, ownerId), eq(devices.tipo, "Master"))),
-    db.select({ total: sql<string>`COALESCE(SUM(CAST(valor AS DECIMAL(10,2))), 0)` }).from(devices).where(and(eq(devices.ownerId, ownerId), or(eq(devices.status, 'Liberado'), eq(devices.status, 'Expirado')))),
-    db.select({ total: sql<string>`COALESCE(SUM(CAST(valor AS DECIMAL(10,2))), 0)` }).from(iptvServers).where(eq(iptvServers.ownerId, ownerId)),
+    db.select({ total: sql<string>`COALESCE(SUM(CAST(valor AS DECIMAL(10,2))), 0)` }).from(devices).where(and(eq(devices.ownerId, ownerId), or(eq(devices.status, 'Liberado'), eq(devices.status, 'Expirado')), gte(devices.dataCadastro, monthStart), lt(devices.dataCadastro, nextMonthStart))),
+    db.select({ total: sql<string>`COALESCE(SUM(CAST(valor AS DECIMAL(10,2))), 0)` }).from(iptvServers).where(and(eq(iptvServers.ownerId, ownerId), gte(iptvServers.createdAt, monthStart), lt(iptvServers.createdAt, nextMonthStart))),
   ]);
 
   return {

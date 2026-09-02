@@ -13,6 +13,7 @@ import { registerBackupScheduleRoutes } from "../backupSchedule";
 import { registerHistoryRetentionScheduleRoutes } from "../historyRetentionSchedule";
 import { registerListFailoverScheduleRoutes } from "../listFailoverSchedule";
 import { registerIptvServerAlertScheduleRoutes } from "../iptvServerAlertSchedule";
+import { registerMonthlyRevenueScheduleRoutes } from "../monthlyRevenueSchedule";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -86,6 +87,7 @@ async function startServer() {
   registerHistoryRetentionScheduleRoutes(app);
   registerListFailoverScheduleRoutes(app);
   registerIptvServerAlertScheduleRoutes(app);
+  registerMonthlyRevenueScheduleRoutes(app);
   // Registrar rotas da API ANTES de Vite para ter prioridade
   registerApiRoutes(app);
   // tRPC API

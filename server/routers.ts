@@ -12,7 +12,7 @@ import {
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
   getConnectedDevices, updateUserProfile, listDeviceMacs, addDeviceMac, updateDeviceMac, removeDeviceMac,
 } from "./db";
-import { eq, and, inArray, sql, desc, isNotNull, like, or, gt } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, isNotNull, like, or, gt, gte, lt } from "drizzle-orm";
 import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions, storeInvites, googleDriveBackupConnections, deviceAppLinks, iptvServers, iptvServerAlertLogs, iptvServerAlertSettings, iptvServerWhatsAppBusinessSettings } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
@@ -35,7 +35,7 @@ import { hasConfirmedListFailure, probeListUrl } from "./listHealth";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
 import { buildServerPilotOverview } from "./serverPilot";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
-import { autoBackupSettings, backupSnapshots, historyRetentionSettings } from "../drizzle/schema";
+import { autoBackupSettings, backupSnapshots, historyRetentionSettings, monthlyRevenueClosures, monthlyRevenueSettings } from "../drizzle/schema";
 import { createBackupSnapshot, restoreBackupSnapshot, AUTO_BACKUP_CRON } from "./backupService";
 import { createGoogleDriveAuthorizationUrl } from "./googleDriveBackup";
 import { appServerFallbackSettingKey, appServerSettingKey } from "./appServerDirectory";
@@ -54,6 +54,7 @@ import { isAppSettingVisibleToReseller } from "./appSettingsVisibility";
 import { buildIptvServerAlertMessage, buildIptvServerWhatsAppUrl, daysUntilServerExpiration, IPTV_SERVER_ALERT_CRON, normalizeIptvServerWhatsAppPhone, shouldAlertIptvServer } from "./iptvServerAlerts";
 import { runIptvServerAlertSweep } from "./iptvServerAlertService";
 import { prepareIptvServerWhatsAppBusiness } from "./iptvServerWhatsAppBusiness";
+import { buildMonthlyRevenueReport, formatMonthlyRevenueMessage, previousMonthPeriod, MONTHLY_REVENUE_CRON } from "./monthlyRevenue";
 
 async function requireGrantedPanelPermission(db: any, user: any, permission: string) {
   if (user?.isOwner) return;
@@ -190,8 +191,86 @@ const ownerProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+async function loadMonthlyRevenueReport(ownerId: number, period: { periodStart: string; periodEnd: string }) {
+  const db = await getDb();
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+  const [deviceRows, serverRows, urlRows] = await Promise.all([
+    db.select({ id: devices.id, nomeServer: devices.nomeServer, valor: devices.valor, status: devices.status, dataCadastro: devices.dataCadastro, dataExpiracao: devices.dataExpiracao, urlM3u8: devices.urlM3u8 }).from(devices).where(eq(devices.ownerId, ownerId)),
+    db.select({ id: iptvServers.id, nome: iptvServers.name, valor: iptvServers.valor, paymentStatus: iptvServers.paymentStatus, createdAt: iptvServers.createdAt }).from(iptvServers).where(eq(iptvServers.ownerId, ownerId)),
+    db.select({ deviceId: deviceUrls.deviceId, ativo: deviceUrls.ativo }).from(deviceUrls),
+  ]);
+  const extraCounts = new Map<number, number>();
+  for (const row of urlRows) if (row.ativo) extraCounts.set(row.deviceId, (extraCounts.get(row.deviceId) ?? 0) + 1);
+  return buildMonthlyRevenueReport(period, deviceRows.map((row) => ({ ...row, playlistCount: (row.urlM3u8 ? 1 : 0) + (extraCounts.get(row.id) ?? 0) })), serverRows);
+}
+
 export const appRouter = router({
   system: systemRouter,
+
+  monthlyRevenue: router({
+    previewPrevious: protectedProcedure.query(async ({ ctx }) => {
+      const period = previousMonthPeriod();
+      const report = await loadMonthlyRevenueReport(ctx.user.id, period);
+      const db = await getDb();
+      let saved = null;
+      if (db) {
+        const periodStartDate = new Date(`${period.periodStart}T00:00:00Z`);
+        const savedRows = await db.select().from(monthlyRevenueClosures).where(and(eq(monthlyRevenueClosures.ownerId, ctx.user.id), eq(monthlyRevenueClosures.periodStart, periodStartDate))).limit(1);
+        saved = savedRows[0] ?? null;
+      }
+      return { report, saved, whatsappMessage: formatMonthlyRevenueMessage(report) };
+    }),
+    history: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db.select().from(monthlyRevenueClosures).where(eq(monthlyRevenueClosures.ownerId, ctx.user.id)).orderBy(desc(monthlyRevenueClosures.periodStart)).limit(24);
+    }),
+    scheduleStatus: ownerProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+      return (await db.select().from(monthlyRevenueSettings).where(eq(monthlyRevenueSettings.ownerId, ctx.user.id)).limit(1))[0] ?? null;
+    }),
+    enableSchedule: ownerProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      const current = (await db.select().from(monthlyRevenueSettings).where(eq(monthlyRevenueSettings.ownerId, ctx.user.id)).limit(1))[0];
+      if (current?.scheduleCronTaskUid) {
+        await db.update(monthlyRevenueSettings).set({ enabled: true, lastError: null }).where(eq(monthlyRevenueSettings.id, current.id));
+        return { enabled: true, existingSchedule: true };
+      }
+      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (!sessionToken) throw new TRPCError({ code: "UNAUTHORIZED", message: "Sua sessão expirou. Entre novamente para ativar o fechamento mensal." });
+      const job = await createHeartbeatJob({ name: `fechamento-mensal-${ctx.user.id}`, cron: MONTHLY_REVENUE_CRON, path: "/api/scheduled/monthly-revenue", description: "Fechamento da Receita Mensal no primeiro dia de cada mês" }, sessionToken);
+      if (current) await db.update(monthlyRevenueSettings).set({ enabled: true, scheduleCronTaskUid: job.taskUid, lastError: null }).where(eq(monthlyRevenueSettings.id, current.id));
+      else await db.insert(monthlyRevenueSettings).values({ ownerId: ctx.user.id, enabled: true, scheduleCronTaskUid: job.taskUid });
+      return { enabled: true, existingSchedule: false, nextExecutionAt: job.nextExecutionAt ?? null };
+    }),
+    disableSchedule: ownerProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      const currentRows = await db.select().from(monthlyRevenueSettings).where(eq(monthlyRevenueSettings.ownerId, ctx.user.id)).limit(1);
+      const current = currentRows[0];
+      if (!current) return { enabled: false };
+      if (current.scheduleCronTaskUid) {
+        try { await deleteHeartbeatJob(current.scheduleCronTaskUid, parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? ""); } catch { /* manter a desativação local */ }
+      }
+      await db.update(monthlyRevenueSettings).set({ enabled: false, scheduleCronTaskUid: null }).where(eq(monthlyRevenueSettings.id, current.id));
+      return { enabled: false };
+    }),
+    closePrevious: ownerProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      const period = previousMonthPeriod();
+      const periodStartDate = new Date(`${period.periodStart}T00:00:00Z`);
+      const existingRows = await db.select().from(monthlyRevenueClosures).where(and(eq(monthlyRevenueClosures.ownerId, ctx.user.id), eq(monthlyRevenueClosures.periodStart, periodStartDate))).limit(1);
+      const existing = existingRows[0];
+      if (existing) return { report: JSON.parse(existing.summaryJson || "{}"), alreadyClosed: true };
+      const report = await loadMonthlyRevenueReport(ctx.user.id, period);
+      const whatsappMessage = formatMonthlyRevenueMessage(report);
+      await db.insert(monthlyRevenueClosures).values({ ownerId: ctx.user.id, periodStart: new Date(`${report.periodStart}T00:00:00Z`), periodEnd: new Date(`${report.periodEnd}T00:00:00Z`), revenue: report.revenue.toFixed(2), deviceRevenue: report.deviceRevenue.toFixed(2), serverRevenue: report.serverRevenue.toFixed(2), clientCount: report.clientCount, newClientCount: report.newClientCount, activeClientCount: report.activeClientCount, expiredClientCount: report.expiredClientCount, playlistCount: report.playlistCount, paidServerCount: report.paidServerCount, summaryJson: JSON.stringify(report), whatsappMessage });
+      return { report, alreadyClosed: false };
+    }),
+  }),
 
   appServerDirectory: router({
     get: ownerProcedure.query(async () => {

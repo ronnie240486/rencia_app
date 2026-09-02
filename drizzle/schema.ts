@@ -654,6 +654,47 @@ export const nuvixConfig = mysqlTable("nuvix_config", {
 export type NuvixConfig = typeof nuvixConfig.$inferSelect;
 export type InsertNuvixConfig = typeof nuvixConfig.$inferInsert;
 
+// Fechamentos mensais da receita. O histórico é imutável e não apaga clientes, listas ou pagamentos.
+export const monthlyRevenueClosures = mysqlTable("monthly_revenue_closures", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  periodStart: date("periodStart").notNull(),
+  periodEnd: date("periodEnd").notNull(),
+  revenue: decimal("revenue", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  deviceRevenue: decimal("deviceRevenue", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  serverRevenue: decimal("serverRevenue", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  clientCount: int("clientCount").default(0).notNull(),
+  newClientCount: int("newClientCount").default(0).notNull(),
+  activeClientCount: int("activeClientCount").default(0).notNull(),
+  expiredClientCount: int("expiredClientCount").default(0).notNull(),
+  playlistCount: int("playlistCount").default(0).notNull(),
+  paidServerCount: int("paidServerCount").default(0).notNull(),
+  summaryJson: text("summaryJson"),
+  whatsappMessage: text("whatsappMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  ownerPeriod: uniqueIndex("monthly_revenue_owner_period_idx").on(table.ownerId, table.periodStart),
+  ownerCreated: index("monthly_revenue_owner_created_idx").on(table.ownerId, table.createdAt),
+}));
+
+export type MonthlyRevenueClosure = typeof monthlyRevenueClosures.$inferSelect;
+export type InsertMonthlyRevenueClosure = typeof monthlyRevenueClosures.$inferInsert;
+
+// Um agendamento mensal por proprietário para fechar o mês anterior no dia 1.
+export const monthlyRevenueSettings = mysqlTable("monthly_revenue_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull().unique(),
+  enabled: boolean("enabled").default(false).notNull(),
+  scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }),
+  lastRunAt: timestamp("lastRunAt"),
+  lastStatus: mysqlEnum("lastStatus", ["success", "error", "never"]).default("never").notNull(),
+  lastError: varchar("lastError", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MonthlyRevenueSetting = typeof monthlyRevenueSettings.$inferSelect;
+
 // Credenciais para APKs de player (username/password para autenticação)
 export const playerCredentials = mysqlTable("player_credentials", {
   id: int("id").autoincrement().primaryKey(),

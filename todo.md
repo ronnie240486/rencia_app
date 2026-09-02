@@ -1608,3 +1608,13 @@
 - [x] Fazer o Evolux no MAC secundário localizar e receber a mesma playlist ativa do cliente principal
 
 - [x] Fazer o mesmo MAC receber a lista tanto como principal quanto como reserva, sem depender da posição do cadastro
+
+- [ ] Incluir usuários com CD2 no login na lista do Chatbot ao clicar em Verificar agora, sem envio automático
+
+- [x] Criar fechamento mensal da Receita Mensal no dia 1, com relatório completo antes de iniciar o novo mês
+- [x] Permitir baixar/exportar o fechamento e gerar mensagem pronta para WhatsApp
+- [x] Manter histórico dos fechamentos mensais sem apagar cadastros ou listas
+
+- [x] Fechar e zerar a Receita Mensal no dia 1 de cada mês somente após gerar o relatório do mês anterior
+- [x] Exibir modal completo com clientes, receita, listas, pagamentos e demais indicadores do fechamento
+- [x] Permitir baixar/exportar o relatório e copiar mensagem pronta para WhatsApp, mantendo histórico mensal

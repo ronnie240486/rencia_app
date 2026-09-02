@@ -101,6 +101,7 @@ export default function Dashboard() {
   const [previewingImport, setPreviewingImport] = useState(false);
   const [confirmingImport, setConfirmingImport] = useState(false);
   const [backupReminderOpen, setBackupReminderOpen] = useState(false);
+  const [monthlyClosureOpen, setMonthlyClosureOpen] = useState(false);
 
   const backupWeekKey = () => {
     const now = new Date();
@@ -204,10 +205,38 @@ export default function Dashboard() {
   };
 
   const { data: stats, isLoading: statsLoading, error: statsError } = trpc.devices.stats.useQuery();
+  const monthlyPreviewQuery = trpc.monthlyRevenue.previewPrevious.useQuery(undefined, { enabled: Boolean(user?.isOwner) });
+  const monthlyPreview = monthlyPreviewQuery.data;
+  const scheduleStatus = trpc.monthlyRevenue.scheduleStatus.useQuery(undefined, { enabled: Boolean(user?.isOwner) });
+  const closeMonthly = trpc.monthlyRevenue.closePrevious.useMutation({ onSuccess: () => monthlyPreviewQuery.refetch() });
+  const enableMonthlySchedule = trpc.monthlyRevenue.enableSchedule.useMutation({ onSuccess: () => scheduleStatus.refetch() });
+  const disableMonthlySchedule = trpc.monthlyRevenue.disableSchedule.useMutation({ onSuccess: () => scheduleStatus.refetch() });
   const { data: appStats } = trpc.ranking.appStats.useQuery();
   const { data: planInfo } = trpc.plan.info.useQuery();
   const { data: recentDevices, isLoading: recentLoading } = trpc.devices.recentList.useQuery({ search: recentSearch, limit: 5 });
   const { data: expiringSoon } = trpc.devices.expiringSoon.useQuery({ days: 7 });
+  useEffect(() => {
+    if (user?.isOwner && new Date().getDate() === 1 && monthlyPreview && !monthlyPreview.saved) setMonthlyClosureOpen(true);
+  }, [user?.isOwner, monthlyPreview]);
+
+  const downloadMonthlyClosure = () => {
+    const report = monthlyPreview?.report;
+    if (!report) return;
+    const blob = new Blob([JSON.stringify({ ...report, whatsappMessage: monthlyPreview.whatsappMessage }, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `fechamento-${report.periodStart.slice(0, 7)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const copyMonthlyWhatsApp = async () => {
+    if (!monthlyPreview?.whatsappMessage) return;
+    await navigator.clipboard?.writeText(monthlyPreview.whatsappMessage);
+    alert("Mensagem do fechamento copiada para o WhatsApp.");
+  };
+
   const { data: connectedDevices, isLoading: connectedLoading, isFetching: connectedRefreshing, refetch: refetchConnected } = trpc.connected.list.useQuery(
     // O filtro escolhido continua visível, mas a listagem nunca remove Assistindo antes de 2 horas.
     { minutesAgo: getConnectedQueryMinutes(connectedFilter) },
@@ -333,6 +362,55 @@ export default function Dashboard() {
             </>
           )}
         </div>
+
+        {user?.isOwner && (
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="text-base">Fechamento mensal</CardTitle>
+                  <p className="mt-1 text-sm text-muted-foreground">Confira o mês anterior antes do início do novo mês. O histórico não apaga clientes nem listas.</p>
+                </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={() => setMonthlyClosureOpen(true)} disabled={!monthlyPreview} className="gap-2">
+                      <CalendarDays className="h-4 w-4" /> Ver fechamento
+                    </Button>
+                    <Button variant="outline" onClick={() => scheduleStatus.data?.enabled ? disableMonthlySchedule.mutate() : enableMonthlySchedule.mutate()} disabled={enableMonthlySchedule.isPending || disableMonthlySchedule.isPending} className="gap-2">
+                      {scheduleStatus.data?.enabled ? "Desativar automático" : "Ativar automático"}
+                    </Button>
+                  </div>
+              </div>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+              <div><p className="text-muted-foreground">Mês anterior</p><p className="font-semibold">{monthlyPreview?.report.periodStart?.slice(0, 7) ?? "—"}</p></div>
+              <div><p className="text-muted-foreground">Receita</p><p className="font-semibold text-emerald-600">{formatCurrency(monthlyPreview?.report.revenue ?? 0)}</p></div>
+              <div><p className="text-muted-foreground">Clientes no mês</p><p className="font-semibold">{monthlyPreview?.report.newClientCount ?? 0}</p></div>
+              <div><p className="text-muted-foreground">Playlists</p><p className="font-semibold">{monthlyPreview?.report.playlistCount ?? 0}</p></div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Dialog open={monthlyClosureOpen} onOpenChange={setMonthlyClosureOpen}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Fechamento mensal — {monthlyPreview?.report.periodStart?.slice(0, 7) ?? "mês anterior"}</DialogTitle>
+              <DialogDescription>Resumo salvo antes do zeramento da Receita Mensal. Os cadastros permanecem no painel.</DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <StatCard title="Receita total" value={formatCurrency(monthlyPreview?.report.revenue ?? 0)} icon={Shield} color="bg-emerald-500" />
+              <StatCard title="Clientes no mês" value={monthlyPreview?.report.newClientCount ?? 0} icon={Users} color="bg-blue-500" />
+              <StatCard title="Playlists" value={monthlyPreview?.report.playlistCount ?? 0} icon={Layers} color="bg-purple-500" />
+              <StatCard title="Receita clientes" value={formatCurrency(monthlyPreview?.report.deviceRevenue ?? 0)} icon={Users} color="bg-cyan-500" />
+              <StatCard title="Receita servidores" value={formatCurrency(monthlyPreview?.report.serverRevenue ?? 0)} icon={Layers} color="bg-orange-500" />
+              <StatCard title="Servidores pagos" value={monthlyPreview?.report.paidServerCount ?? 0} icon={Shield} color="bg-green-500" />
+            </div>
+            <DialogFooter className="flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <Button variant="outline" onClick={downloadMonthlyClosure} className="gap-2"><Download className="h-4 w-4" /> Baixar relatório</Button>
+              <Button variant="outline" onClick={copyMonthlyWhatsApp} className="gap-2"><Upload className="h-4 w-4" /> Copiar para WhatsApp</Button>
+              <Button onClick={() => closeMonthly.mutate()} disabled={closeMonthly.isPending || Boolean(monthlyPreview?.saved)} className="gap-2"><Shield className="h-4 w-4" /> {monthlyPreview?.saved ? "Fechamento salvo" : closeMonthly.isPending ? "Salvando..." : "Salvar fechamento"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* ─── Dispositivos Conectados ─── */}
         <Card className="border-0 shadow-sm">
