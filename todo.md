@@ -1623,3 +1623,5 @@
 
 - [x] Fazer a edição de MAC atualizar o registro existente, sem criar outro MAC nem manter o anterior
 - [x] Criar botão Renovar que avance a validade em um mês e registre o valor recebido no fechamento mensal
+
+- [x] Corrigir o botão Renovar que não está visível nos cartões da tela publicada de Usuários

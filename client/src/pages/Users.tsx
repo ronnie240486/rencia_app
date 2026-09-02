@@ -556,6 +556,16 @@ export default function Users() {
                           <Button
                             size="sm"
                             variant="outline"
+                            className="h-7 px-2 text-[10px] text-emerald-700"
+                            title="Renovar cliente"
+                            disabled={renewMutation.isPending}
+                            onClick={() => { if (window.confirm(`Registrar renovação de ${d.nomeServer} por R$ ${Number(d.valor || 30).toFixed(2)}?`)) renewMutation.mutate({ deviceId: d.id, amount: Number(d.valor || 30) }); }}
+                          >
+                            Renovar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             className="h-7 w-7 p-0"
                             title={d.status === "Bloqueado" ? "Liberar cliente" : "Bloquear cliente"}
                             onClick={() => updateStatusMutation.mutate({ id: d.id, status: d.status === "Bloqueado" ? "Liberado" : "Bloqueado" })}
