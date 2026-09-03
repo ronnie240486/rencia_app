@@ -30,6 +30,7 @@ import { buildApkUpdateOverview, buildConfiguredAppVersions } from "./apkUpdates
 import { buildBulkMessageRecipients, normalizeBulkMessageDnsHost } from "./bulkMessages";
 import { buildOperationHealthOverview } from "./operationHealth";
 import { getConnectionState } from "./customerProfile";
+import { replaceDnsHost } from "./dnsFailover";
 import { CONNECTED_WINDOW_MINUTES, isWithinConnectedWindow } from "./connectedWindow";
 import { hasConfirmedListFailure, probeListUrl } from "./listHealth";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
@@ -3097,6 +3098,32 @@ export const appRouter = router({
         }
         await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "dns_group", entityId: target.id, action: "applied", summary: `DNS ${target.titulo} aplicada a ${updated} cliente(s) do grupo ${input.grupo}` });
         return { updated };
+      }),
+    swapProfileForDevices: protectedProcedure
+      .input(z.object({ fromGroup: z.string().trim().min(1), toGroup: z.string().trim().min(1), targetDnsId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (input.fromGroup === input.toGroup) throw new TRPCError({ code: "BAD_REQUEST", message: "Escolha perfis diferentes." });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const [sourceEntries, targetEntries] = await Promise.all([
+          db.select().from(dnsEntries).where(and(eq(dnsEntries.ownerId, ctx.user.id), eq(dnsEntries.grupo, input.fromGroup), eq(dnsEntries.ativo, true))),
+          db.select().from(dnsEntries).where(and(eq(dnsEntries.ownerId, ctx.user.id), eq(dnsEntries.grupo, input.toGroup), eq(dnsEntries.ativo, true))),
+        ]);
+        const target = targetEntries.find((entry) => entry.id === input.targetDnsId);
+        if (!sourceEntries.length) throw new TRPCError({ code: "NOT_FOUND", message: "O perfil de origem não possui DNS ativa." });
+        if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "A DNS principal do perfil de destino não foi encontrada." });
+        const rows = await db.select({ id: devices.id, urlM3u8: devices.urlM3u8 }).from(devices).where(eq(devices.ownerId, ctx.user.id));
+        let updated = 0;
+        for (const row of rows) {
+          if (!row.urlM3u8) continue;
+          const source = sourceEntries.find((entry) => row.urlM3u8!.startsWith(entry.host.replace(/\/+$/, "")));
+          if (!source) continue;
+          const nextUrl = replaceDnsHost(row.urlM3u8, target.host);
+          await db.update(devices).set({ urlM3u8: nextUrl, nomeServidor: input.toGroup }).where(and(eq(devices.id, row.id), eq(devices.ownerId, ctx.user.id)));
+          updated += 1;
+        }
+        await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "dns_profile", entityId: target.id, action: "applied", summary: `Perfil ${input.toGroup} aplicado a ${updated} cliente(s) do perfil ${input.fromGroup}` });
+        return { updated, fromGroup: input.fromGroup, toGroup: input.toGroup };
       }),
     groupHealth: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();

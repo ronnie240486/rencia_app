@@ -20,6 +20,18 @@ function buildXteamUrl(server: string, username: string, password: string): stri
   return `${base}/get.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&type=m3u_plus&output=ts`;
 }
 
+function replacePlaylistHost(url: string, host: string): string {
+  try {
+    const current = new URL(url);
+    const alternate = new URL(host);
+    current.protocol = alternate.protocol;
+    current.host = alternate.host;
+    return current.toString();
+  } catch {
+    return url;
+  }
+}
+
 type ListaItem = {
   id: string;
   nome: string;
@@ -67,6 +79,7 @@ export default function UserCreate() {
   const utils = trpc.useUtils();
   const { data: appsData } = trpc.apps.list.useQuery();
   const { data: resellerAppAccess } = trpc.resellerAppAccess.me.useQuery();
+  const { data: configuredDns = [] } = trpc.dns.list.useQuery();
 
   const [form, setForm] = useState({
     accessMode: "MAC" as "MAC" | "LOGIN_PASSWORD" | "NO_MAC",
@@ -80,6 +93,23 @@ export default function UserCreate() {
     telefone: "",
   });
   const [linkedAppIds, setLinkedAppIds] = useState<string[]>(["ouropro"]);
+  const [serverProfile, setServerProfile] = useState("none");
+  const [primaryDnsId, setPrimaryDnsId] = useState("");
+
+  const serverProfiles = useMemo(() => {
+    const groups = new Map<string, typeof configuredDns>();
+    for (const entry of configuredDns) {
+      const group = entry.grupo?.trim() || "Padrão";
+      groups.set(group, [...(groups.get(group) ?? []), entry]);
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b, "pt-BR"));
+  }, [configuredDns]);
+  const selectedProfileDns = useMemo(() => serverProfiles.find(([group]) => group === serverProfile)?.[1] ?? [], [serverProfile, serverProfiles]);
+  const selectedPrimaryDns = selectedProfileDns.find((entry) => String(entry.id) === primaryDnsId) ?? selectedProfileDns[0];
+
+  useEffect(() => {
+    if (serverProfile !== "none" && selectedProfileDns.length && !selectedPrimaryDns) setPrimaryDnsId(String(selectedProfileDns[0].id));
+  }, [serverProfile, selectedProfileDns, selectedPrimaryDns]);
 
   const [listas, setListas] = useState<ListaItem[]>([newLista(true)]);
   const [dnsList, setDnsList] = useState<Array<{ id: string; titulo: string; host: string }>>([]);
@@ -204,13 +234,17 @@ export default function UserCreate() {
     const principal = listas[0];
     if (!principal) { toast.error("Adicione pelo menos uma lista."); return; }
 
+    const selectedHost = serverProfile !== "none" ? selectedPrimaryDns?.host?.trim() : "";
     let urlM3u8 = principal.urlM3u8;
+    let xtServer = principal.xtServer.trim();
     if (principal.modo === "XTeamCode") {
-      if (!principal.xtServer.trim()) { toast.error("URL do servidor XteamCode é obrigatória."); return; }
+      if (selectedHost) xtServer = selectedHost;
+      if (!xtServer) { toast.error("URL do servidor XteamCode é obrigatória."); return; }
       if (!principal.xtUsername.trim()) { toast.error("Usuário XteamCode é obrigatório."); return; }
       if (!principal.xtPassword.trim()) { toast.error("Senha XteamCode é obrigatória."); return; }
-      urlM3u8 = buildXteamUrl(principal.xtServer.trim(), principal.xtUsername.trim(), principal.xtPassword.trim());
+      urlM3u8 = buildXteamUrl(xtServer, principal.xtUsername.trim(), principal.xtPassword.trim());
     } else {
+      if (selectedHost && urlM3u8.trim()) urlM3u8 = replacePlaylistHost(urlM3u8.trim(), selectedHost);
       if (!urlM3u8.trim()) { toast.error("URL M3U8 da lista principal é obrigatória."); return; }
     }
 
@@ -219,12 +253,12 @@ export default function UserCreate() {
       if (!appId) { toast.error("Selecione um aplicativo válido para o acesso por login."); return; }
       if (principal.modo !== "XTeamCode") { toast.error("O acesso por login usa obrigatoriamente os dados XTeam da Lista Principal."); return; }
       credentialMutation.mutate({
-        xtServer: principal.xtServer.trim(),
+        xtServer,
         xtUsername: principal.xtUsername.trim(),
         xtPassword: principal.xtPassword,
         appId,
         nomeServer: form.nomeServer.trim(),
-        nomeServidor: form.nomeServidor.trim() || undefined,
+        nomeServidor: (serverProfile !== "none" ? serverProfile : form.nomeServidor).trim() || undefined,
         tipo: form.tipo,
         urlEpg: principal.urlEpg || undefined,
         valor: form.valor || undefined,
@@ -248,7 +282,7 @@ export default function UserCreate() {
       mac: form.mac.trim() || undefined,
       accessMode: String(form.accessMode) === "LOGIN_PASSWORD" ? "LOGIN_PASSWORD" : "MAC",
       nomeServer: form.nomeServer.trim(),
-      nomeServidor: form.nomeServidor.trim() || undefined,
+      nomeServidor: (serverProfile !== "none" ? serverProfile : form.nomeServidor).trim() || undefined,
       modoSelecao: principal.modo,
       tipo: form.tipo,
       app: form.app,
@@ -329,6 +363,29 @@ export default function UserCreate() {
                 className="h-10"
               />
               <p className="text-xs text-muted-foreground">Você pode preencher depois, se necessário.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">PERFIL DO SERVIDOR:</Label>
+              <Select value={serverProfile} onValueChange={(value) => { setServerProfile(value); setPrimaryDnsId(""); }}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="Cadastro manual" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Cadastro manual</SelectItem>
+                  {serverProfiles.map(([group, entries]) => <SelectItem key={group} value={group}>{group} ({entries.length} DNS)</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {serverProfile !== "none" && selectedProfileDns.length > 0 && (
+                <div className="mt-2 space-y-1.5 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">DNS PRINCIPAL:</Label>
+                  <Select value={String(selectedPrimaryDns?.id ?? "")} onValueChange={setPrimaryDnsId}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Selecione a DNS principal" /></SelectTrigger>
+                    <SelectContent>
+                      {selectedProfileDns.map((entry) => <SelectItem key={entry.id} value={String(entry.id)}>{entry.titulo} — {entry.host}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">A M3U será criada com esta DNS; as demais do perfil ficarão disponíveis como alternativas para o APK.</p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">

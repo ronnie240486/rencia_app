@@ -34,6 +34,9 @@ export default function DNS() {
   const [maintenanceContent, setMaintenanceContent] = useState("");
   const [maintenanceStartsAt, setMaintenanceStartsAt] = useState("");
   const [maintenanceEndsAt, setMaintenanceEndsAt] = useState("");
+  const [fromProfile, setFromProfile] = useState("");
+  const [toProfile, setToProfile] = useState("");
+  const [targetProfileDnsId, setTargetProfileDnsId] = useState("");
   const utils = trpc.useUtils();
 
   const { data: dnsList = [], isLoading, refetch } = trpc.dns.list.useQuery();
@@ -76,6 +79,10 @@ export default function DNS() {
     onSuccess: async () => { toast.success("Status de manutenção do servidor atualizado."); await refreshDnsData(); },
     onError: (e) => toast.error(e.message),
   });
+  const profileSwapMut = trpc.dns.swapProfileForDevices.useMutation({
+    onSuccess: async (data) => { toast.success(`${data.updated} cliente(s) trocado(s) de ${data.fromGroup} para ${data.toGroup}.`); setFromProfile(""); setToProfile(""); setTargetProfileDnsId(""); await refreshDnsData(); },
+    onError: (e) => toast.error(e.message),
+  });
   const swapMut = trpc.devices.bulkSwapDns.useMutation({
     onSuccess: async (data) => {
       if (data.count === 0) {
@@ -89,6 +96,9 @@ export default function DNS() {
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const profileGroups = Array.from(new Set(dnsList.map((item) => item.grupo ?? "Padrão"))).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const targetProfileDns = dnsList.filter((item) => (item.grupo ?? "Padrão") === toProfile && item.ativo);
 
   const openCreate = () => { setEditId(null); setForm(emptyForm); setShowDialog(true); };
   const openEdit = (d: any) => { setEditId(d.id); setForm({ titulo: d.titulo, grupo: d.grupo ?? "Padrão", host: d.host }); setShowDialog(true); };
@@ -371,6 +381,19 @@ export default function DNS() {
                 )}
               </Button>
             </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2"><ArrowRightLeft size={16} /> Trocar perfil de servidor em massa</CardTitle>
+            <CardDescription>Move os clientes de um grupo, como Club, para outro grupo, como Onix, mantendo o caminho, usuário e senha da M3U.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-3">
+            <div className="space-y-2"><Label>Perfil atual</Label><Select value={fromProfile} onValueChange={setFromProfile}><SelectTrigger><SelectValue placeholder="Ex.: Club" /></SelectTrigger><SelectContent>{profileGroups.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Novo perfil</Label><Select value={toProfile} onValueChange={(value) => { setToProfile(value); setTargetProfileDnsId(""); }}><SelectTrigger><SelectValue placeholder="Ex.: Onix" /></SelectTrigger><SelectContent>{profileGroups.filter((group) => group !== fromProfile).map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>DNS principal do novo perfil</Label><Select value={targetProfileDnsId} onValueChange={setTargetProfileDnsId}><SelectTrigger><SelectValue placeholder="Escolha a DNS" /></SelectTrigger><SelectContent>{targetProfileDns.map((dns) => <SelectItem key={dns.id} value={String(dns.id)}>{dns.titulo} — {dns.host}</SelectItem>)}</SelectContent></Select></div>
+            <div className="md:col-span-3"><Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold" disabled={profileSwapMut.isPending || !fromProfile || !toProfile || !targetProfileDnsId} onClick={() => { if (window.confirm(`Trocar todos os clientes do perfil ${fromProfile} para ${toProfile}?`)) profileSwapMut.mutate({ fromGroup: fromProfile, toGroup: toProfile, targetDnsId: Number(targetProfileDnsId) }); }}>{profileSwapMut.isPending ? "Trocando..." : "Trocar perfil em massa"}</Button></div>
           </CardContent>
         </Card>
 

@@ -44,6 +44,7 @@ import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistrati
 import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { resolveEpgUrl } from "./epgFallback";
+import { buildDnsFailoverUrls, selectDnsProfileEntries } from "./dnsFailover";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
 import { findDeviceByAnyMac, findDeviceMatchByAnyMac } from "./deviceMacLookup";
@@ -1768,6 +1769,10 @@ export function registerApiRoutes(app: Express) {
         .where(and(eq(deviceUrls.deviceId, device.id), eq(deviceUrls.ativo, true)))
         .orderBy(asc(deviceUrls.ordem));
       const playlistUrls = [device.urlM3u8 || "", ...extraLists.map((list) => list.urlM3u8 || list.xtServer || "")].filter(Boolean);
+      const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(and(eq(dnsEntries.ownerId, device.ownerId), eq(dnsEntries.ativo, true))).orderBy(asc(dnsEntries.createdAt));
+      const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns);
+      const failoverUrls = buildDnsFailoverUrls(device.urlM3u8, selectedDnsProfile);
+      const serverProfile = selectedDnsProfile[0]?.grupo || null;
       const dnsUrls = Array.from(new Set(playlistUrls.map((url) => {
         try { return new URL(url).origin; } catch { return ""; }
       }).filter(Boolean)));
@@ -1795,6 +1800,9 @@ export function registerApiRoutes(app: Express) {
         dns_urls: dnsUrls,
         playlist_url: playlistUrls[0] || "",
         playlist_urls: playlistUrls,
+        primary_dns_url: failoverUrls[0] || playlistUrls[0] || "",
+        failover_urls: failoverUrls,
+        server_profile: serverProfile,
         playlists: playlistUrls.map((url, index) => ({ name: index === 0 ? "Lista Principal" : `Lista ${index + 1}`, url })),
         ...config,
       });
@@ -1880,9 +1888,12 @@ export function registerApiRoutes(app: Express) {
       // também existe em outro app (por exemplo, Ouro Pro e Optimus).
       await db.update(devices).set({ lastSeen: new Date(), lastActiveAppId: appId }).where(eq(devices.id, device.id));
       const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
+      const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(and(eq(dnsEntries.ownerId, device.ownerId), eq(dnsEntries.ativo, true))).orderBy(asc(dnsEntries.createdAt));
+      const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns);
+      const failoverUrls = buildDnsFailoverUrls(device.urlM3u8, selectedDnsProfile);
       const settings = await getSettings();
       res.setHeader("Cache-Control", "no-store");
-      res.json({ registered: true, allowed: device.status === "Liberado", mac, ...buildGenericAppConfig(appId, appDef.displayName, settings, [device.urlM3u8 || "", ...extras.map((item) => item.url || "")], device.urlEpg || "") });
+      res.json({ registered: true, allowed: device.status === "Liberado", mac, primary_dns_url: failoverUrls[0] || device.urlM3u8 || "", failover_urls: failoverUrls, server_profile: selectedDnsProfile[0]?.grupo || null, ...buildGenericAppConfig(appId, appDef.displayName, settings, [device.urlM3u8 || "", ...extras.map((item) => item.url || "")], device.urlEpg || "") });
     } catch (error) {
       console.error("[API] configuração de aplicativo genérico", error);
       res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do aplicativo." });

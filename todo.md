@@ -1655,3 +1655,7 @@
 - [x] Entregar o URL EPG do cadastro nas configurações dos APKs compatíveis e validar o contrato
 
 - [x] Criar rota universal de EPG por MAC e aplicativo, usando EPG individual ou padrão quando a lista não tiver EPG
+
+- [x] Criar perfis de servidor com até 10 DNS/M3U, seleção no cadastro do cliente e failover para os aplicativos
+
+- [x] Ajustar perfis de servidor para nomes livres, quantidade variável de DNS e troca em massa entre perfis
