@@ -1687,3 +1687,5 @@
 - [x] Fazer o erro de conexão do player acionar o Change Playlist após falha total das DNS do perfil
 
 - [x] Persistir a DNS alternativa encontrada no playback-failure e devolver ao APK a M3U corrigida para retry da mesma lista
+
+- [x] Corrigir a falha reproduzida em que a DNS 01 caída não faz o painel ativar a DNS 02 funcional

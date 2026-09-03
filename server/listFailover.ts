@@ -73,14 +73,18 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     const currentResult = await probeListUrl(current.url);
     checked += 1;
     await recordAutomaticListHealthCheck(db, ownerId, device, current, currentResult);
-    // Resposta lenta fica em observação e não deve causar troca automática.
-    if (currentResult.status !== "error") return;
+    // Só 2xx/3xx confirma que a DNS atual entrega a lista. Respostas 401/403,
+    // embora provem que o host respondeu, devem permitir testar DNS alternativas.
+    if (isConfirmedListResponse(currentResult)) return;
     // Antes de mudar de playlist, o painel testa em paralelo todas as DNS do mesmo perfil.
     const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, ownerId));
     const sameProfile = selectDnsProfileEntries(current.url, profileDns, device.nomeServidor);
     let dnsProfileExhausted = false;
     if (sameProfile.length > 1) {
-      const probes = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ host: entry.host, status: (await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(current.url, entry.host)))).status })));
+      const probes = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => {
+        const result = await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(current.url, entry.host)));
+        return { host: entry.host, status: isConfirmedListResponse(result) ? "success" as const : "error" as const };
+      }));
       const workingHost = pickWorkingDns(probes);
       if (workingHost && !current.url.startsWith(workingHost.replace(/\/+$/, ""))) {
         const updatedUrl = replaceDnsHost(current.url, workingHost);
@@ -101,7 +105,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
       const result = await probeListUrl(candidate.url);
       checked += 1;
       await recordAutomaticListHealthCheck(db, ownerId, device, candidate, result);
-      if (result.status === "success") { replacement = candidate; break; }
+      if (isConfirmedListResponse(result)) { replacement = candidate; break; }
     }
     if (!replacement || replacement.id === current.id) return;
     const lastEvent = (await db.select().from(listFailoverEvents).where(and(eq(listFailoverEvents.ownerId, ownerId), eq(listFailoverEvents.deviceId, device.id))).orderBy(desc(listFailoverEvents.createdAt)).limit(1))[0];

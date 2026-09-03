@@ -107,4 +107,19 @@ describe("varredura de failover", () => {
     const payload = buildApkFailoverStatus({ activeDeviceUrlId: null }, [{ id: 22, nome: "Lista 2", ordem: 0 }], { id: 2, fromDeviceUrlId: 22, toDeviceUrlId: null, createdAt: new Date() });
     expect(payload).toMatchObject({ failover_state: "primary_restored", active_list_number: 1, playlist_sync_required: true });
   });
+
+  it("troca para a DNS 02 quando a DNS 01 responde sem confirmar a lista", async () => {
+    state.probe.mockImplementation(async (url: string) => url.includes("dns2.club.test")
+      ? { status: "success", responseConfirmed: true, statusCode: 200, responseTimeMs: 5, message: "ok" }
+      : { status: "success", responseConfirmed: false, statusCode: 403, responseTimeMs: 5, message: "protegido" });
+    const device: DeviceState = { id: 10, ownerId: 1, nomeServer: "Cliente", nomeServidor: "Club", urlM3u8: "https://dns1.club.test/get.php?username=u&password=p", activeDeviceUrlId: null, listFailoverEnabled: true };
+
+    const result = await runListFailoverSweep(createDb(device, [
+      { host: "https://dns1.club.test", grupo: "Club", ativo: true },
+      { host: "https://dns2.club.test", grupo: "Club", ativo: true },
+    ]), 1);
+
+    expect(result.switched).toBe(0);
+    expect(state.updates).toContainEqual({ urlM3u8: "https://dns2.club.test/get.php?username=u&password=p" });
+  });
 });
