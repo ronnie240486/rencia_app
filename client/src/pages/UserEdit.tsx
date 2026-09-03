@@ -136,8 +136,8 @@ export default function UserEdit() {
     return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b, "pt-BR"));
   }, [configuredDns]);
   const selectedProfileDns = serverProfiles.find(([group]) => group === serverProfile)?.[1] ?? [];
-  const selectedPrimaryDns = selectedProfileDns.find((entry) => String(entry.id) === primaryDnsId) ?? selectedProfileDns[0];
-
+    const selectedPrimaryDns = selectedProfileDns.find((entry) => String(entry.id) === primaryDnsId) ?? selectedProfileDns[0];
+  const autoSyncDnsMutation = trpc.devices.update.useMutation();
   useEffect(() => {
     if (device && !hasUserEdited) {
       const modo = (device.modoSelecao as "XTeamCode" | "M3U8") ?? "XTeamCode";
@@ -185,7 +185,21 @@ export default function UserEdit() {
     if (profile) {
       setServerProfile(profile[0]);
       const matched = profile[1].find((entry) => device.urlM3u8?.startsWith(entry.host.replace(/\/+$/, "")));
-      setPrimaryDnsId(String(matched?.id ?? profile[1][0]?.id ?? ""));
+      const selected = matched ?? profile[1].find((entry) => entry.ativo !== false) ?? profile[1][0];
+      setPrimaryDnsId(String(selected?.id ?? ""));
+      if (selected && device.urlM3u8) {
+        const resolvedUrl = replacePlaylistHost(device.urlM3u8, selected.host);
+        if (resolvedUrl !== device.urlM3u8) {
+          setHasUserEdited(true);
+          setForm((current) => ({
+            ...current,
+            nomeServidor: profile[0],
+            urlM3u8: resolvedUrl,
+            xtServer: resolvedUrl,
+          }));
+          autoSyncDnsMutation.mutate({ id: device.id, nomeServidor: profile[0], urlM3u8: resolvedUrl });
+        }
+      }
     }
   }, [device, hasUserEdited, serverProfiles]);
 

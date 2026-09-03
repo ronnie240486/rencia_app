@@ -1677,3 +1677,5 @@
 - [x] Reproduzir e corrigir o MAC do teste em que a M3U incorreta continua sendo entregue apesar do perfil Club válido
 
 - [x] Corrigir resposta das rotas de configuração para nunca entregar ao APK a M3U original quando há DNS válida no perfil
+
+- [x] Fazer o UserEdit substituir e persistir automaticamente a DNS errada pela DNS principal do perfil ao carregar o cliente
