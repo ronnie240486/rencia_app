@@ -95,7 +95,7 @@ export default function Dashboard() {
   const [recentSearch, setRecentSearch] = useState("");
   // APKs antigos do OuroPro podem registrar o episódio apenas ao iniciá-lo.
   // Duas horas evitam que esse último conteúdo suma logo depois de iniciar.
-  const [connectedFilter, setConnectedFilter] = useState<ConnectedFilter>(120);
+  const [connectedFilter, setConnectedFilter] = useState<ConnectedFilter>("online");
   const [pendingBackup, setPendingBackup] = useState<any | null>(null);
   const [importPreview, setImportPreview] = useState<any | null>(null);
   const [previewingImport, setPreviewingImport] = useState(false);
