@@ -1691,3 +1691,5 @@
 - [x] Corrigir a falha reproduzida em que a DNS 01 caída não faz o painel ativar a DNS 02 funcional
 
 - [x] Corrigir o cenário confirmado em que DNS 01 falha, DNS 02 funciona no provedor, mas o painel não ativa a DNS 02
+
+- [x] Corrigir o Change Playlist para trocar para a Lista 2 sem erro ou fechamento do OuroPro

@@ -4725,8 +4725,8 @@ export function registerApiRoutes(app: Express) {
         res.json({
           success: false,
           switch_applied: false,
-          action: "change_playlist",
-          command: "change_playlist",
+          action: "switch_playlist",
+          command: "switch_playlist",
           change_playlist: true,
           error: 'Nenhuma DNS do perfil respondeu e não existe outra lista disponível para este aparelho',
         });
@@ -4745,10 +4745,12 @@ export function registerApiRoutes(app: Express) {
       res.json({
         success: true,
         switch_applied: true,
-        action: "change_playlist",
-        command: "change_playlist",
+        action: "switch_playlist",
+        command: "switch_playlist",
         change_playlist: true,
         next_playlist_number: candidates.findIndex((candidate) => candidate.id === replacement.id) + 1,
+        list_index: candidates.findIndex((candidate) => candidate.id === replacement.id) + 1,
+        next_list_index: candidates.findIndex((candidate) => candidate.id === replacement.id) + 1,
         next_playlist_url: replacementCandidate?.url || "",
         playlist_url: replacementCandidate?.url || "",
         message: `${replacement.name} foi ativada automaticamente.`,
