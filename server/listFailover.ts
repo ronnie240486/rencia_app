@@ -78,6 +78,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     // Antes de mudar de playlist, o painel testa em paralelo todas as DNS do mesmo perfil.
     const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(and(eq(dnsEntries.ownerId, ownerId), eq(dnsEntries.ativo, true)));
     const sameProfile = selectDnsProfileEntries(current.url, profileDns);
+    let dnsProfileExhausted = false;
     if (sameProfile.length > 1) {
       const probes = await Promise.all(sameProfile.map(async (entry) => ({ host: entry.host, status: (await probeListUrl(entry.host)).status })));
       const workingHost = pickWorkingDns(probes);
@@ -88,9 +89,12 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
         return;
       }
       if (workingHost) return;
+      // Todas as DNS do perfil foram testadas e falharam nesta mesma varredura.
+      // Nesse caso a troca de playlist é imediata; não esperar um segundo ciclo.
+      dnsProfileExhausted = true;
     }
-    // Uma falha isolada não troca a lista. A confirmação exige dois erros seguidos.
-    if (!(await hasConfirmedFailoverFailure(db, ownerId, device.id, current))) return;
+    // Sem perfil com múltiplas DNS, mantém a proteção contra falso positivo isolado.
+    if (!dnsProfileExhausted && !(await hasConfirmedFailoverFailure(db, ownerId, device.id, current))) return;
 
     let replacement: Candidate | null = null;
     for (const candidate of ordered.slice(1)) {
