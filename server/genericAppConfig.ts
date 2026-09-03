@@ -14,7 +14,7 @@ export function findDeviceForManagedApp<T extends AppBoundDevice>(devices: T[], 
   return devices.find(device => normalizedAliases.has((device.app || "").trim().toLocaleLowerCase("pt-BR")));
 }
 
-export function buildGenericAppConfig(appId: string, displayName: string, settings: GenericAppSettings, playlistUrls: string[]) {
+export function buildGenericAppConfig(appId: string, displayName: string, settings: GenericAppSettings, playlistUrls: string[], urlEpg = "") {
   const prefix = `${appId}_`;
   const text = (suffix: string, fallback = "") => settings[`${prefix}${suffix}`] || fallback;
   const defaultLogoUrl = isManagedAppId(appId) ? MANAGED_APP_CATALOG[appId].defaultLogoUrl : "";
@@ -57,5 +57,6 @@ export function buildGenericAppConfig(appId: string, displayName: string, settin
       contact_email: text("contact_email"),
     },
     playlist_urls: playlistUrls.filter(Boolean),
+    urlEpg: urlEpg || "",
   };
 }

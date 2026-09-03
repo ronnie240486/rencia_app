@@ -1774,7 +1774,7 @@ export function registerApiRoutes(app: Express) {
       const settings = await getSettings();
       const config = appId === "fusion"
         ? buildUltraPlayerConfig(settings)
-        : buildGenericAppConfig(appId, appDef.displayName, settings, playlistUrls);
+        : buildGenericAppConfig(appId, appDef.displayName, settings, playlistUrls, device.urlEpg || "");
       const expiration = device.dataExpiracao ? String(device.dataExpiracao).slice(0, 10) : "";
 
       res.setHeader("Cache-Control", "no-store");
@@ -1851,7 +1851,7 @@ export function registerApiRoutes(app: Express) {
       const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
       const settings = await getSettings();
       res.setHeader("Cache-Control", "no-store");
-      res.json({ registered: true, allowed: device.status === "Liberado", mac, ...buildGenericAppConfig(appId, appDef.displayName, settings, [device.urlM3u8 || "", ...extras.map((item) => item.url || "")]) });
+      res.json({ registered: true, allowed: device.status === "Liberado", mac, ...buildGenericAppConfig(appId, appDef.displayName, settings, [device.urlM3u8 || "", ...extras.map((item) => item.url || "")], device.urlEpg || "") });
     } catch (error) {
       console.error("[API] configuração de aplicativo genérico", error);
       res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do aplicativo." });
