@@ -58,6 +58,7 @@ import { filterDownloadsForInvite, hashStoreInviteToken } from "./storeInvites";
 import { connectGoogleDriveBackup, readGoogleDriveOAuthState } from "./googleDriveBackup";
 import { appServerFallbackSettingKey, appServerSettingKey, buildAppServerDirectory } from "./appServerDirectory";
 import { BACKUP_RESTORE_OWNER_MESSAGE, canRestoreCompleteBackup } from "./backupAccess";
+import { buildPlaylistAccessFields } from "./playlistAccess";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -710,24 +711,15 @@ export function registerApiRoutes(app: Express) {
 
             if (du.modoSelecao === "XTeamCode" && du.xtServer) {
               // XTeamCode: usar xtServer como base
-              serverUrl = convertToHttps(du.xtServer);
+              serverUrl = du.xtServer;
               username = du.xtUsername || "";
               password = du.xtPassword || "";
             } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
-              // M3U8: usar urlM3u8 como server_url
-              serverUrl = convertToHttps(du.urlM3u8);
-              
-              // Tentar extrair username/password da URL se estiverem lá (comum em links M3U)
-              if (!username || !password) {
-                try {
-                  const urlObj = new URL(serverUrl);
-                  username = urlObj.searchParams.get("username") || username;
-                  password = urlObj.searchParams.get("password") || password;
-                  
-                  // Se extraiu, limpar a URL para deixar apenas a base (opcional, mas o Eagle costuma preferir a base)
-                  // No entanto, para não quebrar outros APKs, vamos manter a URL mas garantir que user/pass estejam preenchidos
-                } catch (e) { /* ignorar erro de parsing de URL */ }
-              }
+              // M3U8: manter protocolo/porta da URL e separar somente os campos
+              const access = buildPlaylistAccessFields(du.urlM3u8);
+              serverUrl = access.serverUrl;
+              username = access.username;
+              password = access.password;
             }
 
             if (serverUrl && device.mac) {
@@ -1283,16 +1275,14 @@ export function registerApiRoutes(app: Express) {
           let type = du.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus";
 
           if (du.modoSelecao === "XTeamCode" && du.xtServer) {
-            serverUrl = convertToHttps(du.xtServer);
+            serverUrl = du.xtServer;
             username = du.xtUsername || "";
             password = du.xtPassword || "";
           } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
-            serverUrl = convertToHttps(du.urlM3u8);
-            try {
-              const urlObj = new URL(serverUrl);
-              username = urlObj.searchParams.get("username") || "";
-              password = urlObj.searchParams.get("password") || "";
-            } catch (e) {}
+            const access = buildPlaylistAccessFields(du.urlM3u8);
+            serverUrl = access.serverUrl;
+            username = access.username;
+            password = access.password;
           }
 
           if (serverUrl && device.mac) {

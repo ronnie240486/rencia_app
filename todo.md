@@ -1735,3 +1735,21 @@
 - [ ] Validar carregamento da Lista 1 com perfil DNS e troca posterior para Lista 2
 - [x] Não forçar HTTPS na M3U se o servidor DNS do perfil só funcionar no protocolo original
 - [x] Entregar ao OuroPro exatamente o protocolo da URL validada pelo painel
+
+## Correção específica do servidor brcam (03/09/2026)
+- [ ] Confirmar se o erro do brcam vem da URL salva, do protocolo ou do envio de credenciais
+- [ ] Preservar exatamente username, password, caminho e parâmetros da M3U brcam
+- [x] Corrigir a resposta dos APKs para não transformar uma URL autenticada em credencial inválida
+- [ ] Validar o carregamento do brcam em todos os aplicativos compatíveis
+
+## Falha ampla de entrega de M3U nos APKs (03/09/2026)
+- [x] Comparar URL original e URL final entregue ao APK para domínios brcam e ronie35 sem expor credenciais
+- [x] Corrigir o ponto comum que pode estar entregando lista errada ou URL alterada para todos os aplicativos
+- [x] Garantir que o failover não altere credenciais quando o cliente não possui perfil DNS
+- [ ] Validar a entrega da M3U principal e da lista reserva após a correção
+
+## Correção do cadastro de M3U funcional (03/09/2026)
+- [x] Comparar sem expor credenciais o valor digitado, o valor salvo e o valor enviado ao APK
+- [x] Impedir alteração de username, password, protocolo, porta, caminho ou parâmetros durante o cadastro
+- [x] Garantir que uma M3U que funciona fora do painel seja entregue byte a byte equivalente ao APK
+- [x] Adicionar regressão para cadastro e entrega de URL M3U autenticada
