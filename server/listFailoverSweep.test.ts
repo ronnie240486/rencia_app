@@ -19,7 +19,7 @@ vi.mock("./listFailureAlerts", () => ({ syncConfirmedListFailureAlert: vi.fn().m
 import { runListFailoverSweep } from "./listFailover";
 import { buildApkFailoverStatus } from "./apkListNotifications";
 
-type DeviceState = { id: number; ownerId: number; nomeServer: string; urlM3u8: string; activeDeviceUrlId: number | null; listFailoverEnabled: boolean };
+type DeviceState = { id: number; ownerId: number; nomeServer: string; nomeServidor?: string; urlM3u8: string; activeDeviceUrlId: number | null; listFailoverEnabled: boolean };
 
 function createDb(device: DeviceState, dns: Array<{ host: string; grupo: string; ativo: boolean }> = []) {
   const primaryHealth = [{ status: "error" }, { status: "error" }];
@@ -65,6 +65,21 @@ describe("varredura de failover", () => {
     expect(state.updates).toContainEqual({ activeDeviceUrlId: 22 });
     const payload = buildApkFailoverStatus({ activeDeviceUrlId: 22 }, [{ id: 22, nome: "Lista 2", ordem: 0 }], { id: 1, fromDeviceUrlId: null, toDeviceUrlId: 22, createdAt: new Date() });
     expect(payload).toMatchObject({ failover_state: "backup_active", active_list_number: 2, playlist_sync_required: true });
+  });
+
+  it("corrige automaticamente a M3U errada usando a DNS funcional do perfil salvo", async () => {
+    state.probe.mockImplementation(async (url: string) => url.includes("ronie35")
+      ? { status: "success", responseConfirmed: true, statusCode: 200, responseTimeMs: 5, message: "ok" }
+      : { status: "error", responseConfirmed: false, statusCode: 503, responseTimeMs: 5, message: "indisponível" });
+    const device: DeviceState = { id: 10, ownerId: 1, nomeServer: "Ronnie", nomeServidor: "Club", urlM3u8: "http://roni.ufcfan.org/get.php?username=u&password=p", activeDeviceUrlId: null, listFailoverEnabled: true };
+
+    const result = await runListFailoverSweep(createDb(device, [
+      { host: "http://ronie35.ufcfan.org", grupo: "Club", ativo: true },
+      { host: "http://gratis.sytes.net", grupo: "Club", ativo: true },
+    ]), 1);
+
+    expect(result.switched).toBe(0);
+    expect(state.updates).toContainEqual({ urlM3u8: "http://ronie35.ufcfan.org/get.php?username=u&password=p" });
   });
 
   it("troca imediatamente para a Lista 2 quando todas as DNS do perfil falham", async () => {

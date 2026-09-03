@@ -77,7 +77,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     if (currentResult.status !== "error") return;
     // Antes de mudar de playlist, o painel testa em paralelo todas as DNS do mesmo perfil.
     const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, ownerId));
-    const sameProfile = selectDnsProfileEntries(current.url, profileDns);
+    const sameProfile = selectDnsProfileEntries(current.url, profileDns, device.nomeServidor);
     let dnsProfileExhausted = false;
     if (sameProfile.length > 1) {
       const probes = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ host: entry.host, status: (await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(current.url, entry.host)))).status })));

@@ -1673,3 +1673,5 @@
 - [x] Corrigir o salvamento do UserEdit para substituir na M3U o domínio pela DNS principal escolhida do perfil
 
 - [x] Corrigir automaticamente M3U com DNS errada usando a primeira DNS funcional do perfil salvo, sem edição manual
+
+- [x] Reproduzir e corrigir o MAC do teste em que a M3U incorreta continua sendo entregue apesar do perfil Club válido
