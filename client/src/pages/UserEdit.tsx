@@ -356,7 +356,8 @@ export default function UserEdit() {
       id: deviceId,
       mac: form.mac.trim() || undefined,
       nomeServer: form.nomeServer.trim(),
-      nomeServidor: form.nomeServidor.trim() || undefined,
+      // String vazia é intencional: apaga o perfil anterior quando o usuário escolhe Sem perfil.
+      nomeServidor: form.nomeServidor.trim(),
       modoSelecao: form.modoSelecao,
       tipo: form.tipo,
       status: form.status,

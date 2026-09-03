@@ -114,6 +114,21 @@ describe("devices.list", () => {
 });
 
 describe("devices.update", () => {
+  it("encaminha nomeServidor vazio para apagar o perfil anterior", async () => {
+    const previous = { id: 8, ownerId: 1, nomeServer: "Cliente", nomeServidor: "Club" };
+    const updated = { ...previous, nomeServidor: null };
+    vi.mocked(getDeviceById)
+      .mockResolvedValueOnce(previous as any)
+      .mockResolvedValueOnce(updated as any);
+    vi.mocked(updateDevice).mockResolvedValueOnce(undefined);
+
+    const caller = appRouter.createCaller(createAdminContext());
+    const result = await caller.devices.update({ id: 8, nomeServidor: "" });
+
+    expect(updateDevice).toHaveBeenCalledWith(8, 1, { nomeServidor: "" });
+    expect(result).toEqual({ success: true, device: updated });
+  });
+
   it("salva o MAC normalizado e devolve o registro atualizado na primeira alteração", async () => {
     const previous = { id: 7, ownerId: 1, mac: "AA:AA:AA:AA:AA:AA", nomeServer: "Cliente" };
     const updated = { ...previous, mac: "BD:33:00:93:DC:7A" };

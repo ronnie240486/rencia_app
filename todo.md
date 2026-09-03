@@ -1681,3 +1681,5 @@
 - [x] Fazer o UserEdit substituir e persistir automaticamente a DNS errada pela DNS principal do perfil ao carregar o cliente
 
 - [x] Impedir que o UserEdit reconstrua automaticamente Club ou Onix quando o usuário salvou Sem perfil
+
+- [x] Corrigir o payload do UserEdit para enviar vazio explicitamente e apagar perfil antigo ao escolher Sem perfil
