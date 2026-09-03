@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { desc } from "drizzle-orm";
 import { devices, deviceUrls, dnsEntries, listFailoverEvents, listFailoverSettings, listHealthChecks, serverMaintenanceBlocks } from "../drizzle/schema";
-import { pickWorkingDns, replaceDnsHost, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
+import { orderDnsFailoverEntries, pickWorkingDns, replaceDnsHost, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
 import { hasConfirmedListFailure, isConfirmedListResponse, probeListUrl } from "./listHealth";
 import { syncConfirmedListFailureAlert } from "./listFailureAlerts";
 
@@ -81,7 +81,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     const sameProfile = selectDnsProfileEntries(current.url, profileDns, device.nomeServidor);
     let dnsProfileExhausted = false;
     if (sameProfile.length > 1) {
-      const probes = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => {
+      const probes = await Promise.all(orderDnsFailoverEntries(current.url, sameProfile).map(async (entry) => {
         const result = await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(current.url, entry.host)));
         // 401/403 provam que o host está alcançável; o APK pode aceitar a
         // mesma credencial mesmo quando o monitor não recebe 2xx/3xx.

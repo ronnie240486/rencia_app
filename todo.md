@@ -1700,3 +1700,5 @@
 - [x] Impedir que o playback-failure escolha novamente a DNS atual quando ela falhar e evitar fechamento no Change Playlist
 
 - [x] Fazer o painel testar a Lista 1 enquanto a Lista 2 está ativa e restaurar a Lista 1 imediatamente quando ela voltar
+
+- [x] Implementar troca sequencial da M3U entre todas as DNS do perfil antes do Change Playlist

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDnsFailoverUrls, pickWorkingDns, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
+import { buildDnsFailoverUrls, orderDnsFailoverEntries, pickWorkingDns, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
 
 describe("failover de DNS por perfil", () => {
   it("preserva o caminho e os parâmetros da M3U em cada host alternativo", () => {
@@ -45,6 +45,17 @@ describe("failover de DNS por perfil", () => {
       { host: "http://dns1.club.test", status: "error" },
       { host: "http://dns2.club.test", status: "pending" },
     ])).toBeNull();
+  });
+
+  it("testa a próxima DNS na ordem do perfil antes de voltar à principal", () => {
+    expect(orderDnsFailoverEntries("http://dns1.club.test/get.php", [
+      { host: "http://dns1.club.test", ativo: true },
+      { host: "http://dns2.club.test", ativo: true },
+      { host: "http://dns3.club.test", ativo: true },
+    ]).map((entry) => entry.host)).toEqual([
+      "http://dns2.club.test",
+      "http://dns3.club.test",
+    ]);
   });
 
   it("remove duplicidades e ignora DNS inativa", () => {

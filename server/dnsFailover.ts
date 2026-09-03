@@ -61,6 +61,15 @@ export function pickWorkingDns(probes: DnsProbeResult[]) {
   return probes.find((probe) => probe.status === "success")?.host ?? null;
 }
 
+/** Retorna as DNS ativas na sequência de failover: a próxima vem primeiro. */
+export function orderDnsFailoverEntries(primaryUrl: string | null | undefined, entries: DnsFailoverEntry[]) {
+  const activeEntries = entries.filter((entry) => entry.ativo !== false && Boolean(entry.host?.trim()));
+  if (activeEntries.length <= 1) return activeEntries;
+  const currentIndex = activeEntries.findIndex((entry) => matchesHost(primaryUrl?.trim() || "", entry.host));
+  if (currentIndex < 0) return activeEntries;
+  return [...activeEntries.slice(currentIndex + 1), ...activeEntries.slice(0, currentIndex)];
+}
+
 export function buildDnsFailoverUrls(primaryUrl: string | null | undefined, entries: DnsFailoverEntry[]) {
   const primary = primaryUrl?.trim() || "";
   if (!primary) return [];
