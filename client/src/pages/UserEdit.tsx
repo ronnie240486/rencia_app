@@ -10,8 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { CLIENT_APP_OPTIONS } from "@/lib/clientAppOptions";
 import { AppLogoBadge } from "@/components/AppLogoBadge";
-import { AlertTriangle, ArrowLeft, CalendarSearch, ChevronDown, ListPlus, Loader2, Plus, Save, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { AlertTriangle, ArrowLeft, CalendarSearch, ChevronDown, ListPlus, Loader2, Pencil, Plus, Save, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { toDateOnly } from "@shared/dateOnly";
@@ -28,6 +28,18 @@ function buildXteamUrl(server: string, username: string, password: string): stri
 /**
  * Tenta extrair os campos XteamCode de uma URL M3U8 no formato get.php?username=...&password=...
  */
+function replacePlaylistHost(url: string, host: string): string {
+  try {
+    const current = new URL(url);
+    const alternate = new URL(host);
+    current.protocol = alternate.protocol;
+    current.host = alternate.host;
+    return current.toString();
+  } catch {
+    return url;
+  }
+}
+
 function parseXteamUrl(url: string): { server: string; username: string; password: string } | null {
   try {
     const u = new URL(url);
@@ -63,6 +75,7 @@ export default function UserEdit() {
 
   const { data: appsData } = trpc.apps.list.useQuery();
   const { data: resellerAppAccess } = trpc.resellerAppAccess.me.useQuery();
+  const { data: configuredDns = [] } = trpc.dns.list.useQuery();
   const { data: device, isLoading, error } = trpc.devices.getById.useQuery(
     { id: deviceId },
     { enabled: !isNaN(deviceId) && deviceId > 0, refetchOnMount: "always" }
@@ -112,6 +125,18 @@ export default function UserEdit() {
   const [editingMacId, setEditingMacId] = useState<number | null>(null);
   const [editingMacValue, setEditingMacValue] = useState("");
   const [editingMacAppId, setEditingMacAppId] = useState("");
+  const [serverProfile, setServerProfile] = useState("none");
+  const [primaryDnsId, setPrimaryDnsId] = useState("");
+  const serverProfiles = useMemo(() => {
+    const groups = new Map<string, typeof configuredDns>();
+    for (const entry of configuredDns) {
+      const group = entry.grupo?.trim() || "Padrão";
+      groups.set(group, [...(groups.get(group) ?? []), entry]);
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b, "pt-BR"));
+  }, [configuredDns]);
+  const selectedProfileDns = serverProfiles.find(([group]) => group === serverProfile)?.[1] ?? [];
+  const selectedPrimaryDns = selectedProfileDns.find((entry) => String(entry.id) === primaryDnsId) ?? selectedProfileDns[0];
 
   useEffect(() => {
     if (device && !hasUserEdited) {
@@ -151,6 +176,33 @@ export default function UserEdit() {
   useEffect(() => {
     if (linkedApps) setLinkedAppIds(linkedApps);
   }, [linkedApps]);
+
+  useEffect(() => {
+    if (!device || hasUserEdited || !serverProfiles.length) return;
+    const byName = serverProfiles.find(([group]) => group === (device.nomeServidor ?? "").trim());
+    const byHost = serverProfiles.find(([, entries]) => entries.some((entry) => device.urlM3u8?.startsWith(entry.host.replace(/\/+$/, ""))));
+    const profile = byName ?? byHost;
+    if (profile) {
+      setServerProfile(profile[0]);
+      const matched = profile[1].find((entry) => device.urlM3u8?.startsWith(entry.host.replace(/\/+$/, "")));
+      setPrimaryDnsId(String(matched?.id ?? profile[1][0]?.id ?? ""));
+    }
+  }, [device, hasUserEdited, serverProfiles]);
+
+  const applyServerProfile = (group: string, dnsId?: string) => {
+    const entries = serverProfiles.find(([name]) => name === group)?.[1] ?? [];
+    const selected = entries.find((entry) => String(entry.id) === (dnsId ?? "")) ?? entries[0];
+    setHasUserEdited(true);
+    setServerProfile(group);
+    setPrimaryDnsId(String(selected?.id ?? ""));
+    if (!selected) return;
+    setForm((current) => ({
+      ...current,
+      nomeServidor: group,
+      xtServer: current.modoSelecao === "XTeamCode" ? selected.host : current.xtServer,
+      urlM3u8: current.modoSelecao === "M3U8" ? replacePlaylistHost(current.urlM3u8, selected.host) : current.urlM3u8,
+    }));
+  };
 
   const utils = trpc.useUtils();
   const setLinkedAppsMutation = trpc.devices.setLinkedApps.useMutation();
@@ -429,9 +481,21 @@ export default function UserEdit() {
                 onChange={e => setForm(f => ({ ...f, nomeServidor: e.target.value }))}
                 className="h-10"
               />
-              <p className="text-xs text-muted-foreground">Você pode preencher depois, se necessário.</p>
+                            <p className="text-xs text-muted-foreground">Você pode preencher depois, se necessário.</p>
             </div>
-
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div><Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">PERFIL DO SERVIDOR</Label><p className="mt-1 text-sm font-semibold text-foreground">{serverProfile === "none" ? "Não identificado" : serverProfile}</p></div>
+                <Button type="button" variant="outline" size="sm" className="gap-1.5" disabled={!serverProfiles.length} onClick={() => applyServerProfile(serverProfile !== "none" ? serverProfile : serverProfiles[0]?.[0] ?? "none")}><Pencil className="h-3.5 w-3.5" /> Editar perfil</Button>
+              </div>
+              {serverProfiles.length > 0 && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5"><Label className="text-xs">Perfil</Label><Select value={serverProfile} onValueChange={(value) => applyServerProfile(value)}><SelectTrigger className="h-9"><SelectValue placeholder="Escolha o perfil" /></SelectTrigger><SelectContent><SelectItem value="none">Sem perfil</SelectItem>{serverProfiles.map(([group, entries]) => <SelectItem key={group} value={group}>{group} ({entries.length} DNS)</SelectItem>)}</SelectContent></Select></div>
+                  {serverProfile !== "none" && selectedProfileDns.length > 0 && <div className="space-y-1.5"><Label className="text-xs">DNS principal</Label><Select value={String(selectedPrimaryDns?.id ?? "")} onValueChange={(value) => applyServerProfile(serverProfile, value)}><SelectTrigger className="h-9"><SelectValue placeholder="Escolha a DNS" /></SelectTrigger><SelectContent>{selectedProfileDns.map((entry) => <SelectItem key={entry.id} value={String(entry.id)}>{entry.titulo} — {entry.host}</SelectItem>)}</SelectContent></Select></div>}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">As outras DNS do mesmo perfil serão entregues ao aplicativo como alternativas de failover.</p>
+            </div>
             {/* Modo de Seleção */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">MODO DE SELEÇÃO:</Label>

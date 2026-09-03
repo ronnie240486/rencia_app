@@ -1659,3 +1659,5 @@
 - [x] Criar perfis de servidor com até 10 DNS/M3U, seleção no cadastro do cliente e failover para os aplicativos
 
 - [x] Ajustar perfis de servidor para nomes livres, quantidade variável de DNS e troca em massa entre perfis
+
+- [x] Mostrar o perfil do servidor na lista de clientes e adicionar botão de editar perfil/DNS principal no UserEdit

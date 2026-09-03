@@ -456,7 +456,7 @@ export default function Users() {
                 <div className="rounded-xl bg-primary/10 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Playlists</p><p className="mt-0.5 text-lg font-bold text-primary">{device.playlistCount}</p></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Nível</p><p className="mt-0.5 truncate text-sm font-semibold text-foreground">{device.tipo}</p></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Valor</p><p className="mt-0.5 text-sm font-semibold text-foreground">{device.valor ? `R$ ${Number(device.valor).toFixed(2)}` : "—"}</p></div>
-                <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Servidor</p><p className="mt-0.5 truncate text-sm font-semibold text-foreground">{(device as typeof device & { nomeServidor?: string }).nomeServidor || "—"}</p></div>
+                <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Perfil do servidor</p><p className="mt-0.5 truncate text-sm font-semibold text-foreground">{(device as typeof device & { nomeServidor?: string }).nomeServidor || "Sem perfil"}</p></div>
                 <div className="col-span-2 rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Aplicativos disponíveis para este cliente</p><div className="mt-1"><AvailableApps primaryApp={device.app} linkedAppIds={(device as typeof device & { linkedAppIds?: string[] }).linkedAppIds} /></div></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Cadastro</p><p className="mt-0.5 text-sm font-semibold text-foreground">{formatDate(device.dataCadastro)}</p></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Expiração</p><p className="mt-0.5 text-sm font-semibold text-foreground">{formatDate(device.dataExpiracao)}</p></div>
@@ -533,7 +533,7 @@ export default function Users() {
                       <TableCell className="text-xs">
                         {d.valor ? `R$ ${Number(d.valor).toFixed(2)}` : "—"}
                       </TableCell>
-                      <TableCell className="max-w-[12rem] truncate text-xs">{(d as typeof d & { nomeServidor?: string }).nomeServidor || "—"}</TableCell>
+                      <TableCell className="max-w-[12rem] truncate text-xs" title={(d as typeof d & { nomeServidor?: string }).nomeServidor || "Sem perfil"}>{(d as typeof d & { nomeServidor?: string }).nomeServidor || "Sem perfil"}</TableCell>
                       <TableCell><StatusBadge status={d.status as DeviceStatus} /></TableCell>
                       <TableCell className="text-xs">{formatDate(d.dataCadastro)}</TableCell>
                       <TableCell className="text-xs">{formatDate(d.dataExpiracao)}</TableCell>
