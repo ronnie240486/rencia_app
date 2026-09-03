@@ -1694,7 +1694,9 @@
 
 - [x] Corrigir o Change Playlist para trocar para a Lista 2 sem erro ou fechamento do OuroPro
 
-- [ ] Restaurar automaticamente a mesma lista que caiu quando ela voltar a funcionar
+- [x] Restaurar automaticamente a mesma lista que caiu quando ela voltar a funcionar
 - [ ] Corrigir o EPG externo para que a URL cadastrada seja carregada pelo OuroPro
 
 - [x] Impedir que o playback-failure escolha novamente a DNS atual quando ela falhar e evitar fechamento no Change Playlist
+
+- [x] Fazer o painel testar a Lista 1 enquanto a Lista 2 está ativa e restaurar a Lista 1 imediatamente quando ela voltar

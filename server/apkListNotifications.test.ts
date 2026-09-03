@@ -102,8 +102,12 @@ describe("notificações de lista para APK", () => {
     expect(status).toMatchObject({
       failover_active: false,
       failover_state: "primary_restored",
-      active_list_name: "Lista 1",
       active_list_number: 1,
+      action: "switch_playlist",
+      command: "switch_playlist",
+      restore_primary: true,
+      list_index: 1,
+      active_list_name: "Lista 1",
       playlist_sync_required: true,
       playlist_sync_mode: "background",
       reload_required: false,
