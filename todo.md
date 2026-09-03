@@ -1712,3 +1712,49 @@
 - [x] Fazer a troca manual de DNS gravar somente no cliente alvo
 - [x] Impedir que o failover altere o perfil DNS compartilhado ou outros clientes
 - [x] Adicionar testes que comprovem isolamento entre dois clientes
+- [ ] Validar o fluxo completo do erro real de conexão: DNS principal, alternativas do perfil e Change Playlist
+
+- [ ] Validar o conteúdo autenticado da M3U, não apenas HTTP 200, antes de aceitar uma DNS como funcional
+
+- [ ] Fazer playback-failure testar a próxima DNS do perfil mesmo quando a URL anterior respondeu HTTP 200
+
+- [ ] Registrar e processar o erro real de reprodução do OuroPro para efetivar DNS alternativa ou Change Playlist
+
+## Correção final do failover OuroPro (03/09/2026)
+- [x] Corrigir o guim.php legado do OuroPro para resolver DNS funcional do perfil antes de devolver a M3U principal
+- [x] Validar EPG externo e restauração imediata da Lista 1 após retorno
+- [x] Executar testes completos e build após as correções finais
+- [x] Fazer a configuração moderna dos APKs usar o EPG global quando o cadastro individual estiver vazio
+
+## Ajuste reportado no failover do OuroPro (03/09/2026)
+- [x] Reduzir o tempo de resolução e recarga da DNS alternativa no fluxo ao vivo
+- [x] Corrigir o switch_playlist para não fechar ou gerar erro no OuroPro após todas as DNS falharem
+- [x] Adicionar regressões para DNS alternativa rápida e troca segura para Lista 2
+- [x] Corrigir erro de conexão do OuroPro mesmo após o painel salvar DNS alternativa funcional
+- [x] Preservar caminho, parâmetros de autenticação e formato da M3U ao trocar somente o host DNS
+- [x] Validar o payload legado recebido pelo APK após a troca automática
+
+## Correção do carregamento com várias DNS no OuroPro (03/09/2026)
+- [x] Impedir que o APK receba múltiplas URLs DNS na mesma resposta de lista principal
+- [x] Garantir que o OuroPro receba uma única M3U principal já resolvida pelo painel
+- [ ] Validar carregamento da Lista 1 com perfil DNS e troca posterior para Lista 2
+- [x] Não forçar HTTPS na M3U se o servidor DNS do perfil só funcionar no protocolo original
+- [x] Entregar ao OuroPro exatamente o protocolo da URL validada pelo painel
+
+## Correção específica do servidor brcam (03/09/2026)
+- [ ] Confirmar se o erro do brcam vem da URL salva, do protocolo ou do envio de credenciais
+- [ ] Preservar exatamente username, password, caminho e parâmetros da M3U brcam
+- [x] Corrigir a resposta dos APKs para não transformar uma URL autenticada em credencial inválida
+- [ ] Validar o carregamento do brcam em todos os aplicativos compatíveis
+
+## Falha ampla de entrega de M3U nos APKs (03/09/2026)
+- [x] Comparar URL original e URL final entregue ao APK para domínios brcam e ronie35 sem expor credenciais
+- [x] Corrigir o ponto comum que pode estar entregando lista errada ou URL alterada para todos os aplicativos
+- [x] Garantir que o failover não altere credenciais quando o cliente não possui perfil DNS
+- [ ] Validar a entrega da M3U principal e da lista reserva após a correção
+
+## Correção do cadastro de M3U funcional (03/09/2026)
+- [x] Comparar sem expor credenciais o valor digitado, o valor salvo e o valor enviado ao APK
+- [x] Impedir alteração de username, password, protocolo, porta, caminho ou parâmetros durante o cadastro
+- [x] Garantir que uma M3U que funciona fora do painel seja entregue byte a byte equivalente ao APK
+- [x] Adicionar regressão para cadastro e entrega de URL M3U autenticada

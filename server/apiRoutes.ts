@@ -44,10 +44,10 @@ import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistrati
 import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { resolveEpgUrl } from "./epgFallback";
-import { buildDnsFailoverUrls, replaceDnsHost, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
+import { buildDnsFailoverUrls, orderDnsFailoverEntries, replaceDnsHost, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
-import { probeListUrl } from "./listHealth";
+import { isConfirmedListResponse, probeListUrl } from "./listHealth";
 import { findDeviceByAnyMac, findDeviceMatchByAnyMac } from "./deviceMacLookup";
 import { buildHeartbeatMacLookup } from "./heartbeatMac";
 import { comparePassword } from "./auth";
@@ -58,6 +58,7 @@ import { filterDownloadsForInvite, hashStoreInviteToken } from "./storeInvites";
 import { connectGoogleDriveBackup, readGoogleDriveOAuthState } from "./googleDriveBackup";
 import { appServerFallbackSettingKey, appServerSettingKey, buildAppServerDirectory } from "./appServerDirectory";
 import { BACKUP_RESTORE_OWNER_MESSAGE, canRestoreCompleteBackup } from "./backupAccess";
+import { buildPlaylistAccessFields } from "./playlistAccess";
 
 // Multer: armazena em memória para depois enviar ao S3
 const upload = multer({
@@ -710,24 +711,15 @@ export function registerApiRoutes(app: Express) {
 
             if (du.modoSelecao === "XTeamCode" && du.xtServer) {
               // XTeamCode: usar xtServer como base
-              serverUrl = convertToHttps(du.xtServer);
+              serverUrl = du.xtServer;
               username = du.xtUsername || "";
               password = du.xtPassword || "";
             } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
-              // M3U8: usar urlM3u8 como server_url
-              serverUrl = convertToHttps(du.urlM3u8);
-              
-              // Tentar extrair username/password da URL se estiverem lá (comum em links M3U)
-              if (!username || !password) {
-                try {
-                  const urlObj = new URL(serverUrl);
-                  username = urlObj.searchParams.get("username") || username;
-                  password = urlObj.searchParams.get("password") || password;
-                  
-                  // Se extraiu, limpar a URL para deixar apenas a base (opcional, mas o Eagle costuma preferir a base)
-                  // No entanto, para não quebrar outros APKs, vamos manter a URL mas garantir que user/pass estejam preenchidos
-                } catch (e) { /* ignorar erro de parsing de URL */ }
-              }
+              // M3U8: manter protocolo/porta da URL e separar somente os campos
+              const access = buildPlaylistAccessFields(du.urlM3u8);
+              serverUrl = access.serverUrl;
+              username = access.username;
+              password = access.password;
             }
 
             if (serverUrl && device.mac) {
@@ -1017,15 +1009,44 @@ export function registerApiRoutes(app: Express) {
           .where(eq(devices.id, device.id));
       }
 
-      const isAllowed = device.status === "Liberado";
-
-      // Montar lista de URLs para o APK
-      // IMPORTANTE: o campo 'id' deve ser != '0' para o APK liberar a lista
+            const isAllowed = device.status === "Liberado";
+      // O OuroPro usa esta rota legada como fonte principal. Antes de montar
+      // o payload, resolver a primeira DNS funcional do perfil salvo para que
+      // ele nunca receba a M3U quebrada como primeira lista.
+      let effectivePrimaryUrl = device.urlM3u8 || "";
+      if (effectivePrimaryUrl && isAllowed && device.nomeServidor) {
+        const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo })
+          .from(dnsEntries)
+          .where(eq(dnsEntries.ownerId, device.ownerId))
+          .orderBy(asc(dnsEntries.createdAt));
+        const selectedProfile = selectDnsProfileEntries(effectivePrimaryUrl, profileDns, device.nomeServidor);
+        if (selectedProfile.length > 1) {
+          const currentResult = await probeListUrl(sanitizeUrlForProbe(effectivePrimaryUrl), { timeoutMs: 2500, retryOnTimeout: false });
+          if (!isConfirmedListResponse(currentResult)) {
+            const currentHost = selectedProfile.find((entry) => effectivePrimaryUrl.startsWith(entry.host.replace(/\/+$/, "")))?.host;
+            const alternatives = orderDnsFailoverEntries(effectivePrimaryUrl, selectedProfile)
+              .filter((entry) => !currentHost || entry.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""));
+            const results = await Promise.all(alternatives.map(async (entry) => ({
+              entry,
+              result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(effectivePrimaryUrl, entry.host)), { timeoutMs: 2500, retryOnTimeout: false }),
+            })));
+            const working = results.find(({ result }) => result.status === "success");
+            if (working) {
+              effectivePrimaryUrl = replaceDnsHost(effectivePrimaryUrl, working.entry.host);
+              await db.update(devices).set({ urlM3u8: effectivePrimaryUrl }).where(eq(devices.id, device.id));
+            }
+          }
+        }
+      }
+      // Montar lista de URLs para o APK usando exatamente o protocolo da M3U
+      // validada pelo painel. Alguns provedores aceitam HTTP e não aceitam HTTPS;
+      // trocar o esquema sem testar o endpoint faz o APK ficar carregando.
+      const apkPrimaryUrl = effectivePrimaryUrl;
       const urls: Array<{ id: string; url: string; name: string; type: string; is_protected: string; username?: string; password?: string }> = [];
-      if (device.urlM3u8 && isAllowed && !device.activeDeviceUrlId) {
+      if (apkPrimaryUrl && isAllowed && !device.activeDeviceUrlId) {
         urls.push({
           id: String(device.id),
-          url: device.urlM3u8,
+          url: apkPrimaryUrl,
           name: device.nomeServer || "Lista",
           type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
           is_protected: "1",
@@ -1069,8 +1090,8 @@ export function registerApiRoutes(app: Express) {
               });
             }
           }
-          if (device.urlM3u8 && activeExtra) {
-            urls.push({ id: String(device.id), url: device.urlM3u8, name: device.nomeServer || "Lista principal", type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus", is_protected: "1" });
+          if (apkPrimaryUrl && activeExtra) {
+            urls.push({ id: String(device.id), url: apkPrimaryUrl, name: device.nomeServer || "Lista principal", type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus", is_protected: "1" });
           }
         } catch { /* ignora erro de listas extras */ }
       }
@@ -1092,6 +1113,8 @@ export function registerApiRoutes(app: Express) {
       }
 
       const cfg = await getSettings();
+      const defaultEpg = (await db.select({ value: appSettings.value }).from(appSettings).where(eq(appSettings.key, "default_epg_url")).limit(1))[0]?.value?.trim() || "";
+      const effectiveEpgUrl = (device.urlEpg || defaultEpg).trim();
       const words = buildWords(cfg);
 
       // Resolver URLs de imagens para URLs públicas (presigned S3)
@@ -1121,6 +1144,11 @@ export function registerApiRoutes(app: Express) {
         expire_date: expireDate,
         ...buildApkExpirationResponseFields(buildApkExpirationNotice(device, now)),
         urls,
+        // Campos de EPG compatíveis com o contrato legado do OuroPro.
+        // O endpoint /api/v5/epg continua disponível para APKs modernos.
+        epg_url: effectiveEpgUrl,
+        url_epg: effectiveEpgUrl,
+        epg: effectiveEpgUrl,
         is_trial: 0,
         lock: isAllowed ? 0 : 1,
         plan_id: device.tipo ?? "Usuario",
@@ -1247,16 +1275,14 @@ export function registerApiRoutes(app: Express) {
           let type = du.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus";
 
           if (du.modoSelecao === "XTeamCode" && du.xtServer) {
-            serverUrl = convertToHttps(du.xtServer);
+            serverUrl = du.xtServer;
             username = du.xtUsername || "";
             password = du.xtPassword || "";
           } else if (du.modoSelecao === "M3U8" && du.urlM3u8) {
-            serverUrl = convertToHttps(du.urlM3u8);
-            try {
-              const urlObj = new URL(serverUrl);
-              username = urlObj.searchParams.get("username") || "";
-              password = urlObj.searchParams.get("password") || "";
-            } catch (e) {}
+            const access = buildPlaylistAccessFields(du.urlM3u8);
+            serverUrl = access.serverUrl;
+            username = access.username;
+            password = access.password;
           }
 
           if (serverUrl && device.mac) {
@@ -1893,12 +1919,35 @@ export function registerApiRoutes(app: Express) {
       const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
       const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
       const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns, device.nomeServidor);
-      const failoverUrls = buildDnsFailoverUrls(device.urlM3u8, selectedDnsProfile);
-      const primaryPlaylistUrl = failoverUrls[0] || device.urlM3u8 || "";
+      let resolvedDevicePlaylistUrl = device.urlM3u8 || "";
+      // A própria configuração do APK também executa o failover: se a DNS atual
+      // não confirmar a lista, testa as DNS do perfil e grava a primeira funcional.
+      // Assim o APK nunca recebe a M3U quebrada como playlist principal.
+      if (resolvedDevicePlaylistUrl && selectedDnsProfile.length > 1) {
+        const currentResult = await probeListUrl(sanitizeUrlForProbe(resolvedDevicePlaylistUrl), { timeoutMs: 2500, retryOnTimeout: false });
+        if (!isConfirmedListResponse(currentResult)) {
+          const currentHost = selectedDnsProfile.find((entry) => resolvedDevicePlaylistUrl.startsWith(entry.host.replace(/\/+$/, "")))?.host;
+          const alternatives = orderDnsFailoverEntries(resolvedDevicePlaylistUrl, selectedDnsProfile)
+            .filter((entry) => !currentHost || entry.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""));
+          const probeResults = await Promise.all(alternatives.map(async (entry) => ({
+            entry,
+            result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(resolvedDevicePlaylistUrl, entry.host)), { timeoutMs: 2500, retryOnTimeout: false }),
+          })));
+          const working = probeResults.find(({ result }) => result.status === "success");
+          if (working) {
+            resolvedDevicePlaylistUrl = replaceDnsHost(resolvedDevicePlaylistUrl, working.entry.host);
+            await db.update(devices).set({ urlM3u8: resolvedDevicePlaylistUrl }).where(eq(devices.id, device.id));
+          }
+        }
+      }
+      const failoverUrls = buildDnsFailoverUrls(resolvedDevicePlaylistUrl, selectedDnsProfile);
+      const primaryPlaylistUrl = failoverUrls[0] || resolvedDevicePlaylistUrl || "";
       const appPlaylistUrls = primaryPlaylistUrl ? [primaryPlaylistUrl, ...extras.map((item) => item.url || "")] : extras.map((item) => item.url || "");
       const settings = await getSettings();
+      const defaultEpg = settings.default_epg_url || "";
+      const effectiveEpgUrl = resolveEpgUrl(device.urlEpg, defaultEpg).url;
       res.setHeader("Cache-Control", "no-store");
-      res.json({ registered: true, allowed: device.status === "Liberado", mac, playlist_url: primaryPlaylistUrl, primary_dns_url: primaryPlaylistUrl, failover_urls: failoverUrls, server_profile: selectedDnsProfile[0]?.grupo || null, ...buildGenericAppConfig(appId, appDef.displayName, settings, appPlaylistUrls, device.urlEpg || "") });
+      res.json({ registered: true, allowed: device.status === "Liberado", mac, playlist_url: primaryPlaylistUrl, primary_dns_url: primaryPlaylistUrl, failover_urls: failoverUrls, server_profile: selectedDnsProfile[0]?.grupo || null, ...buildGenericAppConfig(appId, appDef.displayName, settings, appPlaylistUrls, effectiveEpgUrl) });
     } catch (error) {
       console.error("[API] configuração de aplicativo genérico", error);
       res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do aplicativo." });
@@ -4697,7 +4746,7 @@ export function registerApiRoutes(app: Express) {
         const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
         const sameProfile = selectDnsProfileEntries(currentCandidate.url, profileDns, device.nomeServidor);
         if (sameProfile.length > 1) {
-          const dnsResults = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ entry, result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(currentCandidate.url, entry.host))) })));
+          const dnsResults = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ entry, result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(currentCandidate.url, entry.host)), { timeoutMs: 2500, retryOnTimeout: false }) })));
           const currentHost = sameProfile.find((entry) => currentCandidate.url.startsWith(entry.host.replace(/\/+$/, "")))?.host;
           const alternativeDnsResults = currentHost
             ? dnsResults.filter(({ entry }) => entry.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""))

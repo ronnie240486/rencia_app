@@ -58,7 +58,13 @@ export async function validateListUrl(value: string) {
   if (url.username || url.password || isBlockedHost(url.hostname)) return { valid: false as const, message: "Endereço não permitido para verificação" };
 
   try {
-    const addresses = await lookup(url.hostname, { all: true, verbatim: true });
+    // Alguns domínios de IPTV ficam sem resposta no resolvedor; sem limite,
+    // cada DNS bloqueia toda a resposta do guim.php e o APK fica carregando.
+    const lookupTimeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("DNS lookup timeout")), 1_200));
+    const addresses = await Promise.race([
+      lookup(url.hostname, { all: true, verbatim: true }),
+      lookupTimeout,
+    ]);
     if (addresses.some(({ address }) => isBlockedHost(address))) return { valid: false as const, message: "Endereço interno não permitido" };
   } catch {
     return { valid: false as const, message: "Não foi possível resolver o servidor" };
@@ -67,9 +73,9 @@ export async function validateListUrl(value: string) {
   return { valid: true as const, url: url.toString() };
 }
 
-async function retryWithPartialGet(url: string, startedAt: number): Promise<ListHealthResult | null> {
+async function retryWithPartialGet(url: string, startedAt: number, timeoutMs: number): Promise<ListHealthResult | null> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
       method: "GET",
@@ -91,12 +97,20 @@ async function retryWithPartialGet(url: string, startedAt: number): Promise<List
   }
 }
 
-export async function probeListUrl(value: string): Promise<ListHealthResult> {
+export type ProbeListOptions = {
+  timeoutMs?: number;
+  retryTimeoutMs?: number;
+  retryOnTimeout?: boolean;
+};
+
+export async function probeListUrl(value: string, options: ProbeListOptions = {}): Promise<ListHealthResult> {
   const validated = await validateListUrl(value);
   if (!validated.valid) return { status: "error", statusCode: null, responseTimeMs: null, message: validated.message, responseConfirmed: false };
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 7_000);
+  const timeoutMs = options.timeoutMs ?? 7_000;
+  const retryTimeoutMs = options.retryTimeoutMs ?? 10_000;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const startedAt = Date.now();
   try {
     let response = await fetch(validated.url, { method: "HEAD", redirect: "manual", signal: controller.signal });
@@ -118,7 +132,7 @@ export async function probeListUrl(value: string): Promise<ListHealthResult> {
   } catch (error) {
     const responseTimeMs = Date.now() - startedAt;
     if (error instanceof Error && error.name === "AbortError") {
-      const retry = await retryWithPartialGet(validated.url, startedAt);
+      const retry = options.retryOnTimeout === false ? null : await retryWithPartialGet(validated.url, startedAt, retryTimeoutMs);
       return retry ?? classifyListTimeout(Date.now() - startedAt);
     }
     return { status: "error", statusCode: null, responseTimeMs, message: "Não foi possível conectar ao servidor", responseConfirmed: false };
