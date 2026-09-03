@@ -44,9 +44,10 @@ import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistrati
 import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { resolveEpgUrl } from "./epgFallback";
-import { buildDnsFailoverUrls, selectDnsProfileEntries } from "./dnsFailover";
+import { buildDnsFailoverUrls, replaceDnsHost, selectDnsProfileEntries } from "./dnsFailover";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
+import { probeListUrl } from "./listHealth";
 import { findDeviceByAnyMac, findDeviceMatchByAnyMac } from "./deviceMacLookup";
 import { buildHeartbeatMacLookup } from "./heartbeatMac";
 import { comparePassword } from "./auth";
@@ -4676,8 +4677,8 @@ export function registerApiRoutes(app: Express) {
         .where(and(eq(deviceUrls.deviceId, device.id), eq(deviceUrls.ativo, true)))
         .orderBy(asc(deviceUrls.ordem), asc(deviceUrls.id));
       const candidates = [
-        ...(device.urlM3u8 ? [{ id: null as number | null, name: 'Lista 1' }] : []),
-        ...extraLists.filter((item) => Boolean(item.urlM3u8 || item.xtServer)).map((item) => ({ id: item.id, name: item.nome || `Lista ${item.ordem + 2}` })),
+        ...(device.urlM3u8 ? [{ id: null as number | null, name: 'Lista 1', url: device.urlM3u8 }] : []),
+        ...extraLists.filter((item) => Boolean(item.urlM3u8 || item.xtServer)).map((item) => ({ id: item.id, name: item.nome || `Lista ${item.ordem + 2}`, url: (item.urlM3u8 || item.xtServer || '').trim() })),
       ];
       const currentId = device.activeDeviceUrlId ?? null;
       const currentPosition = candidates.findIndex((item) => item.id === currentId) + 1;
@@ -4687,16 +4688,29 @@ export function registerApiRoutes(app: Express) {
         res.json({ success: true, switch_applied: false, reason: 'lista-já-foi-alterada', ...state.failover });
         return;
       }
+            const currentCandidate = candidates[currentPosition - 1];
+      if (currentCandidate?.url) {
+        const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(and(eq(dnsEntries.ownerId, device.ownerId), eq(dnsEntries.ativo, true))).orderBy(asc(dnsEntries.createdAt));
+        const sameProfile = selectDnsProfileEntries(currentCandidate.url, profileDns);
+        if (sameProfile.length > 1) {
+          const dnsResults = await Promise.all(sameProfile.map(async (entry) => ({ entry, result: await probeListUrl(entry.host) })));
+          const workingDns = dnsResults.find(({ result }) => result.status === 'success');
+          if (workingDns) {
+            const workingUrl = replaceDnsHost(currentCandidate.url, workingDns.entry.host);
+            res.json({ success: true, switch_applied: false, dns_failover_applied: true, playlist_changed: false, working_dns_url: workingUrl, message: `DNS alternativa do perfil ${workingDns.entry.grupo || 'Padrão'} encontrada; mantendo a mesma lista.` });
+            return;
+          }
+        }
+      }
       const replacement = getNextPlaybackFailoverCandidate(candidates, currentId);
-      if (!replacement) { res.json({ success: false, switch_applied: false, error: 'Não existe outra lista disponível para este aparelho' }); return; }
-
+      if (!replacement) { res.json({ success: false, switch_applied: false, error: 'Nenhuma DNS do perfil respondeu e não existe outra lista disponível para este aparelho' }); return; }
       await db.update(devices).set({ activeDeviceUrlId: replacement.id }).where(eq(devices.id, device.id));
       await db.insert(listFailoverEvents).values({
         ownerId: device.ownerId,
         deviceId: device.id,
         fromDeviceUrlId: currentId,
         toDeviceUrlId: replacement.id,
-        reason: `${candidates[currentPosition - 1]?.name ?? 'Lista ativa'} reportou falha de reprodução no APK; ${replacement.name} ativada imediatamente.`,
+        reason: `${candidates[currentPosition - 1]?.name ?? 'Lista ativa'} e todas as DNS do perfil falharam no APK; ${replacement.name} ativada imediatamente.`,
       });
       const state = await getListNotificationsForMac(db, mac);
       res.json({ success: true, switch_applied: true, message: `${replacement.name} foi ativada automaticamente.`, ...state.failover });
