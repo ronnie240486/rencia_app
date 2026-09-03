@@ -83,6 +83,9 @@ describe("notificações de lista para APK", () => {
       active_list_number: 2,
       playlist_sync_required: true,
       playlist_sync_mode: "background",
+      action: "change_playlist",
+      command: "change_playlist",
+      change_playlist: true,
       reload_required: false,
       failover_transition_id: 91,
     });

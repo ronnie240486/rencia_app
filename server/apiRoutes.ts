@@ -4701,13 +4701,38 @@ export function registerApiRoutes(app: Express) {
           const workingDns = dnsResults.find(({ result }) => result.status === 'success');
           if (workingDns) {
             const workingUrl = replaceDnsHost(currentCandidate.url, workingDns.entry.host);
-            res.json({ success: true, switch_applied: false, dns_failover_applied: true, playlist_changed: false, working_dns_url: workingUrl, message: `DNS alternativa do perfil ${workingDns.entry.grupo || 'Padrão'} encontrada; mantendo a mesma lista.` });
+            if (currentCandidate.id === null) {
+              await db.update(devices).set({ urlM3u8: workingUrl }).where(eq(devices.id, device.id));
+            } else {
+              await db.update(deviceUrls).set({ urlM3u8: workingUrl }).where(eq(deviceUrls.id, currentCandidate.id));
+            }
+            res.json({
+              success: true,
+              switch_applied: false,
+              dns_failover_applied: true,
+              playlist_changed: false,
+              retry_current_playlist: true,
+              playlist_url: workingUrl,
+              working_dns_url: workingUrl,
+              message: `DNS alternativa do perfil ${workingDns.entry.grupo || 'Padrão'} encontrada; M3U atualizada e a mesma lista deve ser repetida.`,
+            });
             return;
           }
         }
       }
       const replacement = getNextPlaybackFailoverCandidate(candidates, currentId);
-      if (!replacement) { res.json({ success: false, switch_applied: false, error: 'Nenhuma DNS do perfil respondeu e não existe outra lista disponível para este aparelho' }); return; }
+      if (!replacement) {
+        res.json({
+          success: false,
+          switch_applied: false,
+          action: "change_playlist",
+          command: "change_playlist",
+          change_playlist: true,
+          error: 'Nenhuma DNS do perfil respondeu e não existe outra lista disponível para este aparelho',
+        });
+        return;
+      }
+      const replacementCandidate = candidates.find((candidate) => candidate.id === replacement.id) ?? null;
       await db.update(devices).set({ activeDeviceUrlId: replacement.id }).where(eq(devices.id, device.id));
       await db.insert(listFailoverEvents).values({
         ownerId: device.ownerId,
@@ -4717,7 +4742,18 @@ export function registerApiRoutes(app: Express) {
         reason: `${candidates[currentPosition - 1]?.name ?? 'Lista ativa'} e todas as DNS do perfil falharam no APK; ${replacement.name} ativada imediatamente.`,
       });
       const state = await getListNotificationsForMac(db, mac);
-      res.json({ success: true, switch_applied: true, message: `${replacement.name} foi ativada automaticamente.`, ...state.failover });
+      res.json({
+        success: true,
+        switch_applied: true,
+        action: "change_playlist",
+        command: "change_playlist",
+        change_playlist: true,
+        next_playlist_number: candidates.findIndex((candidate) => candidate.id === replacement.id) + 1,
+        next_playlist_url: replacementCandidate?.url || "",
+        playlist_url: replacementCandidate?.url || "",
+        message: `${replacement.name} foi ativada automaticamente.`,
+        ...state.failover,
+      });
     } catch (error) {
       console.error('[API] /api/v5/playback-failure error:', error);
       res.status(500).json({ success: false, error: 'Não foi possível ativar a lista reserva' });

@@ -1683,3 +1683,7 @@
 - [x] Impedir que o UserEdit reconstrua automaticamente Club ou Onix quando o usuário salvou Sem perfil
 
 - [x] Corrigir o payload do UserEdit para enviar vazio explicitamente e apagar perfil antigo ao escolher Sem perfil
+
+- [x] Fazer o erro de conexão do player acionar o Change Playlist após falha total das DNS do perfil
+
+- [x] Persistir a DNS alternativa encontrada no playback-failure e devolver ao APK a M3U corrigida para retry da mesma lista
