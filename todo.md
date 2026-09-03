@@ -1779,3 +1779,9 @@
 - [x] Ativar Change Playlist quando nenhuma DNS entregar M3U válida
 - [x] Restaurar automaticamente a lista original quando ela voltar a entregar M3U válida
 - [x] Adicionar regressões para o fluxo completo por cliente
+
+## Troca imediata e restauração rápida (03/09/2026)
+- [x] Reduzir o atraso do playback-failure antes do comando Change Playlist
+- [x] Evitar que probes sequenciais bloqueiem a troca urgente após erro do APK
+- [x] Fazer a Lista 1 voltar automaticamente assim que houver confirmação de M3U válida
+- [x] Adicionar testes para troca rápida e restauração sem esperar o ciclo completo

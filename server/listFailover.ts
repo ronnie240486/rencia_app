@@ -5,7 +5,8 @@ import { orderDnsFailoverEntries, pickWorkingDns, replaceDnsHost, sanitizeUrlFor
 import { hasConfirmedListFailure, isConfirmedListResponse, isLikelyM3uUrl, probeListUrl } from "./listHealth";
 import { syncConfirmedListFailureAlert } from "./listFailureAlerts";
 
-export const LIST_FAILOVER_CRON = "0 */10 * * * *";
+// Verifica a lista principal com frequência curta para restaurar rapidamente após a recuperação.
+export const LIST_FAILOVER_CRON = "*/30 * * * * *";
 
 type Candidate = { id: number | null; name: string; url: string };
 

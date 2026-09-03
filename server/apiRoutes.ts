@@ -1010,34 +1010,9 @@ export function registerApiRoutes(app: Express) {
       }
 
             const isAllowed = device.status === "Liberado";
-      // O OuroPro usa esta rota legada como fonte principal. Antes de montar
-      // o payload, resolver a primeira DNS funcional do perfil salvo para que
-      // ele nunca receba a M3U quebrada como primeira lista.
-      let effectivePrimaryUrl = device.urlM3u8 || "";
-      if (effectivePrimaryUrl && isAllowed && device.nomeServidor) {
-        const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo })
-          .from(dnsEntries)
-          .where(eq(dnsEntries.ownerId, device.ownerId))
-          .orderBy(asc(dnsEntries.createdAt));
-        const selectedProfile = selectDnsProfileEntries(effectivePrimaryUrl, profileDns, device.nomeServidor);
-        if (selectedProfile.length > 1) {
-          const currentResult = await probeListUrl(sanitizeUrlForProbe(effectivePrimaryUrl), { timeoutMs: 2500, retryOnTimeout: false });
-          if (!isConfirmedListResponse(currentResult)) {
-            const currentHost = selectedProfile.find((entry) => effectivePrimaryUrl.startsWith(entry.host.replace(/\/+$/, "")))?.host;
-            const alternatives = orderDnsFailoverEntries(effectivePrimaryUrl, selectedProfile)
-              .filter((entry) => !currentHost || entry.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""));
-            const results = await Promise.all(alternatives.map(async (entry) => ({
-              entry,
-              result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(effectivePrimaryUrl, entry.host)), { timeoutMs: 2500, retryOnTimeout: false }),
-            })));
-            const working = results.find(({ result }) => result.status === "success");
-            if (working) {
-              effectivePrimaryUrl = replaceDnsHost(effectivePrimaryUrl, working.entry.host);
-              await db.update(devices).set({ urlM3u8: effectivePrimaryUrl }).where(eq(devices.id, device.id));
-            }
-          }
-        }
-      }
+      // A resposta do APK deve ser imediata. A resolução e o failover de DNS
+      // acontecem no monitor/playback-failure, nunca bloqueando a configuração.
+      const effectivePrimaryUrl = device.urlM3u8 || "";
       // Montar lista de URLs para o APK usando exatamente o protocolo da M3U
       // validada pelo painel. Alguns provedores aceitam HTTP e não aceitam HTTPS;
       // trocar o esquema sem testar o endpoint faz o APK ficar carregando.
@@ -1918,28 +1893,10 @@ export function registerApiRoutes(app: Express) {
       await db.update(devices).set({ lastSeen: new Date(), lastActiveAppId: appId }).where(eq(devices.id, device.id));
       const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
       const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
-      const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns, device.nomeServidor);
-      let resolvedDevicePlaylistUrl = device.urlM3u8 || "";
-      // A própria configuração do APK também executa o failover: se a DNS atual
-      // não confirmar a lista, testa as DNS do perfil e grava a primeira funcional.
-      // Assim o APK nunca recebe a M3U quebrada como playlist principal.
-      if (resolvedDevicePlaylistUrl && selectedDnsProfile.length > 1) {
-        const currentResult = await probeListUrl(sanitizeUrlForProbe(resolvedDevicePlaylistUrl), { timeoutMs: 2500, retryOnTimeout: false });
-        if (!isConfirmedListResponse(currentResult)) {
-          const currentHost = selectedDnsProfile.find((entry) => resolvedDevicePlaylistUrl.startsWith(entry.host.replace(/\/+$/, "")))?.host;
-          const alternatives = orderDnsFailoverEntries(resolvedDevicePlaylistUrl, selectedDnsProfile)
-            .filter((entry) => !currentHost || entry.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""));
-          const probeResults = await Promise.all(alternatives.map(async (entry) => ({
-            entry,
-            result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(resolvedDevicePlaylistUrl, entry.host)), { timeoutMs: 2500, retryOnTimeout: false }),
-          })));
-          const working = probeResults.find(({ result }) => result.status === "success");
-          if (working) {
-            resolvedDevicePlaylistUrl = replaceDnsHost(resolvedDevicePlaylistUrl, working.entry.host);
-            await db.update(devices).set({ urlM3u8: resolvedDevicePlaylistUrl }).where(eq(devices.id, device.id));
-          }
-        }
-      }
+      // A resposta moderna também deve ser imediata; o failover é acionado
+      // pelo erro de reprodução ou pelo monitor, sem probes bloqueantes aqui.
+      const resolvedDevicePlaylistUrl = device.urlM3u8 || "";
+      const selectedDnsProfile = selectDnsProfileEntries(resolvedDevicePlaylistUrl, profileDns, device.nomeServidor);
       const failoverUrls = buildDnsFailoverUrls(resolvedDevicePlaylistUrl, selectedDnsProfile);
       const primaryPlaylistUrl = failoverUrls[0] || resolvedDevicePlaylistUrl || "";
       const appPlaylistUrls = primaryPlaylistUrl ? [primaryPlaylistUrl, ...extras.map((item) => item.url || "")] : extras.map((item) => item.url || "");
