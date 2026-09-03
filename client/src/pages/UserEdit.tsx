@@ -180,8 +180,9 @@ export default function UserEdit() {
   useEffect(() => {
     if (!device || hasUserEdited || !serverProfiles.length) return;
     const byName = serverProfiles.find(([group]) => group === (device.nomeServidor ?? "").trim());
-    const byHost = serverProfiles.find(([, entries]) => entries.some((entry) => device.urlM3u8?.startsWith(entry.host.replace(/\/+$/, ""))));
-    const profile = byName ?? byHost;
+    // O perfil só existe quando foi salvo explicitamente. Nunca inferir pelo host:
+    // um cliente cadastrado sem perfil deve continuar sem perfil ao reabrir.
+    const profile = byName;
     if (profile) {
       setServerProfile(profile[0]);
       const matched = profile[1].find((entry) => device.urlM3u8?.startsWith(entry.host.replace(/\/+$/, "")));
@@ -200,10 +201,20 @@ export default function UserEdit() {
           autoSyncDnsMutation.mutate({ id: device.id, nomeServidor: profile[0], urlM3u8: resolvedUrl });
         }
       }
+    } else {
+      setServerProfile("none");
+      setPrimaryDnsId("");
     }
   }, [device, hasUserEdited, serverProfiles]);
 
   const applyServerProfile = (group: string, dnsId?: string) => {
+    if (group === "none") {
+      setHasUserEdited(true);
+      setServerProfile("none");
+      setPrimaryDnsId("");
+      setForm((current) => ({ ...current, nomeServidor: "" }));
+      return;
+    }
     const entries = serverProfiles.find(([name]) => name === group)?.[1] ?? [];
     const selected = entries.find((entry) => String(entry.id) === (dnsId ?? "")) ?? entries[0];
     setHasUserEdited(true);

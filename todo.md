@@ -1679,3 +1679,5 @@
 - [x] Corrigir resposta das rotas de configuração para nunca entregar ao APK a M3U original quando há DNS válida no perfil
 
 - [x] Fazer o UserEdit substituir e persistir automaticamente a DNS errada pela DNS principal do perfil ao carregar o cliente
+
+- [x] Impedir que o UserEdit reconstrua automaticamente Club ou Onix quando o usuário salvou Sem perfil
