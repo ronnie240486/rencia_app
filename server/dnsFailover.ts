@@ -15,7 +15,12 @@ function matchesHost(url: string, host: string) {
   }
 }
 
-export function selectDnsProfileEntries(primaryUrl: string | null | undefined, entries: DnsFailoverEntry[]) {
+export function selectDnsProfileEntries(primaryUrl: string | null | undefined, entries: DnsFailoverEntry[], preferredGroup?: string | null) {
+  const normalizedGroup = preferredGroup?.trim();
+  if (normalizedGroup) {
+    const explicitlySelected = entries.filter((entry) => (entry.grupo || "Padrão") === normalizedGroup);
+    if (explicitlySelected.length) return explicitlySelected;
+  }
   const primary = primaryUrl?.trim() || "";
   const matched = entries.find((entry) => matchesHost(primary, entry.host));
   if (!matched) return [];

@@ -23,6 +23,14 @@ describe("failover de DNS por perfil", () => {
     ]);
   });
 
+  it("prioriza o perfil salvo mesmo quando o domínio da M3U é um alias", () => {
+    expect(selectDnsProfileEntries("http://w.s/get.php?username=u&password=p", [
+      { host: "http://w.ddn", grupo: "Club", ativo: false },
+      { host: "https://gratis.sytes.net", grupo: "Club", ativo: true },
+      { host: "https://onixspeed.shop", grupo: "Onix", ativo: true },
+    ], "Club").map((entry) => entry.grupo)).toEqual(["Club", "Club"]);
+  });
+
   it("escolhe a primeira DNS funcional sem mudar de playlist", () => {
     expect(pickWorkingDns([
       { host: "http://dns1.club.test", status: "error" },

@@ -1667,3 +1667,5 @@
 - [x] Fazer o painel testar as DNS do perfil e atualizar a M3U antes de acionar Change Playlist
 
 - [x] Corrigir falha real: após todas as DNS caírem, o painel precisa acionar Change Playlist para a lista reserva
+
+- [x] Corrigir o caso reproduzido em que a DNS 01 inativa impede reconhecer o perfil e não dispara DNS 02 ou Change Playlist

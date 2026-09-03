@@ -1770,8 +1770,8 @@ export function registerApiRoutes(app: Express) {
         .where(and(eq(deviceUrls.deviceId, device.id), eq(deviceUrls.ativo, true)))
         .orderBy(asc(deviceUrls.ordem));
       const playlistUrls = [device.urlM3u8 || "", ...extraLists.map((list) => list.urlM3u8 || list.xtServer || "")].filter(Boolean);
-      const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(and(eq(dnsEntries.ownerId, device.ownerId), eq(dnsEntries.ativo, true))).orderBy(asc(dnsEntries.createdAt));
-      const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns);
+      const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
+      const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns, device.nomeServidor);
       const failoverUrls = buildDnsFailoverUrls(device.urlM3u8, selectedDnsProfile);
       const serverProfile = selectedDnsProfile[0]?.grupo || null;
       const dnsUrls = Array.from(new Set(playlistUrls.map((url) => {
@@ -1889,8 +1889,8 @@ export function registerApiRoutes(app: Express) {
       // também existe em outro app (por exemplo, Ouro Pro e Optimus).
       await db.update(devices).set({ lastSeen: new Date(), lastActiveAppId: appId }).where(eq(devices.id, device.id));
       const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
-      const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(and(eq(dnsEntries.ownerId, device.ownerId), eq(dnsEntries.ativo, true))).orderBy(asc(dnsEntries.createdAt));
-      const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns);
+      const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
+      const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns, device.nomeServidor);
       const failoverUrls = buildDnsFailoverUrls(device.urlM3u8, selectedDnsProfile);
       const settings = await getSettings();
       res.setHeader("Cache-Control", "no-store");
@@ -4690,10 +4690,10 @@ export function registerApiRoutes(app: Express) {
       }
             const currentCandidate = candidates[currentPosition - 1];
       if (currentCandidate?.url) {
-        const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(and(eq(dnsEntries.ownerId, device.ownerId), eq(dnsEntries.ativo, true))).orderBy(asc(dnsEntries.createdAt));
-        const sameProfile = selectDnsProfileEntries(currentCandidate.url, profileDns);
+        const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
+        const sameProfile = selectDnsProfileEntries(currentCandidate.url, profileDns, device.nomeServidor);
         if (sameProfile.length > 1) {
-          const dnsResults = await Promise.all(sameProfile.map(async (entry) => ({ entry, result: await probeListUrl(entry.host) })));
+          const dnsResults = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ entry, result: await probeListUrl(entry.host) })));
           const workingDns = dnsResults.find(({ result }) => result.status === 'success');
           if (workingDns) {
             const workingUrl = replaceDnsHost(currentCandidate.url, workingDns.entry.host);
