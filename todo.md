@@ -1639,3 +1639,7 @@
 - [ ] Corrigir a consulta de validade da lista Onix e manter fallback manual quando o provedor não liberar a informação
 
 - [x] Corrigir a renovação confirmada de R$ 30,00 que não foi contabilizada na Receita Mensal
+
+- [x] Corrigir o login da revenda testeu163@gmail.com com a senha definida, preservando a conta e sem expor credenciais
+
+- [x] Fazer a senha alterada no painel de Revendas atualizar a credencial efetivamente usada pelo login de testeu163@gmail.com
