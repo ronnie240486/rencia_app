@@ -1706,3 +1706,9 @@
 - [x] Mostrar no card Saúde dos Grupos DNS qual DNS falhou, com motivo e horário da última verificação
 
 - [x] Mostrar a última falha histórica de cada DNS no card, mesmo quando ela já estiver funcionando
+
+## Isolamento da troca de DNS por cliente (03/09/2026)
+- [x] Identificar qualquer atualização que esteja alterando todos os clientes ao trocar uma DNS
+- [x] Fazer a troca manual de DNS gravar somente no cliente alvo
+- [x] Impedir que o failover altere o perfil DNS compartilhado ou outros clientes
+- [x] Adicionar testes que comprovem isolamento entre dois clientes

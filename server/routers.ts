@@ -31,6 +31,7 @@ import { buildBulkMessageRecipients, normalizeBulkMessageDnsHost } from "./bulkM
 import { buildOperationHealthOverview } from "./operationHealth";
 import { getConnectionState } from "./customerProfile";
 import { replaceDnsHost } from "./dnsFailover";
+import { requireExplicitDeviceIds } from "./dnsUpdateScope";
 import { CONNECTED_WINDOW_MINUTES, isWithinConnectedWindow } from "./connectedWindow";
 import { hasConfirmedListFailure, probeListUrl } from "./listHealth";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
@@ -1209,21 +1210,18 @@ export const appRouter = router({
     bulkUpdateDns: protectedProcedure
       .input(z.object({
         newUrl: z.string().min(1),
-        ids: z.array(z.number()).optional(),
+        // A troca de DNS nunca pode cair em escopo global por omissão.
+        // O cliente deve ser informado explicitamente pelo painel.
+        ids: z.array(z.number()).min(1, "Selecione ao menos um cliente."),
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        if (input.ids && input.ids.length > 0) {
-          await db.update(devices)
-            .set({ urlM3u8: input.newUrl })
-            .where(and(eq(devices.ownerId, ctx.user.id), inArray(devices.id, input.ids)));
-        } else {
-          await db.update(devices)
-            .set({ urlM3u8: input.newUrl })
-            .where(eq(devices.ownerId, ctx.user.id));
-        }
-        return { success: true };
+        const targetIds = requireExplicitDeviceIds(input.ids);
+        await db.update(devices)
+          .set({ urlM3u8: input.newUrl })
+          .where(and(eq(devices.ownerId, ctx.user.id), inArray(devices.id, targetIds)));
+        return { success: true, updatedIds: targetIds };
       }),
 
     // Trocar DNS em massa: substitui oldUrl por newUrl (só afeta quem tinha aquela DNS)
