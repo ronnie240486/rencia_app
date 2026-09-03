@@ -1785,3 +1785,9 @@
 - [x] Evitar que probes sequenciais bloqueiem a troca urgente após erro do APK
 - [x] Fazer a Lista 1 voltar automaticamente assim que houver confirmação de M3U válida
 - [x] Adicionar testes para troca rápida e restauração sem esperar o ciclo completo
+
+## Falha real: Change Playlist não acionada (03/09/2026)
+- [x] Confirmar se o APK está enviando playback-failure para a rota esperada
+- [x] Garantir que qualquer falha de reprodução identificada no cliente gere switch_playlist para Change Playlist
+- [x] Remover condições que exigem múltiplas tentativas antes da troca urgente
+- [x] Adicionar teste do payload real e da criação do comando remoto por cliente

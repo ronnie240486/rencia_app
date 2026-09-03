@@ -4692,8 +4692,14 @@ export function registerApiRoutes(app: Express) {
       ];
       const currentId = device.activeDeviceUrlId ?? null;
       const currentPosition = candidates.findIndex((item) => item.id === currentId) + 1;
-      const reportedPosition = Number(body?.active_list_number ?? currentPosition);
-      if (!Number.isInteger(reportedPosition) || reportedPosition !== currentPosition) {
+      // As versões do APK usam nomes diferentes para a lista que falhou. Se o
+      // campo não vier, não descartar o erro: o cliente identificado pelo MAC é
+      // o alvo e o painel deve decidir a próxima lista imediatamente.
+      const reportedListValue = body?.active_list_number ?? body?.playlist_number ?? body?.current_playlist_number ?? body?.list_index ?? body?.current_list;
+      const hasReportedList = reportedListValue !== undefined && reportedListValue !== null && reportedListValue !== '';
+      const parsedReportedPosition = Number(reportedListValue);
+      const reportedPosition = hasReportedList && parsedReportedPosition === 0 ? 1 : (hasReportedList ? parsedReportedPosition : currentPosition);
+      if (hasReportedList && (!Number.isInteger(reportedPosition) || reportedPosition !== currentPosition)) {
         const state = await getListNotificationsForMac(db, mac);
         res.json({ success: true, switch_applied: false, reason: 'lista-já-foi-alterada', ...state.failover });
         return;
