@@ -44,7 +44,7 @@ import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistrati
 import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { resolveEpgUrl } from "./epgFallback";
-import { buildDnsFailoverUrls, replaceDnsHost, selectDnsProfileEntries } from "./dnsFailover";
+import { buildDnsFailoverUrls, replaceDnsHost, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
 import { probeListUrl } from "./listHealth";
@@ -4693,7 +4693,7 @@ export function registerApiRoutes(app: Express) {
         const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
         const sameProfile = selectDnsProfileEntries(currentCandidate.url, profileDns, device.nomeServidor);
         if (sameProfile.length > 1) {
-          const dnsResults = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ entry, result: await probeListUrl(entry.host) })));
+          const dnsResults = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ entry, result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(currentCandidate.url, entry.host))) })));
           const workingDns = dnsResults.find(({ result }) => result.status === 'success');
           if (workingDns) {
             const workingUrl = replaceDnsHost(currentCandidate.url, workingDns.entry.host);

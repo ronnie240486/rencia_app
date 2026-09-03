@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { desc } from "drizzle-orm";
 import { devices, deviceUrls, dnsEntries, listFailoverEvents, listFailoverSettings, listHealthChecks, serverMaintenanceBlocks } from "../drizzle/schema";
-import { pickWorkingDns, replaceDnsHost, selectDnsProfileEntries } from "./dnsFailover";
+import { pickWorkingDns, replaceDnsHost, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
 import { hasConfirmedListFailure, isConfirmedListResponse, probeListUrl } from "./listHealth";
 import { syncConfirmedListFailureAlert } from "./listFailureAlerts";
 
@@ -80,7 +80,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     const sameProfile = selectDnsProfileEntries(current.url, profileDns);
     let dnsProfileExhausted = false;
     if (sameProfile.length > 1) {
-      const probes = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ host: entry.host, status: (await probeListUrl(entry.host)).status })));
+      const probes = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ host: entry.host, status: (await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(current.url, entry.host)))).status })));
       const workingHost = pickWorkingDns(probes);
       if (workingHost && !current.url.startsWith(workingHost.replace(/\/+$/, ""))) {
         const updatedUrl = replaceDnsHost(current.url, workingHost);

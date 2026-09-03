@@ -28,6 +28,17 @@ export function selectDnsProfileEntries(primaryUrl: string | null | undefined, e
   return entries.filter((entry) => (entry.grupo || "Padrão") === group);
 }
 
+export function sanitizeUrlForProbe(url: string) {
+  try {
+    const parsed = new URL(url);
+    parsed.username = "";
+    parsed.password = "";
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 export function replaceDnsHost(primaryUrl: string, host: string) {
   const normalizedHost = normalizeHost(host);
   if (!normalizedHost) return primaryUrl;

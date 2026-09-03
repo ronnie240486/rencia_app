@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDnsFailoverUrls, pickWorkingDns, selectDnsProfileEntries } from "./dnsFailover";
+import { buildDnsFailoverUrls, pickWorkingDns, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
 
 describe("failover de DNS por perfil", () => {
   it("preserva o caminho e os parâmetros da M3U em cada host alternativo", () => {
@@ -21,6 +21,10 @@ describe("failover de DNS por perfil", () => {
       { host: "http://dns1.club.test", grupo: "Club" },
       { host: "http://dns2.club.test", grupo: "Club" },
     ]);
+  });
+
+  it("testa o mesmo caminho da M3U sem enviar usuário e senha ao monitor", () => {
+    expect(sanitizeUrlForProbe("https://user:pass@dns1.club.test/get.php?username=u&password=p")).toBe("https://dns1.club.test/get.php?username=u&password=p");
   });
 
   it("prioriza o perfil salvo mesmo quando o domínio da M3U é um alias", () => {

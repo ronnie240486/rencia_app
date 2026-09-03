@@ -1669,3 +1669,7 @@
 - [x] Corrigir falha real: após todas as DNS caírem, o painel precisa acionar Change Playlist para a lista reserva
 
 - [x] Corrigir o caso reproduzido em que a DNS 01 inativa impede reconhecer o perfil e não dispara DNS 02 ou Change Playlist
+
+- [x] Corrigir o salvamento do UserEdit para substituir na M3U o domínio pela DNS principal escolhida do perfil
+
+- [x] Corrigir automaticamente M3U com DNS errada usando a primeira DNS funcional do perfil salvo, sem edição manual
