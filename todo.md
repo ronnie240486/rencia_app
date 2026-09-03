@@ -1733,3 +1733,5 @@
 - [x] Impedir que o APK receba múltiplas URLs DNS na mesma resposta de lista principal
 - [x] Garantir que o OuroPro receba uma única M3U principal já resolvida pelo painel
 - [ ] Validar carregamento da Lista 1 com perfil DNS e troca posterior para Lista 2
+- [x] Não forçar HTTPS na M3U se o servidor DNS do perfil só funcionar no protocolo original
+- [x] Entregar ao OuroPro exatamente o protocolo da URL validada pelo painel

@@ -1046,10 +1046,10 @@ export function registerApiRoutes(app: Express) {
           }
         }
       }
-      // Montar lista de URLs para o APK.
-      // O Android 9+ bloqueia HTTP claro; a troca de DNS preserva caminho,
-      // query e credenciais, e somente o esquema é normalizado para HTTPS.
-      const apkPrimaryUrl = convertToHttps(effectivePrimaryUrl);
+      // Montar lista de URLs para o APK usando exatamente o protocolo da M3U
+      // validada pelo painel. Alguns provedores aceitam HTTP e não aceitam HTTPS;
+      // trocar o esquema sem testar o endpoint faz o APK ficar carregando.
+      const apkPrimaryUrl = effectivePrimaryUrl;
       const urls: Array<{ id: string; url: string; name: string; type: string; is_protected: string; username?: string; password?: string }> = [];
       if (apkPrimaryUrl && isAllowed && !device.activeDeviceUrlId) {
         urls.push({
@@ -1091,7 +1091,7 @@ export function registerApiRoutes(app: Express) {
             } else if (eu.modoSelecao === "M3U8" && eu.urlM3u8) {
               urls.push({
                 id: String(eu.id),
-                url: convertToHttps(eu.urlM3u8),
+                url: eu.urlM3u8,
                 name: eu.nome || `Lista ${urls.length + 1}`,
                 type: "m3u_plus",
                 is_protected: "1",
