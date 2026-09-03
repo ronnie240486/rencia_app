@@ -1720,3 +1720,11 @@
 - [x] Validar EPG externo e restauração imediata da Lista 1 após retorno
 - [x] Executar testes completos e build após as correções finais
 - [x] Fazer a configuração moderna dos APKs usar o EPG global quando o cadastro individual estiver vazio
+
+## Ajuste reportado no failover do OuroPro (03/09/2026)
+- [x] Reduzir o tempo de resolução e recarga da DNS alternativa no fluxo ao vivo
+- [x] Corrigir o switch_playlist para não fechar ou gerar erro no OuroPro após todas as DNS falharem
+- [x] Adicionar regressões para DNS alternativa rápida e troca segura para Lista 2
+- [x] Corrigir erro de conexão do OuroPro mesmo após o painel salvar DNS alternativa funcional
+- [x] Preservar caminho, parâmetros de autenticação e formato da M3U ao trocar somente o host DNS
+- [x] Validar o payload legado recebido pelo APK após a troca automática

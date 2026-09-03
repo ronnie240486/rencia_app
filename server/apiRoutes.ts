@@ -1029,14 +1029,14 @@ export function registerApiRoutes(app: Express) {
           .orderBy(asc(dnsEntries.createdAt));
         const selectedProfile = selectDnsProfileEntries(effectivePrimaryUrl, profileDns, device.nomeServidor);
         if (selectedProfile.length > 1) {
-          const currentResult = await probeListUrl(sanitizeUrlForProbe(effectivePrimaryUrl));
+          const currentResult = await probeListUrl(sanitizeUrlForProbe(effectivePrimaryUrl), { timeoutMs: 2500, retryOnTimeout: false });
           if (!isConfirmedListResponse(currentResult)) {
             const currentHost = selectedProfile.find((entry) => effectivePrimaryUrl.startsWith(entry.host.replace(/\/+$/, "")))?.host;
             const alternatives = orderDnsFailoverEntries(effectivePrimaryUrl, selectedProfile)
               .filter((entry) => !currentHost || entry.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""));
             const results = await Promise.all(alternatives.map(async (entry) => ({
               entry,
-              result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(effectivePrimaryUrl, entry.host))),
+              result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(effectivePrimaryUrl, entry.host)), { timeoutMs: 2500, retryOnTimeout: false }),
             })));
             const working = results.find(({ result }) => result.status === "success");
             if (working) {
@@ -1046,13 +1046,15 @@ export function registerApiRoutes(app: Express) {
           }
         }
       }
-      // Montar lista de URLs para o APK
-      // IMPORTANTE: o campo 'id' deve ser != '0' para o APK liberar a lista
+      // Montar lista de URLs para o APK.
+      // O Android 9+ bloqueia HTTP claro; a troca de DNS preserva caminho,
+      // query e credenciais, e somente o esquema é normalizado para HTTPS.
+      const apkPrimaryUrl = convertToHttps(effectivePrimaryUrl);
       const urls: Array<{ id: string; url: string; name: string; type: string; is_protected: string; username?: string; password?: string }> = [];
-      if (effectivePrimaryUrl && isAllowed && !device.activeDeviceUrlId) {
+      if (apkPrimaryUrl && isAllowed && !device.activeDeviceUrlId) {
         urls.push({
           id: String(device.id),
-          url: effectivePrimaryUrl,
+          url: apkPrimaryUrl,
           name: device.nomeServer || "Lista",
           type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
           is_protected: "1",
@@ -1089,15 +1091,15 @@ export function registerApiRoutes(app: Express) {
             } else if (eu.modoSelecao === "M3U8" && eu.urlM3u8) {
               urls.push({
                 id: String(eu.id),
-                url: eu.urlM3u8,
+                url: convertToHttps(eu.urlM3u8),
                 name: eu.nome || `Lista ${urls.length + 1}`,
                 type: "m3u_plus",
                 is_protected: "1",
               });
             }
           }
-          if (effectivePrimaryUrl && activeExtra) {
-            urls.push({ id: String(device.id), url: effectivePrimaryUrl, name: device.nomeServer || "Lista principal", type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus", is_protected: "1" });
+          if (apkPrimaryUrl && activeExtra) {
+            urls.push({ id: String(device.id), url: apkPrimaryUrl, name: device.nomeServer || "Lista principal", type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus", is_protected: "1" });
           }
         } catch { /* ignora erro de listas extras */ }
       }
@@ -1932,14 +1934,14 @@ export function registerApiRoutes(app: Express) {
       // não confirmar a lista, testa as DNS do perfil e grava a primeira funcional.
       // Assim o APK nunca recebe a M3U quebrada como playlist principal.
       if (resolvedDevicePlaylistUrl && selectedDnsProfile.length > 1) {
-        const currentResult = await probeListUrl(sanitizeUrlForProbe(resolvedDevicePlaylistUrl));
+        const currentResult = await probeListUrl(sanitizeUrlForProbe(resolvedDevicePlaylistUrl), { timeoutMs: 2500, retryOnTimeout: false });
         if (!isConfirmedListResponse(currentResult)) {
           const currentHost = selectedDnsProfile.find((entry) => resolvedDevicePlaylistUrl.startsWith(entry.host.replace(/\/+$/, "")))?.host;
           const alternatives = orderDnsFailoverEntries(resolvedDevicePlaylistUrl, selectedDnsProfile)
             .filter((entry) => !currentHost || entry.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""));
           const probeResults = await Promise.all(alternatives.map(async (entry) => ({
             entry,
-            result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(resolvedDevicePlaylistUrl, entry.host))),
+            result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(resolvedDevicePlaylistUrl, entry.host)), { timeoutMs: 2500, retryOnTimeout: false }),
           })));
           const working = probeResults.find(({ result }) => result.status === "success");
           if (working) {
@@ -4754,7 +4756,7 @@ export function registerApiRoutes(app: Express) {
         const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
         const sameProfile = selectDnsProfileEntries(currentCandidate.url, profileDns, device.nomeServidor);
         if (sameProfile.length > 1) {
-          const dnsResults = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ entry, result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(currentCandidate.url, entry.host))) })));
+          const dnsResults = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ entry, result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(currentCandidate.url, entry.host)), { timeoutMs: 2500, retryOnTimeout: false }) })));
           const currentHost = sameProfile.find((entry) => currentCandidate.url.startsWith(entry.host.replace(/\/+$/, "")))?.host;
           const alternativeDnsResults = currentHost
             ? dnsResults.filter(({ entry }) => entry.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""))
