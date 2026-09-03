@@ -12,6 +12,7 @@ vi.mock("./listHealth", () => ({
   probeListUrl: state.probe,
   hasConfirmedListFailure: (checks: Array<{ status: string }>) => checks.length === 2 && checks.every((check) => check.status === "error"),
   isConfirmedListResponse: (result: { status: string; responseConfirmed?: boolean }) => result.status === "success" && result.responseConfirmed === true,
+  isLikelyM3uUrl: (url: string) => /get\\.php|\\.m3u8?(?:$|\\?)/i.test(url),
 }));
 
 vi.mock("./listFailureAlerts", () => ({ syncConfirmedListFailureAlert: vi.fn().mockResolvedValue(undefined) }));

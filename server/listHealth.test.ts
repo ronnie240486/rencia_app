@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { classifyListHttpStatus, classifyListTimeout, hasConfirmedListFailure, isConfirmedListResponse, validateListUrl } from "./listHealth";
+import { describe, expect, it, vi } from "vitest";
+import { classifyListHttpStatus, classifyListTimeout, hasConfirmedListFailure, hasUsableM3uContent, isConfirmedListResponse, isLikelyM3uUrl, probeListUrl, validateListUrl } from "./listHealth";
 
 describe("validação segura de URL de lista", () => {
   it("rejeita destinos internos e protocolos não suportados", async () => {
@@ -32,6 +32,27 @@ describe("validação segura de URL de lista", () => {
     expect(hasConfirmedListFailure([{ status: "error" }])).toBe(false);
     expect(hasConfirmedListFailure([{ status: "error" }, { status: "success" }])).toBe(false);
     expect(hasConfirmedListFailure([{ status: "error" }, { status: "error" }])).toBe(true);
+  });
+
+  it("reconhece conteúdo M3U e rejeita resposta HTTP sem playlist", () => {
+    expect(hasUsableM3uContent("#EXTM3U\\n#EXTINF:-1,Canal\\nhttps://stream.example/live")).toBe(true);
+    expect(hasUsableM3uContent("User account is incorrect")).toBe(false);
+    expect(isLikelyM3uUrl("http://server.example/get.php?type=m3u_plus")).toBe(true);
+    expect(isLikelyM3uUrl("http://server.example/player_api.php")).toBe(false);
+  });
+
+  it("exige conteúdo M3U no probe autenticado mesmo com HTTP 200", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(new Response("conta inválida", { status: 200 }));
+    await expect(probeListUrl("https://example.com/get.php?username=u&password=p&type=m3u_plus", { requireM3uContent: true, timeoutMs: 1000 }))
+      .resolves.toMatchObject({ status: "error", responseConfirmed: false, message: "Servidor respondeu, mas não entregou uma M3U válida" });
+    fetchMock.mockReset()
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(new Response("#EXTM3U\\n#EXTINF:-1,Canal\\nhttps://stream.example/live", { status: 200 }));
+    await expect(probeListUrl("https://example.com/get.php?username=u&password=p&type=m3u_plus", { requireM3uContent: true, timeoutMs: 1000 }))
+      .resolves.toMatchObject({ status: "success", responseConfirmed: true });
+    fetchMock.mockRestore();
   });
 
   it("mantém timeout como observação, sem confirmar lista fora", () => {

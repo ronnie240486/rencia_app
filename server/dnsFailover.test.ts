@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDnsFailoverUrls, orderDnsFailoverEntries, pickWorkingDns, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
+import { buildDnsFailoverUrls, orderDnsFailoverEntries, pickWorkingDns, replaceDnsHost, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
 
 describe("failover de DNS por perfil", () => {
   it("preserva o caminho e os parâmetros da M3U em cada host alternativo", () => {
@@ -33,6 +33,10 @@ describe("failover de DNS por perfil", () => {
       { host: "https://gratis.sytes.net", grupo: "Club", ativo: true },
       { host: "https://onixspeed.shop", grupo: "Onix", ativo: true },
     ], "Club").map((entry) => entry.grupo)).toEqual(["Club", "Club"]);
+  });
+
+  it("troca somente o host e preserva caminho, query e credenciais da M3U", () => {
+    expect(replaceDnsHost("http://user:pass@dns1.club.test:8080/get.php?username=u&password=p&type=m3u_plus", "https://dns2.club.test:8443")).toBe("https://user:pass@dns2.club.test:8443/get.php?username=u&password=p&type=m3u_plus");
   });
 
   it("escolhe a primeira DNS funcional sem mudar de playlist", () => {

@@ -306,9 +306,14 @@ export default function Users() {
 
   const handleDnsSubmit = () => {
     if (!newDnsUrl.trim()) { toast.error("Informe a nova URL M3U8."); return; }
+    const selectedIds = Array.from(selected);
+    if (selectedIds.length === 0) {
+      toast.error("Selecione exatamente o cliente que terá a DNS alterada.");
+      return;
+    }
     bulkDnsMutation.mutate({
       newUrl: newDnsUrl.trim(),
-      ids: dnsDialogScope === "selected" ? Array.from(selected) : undefined,
+      ids: selectedIds,
     });
   };
 
