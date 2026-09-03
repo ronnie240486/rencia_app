@@ -1719,3 +1719,4 @@
 - [x] Corrigir o guim.php legado do OuroPro para resolver DNS funcional do perfil antes de devolver a M3U principal
 - [x] Validar EPG externo e restauração imediata da Lista 1 após retorno
 - [x] Executar testes completos e build após as correções finais
+- [x] Fazer a configuração moderna dos APKs usar o EPG global quando o cadastro individual estiver vazio

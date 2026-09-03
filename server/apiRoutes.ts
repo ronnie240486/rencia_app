@@ -1952,8 +1952,10 @@ export function registerApiRoutes(app: Express) {
       const primaryPlaylistUrl = failoverUrls[0] || resolvedDevicePlaylistUrl || "";
       const appPlaylistUrls = primaryPlaylistUrl ? [primaryPlaylistUrl, ...extras.map((item) => item.url || "")] : extras.map((item) => item.url || "");
       const settings = await getSettings();
+      const defaultEpg = settings.default_epg_url || "";
+      const effectiveEpgUrl = resolveEpgUrl(device.urlEpg, defaultEpg).url;
       res.setHeader("Cache-Control", "no-store");
-      res.json({ registered: true, allowed: device.status === "Liberado", mac, playlist_url: primaryPlaylistUrl, primary_dns_url: primaryPlaylistUrl, failover_urls: failoverUrls, server_profile: selectedDnsProfile[0]?.grupo || null, ...buildGenericAppConfig(appId, appDef.displayName, settings, appPlaylistUrls, device.urlEpg || "") });
+      res.json({ registered: true, allowed: device.status === "Liberado", mac, playlist_url: primaryPlaylistUrl, primary_dns_url: primaryPlaylistUrl, failover_urls: failoverUrls, server_profile: selectedDnsProfile[0]?.grupo || null, ...buildGenericAppConfig(appId, appDef.displayName, settings, appPlaylistUrls, effectiveEpgUrl) });
     } catch (error) {
       console.error("[API] configuração de aplicativo genérico", error);
       res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do aplicativo." });
