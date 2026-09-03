@@ -1758,3 +1758,24 @@
 - [x] Impedir alteração de username, password, protocolo, porta, caminho ou parâmetros durante o cadastro
 - [x] Garantir que uma M3U que funciona fora do painel seja entregue byte a byte equivalente ao APK
 - [x] Adicionar regressão para cadastro e entrega de URL M3U autenticada
+
+## Fluxo final solicitado de failover DNS e playlists (03/09/2026)
+- [ ] Testar DNS 01 até DNS 10 em sequência, sem disparar todas em paralelo
+- [ ] Quando a lista atual cair, testar as DNS do mesmo perfil antes de decidir a troca de playlist
+- [ ] Se nenhuma DNS funcionar, enviar switch_playlist para ativar a Lista 2
+- [ ] Se a Lista 1 voltar, restaurá-la automaticamente no cliente que estava na Lista 2
+- [ ] Cobrir o fluxo completo com testes sem alterar outros clientes
+
+## Validação real da M3U antes do failover (03/09/2026)
+- [ ] Validar conteúdo M3U autenticado em vez de aceitar somente resposta HTTP
+- [x] Considerar DNS inválida quando o servidor responde mas não entrega playlist utilizável
+- [x] Acionar switch_playlist somente após esgotar DNS que não entregam M3U válida
+- [x] Restaurar a lista anterior quando ela voltar a entregar M3U válida
+- [x] Usar o nome e o comando Change Playlist corretamente no failover para a lista reserva
+
+## Failover por M3U não reconhecida (03/09/2026)
+- [x] Considerar DNS/servidor indisponível quando a resposta não contiver M3U utilizável
+- [x] Testar DNS do perfil sequencialmente com a URL completa da lista
+- [x] Ativar Change Playlist quando nenhuma DNS entregar M3U válida
+- [x] Restaurar automaticamente a lista original quando ela voltar a entregar M3U válida
+- [x] Adicionar regressões para o fluxo completo por cliente

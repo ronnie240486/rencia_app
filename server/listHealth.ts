@@ -47,7 +47,7 @@ function isBlockedHost(hostname: string) {
   return host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host === "::1" || host.startsWith("fe80:") || isPrivateIpv4(host);
 }
 
-export async function validateListUrl(value: string) {
+export async function validateListUrl(value: string, options: { allowCredentials?: boolean } = {}) {
   let url: URL;
   try {
     url = new URL(value);
@@ -55,7 +55,7 @@ export async function validateListUrl(value: string) {
     return { valid: false as const, message: "URL inválida" };
   }
   if (!/^https?:$/.test(url.protocol)) return { valid: false as const, message: "Apenas URLs HTTP ou HTTPS são permitidas" };
-  if (url.username || url.password || isBlockedHost(url.hostname)) return { valid: false as const, message: "Endereço não permitido para verificação" };
+  if ((!options.allowCredentials && (url.username || url.password)) || isBlockedHost(url.hostname)) return { valid: false as const, message: "Endereço não permitido para verificação" };
 
   try {
     // Alguns domínios de IPTV ficam sem resposta no resolvedor; sem limite,
@@ -101,10 +101,26 @@ export type ProbeListOptions = {
   timeoutMs?: number;
   retryTimeoutMs?: number;
   retryOnTimeout?: boolean;
+  /** Exige que o GET autenticado contenha assinatura de playlist M3U. */
+  requireM3uContent?: boolean;
 };
 
+export function hasUsableM3uContent(content: string) {
+  const sample = content.slice(0, 32_768).replace(/^\uFEFF/, "").trimStart();
+  return /^#EXTM3U(?:\s|$)/i.test(sample) || /#EXTINF:/i.test(sample);
+}
+
+export function isLikelyM3uUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return /get\.php|\.m3u8?(?:$|\?)/i.test(url.pathname) || url.searchParams.get("type")?.toLowerCase().includes("m3u") === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function probeListUrl(value: string, options: ProbeListOptions = {}): Promise<ListHealthResult> {
-  const validated = await validateListUrl(value);
+  const validated = await validateListUrl(value, { allowCredentials: options.requireM3uContent === true });
   if (!validated.valid) return { status: "error", statusCode: null, responseTimeMs: null, message: validated.message, responseConfirmed: false };
 
   const controller = new AbortController();
@@ -114,6 +130,25 @@ export async function probeListUrl(value: string, options: ProbeListOptions = {}
   const startedAt = Date.now();
   try {
     let response = await fetch(validated.url, { method: "HEAD", redirect: "manual", signal: controller.signal });
+    if (options.requireM3uContent) {
+      response = await fetch(validated.url, {
+        method: "GET",
+        redirect: "manual",
+        signal: controller.signal,
+        headers: {
+          Range: "bytes=0-32767",
+          Accept: "application/x-mpegURL, application/vnd.apple.mpegurl, text/plain, */*",
+          "User-Agent": "Mozilla/5.0 (compatible; RenciaListMonitor/1.0)",
+        },
+      });
+      const content = await response.text();
+      const httpResult = classifyListHttpStatus(response.status, Date.now() - startedAt);
+      if (!httpResult.responseConfirmed) return httpResult;
+      if (!hasUsableM3uContent(content)) {
+        return { ...httpResult, status: "error" as const, responseConfirmed: false, message: "Servidor respondeu, mas não entregou uma M3U válida" };
+      }
+      return { ...httpResult, message: "M3U autenticada disponível" };
+    }
     if ([401, 403, 405, 501].includes(response.status)) {
       response = await fetch(validated.url, {
         method: "GET",

@@ -2,7 +2,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { desc } from "drizzle-orm";
 import { devices, deviceUrls, dnsEntries, listFailoverEvents, listFailoverSettings, listHealthChecks, serverMaintenanceBlocks } from "../drizzle/schema";
 import { orderDnsFailoverEntries, pickWorkingDns, replaceDnsHost, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
-import { hasConfirmedListFailure, isConfirmedListResponse, probeListUrl } from "./listHealth";
+import { hasConfirmedListFailure, isConfirmedListResponse, isLikelyM3uUrl, probeListUrl } from "./listHealth";
 import { syncConfirmedListFailureAlert } from "./listFailureAlerts";
 
 export const LIST_FAILOVER_CRON = "0 */10 * * * *";
@@ -59,7 +59,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     const current = ordered[0];
     const primary = candidates[0];
     if (current.id !== primary.id) {
-      const primaryResult = await probeListUrl(primary.url);
+      const primaryResult = await probeListUrl(primary.url, { requireM3uContent: isLikelyM3uUrl(primary.url) });
       checked += 1;
       await recordAutomaticListHealthCheck(db, ownerId, device, primary, primaryResult);
       // A Lista 1 só volta quando uma resposta 2xx/3xx confirma que ela realmente voltou.
@@ -70,23 +70,24 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
         return;
       }
     }
-    const currentResult = await probeListUrl(current.url);
+    const currentResult = await probeListUrl(current.url, { requireM3uContent: isLikelyM3uUrl(current.url) });
     checked += 1;
     await recordAutomaticListHealthCheck(db, ownerId, device, current, currentResult);
     // Só 2xx/3xx confirma que a DNS atual entrega a lista. Respostas 401/403,
     // embora provem que o host respondeu, devem permitir testar DNS alternativas.
     if (isConfirmedListResponse(currentResult)) return;
-    // Antes de mudar de playlist, o painel testa em paralelo todas as DNS do mesmo perfil.
-    const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, ownerId));
+          // Antes de mudar de playlist, o painel testa as DNS do mesmo perfil em sequência.
+      const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, ownerId));
     const sameProfile = selectDnsProfileEntries(current.url, profileDns, device.nomeServidor);
     let dnsProfileExhausted = false;
     if (sameProfile.length > 1) {
-      const probes = await Promise.all(orderDnsFailoverEntries(current.url, sameProfile).map(async (entry) => {
-        const result = await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(current.url, entry.host)));
-        // 401/403 provam que o host está alcançável; o APK pode aceitar a
-        // mesma credencial mesmo quando o monitor não recebe 2xx/3xx.
-        return { host: entry.host, status: result.status === "success" ? "success" as const : "error" as const };
-      }));
+      const probes: Array<{ host: string; status: "success" | "error" }> = [];
+      for (const entry of orderDnsFailoverEntries(current.url, sameProfile)) {
+        const candidateUrl = replaceDnsHost(current.url, entry.host);
+        const result = await probeListUrl(isLikelyM3uUrl(candidateUrl) ? candidateUrl : sanitizeUrlForProbe(candidateUrl), { requireM3uContent: isLikelyM3uUrl(candidateUrl), retryOnTimeout: false });
+        probes.push({ host: entry.host, status: isConfirmedListResponse(result) ? "success" : "error" });
+        if (isConfirmedListResponse(result)) break;
+      }
       const currentHost = sameProfile.find((entry) => current.url.startsWith(entry.host.replace(/\/+$/, "")))?.host;
       const alternativeProbes = currentHost
         ? probes.filter((probe) => probe.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""))
@@ -108,7 +109,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
 
     let replacement: Candidate | null = null;
     for (const candidate of ordered.slice(1)) {
-      const result = await probeListUrl(candidate.url);
+      const result = await probeListUrl(candidate.url, { requireM3uContent: isLikelyM3uUrl(candidate.url) });
       checked += 1;
       await recordAutomaticListHealthCheck(db, ownerId, device, candidate, result);
       if (isConfirmedListResponse(result)) { replacement = candidate; break; }
