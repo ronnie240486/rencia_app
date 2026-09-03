@@ -24,19 +24,19 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials, suggestions, storeInvites, deviceAppLinks } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, remoteDeviceCommands, appCredentials, suggestions, storeInvites, deviceAppLinks } from "../drizzle/schema";
 import { eq, or, and, asc, desc, sql, inArray } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, exportLegacyV2Backup, importBackup, previewBackupImport } from "./exportImport";
 import { getBackupDownload } from "./backupService";
 import { buildUltraPlayerConfig, normalizeMacAddress } from "./ultraPlayerConfig";
 import { normalizeHeartbeatContent, readHeartbeatContent } from "./heartbeatContent";
-import { acknowledgeRemoteCommand, claimRemoteCommandForMac } from "./remoteCommands";
+import { acknowledgeRemoteCommand, claimRemoteCommandForMac, commandExpiresAt } from "./remoteCommands";
 import { buildPublicDownloadApps } from "./publicDownloads";
 import { acknowledgeListNotificationForMac, buildApkExpirationNotice, buildApkExpirationResponseFields, getListNotificationsForMac } from "./apkListNotifications";
 import { resolveOptionalImagesInParallel } from "./parallelImageResolution";
 import { orderDeviceUrlsForActive } from "./devicePlaylistOrder";
-import { getNextPlaybackFailoverCandidate } from "./playbackFailover";
+import { buildSwitchPlaylistPayload, getNextPlaybackFailoverCandidate } from "./playbackFailover";
 import { buildAppUpdateResponse } from "./appUpdateResponse";
 import { safeApkText } from "./apkSafeValues";
 import { daysUntilDateOnly } from "../shared/dateOnly";
@@ -4765,6 +4765,17 @@ export function registerApiRoutes(app: Express) {
         toDeviceUrlId: replacement.id,
         reason: `${candidates[currentPosition - 1]?.name ?? 'Lista ativa'} e todas as DNS do perfil falharam no APK; ${replacement.name} ativada imediatamente.`,
       });
+      const replacementIndex = candidates.findIndex((candidate) => candidate.id === replacement.id) + 1;
+      const switchPayload = buildSwitchPlaylistPayload(replacementIndex, replacementCandidate?.url || "");
+      // Além da resposta HTTP, enfileirar o comando no canal que o APK consulta.
+      // Assim o OuroPro aplica a lista, em vez de apenas abrir Change Playlist.
+      await db.insert(remoteDeviceCommands).values({
+        ownerId: device.ownerId,
+        deviceId: device.id,
+        command: "switch_playlist",
+        payload: JSON.stringify(switchPayload),
+        expiresAt: commandExpiresAt(2),
+      });
       const state = await getListNotificationsForMac(db, mac);
       res.json({
         success: true,
@@ -4772,9 +4783,11 @@ export function registerApiRoutes(app: Express) {
         action: "switch_playlist",
         command: "switch_playlist",
         change_playlist: true,
-        next_playlist_number: candidates.findIndex((candidate) => candidate.id === replacement.id) + 1,
-        list_index: candidates.findIndex((candidate) => candidate.id === replacement.id) + 1,
-        next_list_index: candidates.findIndex((candidate) => candidate.id === replacement.id) + 1,
+        next_playlist_number: replacementIndex,
+        list_index: replacementIndex,
+        next_list_index: replacementIndex,
+        playlist_index: replacementIndex,
+        playlist_number: replacementIndex,
         next_playlist_url: replacementCandidate?.url || "",
         playlist_url: replacementCandidate?.url || "",
         message: `${replacement.name} foi ativada automaticamente.`,

@@ -1816,3 +1816,9 @@
 - [x] Evitar que a proteção contra falha isolada bloqueie a troca quando a lista realmente caiu
 - [x] Manter a restauração automática da Lista 1 funcionando após a troca
 - [x] Testar queda e retorno no mesmo cliente
+
+## Change Playlist abre sem aplicar a lista (03/09/2026)
+- [x] Identificar o campo que o OuroPro usa para aplicar a lista, além de abrir a tela
+- [x] Enviar índice e URL da lista reserva no contrato compatível do APK
+- [x] Garantir que a restauração também aplique a lista original, não apenas abra a tela
+- [x] Adicionar teste de aplicação real da lista 2

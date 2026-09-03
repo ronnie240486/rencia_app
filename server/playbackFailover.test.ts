@@ -15,4 +15,17 @@ describe("failover imediato de reprodução", () => {
   it("não tenta trocar quando não existe outra lista", () => {
     expect(getNextPlaybackFailoverCandidate(candidates, 23)).toBeNull();
   });
+
+  it("monta payload aplicável com índice e URL da lista reserva", async () => {
+    const { buildSwitchPlaylistPayload } = await import("./playbackFailover");
+    expect(buildSwitchPlaylistPayload(2, "http://backup.example/get.php?type=m3u")).toEqual({
+      listIndex: 2,
+      list_index: 2,
+      playlist_index: 2,
+      playlist_number: 2,
+      next_playlist_number: 2,
+      playlist_url: "http://backup.example/get.php?type=m3u",
+      next_playlist_url: "http://backup.example/get.php?type=m3u",
+    });
+  });
 });
