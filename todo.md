@@ -1675,3 +1675,5 @@
 - [x] Corrigir automaticamente M3U com DNS errada usando a primeira DNS funcional do perfil salvo, sem edição manual
 
 - [x] Reproduzir e corrigir o MAC do teste em que a M3U incorreta continua sendo entregue apesar do perfil Club válido
+
+- [x] Corrigir resposta das rotas de configuração para nunca entregar ao APK a M3U original quando há DNS válida no perfil

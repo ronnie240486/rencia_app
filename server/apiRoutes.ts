@@ -1774,14 +1774,16 @@ export function registerApiRoutes(app: Express) {
       const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns, device.nomeServidor);
       const failoverUrls = buildDnsFailoverUrls(device.urlM3u8, selectedDnsProfile);
       const serverProfile = selectedDnsProfile[0]?.grupo || null;
-      const dnsUrls = Array.from(new Set(playlistUrls.map((url) => {
+      const primaryPlaylistUrl = failoverUrls[0] || playlistUrls[0] || "";
+      const appPlaylistUrls = primaryPlaylistUrl ? [primaryPlaylistUrl, ...playlistUrls.slice(1)] : playlistUrls;
+      const dnsUrls = Array.from(new Set(appPlaylistUrls.map((url) => {
         try { return new URL(url).origin; } catch { return ""; }
       }).filter(Boolean)));
       const appDef = MANAGED_APP_CATALOG[appId];
       const settings = await getSettings();
       const config = appId === "fusion"
         ? buildUltraPlayerConfig(settings)
-        : buildGenericAppConfig(appId, appDef.displayName, settings, playlistUrls, device.urlEpg || "");
+        : buildGenericAppConfig(appId, appDef.displayName, settings, appPlaylistUrls, device.urlEpg || "");
       const expiration = device.dataExpiracao ? String(device.dataExpiracao).slice(0, 10) : "";
 
       res.setHeader("Cache-Control", "no-store");
@@ -1799,12 +1801,12 @@ export function registerApiRoutes(app: Express) {
         dns_host: credential.dnsHost || dnsUrls[0] || "",
         dns_url: dnsUrls[0] || "",
         dns_urls: dnsUrls,
-        playlist_url: playlistUrls[0] || "",
-        playlist_urls: playlistUrls,
-        primary_dns_url: failoverUrls[0] || playlistUrls[0] || "",
+        playlist_url: appPlaylistUrls[0] || "",
+        playlist_urls: appPlaylistUrls,
+        primary_dns_url: primaryPlaylistUrl,
         failover_urls: failoverUrls,
         server_profile: serverProfile,
-        playlists: playlistUrls.map((url, index) => ({ name: index === 0 ? "Lista Principal" : `Lista ${index + 1}`, url })),
+        playlists: appPlaylistUrls.map((url, index) => ({ name: index === 0 ? "Lista Principal" : `Lista ${index + 1}`, url })),
         ...config,
       });
     } catch (error) {
@@ -1892,9 +1894,11 @@ export function registerApiRoutes(app: Express) {
       const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
       const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns, device.nomeServidor);
       const failoverUrls = buildDnsFailoverUrls(device.urlM3u8, selectedDnsProfile);
+      const primaryPlaylistUrl = failoverUrls[0] || device.urlM3u8 || "";
+      const appPlaylistUrls = primaryPlaylistUrl ? [primaryPlaylistUrl, ...extras.map((item) => item.url || "")] : extras.map((item) => item.url || "");
       const settings = await getSettings();
       res.setHeader("Cache-Control", "no-store");
-      res.json({ registered: true, allowed: device.status === "Liberado", mac, primary_dns_url: failoverUrls[0] || device.urlM3u8 || "", failover_urls: failoverUrls, server_profile: selectedDnsProfile[0]?.grupo || null, ...buildGenericAppConfig(appId, appDef.displayName, settings, [device.urlM3u8 || "", ...extras.map((item) => item.url || "")], device.urlEpg || "") });
+      res.json({ registered: true, allowed: device.status === "Liberado", mac, playlist_url: primaryPlaylistUrl, primary_dns_url: primaryPlaylistUrl, failover_urls: failoverUrls, server_profile: selectedDnsProfile[0]?.grupo || null, ...buildGenericAppConfig(appId, appDef.displayName, settings, appPlaylistUrls, device.urlEpg || "") });
     } catch (error) {
       console.error("[API] configuração de aplicativo genérico", error);
       res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do aplicativo." });
