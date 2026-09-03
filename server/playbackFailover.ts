@@ -16,6 +16,9 @@ export function buildSwitchPlaylistPayload(listIndex: number, playlistUrl: strin
     playlist_index: safeIndex,
     playlist_number: safeIndex,
     next_playlist_number: safeIndex,
+    target_list_number: safeIndex,
+    target_playlist_number: safeIndex,
+    change_playlist_number: safeIndex,
     playlist_url: playlistUrl,
     next_playlist_url: playlistUrl,
   };

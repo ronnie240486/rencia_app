@@ -24,6 +24,9 @@ describe("failover imediato de reprodução", () => {
       playlist_index: 2,
       playlist_number: 2,
       next_playlist_number: 2,
+      target_list_number: 2,
+      target_playlist_number: 2,
+      change_playlist_number: 2,
       playlist_url: "http://backup.example/get.php?type=m3u",
       next_playlist_url: "http://backup.example/get.php?type=m3u",
     });

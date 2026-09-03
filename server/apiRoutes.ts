@@ -4698,13 +4698,14 @@ export function registerApiRoutes(app: Express) {
       const reportedListValue = body?.active_list_number ?? body?.playlist_number ?? body?.current_playlist_number ?? body?.list_index ?? body?.current_list;
       const hasReportedList = reportedListValue !== undefined && reportedListValue !== null && reportedListValue !== '';
       const parsedReportedPosition = Number(reportedListValue);
-      const reportedPosition = hasReportedList && parsedReportedPosition === 0 ? 1 : (hasReportedList ? parsedReportedPosition : currentPosition);
-      if (hasReportedList && (!Number.isInteger(reportedPosition) || reportedPosition !== currentPosition)) {
-        const state = await getListNotificationsForMac(db, mac);
-        res.json({ success: true, switch_applied: false, reason: 'lista-já-foi-alterada', ...state.failover });
-        return;
+      // O estado persistido no painel é a fonte de verdade. O APK pode enviar
+      // uma posição antiga durante a tela de erro; nunca usar essa posição para
+      // voltar à Lista 1 que acabou de falhar.
+      const reportedPosition = hasReportedList && parsedReportedPosition === 0 ? 1 : parsedReportedPosition;
+      if (hasReportedList && Number.isInteger(reportedPosition) && reportedPosition !== currentPosition) {
+        console.info(`[API] playback-failure com posição antiga ${reportedPosition}; usando posição persistida ${currentPosition} para MAC ${mac}`);
       }
-            const currentCandidate = candidates[currentPosition - 1];
+      const currentCandidate = candidates[currentPosition - 1];
       if (currentCandidate?.url) {
         const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
         const sameProfile = selectDnsProfileEntries(currentCandidate.url, profileDns, device.nomeServidor);

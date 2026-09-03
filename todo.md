@@ -1822,3 +1822,9 @@
 - [x] Enviar índice e URL da lista reserva no contrato compatível do APK
 - [x] Garantir que a restauração também aplique a lista original, não apenas abra a tela
 - [x] Adicionar teste de aplicação real da lista 2
+
+## Correção da posição de failover (03/09/2026)
+- [x] Identificar por que a posição 1 está sendo reenviada quando a Lista 1 caiu
+- [x] Escolher a próxima lista cadastrada e ativa, começando pela Lista 2
+- [x] Impedir restauração da Lista 1 até confirmação real de M3U válida
+- [x] Adicionar testes para Lista 1 caída, Lista 2 ativa e retorno posterior
