@@ -12,7 +12,7 @@ import {
   listRevendas, createRevenda, updateRevenda, deleteRevenda, getRevendaStats,
   getConnectedDevices, updateUserProfile, listDeviceMacs, addDeviceMac, updateDeviceMac, removeDeviceMac,
 } from "./db";
-import { eq, and, inArray, sql, desc, isNotNull, like, or, gt, gte, lt } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, isNotNull, isNull, like, or, gt, gte, lt } from "drizzle-orm";
 import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions, storeInvites, googleDriveBackupConnections, deviceAppLinks, iptvServers, iptvServerAlertLogs, iptvServerAlertSettings, iptvServerWhatsAppBusinessSettings } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
@@ -872,6 +872,15 @@ export const appRouter = router({
 
   // ─── Devices (Usuários do painel) ──────────────────────────────────────────
   devices: router({
+    applyDefaultEpg: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
+      await requireGrantedPanelPermission(db, ctx.user, "app_settings");
+      const setting = (await db.select({ value: appSettings.value }).from(appSettings).where(eq(appSettings.key, "default_epg_url")).limit(1))[0]?.value?.trim();
+      if (!setting) throw new TRPCError({ code: "BAD_REQUEST", message: "Cadastre primeiro o EPG padrão em Configurações." });
+      const result = await db.update(devices).set({ urlEpg: setting }).where(and(eq(devices.ownerId, ctx.user.id), or(isNull(devices.urlEpg), eq(devices.urlEpg, ""))));
+      return { success: true, updated: result[0]?.affectedRows ?? 0 };
+    }),
     list: protectedProcedure
       .input(z.object({
         search: z.string().optional().default(""),
@@ -1033,7 +1042,8 @@ export const appRouter = router({
         if (stats.total >= limite) {
           throw new TRPCError({ code: "FORBIDDEN", message: `Limite de ${limite} devices atingido.` });
         }
-        const result = await createDevice({ ownerId: ctx.user.id, ...input, mac: input.mac ?? "" });
+        const defaultEpg = (await db.select({ value: appSettings.value }).from(appSettings).where(eq(appSettings.key, "default_epg_url")).limit(1))[0]?.value?.trim();
+        const result = await createDevice({ ownerId: ctx.user.id, ...input, urlEpg: input.urlEpg?.trim() || defaultEpg || undefined, mac: input.mac ?? "" });
         await recordAudit({
           ownerId: ctx.user.id,
           actorUserId: ctx.user.id,

@@ -46,6 +46,7 @@ const DEFAULT_VALUES: Record<string, string> = {
   // APK
   apk_download_url: "",
   apk_version: "",
+  default_epg_url: "https://iptv-epg.org/files/epg-br.xml",
   // Frase legal
   legal_notice: "OuroPro is a media player application. The app does not provide or include any media or content.",
   // Cores dos botões do painel
@@ -158,6 +159,10 @@ export default function Settings() {
     onError: (e) => toast.error(e.message),
   });
 
+  const applyDefaultEpg = trpc.devices.applyDefaultEpg.useMutation({
+    onSuccess: (result) => toast.success(`EPG aplicado em ${result.updated} cadastro(s) sem EPG personalizado.`),
+    onError: (error) => toast.error(error.message),
+  });
   const [form, setForm] = useState<Record<string, string>>(DEFAULT_VALUES);
   const [dirty, setDirty] = useState(false);
   const settingsInitializedRef = useRef(false);
@@ -522,8 +527,20 @@ export default function Settings() {
                       </div>
                     </CardContent>
                   </Card>
+                                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">EPG padrão dos clientes</CardTitle>
+                      <CardDescription>Novos cadastros usarão esta URL quando o campo EPG estiver vazio.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Input value={form.default_epg_url} onChange={e => handleChange("default_epg_url", e.target.value)} placeholder="https://exemplo.com/epg.xml" />
+                      <p className="text-xs text-muted-foreground">Aplicar aos existentes preenche somente cadastros sem EPG e preserva URLs personalizadas.</p>
+                      <Button type="button" variant="outline" onClick={() => applyDefaultEpg.mutate()} disabled={applyDefaultEpg.isPending || !form.default_epg_url.trim()}>
+                        {applyDefaultEpg.isPending ? "Aplicando..." : "Aplicar aos usuários sem EPG"}
+                      </Button>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
-
                 {/* ─── Aba Ícones ────────────────────────────────────────────────────── */}
                 <TabsContent value="icones" className="space-y-4 mt-4">
                   <Card>

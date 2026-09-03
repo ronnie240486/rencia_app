@@ -1647,3 +1647,5 @@
 - [ ] Confirmar qual código/link do OuroPro está cadastrado no Downloader e se aponta para a versão mais recente
 
 - [x] Fazer o Downloader do OuroPro sempre usar a última fonte pública configurada e manter a versão exibida sincronizada
+
+- [x] Criar EPG padrão global com aplicação aos novos usuários e opção segura para usuários existentes
