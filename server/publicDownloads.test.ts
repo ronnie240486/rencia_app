@@ -22,6 +22,20 @@ describe("loja pública de downloads", () => {
     expect(apps[0]).toMatchObject({ slug: "ouropro", downloadUrl: "/ouropro", version: "7.0" });
   });
 
+  it("prioriza sempre a fonte principal mais recente do OuroPro", () => {
+    const apps = buildPublicDownloadApps({
+      apk_download_url: "https://files.exemplo.com/ouropro-12.apk",
+      apk_version: "12",
+      public_ouropro_download_url: "https://files.exemplo.com/ouropro-antigo.apk",
+      public_ouropro_version: "1.0",
+    });
+
+    expect(apps[0]).toMatchObject({
+      downloadUrl: "https://files.exemplo.com/ouropro-12.apk",
+      version: "12",
+    });
+  });
+
   it("expõe o código Downloader e o link curto configurados para o Maximus", () => {
     const apps = buildPublicDownloadApps({
       public_maximus_download_url: "https://aftv.news/4851546",

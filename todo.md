@@ -1643,3 +1643,7 @@
 - [x] Corrigir o login da revenda testeu163@gmail.com com a senha definida, preservando a conta e sem expor credenciais
 
 - [x] Fazer a senha alterada no painel de Revendas atualizar a credencial efetivamente usada pelo login de testeu163@gmail.com
+
+- [ ] Confirmar qual código/link do OuroPro está cadastrado no Downloader e se aponta para a versão mais recente
+
+- [x] Fazer o Downloader do OuroPro sempre usar a última fonte pública configurada e manter a versão exibida sincronizada

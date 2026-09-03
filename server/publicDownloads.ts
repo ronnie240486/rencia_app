@@ -87,12 +87,18 @@ export function buildPublicDownloadApps(settings: Settings): PublicDownloadApp[]
 
   return definitions.flatMap((definition) => {
     if (settings[`public_${definition.slug}_active`] === "false") return [];
-    const downloadUrl = safePublicUrl(settings[`public_${definition.slug}_download_url`] || definition.fallbackDownload);
+    const configuredDownload = definition.slug === "ouropro"
+      ? (settings.apk_download_url || settings[`public_${definition.slug}_download_url`])
+      : (settings[`public_${definition.slug}_download_url`] || definition.fallbackDownload);
+    const configuredVersion = definition.slug === "ouropro"
+      ? (settings.apk_version || settings[`public_${definition.slug}_version`])
+      : (settings[`public_${definition.slug}_version`] || definition.fallbackVersion);
+    const downloadUrl = safePublicUrl(configuredDownload);
     return [{
       slug: definition.slug,
       name: definition.name,
       accent: definition.accent,
-      version: (settings[`public_${definition.slug}_version`] || definition.fallbackVersion || "Versão atual").trim(),
+      version: (configuredVersion || "Versão atual").trim(),
       downloadUrl,
       isAvailable: Boolean(downloadUrl),
       downloaderCode: (settings[`public_${definition.slug}_downloader_code`] || "").trim(),
