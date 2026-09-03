@@ -1,6 +1,7 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { desc } from "drizzle-orm";
-import { devices, deviceUrls, listFailoverEvents, listFailoverSettings, listHealthChecks, serverMaintenanceBlocks } from "../drizzle/schema";
+import { devices, deviceUrls, dnsEntries, listFailoverEvents, listFailoverSettings, listHealthChecks, serverMaintenanceBlocks } from "../drizzle/schema";
+import { pickWorkingDns, replaceDnsHost, selectDnsProfileEntries } from "./dnsFailover";
 import { hasConfirmedListFailure, isConfirmedListResponse, probeListUrl } from "./listHealth";
 import { syncConfirmedListFailureAlert } from "./listFailureAlerts";
 
@@ -74,6 +75,20 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     await recordAutomaticListHealthCheck(db, ownerId, device, current, currentResult);
     // Resposta lenta fica em observação e não deve causar troca automática.
     if (currentResult.status !== "error") return;
+    // Antes de mudar de playlist, o painel testa em paralelo todas as DNS do mesmo perfil.
+    const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(and(eq(dnsEntries.ownerId, ownerId), eq(dnsEntries.ativo, true)));
+    const sameProfile = selectDnsProfileEntries(current.url, profileDns);
+    if (sameProfile.length > 1) {
+      const probes = await Promise.all(sameProfile.map(async (entry) => ({ host: entry.host, status: (await probeListUrl(entry.host)).status })));
+      const workingHost = pickWorkingDns(probes);
+      if (workingHost && !current.url.startsWith(workingHost.replace(/\/+$/, ""))) {
+        const updatedUrl = replaceDnsHost(current.url, workingHost);
+        if (current.id === null) await db.update(devices).set({ urlM3u8: updatedUrl }).where(eq(devices.id, device.id));
+        else await db.update(deviceUrls).set({ urlM3u8: updatedUrl }).where(eq(deviceUrls.id, current.id));
+        return;
+      }
+      if (workingHost) return;
+    }
     // Uma falha isolada não troca a lista. A confirmação exige dois erros seguidos.
     if (!(await hasConfirmedFailoverFailure(db, ownerId, device.id, current))) return;
 

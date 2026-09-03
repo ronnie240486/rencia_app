@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDnsFailoverUrls, selectDnsProfileEntries } from "./dnsFailover";
+import { buildDnsFailoverUrls, pickWorkingDns, selectDnsProfileEntries } from "./dnsFailover";
 
 describe("failover de DNS por perfil", () => {
   it("preserva o caminho e os parâmetros da M3U em cada host alternativo", () => {
@@ -21,6 +21,18 @@ describe("failover de DNS por perfil", () => {
       { host: "http://dns1.club.test", grupo: "Club" },
       { host: "http://dns2.club.test", grupo: "Club" },
     ]);
+  });
+
+  it("escolhe a primeira DNS funcional sem mudar de playlist", () => {
+    expect(pickWorkingDns([
+      { host: "http://dns1.club.test", status: "error" },
+      { host: "http://dns2.club.test", status: "success" },
+      { host: "http://dns3.club.test", status: "success" },
+    ])).toBe("http://dns2.club.test");
+    expect(pickWorkingDns([
+      { host: "http://dns1.club.test", status: "error" },
+      { host: "http://dns2.club.test", status: "pending" },
+    ])).toBeNull();
   });
 
   it("remove duplicidades e ignora DNS inativa", () => {

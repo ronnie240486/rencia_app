@@ -38,6 +38,13 @@ export function replaceDnsHost(primaryUrl: string, host: string) {
   }
 }
 
+export type DnsProbeResult = { host: string; status: "success" | "error" | "pending" };
+
+/** Escolhe a primeira DNS que respondeu, respeitando a prioridade do perfil. */
+export function pickWorkingDns(probes: DnsProbeResult[]) {
+  return probes.find((probe) => probe.status === "success")?.host ?? null;
+}
+
 export function buildDnsFailoverUrls(primaryUrl: string | null | undefined, entries: DnsFailoverEntry[]) {
   const primary = primaryUrl?.trim() || "";
   if (!primary) return [];

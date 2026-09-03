@@ -1663,3 +1663,5 @@
 - [x] Mostrar o perfil do servidor na lista de clientes e adicionar botão de editar perfil/DNS principal no UserEdit
 
 - [x] Separar no contrato dos APKs o teste das DNS do mesmo perfil antes do Change Playlist da Lista 2
+
+- [x] Fazer o painel testar as DNS do perfil e atualizar a M3U antes de acionar Change Playlist
