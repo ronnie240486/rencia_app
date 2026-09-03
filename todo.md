@@ -1653,3 +1653,5 @@
 - [x] Fazer o Dashboard abrir sempre com o filtro Online agora selecionado
 
 - [x] Entregar o URL EPG do cadastro nas configurações dos APKs compatíveis e validar o contrato
+
+- [x] Criar rota universal de EPG por MAC e aplicativo, usando EPG individual ou padrão quando a lista não tiver EPG

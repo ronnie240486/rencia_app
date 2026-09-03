@@ -43,6 +43,7 @@ import { daysUntilDateOnly } from "../shared/dateOnly";
 import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistration";
 import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
+import { resolveEpgUrl } from "./epgFallback";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
 import { findDeviceByAnyMac, findDeviceMatchByAnyMac } from "./deviceMacLookup";
@@ -1800,6 +1801,36 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error("[API] /api/v5/app-login error:", error);
       res.status(500).json({ authenticated: false, registered: false, error: "Não foi possível autenticar o aplicativo." });
+    }
+  });
+
+  /**
+   * GET /api/v5/epg?mac=AA:BB:CC:DD:EE:FF&app_id=ouropro
+   * Retorna o EPG individual do cadastro ou o EPG padrão do painel quando não houver EPG próprio.
+   */
+  app.get("/api/v5/epg", async (req: Request, res: Response) => {
+    const mac = typeof req.query.mac === "string" ? normalizeMacAddress(req.query.mac) : null;
+    const appId = String(req.query.app_id || req.query.appId || "").trim().toLowerCase();
+    if (!mac) { res.status(400).json({ available: false, error: "MAC inválido." }); return; }
+    if (appId && !isManagedAppId(appId)) { res.status(400).json({ available: false, error: "Aplicativo inválido." }); return; }
+    try {
+      const db = await getDb();
+      if (!db) { res.status(503).json({ available: false, error: "Banco de dados indisponível." }); return; }
+      const resolvedMatch = await findDeviceMatchByAnyMac(db, mac);
+      const device = resolvedMatch?.device ?? null;
+      if (!device) { res.status(404).json({ available: false, error: "MAC não cadastrado." }); return; }
+      const resolvedAppId = resolvedMatch?.appId?.trim().toLowerCase() || "";
+      if (appId && resolvedAppId && appId !== resolvedAppId) {
+        res.status(403).json({ available: false, error: "Este MAC não está vinculado a este aplicativo." });
+        return;
+      }
+      const defaultEpg = (await db.select({ value: appSettings.value }).from(appSettings).where(eq(appSettings.key, "default_epg_url")).limit(1))[0]?.value;
+      const result = resolveEpgUrl(device.urlEpg, defaultEpg);
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ available: Boolean(result.url), mac, app_id: appId || resolvedAppId || null, epg_url: result.url || null, source: result.source });
+    } catch (error) {
+      console.error("[API] fallback universal de EPG", error);
+      res.status(500).json({ available: false, error: "Não foi possível obter o EPG." });
     }
   });
 
