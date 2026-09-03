@@ -1728,3 +1728,8 @@
 - [x] Corrigir erro de conexão do OuroPro mesmo após o painel salvar DNS alternativa funcional
 - [x] Preservar caminho, parâmetros de autenticação e formato da M3U ao trocar somente o host DNS
 - [x] Validar o payload legado recebido pelo APK após a troca automática
+
+## Correção do carregamento com várias DNS no OuroPro (03/09/2026)
+- [x] Impedir que o APK receba múltiplas URLs DNS na mesma resposta de lista principal
+- [x] Garantir que o OuroPro receba uma única M3U principal já resolvida pelo painel
+- [ ] Validar carregamento da Lista 1 com perfil DNS e troca posterior para Lista 2

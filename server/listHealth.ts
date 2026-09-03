@@ -58,7 +58,13 @@ export async function validateListUrl(value: string) {
   if (url.username || url.password || isBlockedHost(url.hostname)) return { valid: false as const, message: "Endereço não permitido para verificação" };
 
   try {
-    const addresses = await lookup(url.hostname, { all: true, verbatim: true });
+    // Alguns domínios de IPTV ficam sem resposta no resolvedor; sem limite,
+    // cada DNS bloqueia toda a resposta do guim.php e o APK fica carregando.
+    const lookupTimeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("DNS lookup timeout")), 1_200));
+    const addresses = await Promise.race([
+      lookup(url.hostname, { all: true, verbatim: true }),
+      lookupTimeout,
+    ]);
     if (addresses.some(({ address }) => isBlockedHost(address))) return { valid: false as const, message: "Endereço interno não permitido" };
   } catch {
     return { valid: false as const, message: "Não foi possível resolver o servidor" };
