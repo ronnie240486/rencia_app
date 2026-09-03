@@ -44,10 +44,10 @@ import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistrati
 import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { resolveEpgUrl } from "./epgFallback";
-import { buildDnsFailoverUrls, replaceDnsHost, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
+import { buildDnsFailoverUrls, orderDnsFailoverEntries, replaceDnsHost, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
-import { probeListUrl } from "./listHealth";
+import { isConfirmedListResponse, probeListUrl } from "./listHealth";
 import { findDeviceByAnyMac, findDeviceMatchByAnyMac } from "./deviceMacLookup";
 import { buildHeartbeatMacLookup } from "./heartbeatMac";
 import { comparePassword } from "./auth";
@@ -1017,15 +1017,42 @@ export function registerApiRoutes(app: Express) {
           .where(eq(devices.id, device.id));
       }
 
-      const isAllowed = device.status === "Liberado";
-
+            const isAllowed = device.status === "Liberado";
+      // O OuroPro usa esta rota legada como fonte principal. Antes de montar
+      // o payload, resolver a primeira DNS funcional do perfil salvo para que
+      // ele nunca receba a M3U quebrada como primeira lista.
+      let effectivePrimaryUrl = device.urlM3u8 || "";
+      if (effectivePrimaryUrl && isAllowed && device.nomeServidor) {
+        const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo })
+          .from(dnsEntries)
+          .where(eq(dnsEntries.ownerId, device.ownerId))
+          .orderBy(asc(dnsEntries.createdAt));
+        const selectedProfile = selectDnsProfileEntries(effectivePrimaryUrl, profileDns, device.nomeServidor);
+        if (selectedProfile.length > 1) {
+          const currentResult = await probeListUrl(sanitizeUrlForProbe(effectivePrimaryUrl));
+          if (!isConfirmedListResponse(currentResult)) {
+            const currentHost = selectedProfile.find((entry) => effectivePrimaryUrl.startsWith(entry.host.replace(/\/+$/, "")))?.host;
+            const alternatives = orderDnsFailoverEntries(effectivePrimaryUrl, selectedProfile)
+              .filter((entry) => !currentHost || entry.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""));
+            const results = await Promise.all(alternatives.map(async (entry) => ({
+              entry,
+              result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(effectivePrimaryUrl, entry.host))),
+            })));
+            const working = results.find(({ result }) => result.status === "success");
+            if (working) {
+              effectivePrimaryUrl = replaceDnsHost(effectivePrimaryUrl, working.entry.host);
+              await db.update(devices).set({ urlM3u8: effectivePrimaryUrl }).where(eq(devices.id, device.id));
+            }
+          }
+        }
+      }
       // Montar lista de URLs para o APK
       // IMPORTANTE: o campo 'id' deve ser != '0' para o APK liberar a lista
       const urls: Array<{ id: string; url: string; name: string; type: string; is_protected: string; username?: string; password?: string }> = [];
-      if (device.urlM3u8 && isAllowed && !device.activeDeviceUrlId) {
+      if (effectivePrimaryUrl && isAllowed && !device.activeDeviceUrlId) {
         urls.push({
           id: String(device.id),
-          url: device.urlM3u8,
+          url: effectivePrimaryUrl,
           name: device.nomeServer || "Lista",
           type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus",
           is_protected: "1",
@@ -1069,8 +1096,8 @@ export function registerApiRoutes(app: Express) {
               });
             }
           }
-          if (device.urlM3u8 && activeExtra) {
-            urls.push({ id: String(device.id), url: device.urlM3u8, name: device.nomeServer || "Lista principal", type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus", is_protected: "1" });
+          if (effectivePrimaryUrl && activeExtra) {
+            urls.push({ id: String(device.id), url: effectivePrimaryUrl, name: device.nomeServer || "Lista principal", type: device.modoSelecao === "XTeamCode" ? "xtream" : "m3u_plus", is_protected: "1" });
           }
         } catch { /* ignora erro de listas extras */ }
       }
@@ -1092,6 +1119,8 @@ export function registerApiRoutes(app: Express) {
       }
 
       const cfg = await getSettings();
+      const defaultEpg = (await db.select({ value: appSettings.value }).from(appSettings).where(eq(appSettings.key, "default_epg_url")).limit(1))[0]?.value?.trim() || "";
+      const effectiveEpgUrl = (device.urlEpg || defaultEpg).trim();
       const words = buildWords(cfg);
 
       // Resolver URLs de imagens para URLs públicas (presigned S3)
@@ -1121,6 +1150,11 @@ export function registerApiRoutes(app: Express) {
         expire_date: expireDate,
         ...buildApkExpirationResponseFields(buildApkExpirationNotice(device, now)),
         urls,
+        // Campos de EPG compatíveis com o contrato legado do OuroPro.
+        // O endpoint /api/v5/epg continua disponível para APKs modernos.
+        epg_url: effectiveEpgUrl,
+        url_epg: effectiveEpgUrl,
+        epg: effectiveEpgUrl,
         is_trial: 0,
         lock: isAllowed ? 0 : 1,
         plan_id: device.tipo ?? "Usuario",
@@ -1893,8 +1927,29 @@ export function registerApiRoutes(app: Express) {
       const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
       const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
       const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns, device.nomeServidor);
-      const failoverUrls = buildDnsFailoverUrls(device.urlM3u8, selectedDnsProfile);
-      const primaryPlaylistUrl = failoverUrls[0] || device.urlM3u8 || "";
+      let resolvedDevicePlaylistUrl = device.urlM3u8 || "";
+      // A própria configuração do APK também executa o failover: se a DNS atual
+      // não confirmar a lista, testa as DNS do perfil e grava a primeira funcional.
+      // Assim o APK nunca recebe a M3U quebrada como playlist principal.
+      if (resolvedDevicePlaylistUrl && selectedDnsProfile.length > 1) {
+        const currentResult = await probeListUrl(sanitizeUrlForProbe(resolvedDevicePlaylistUrl));
+        if (!isConfirmedListResponse(currentResult)) {
+          const currentHost = selectedDnsProfile.find((entry) => resolvedDevicePlaylistUrl.startsWith(entry.host.replace(/\/+$/, "")))?.host;
+          const alternatives = orderDnsFailoverEntries(resolvedDevicePlaylistUrl, selectedDnsProfile)
+            .filter((entry) => !currentHost || entry.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""));
+          const probeResults = await Promise.all(alternatives.map(async (entry) => ({
+            entry,
+            result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(resolvedDevicePlaylistUrl, entry.host))),
+          })));
+          const working = probeResults.find(({ result }) => result.status === "success");
+          if (working) {
+            resolvedDevicePlaylistUrl = replaceDnsHost(resolvedDevicePlaylistUrl, working.entry.host);
+            await db.update(devices).set({ urlM3u8: resolvedDevicePlaylistUrl }).where(eq(devices.id, device.id));
+          }
+        }
+      }
+      const failoverUrls = buildDnsFailoverUrls(resolvedDevicePlaylistUrl, selectedDnsProfile);
+      const primaryPlaylistUrl = failoverUrls[0] || resolvedDevicePlaylistUrl || "";
       const appPlaylistUrls = primaryPlaylistUrl ? [primaryPlaylistUrl, ...extras.map((item) => item.url || "")] : extras.map((item) => item.url || "");
       const settings = await getSettings();
       res.setHeader("Cache-Control", "no-store");

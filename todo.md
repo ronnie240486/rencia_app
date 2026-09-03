@@ -1706,3 +1706,16 @@
 - [x] Mostrar no card Saúde dos Grupos DNS qual DNS falhou, com motivo e horário da última verificação
 
 - [x] Mostrar a última falha histórica de cada DNS no card, mesmo quando ela já estiver funcionando
+
+- [ ] Validar o fluxo completo do erro real de conexão: DNS principal, alternativas do perfil e Change Playlist
+
+- [ ] Validar o conteúdo autenticado da M3U, não apenas HTTP 200, antes de aceitar uma DNS como funcional
+
+- [ ] Fazer playback-failure testar a próxima DNS do perfil mesmo quando a URL anterior respondeu HTTP 200
+
+- [ ] Registrar e processar o erro real de reprodução do OuroPro para efetivar DNS alternativa ou Change Playlist
+
+## Correção final do failover OuroPro (03/09/2026)
+- [x] Corrigir o guim.php legado do OuroPro para resolver DNS funcional do perfil antes de devolver a M3U principal
+- [x] Validar EPG externo e restauração imediata da Lista 1 após retorno
+- [x] Executar testes completos e build após as correções finais
