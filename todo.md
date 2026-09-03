@@ -1704,3 +1704,5 @@
 - [x] Implementar troca sequencial da M3U entre todas as DNS do perfil antes do Change Playlist
 
 - [x] Mostrar no card Saúde dos Grupos DNS qual DNS falhou, com motivo e horário da última verificação
+
+- [x] Mostrar a última falha histórica de cada DNS no card, mesmo quando ela já estiver funcionando

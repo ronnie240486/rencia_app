@@ -3131,7 +3131,7 @@ export const appRouter = router({
       const { listHealthChecks } = await import("../drizzle/schema");
       const entries = await db.select().from(dnsEntries).where(eq(dnsEntries.ownerId, ctx.user.id));
       const checks = await db.select().from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id));
-      const groups = new Map<string, { group: string; total: number; errors: number; latestAt: Date | null; dns: Array<{ id: number; titulo: string; host: string; status: string; statusCode: number | null; message: string; checkedAt: Date | null }> }>();
+      const groups = new Map<string, { group: string; total: number; errors: number; latestAt: Date | null; dns: Array<{ id: number; titulo: string; host: string; status: string; statusCode: number | null; message: string; checkedAt: Date | null; lastFailure: { statusCode: number | null; message: string; checkedAt: Date } | null }> }>();
       for (const entry of entries) {
         const key = entry.grupo || "Padrão";
         const related = checks.filter((check: any) => check.urlSnapshot.startsWith(entry.host.replace(/\/+$/, ""))).sort((a: any, b: any) => new Date(b.checkedAt).getTime() - new Date(a.checkedAt).getTime());
@@ -3140,7 +3140,8 @@ export const appRouter = router({
         current.total += related.length;
         current.errors += related.filter((check: any) => check.status === "error").length;
         for (const check of related) if (!current.latestAt || new Date(check.checkedAt) > current.latestAt) current.latestAt = new Date(check.checkedAt);
-        current.dns.push({ id: entry.id, titulo: entry.titulo, host: entry.host, status: latest?.status ?? "unknown", statusCode: latest?.statusCode ?? null, message: latest?.message ?? "Ainda não verificado", checkedAt: latest?.checkedAt ? new Date(latest.checkedAt) : null });
+        const lastFailure = related.find((check: any) => check.status === "error");
+        current.dns.push({ id: entry.id, titulo: entry.titulo, host: entry.host, status: latest?.status ?? "unknown", statusCode: latest?.statusCode ?? null, message: latest?.message ?? "Ainda não verificado", checkedAt: latest?.checkedAt ? new Date(latest.checkedAt) : null, lastFailure: lastFailure?.checkedAt ? { statusCode: lastFailure.statusCode ?? null, message: lastFailure.message ?? "Falha sem mensagem detalhada", checkedAt: new Date(lastFailure.checkedAt) } : null });
         groups.set(key, current);
       }
       return Array.from(groups.values()).map((item) => ({ ...item, failedDns: item.dns.filter((dns) => dns.status === "error"), health: item.total === 0 ? "unknown" : item.errors / item.total >= 0.5 ? "critical" : item.errors > 0 ? "attention" : "healthy" }));
