@@ -41,7 +41,7 @@ import { autoBackupSettings, backupSnapshots, historyRetentionSettings, monthlyR
 import { createBackupSnapshot, restoreBackupSnapshot, AUTO_BACKUP_CRON } from "./backupService";
 import { createGoogleDriveAuthorizationUrl } from "./googleDriveBackup";
 import { appServerFallbackSettingKey, appServerSettingKey } from "./appServerDirectory";
-import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
+import { createHeartbeatJob, deleteHeartbeatJob, updateHeartbeatJob } from "./_core/heartbeat";
 import { parse as parseCookie } from "cookie";
 import { chooseLocalLoginAccount } from "./loginSelection";
 import { addBillingMonths, getResellerBillingStatus } from "./resellerBilling";
@@ -2282,14 +2282,18 @@ export const appRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const current = (await db.select().from(listFailoverSettings).where(eq(listFailoverSettings.ownerId, ctx.user.id)).limit(1))[0];
       if (current?.scheduleCronTaskUid) {
-        await db.update(listFailoverSettings).set({ enabled: true, intervalMinutes: 10, lastError: null }).where(eq(listFailoverSettings.id, current.id));
+        const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+        if (sessionToken) {
+          try { await updateHeartbeatJob(current.scheduleCronTaskUid, { cron: LIST_FAILOVER_CRON, description: "Monitoramento e troca automática de listas a cada 1 minuto" }, sessionToken); } catch { /* mantém o job para o próximo ciclo de ativação */ }
+        }
+        await db.update(listFailoverSettings).set({ enabled: true, intervalMinutes: 1, lastError: null }).where(eq(listFailoverSettings.id, current.id));
         return { enabled: true, existingSchedule: true };
       }
       const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
       if (!sessionToken) throw new TRPCError({ code: "UNAUTHORIZED", message: "Sua sessão expirou. Entre novamente para ativar o monitoramento." });
-      const job = await createHeartbeatJob({ name: `monitor-listas-${ctx.user.id}`, cron: LIST_FAILOVER_CRON, path: "/api/scheduled/list-failover", description: "Monitoramento e troca automática de listas a cada 10 minutos" }, sessionToken);
-      if (current) await db.update(listFailoverSettings).set({ enabled: true, intervalMinutes: 10, scheduleCronTaskUid: job.taskUid, lastError: null }).where(eq(listFailoverSettings.id, current.id));
-      else await db.insert(listFailoverSettings).values({ ownerId: ctx.user.id, enabled: true, intervalMinutes: 10, scheduleCronTaskUid: job.taskUid });
+      const job = await createHeartbeatJob({ name: `monitor-listas-${ctx.user.id}`, cron: LIST_FAILOVER_CRON, path: "/api/scheduled/list-failover", description: "Monitoramento e troca automática de listas a cada 1 minuto" }, sessionToken);
+      if (current) await db.update(listFailoverSettings).set({ enabled: true, intervalMinutes: 1, scheduleCronTaskUid: job.taskUid, lastError: null }).where(eq(listFailoverSettings.id, current.id));
+      else await db.insert(listFailoverSettings).values({ ownerId: ctx.user.id, enabled: true, intervalMinutes: 1, scheduleCronTaskUid: job.taskUid });
       return { enabled: true, taskUid: job.taskUid };
     }),
     disable: protectedProcedure.mutation(async ({ ctx }) => {

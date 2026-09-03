@@ -1767,7 +1767,7 @@
 - [ ] Cobrir o fluxo completo com testes sem alterar outros clientes
 
 ## Validação real da M3U antes do failover (03/09/2026)
-- [ ] Validar conteúdo M3U autenticado em vez de aceitar somente resposta HTTP
+- [x] Validar conteúdo M3U autenticado em vez de aceitar somente resposta HTTP
 - [x] Considerar DNS inválida quando o servidor responde mas não entrega playlist utilizável
 - [x] Acionar switch_playlist somente após esgotar DNS que não entregam M3U válida
 - [x] Restaurar a lista anterior quando ela voltar a entregar M3U válida
@@ -1791,3 +1791,28 @@
 - [x] Garantir que qualquer falha de reprodução identificada no cliente gere switch_playlist para Change Playlist
 - [x] Remover condições que exigem múltiplas tentativas antes da troca urgente
 - [x] Adicionar teste do payload real e da criação do comando remoto por cliente
+
+## Regressão atual da troca automática (03/09/2026)
+- [x] Identificar por que a lista parou de funcionar sem acionar Change Playlist
+- [x] Reduzir a latência real do caminho de erro do APK
+- [x] Garantir que o comando switch_playlist seja criado/devolvido no primeiro erro válido
+- [x] Adicionar regressão para o cenário de lista parada e troca no mesmo cliente
+
+## Restauração do fluxo funcional anterior (03/09/2026)
+- [x] Comparar o checkpoint funcional anterior com o fluxo atual de troca e restauração
+- [x] Reverter somente a regressão que bloqueou Change Playlist e retorno da Lista 1
+- [x] Preservar a proteção que impede alterações em outros clientes
+- [x] Validar troca e restauração antes de criar novo checkpoint
+
+## Correção definitiva da troca e retorno (03/09/2026)
+- [x] Comparar o fluxo atual com o último checkpoint em que a troca funcionava
+- [x] Fazer a Change Playlist ser acionada no primeiro erro confirmado da lista
+- [x] Restaurar a Lista 1 quando ela voltar, sem depender de ação manual
+- [x] Garantir que a ação permaneça isolada no cliente afetado
+- [x] Validar os dois sentidos e salvar checkpoint somente após os testes
+
+## Detecção de queda sem evento do APK (03/09/2026)
+- [x] Fazer o monitor detectar a queda da lista e ativar Change Playlist sem depender somente do playback-failure
+- [x] Evitar que a proteção contra falha isolada bloqueie a troca quando a lista realmente caiu
+- [x] Manter a restauração automática da Lista 1 funcionando após a troca
+- [x] Testar queda e retorno no mesmo cliente

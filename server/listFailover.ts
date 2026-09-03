@@ -6,7 +6,8 @@ import { hasConfirmedListFailure, isConfirmedListResponse, isLikelyM3uUrl, probe
 import { syncConfirmedListFailureAlert } from "./listFailureAlerts";
 
 // Verifica a lista principal com frequência curta para restaurar rapidamente após a recuperação.
-export const LIST_FAILOVER_CRON = "*/30 * * * * *";
+// Heartbeat aceita intervalo mínimo de 60s; a troca pelo playback-failure continua imediata.
+export const LIST_FAILOVER_CRON = "0 * * * * *";
 
 type Candidate = { id: number | null; name: string; url: string };
 
@@ -106,7 +107,9 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
       dnsProfileExhausted = true;
     }
     // Sem perfil com múltiplas DNS, mantém a proteção contra falso positivo isolado.
-    if (!dnsProfileExhausted && !(await hasConfirmedFailoverFailure(db, ownerId, device.id, current))) return;
+    // Um erro técnico confirmado pelo probe já permite a troca; não esperar
+    // outro ciclo quando a lista realmente deixou de responder.
+    if (!dnsProfileExhausted && currentResult.status !== "error" && !(await hasConfirmedFailoverFailure(db, ownerId, device.id, current))) return;
 
     let replacement: Candidate | null = null;
     for (const candidate of ordered.slice(1)) {
@@ -116,9 +119,9 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
       if (isConfirmedListResponse(result)) { replacement = candidate; break; }
     }
     if (!replacement || replacement.id === current.id) return;
-    const lastEvent = (await db.select().from(listFailoverEvents).where(and(eq(listFailoverEvents.ownerId, ownerId), eq(listFailoverEvents.deviceId, device.id))).orderBy(desc(listFailoverEvents.createdAt)).limit(1))[0];
-    if (lastEvent && Date.now() - new Date(lastEvent.createdAt).getTime() < 30 * 60 * 1000) return;
-
+    // Não aplicar cooldown: após uma nova falha confirmada, o cliente precisa
+    // poder trocar novamente imediatamente; o evento anterior não pode travar
+    // nem a troca nem a restauração da lista principal.
     await db.update(devices).set({ activeDeviceUrlId: replacement.id }).where(eq(devices.id, device.id));
     await db.insert(listFailoverEvents).values({ ownerId, deviceId: device.id, fromDeviceUrlId: current.id, toDeviceUrlId: replacement.id, reason: `${current.name} falhou; ${replacement.name} passou no teste automático.` });
     switched += 1;
