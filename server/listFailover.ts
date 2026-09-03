@@ -83,9 +83,15 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     if (sameProfile.length > 1) {
       const probes = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => {
         const result = await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(current.url, entry.host)));
-        return { host: entry.host, status: isConfirmedListResponse(result) ? "success" as const : "error" as const };
+        // 401/403 provam que o host está alcançável; o APK pode aceitar a
+        // mesma credencial mesmo quando o monitor não recebe 2xx/3xx.
+        return { host: entry.host, status: result.status === "success" ? "success" as const : "error" as const };
       }));
-      const workingHost = pickWorkingDns(probes);
+      const currentHost = sameProfile.find((entry) => current.url.startsWith(entry.host.replace(/\/+$/, "")))?.host;
+      const alternativeProbes = currentHost
+        ? probes.filter((probe) => probe.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""))
+        : probes;
+      const workingHost = pickWorkingDns(alternativeProbes);
       if (workingHost && !current.url.startsWith(workingHost.replace(/\/+$/, ""))) {
         const updatedUrl = replaceDnsHost(current.url, workingHost);
         if (current.id === null) await db.update(devices).set({ urlM3u8: updatedUrl }).where(eq(devices.id, device.id));
