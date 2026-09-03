@@ -1706,3 +1706,10 @@
 - [x] Mostrar no card Saúde dos Grupos DNS qual DNS falhou, com motivo e horário da última verificação
 
 - [x] Mostrar a última falha histórica de cada DNS no card, mesmo quando ela já estiver funcionando
+
+## Seleção de playlist saudável por qualquer posição (03/09/2026)
+- [x] Testar todas as playlists disponíveis, ignorando somente a que falhou
+- [x] Escolher a primeira playlist que entregar M3U válida, seja posição 0, 1, 2 ou 3
+- [x] Permitir retorno para uma posição anterior somente após confirmação de saúde
+- [x] Manter a decisão isolada no cliente afetado
+- [x] Adicionar testes para falhas em cada posição e destinos alternativos

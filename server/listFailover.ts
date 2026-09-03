@@ -59,7 +59,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     const current = ordered[0];
     const primary = candidates[0];
     if (current.id !== primary.id) {
-      const primaryResult = await probeListUrl(primary.url);
+      const primaryResult = await probeListUrl(primary.url, { requireM3uContent: true, timeoutMs: 2500 });
       checked += 1;
       await recordAutomaticListHealthCheck(db, ownerId, device, primary, primaryResult);
       // A Lista 1 só volta quando uma resposta 2xx/3xx confirma que ela realmente voltou.
@@ -70,7 +70,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
         return;
       }
     }
-    const currentResult = await probeListUrl(current.url);
+    const currentResult = await probeListUrl(current.url, { requireM3uContent: true, timeoutMs: 2500 });
     checked += 1;
     await recordAutomaticListHealthCheck(db, ownerId, device, current, currentResult);
     // Só 2xx/3xx confirma que a DNS atual entrega a lista. Respostas 401/403,
@@ -81,17 +81,15 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     const sameProfile = selectDnsProfileEntries(current.url, profileDns, device.nomeServidor);
     let dnsProfileExhausted = false;
     if (sameProfile.length > 1) {
-      const probes = await Promise.all(orderDnsFailoverEntries(current.url, sameProfile).map(async (entry) => {
-        const result = await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(current.url, entry.host)));
-        // 401/403 provam que o host está alcançável; o APK pode aceitar a
-        // mesma credencial mesmo quando o monitor não recebe 2xx/3xx.
-        return { host: entry.host, status: result.status === "success" ? "success" as const : "error" as const };
-      }));
+      const probes: Array<{ host: string; status: "success" | "error" }> = [];
       const currentHost = sameProfile.find((entry) => current.url.startsWith(entry.host.replace(/\/+$/, "")))?.host;
-      const alternativeProbes = currentHost
-        ? probes.filter((probe) => probe.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""))
-        : probes;
-      const workingHost = pickWorkingDns(alternativeProbes);
+      for (const entry of orderDnsFailoverEntries(current.url, sameProfile)) {
+        if (currentHost && entry.host.replace(/\/+$/, "") === currentHost.replace(/\/+$/, "")) continue;
+        const result = await probeListUrl(replaceDnsHost(current.url, entry.host), { requireM3uContent: true, timeoutMs: 2500 });
+        probes.push({ host: entry.host, status: isConfirmedListResponse(result) ? "success" : "error" });
+        if (isConfirmedListResponse(result)) break;
+      }
+      const workingHost = pickWorkingDns(probes);
       if (workingHost && !current.url.startsWith(workingHost.replace(/\/+$/, ""))) {
         const updatedUrl = replaceDnsHost(current.url, workingHost);
         if (current.id === null) await db.update(devices).set({ urlM3u8: updatedUrl }).where(eq(devices.id, device.id));
@@ -107,16 +105,13 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     if (!dnsProfileExhausted && !(await hasConfirmedFailoverFailure(db, ownerId, device.id, current))) return;
 
     let replacement: Candidate | null = null;
-    for (const candidate of ordered.slice(1)) {
-      const result = await probeListUrl(candidate.url);
+    for (const candidate of ordered.filter((item) => item.id !== current.id)) {
+      const result = await probeListUrl(candidate.url, { requireM3uContent: true, timeoutMs: 2500 });
       checked += 1;
       await recordAutomaticListHealthCheck(db, ownerId, device, candidate, result);
       if (isConfirmedListResponse(result)) { replacement = candidate; break; }
     }
     if (!replacement || replacement.id === current.id) return;
-    const lastEvent = (await db.select().from(listFailoverEvents).where(and(eq(listFailoverEvents.ownerId, ownerId), eq(listFailoverEvents.deviceId, device.id))).orderBy(desc(listFailoverEvents.createdAt)).limit(1))[0];
-    if (lastEvent && Date.now() - new Date(lastEvent.createdAt).getTime() < 30 * 60 * 1000) return;
-
     await db.update(devices).set({ activeDeviceUrlId: replacement.id }).where(eq(devices.id, device.id));
     await db.insert(listFailoverEvents).values({ ownerId, deviceId: device.id, fromDeviceUrlId: current.id, toDeviceUrlId: replacement.id, reason: `${current.name} falhou; ${replacement.name} passou no teste automático.` });
     switched += 1;

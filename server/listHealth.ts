@@ -47,7 +47,7 @@ function isBlockedHost(hostname: string) {
   return host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host === "::1" || host.startsWith("fe80:") || isPrivateIpv4(host);
 }
 
-export async function validateListUrl(value: string) {
+export async function validateListUrl(value: string, options: { allowCredentials?: boolean } = {}) {
   let url: URL;
   try {
     url = new URL(value);
@@ -55,7 +55,7 @@ export async function validateListUrl(value: string) {
     return { valid: false as const, message: "URL inválida" };
   }
   if (!/^https?:$/.test(url.protocol)) return { valid: false as const, message: "Apenas URLs HTTP ou HTTPS são permitidas" };
-  if (url.username || url.password || isBlockedHost(url.hostname)) return { valid: false as const, message: "Endereço não permitido para verificação" };
+  if ((!options.allowCredentials && (url.username || url.password)) || isBlockedHost(url.hostname)) return { valid: false as const, message: "Endereço não permitido para verificação" };
 
   try {
     const addresses = await lookup(url.hostname, { all: true, verbatim: true });
@@ -91,15 +91,25 @@ async function retryWithPartialGet(url: string, startedAt: number): Promise<List
   }
 }
 
-export async function probeListUrl(value: string): Promise<ListHealthResult> {
-  const validated = await validateListUrl(value);
+export type ProbeListOptions = { requireM3uContent?: boolean; timeoutMs?: number };
+
+function looksLikeM3uContent(value: string) {
+  const sample = value.slice(0, 64 * 1024).toLowerCase();
+  return sample.includes("#extm3u") || sample.includes("#extinf:") || (sample.includes("#ext-x-targetduration") && sample.includes("#ext-x-media"));
+}
+
+export async function probeListUrl(value: string, options: ProbeListOptions = {}): Promise<ListHealthResult> {
+  const requireM3uContent = options.requireM3uContent === true;
+  const validated = await validateListUrl(value, { allowCredentials: requireM3uContent });
   if (!validated.valid) return { status: "error", statusCode: null, responseTimeMs: null, message: validated.message, responseConfirmed: false };
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 7_000);
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 7_000);
   const startedAt = Date.now();
   try {
-    let response = await fetch(validated.url, { method: "HEAD", redirect: "manual", signal: controller.signal });
+    let response = requireM3uContent
+      ? await fetch(validated.url, { method: "GET", redirect: "manual", signal: controller.signal, headers: { Range: "bytes=0-65535", Accept: "application/x-mpegURL, application/vnd.apple.mpegurl, text/plain, */*", "User-Agent": "Mozilla/5.0 (compatible; RenciaListMonitor/1.0)" } })
+      : await fetch(validated.url, { method: "HEAD", redirect: "manual", signal: controller.signal });
     if ([401, 403, 405, 501].includes(response.status)) {
       response = await fetch(validated.url, {
         method: "GET",
@@ -114,7 +124,12 @@ export async function probeListUrl(value: string): Promise<ListHealthResult> {
       await response.body?.cancel();
     }
     const responseTimeMs = Date.now() - startedAt;
-    return classifyListHttpStatus(response.status, responseTimeMs);
+    const result = classifyListHttpStatus(response.status, responseTimeMs);
+    if (requireM3uContent && result.responseConfirmed) {
+      const body = await response.text();
+      if (!looksLikeM3uContent(body)) return { ...result, status: "error", responseConfirmed: false, message: "Servidor respondeu, mas não entregou conteúdo M3U" };
+    }
+    return result;
   } catch (error) {
     const responseTimeMs = Date.now() - startedAt;
     if (error instanceof Error && error.name === "AbortError") {

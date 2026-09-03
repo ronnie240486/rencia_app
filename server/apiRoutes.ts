@@ -36,7 +36,7 @@ import { buildPublicDownloadApps } from "./publicDownloads";
 import { acknowledgeListNotificationForMac, buildApkExpirationNotice, buildApkExpirationResponseFields, getListNotificationsForMac } from "./apkListNotifications";
 import { resolveOptionalImagesInParallel } from "./parallelImageResolution";
 import { orderDeviceUrlsForActive } from "./devicePlaylistOrder";
-import { getNextPlaybackFailoverCandidate } from "./playbackFailover";
+import { getAllPlaybackFailoverCandidates } from "./playbackFailover";
 import { buildAppUpdateResponse } from "./appUpdateResponse";
 import { safeApkText } from "./apkSafeValues";
 import { daysUntilDateOnly } from "../shared/dateOnly";
@@ -47,7 +47,7 @@ import { resolveEpgUrl } from "./epgFallback";
 import { buildDnsFailoverUrls, replaceDnsHost, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
 import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../shared/appCatalog";
 import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
-import { probeListUrl } from "./listHealth";
+import { isConfirmedListResponse, probeListUrl } from "./listHealth";
 import { findDeviceByAnyMac, findDeviceMatchByAnyMac } from "./deviceMacLookup";
 import { buildHeartbeatMacLookup } from "./heartbeatMac";
 import { comparePassword } from "./auth";
@@ -4687,24 +4687,22 @@ export function registerApiRoutes(app: Express) {
       const currentId = device.activeDeviceUrlId ?? null;
       const currentPosition = candidates.findIndex((item) => item.id === currentId) + 1;
       const reportedPosition = Number(body?.active_list_number ?? currentPosition);
-      if (!Number.isInteger(reportedPosition) || reportedPosition !== currentPosition) {
-        const state = await getListNotificationsForMac(db, mac);
-        res.json({ success: true, switch_applied: false, reason: 'lista-já-foi-alterada', ...state.failover });
-        return;
+      if (Number.isInteger(reportedPosition) && reportedPosition !== currentPosition) {
+        console.info(`[API] ignorando posição antiga ${reportedPosition}; posição persistida do cliente é ${currentPosition}`);
       }
-            const currentCandidate = candidates[currentPosition - 1];
+      const currentCandidate = candidates[currentPosition - 1];
       if (currentCandidate?.url) {
         const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
         const sameProfile = selectDnsProfileEntries(currentCandidate.url, profileDns, device.nomeServidor);
         if (sameProfile.length > 1) {
-          const dnsResults = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ entry, result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(currentCandidate.url, entry.host))) })));
           const currentHost = sameProfile.find((entry) => currentCandidate.url.startsWith(entry.host.replace(/\/+$/, "")))?.host;
-          const alternativeDnsResults = currentHost
-            ? dnsResults.filter(({ entry }) => entry.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""))
-            : dnsResults;
+          let workingDns: { entry: typeof sameProfile[number]; result: Awaited<ReturnType<typeof probeListUrl>> } | null = null;
+          for (const entry of sameProfile.filter((item) => item.ativo !== false)) {
+            if (currentHost && entry.host.replace(/\/+$/, "") === currentHost.replace(/\/+$/, "")) continue;
+            const result = await probeListUrl(replaceDnsHost(currentCandidate.url, entry.host), { requireM3uContent: true, timeoutMs: 2500 });
+            if (isConfirmedListResponse(result)) { workingDns = { entry, result }; break; }
+          }
           // A DNS atual não pode ser escolhida novamente quando foi ela que falhou.
-          // 401/403 ainda significam que a DNS alternativa está alcançável para o APK.
-          const workingDns = alternativeDnsResults.find(({ result }) => result.status === 'success');
           if (workingDns) {
             const workingUrl = replaceDnsHost(currentCandidate.url, workingDns.entry.host);
             if (currentCandidate.id === null) {
@@ -4726,7 +4724,7 @@ export function registerApiRoutes(app: Express) {
           }
         }
       }
-      const replacement = getNextPlaybackFailoverCandidate(candidates, currentId);
+      const replacement = getAllPlaybackFailoverCandidates(candidates, currentId)[0] ?? null;
       if (!replacement) {
         res.json({
           success: false,
