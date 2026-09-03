@@ -4698,7 +4698,13 @@ export function registerApiRoutes(app: Express) {
         const sameProfile = selectDnsProfileEntries(currentCandidate.url, profileDns, device.nomeServidor);
         if (sameProfile.length > 1) {
           const dnsResults = await Promise.all(sameProfile.filter((entry) => entry.ativo !== false).map(async (entry) => ({ entry, result: await probeListUrl(sanitizeUrlForProbe(replaceDnsHost(currentCandidate.url, entry.host))) })));
-          const workingDns = dnsResults.find(({ result }) => result.status === 'success');
+          const currentHost = sameProfile.find((entry) => currentCandidate.url.startsWith(entry.host.replace(/\/+$/, "")))?.host;
+          const alternativeDnsResults = currentHost
+            ? dnsResults.filter(({ entry }) => entry.host.replace(/\/+$/, "") !== currentHost.replace(/\/+$/, ""))
+            : dnsResults;
+          // A DNS atual não pode ser escolhida novamente quando foi ela que falhou.
+          // 401/403 ainda significam que a DNS alternativa está alcançável para o APK.
+          const workingDns = alternativeDnsResults.find(({ result }) => result.status === 'success');
           if (workingDns) {
             const workingUrl = replaceDnsHost(currentCandidate.url, workingDns.entry.host);
             if (currentCandidate.id === null) {

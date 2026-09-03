@@ -1693,3 +1693,8 @@
 - [x] Corrigir o cenário confirmado em que DNS 01 falha, DNS 02 funciona no provedor, mas o painel não ativa a DNS 02
 
 - [x] Corrigir o Change Playlist para trocar para a Lista 2 sem erro ou fechamento do OuroPro
+
+- [ ] Restaurar automaticamente a mesma lista que caiu quando ela voltar a funcionar
+- [ ] Corrigir o EPG externo para que a URL cadastrada seja carregada pelo OuroPro
+
+- [x] Impedir que o playback-failure escolha novamente a DNS atual quando ela falhar e evitar fechamento no Change Playlist
