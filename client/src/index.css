@@ -328,4 +328,11 @@
   .overflow-x-auto {
     -webkit-overflow-scrolling: touch;
   }
+  /* Barras compartilhadas podem quebrar para a próxima linha em vez de sobrepor controles. */
+  [class~="justify-between"] {
+    row-gap: 0.75rem;
+  }
+  [class~="items-center"][class~="justify-between"] {
+    flex-wrap: wrap;
+  }
 }
