@@ -220,7 +220,7 @@ export function NuvixConfig() {
         <CardContent className="space-y-4">
           {dns.map((d, i) => (
             <div key={i} className="space-y-2 p-4 border rounded-lg">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="font-semibold">Servidor {i + 1}</h3>
               </div>
               <div>
@@ -247,11 +247,12 @@ export function NuvixConfig() {
       </Card>
 
       {/* Botão Salvar */}
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <Button
           onClick={handleSave}
           disabled={isLoading || updateMut.isPending}
           size="lg"
+          className="w-full sm:w-auto"
         >
           {isLoading || updateMut.isPending ? (
             <>
