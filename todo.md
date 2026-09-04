@@ -1756,3 +1756,9 @@
 - [x] Mostrar a DNS principal em verde quando a lista estiver comprovadamente rodando
 - [x] Manter “inconclusivo” somente quando não houver confirmação de Host ou cliente ativo
 - [x] Cobrir a classificação operacional com teste
+
+## Monitor reconhece lista ativa no APK (04/09/2026)
+- [x] Usar status ativo do cliente no Monitor de Listas por URL
+- [x] Marcar lista principal em uso como funcionando no APK
+- [x] Remover ícone de atenção quando houver confirmação operacional
+- [x] Adicionar teste de lista ativa com probe técnico inconclusivo

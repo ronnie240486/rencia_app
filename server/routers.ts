@@ -123,7 +123,7 @@ export const revendaUpdateInputSchema = z.object({
   password: z.union([z.string().trim().min(8), z.literal("")]).optional(),
 });
 
-type MonitorTarget = { deviceId: number; deviceUrlId: number | null; deviceName: string; listName: string; url: string };
+type MonitorTarget = { deviceId: number; deviceUrlId: number | null; deviceName: string; listName: string; url: string; operationalInApk: boolean };
 
 function buildXteamPlaylistUrl(server: string, username: string, password: string) {
   return `${server.replace(/\/$/, "")}/get.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&type=m3u_plus&output=ts`;
@@ -141,17 +141,17 @@ async function getManagedResellerIds(db: any, ownerId: number): Promise<number[]
 }
 
 async function getListMonitorTargets(db: any, ownerId: number): Promise<MonitorTarget[]> {
-  const ownedDevices = await db.select({ id: devices.id, nomeServer: devices.nomeServer, urlM3u8: devices.urlM3u8 })
+  const ownedDevices = await db.select({ id: devices.id, nomeServer: devices.nomeServer, urlM3u8: devices.urlM3u8, activeDeviceUrlId: devices.activeDeviceUrlId, status: devices.status, lastSeen: devices.lastSeen })
     .from(devices).where(eq(devices.ownerId, ownerId));
-  const devicesById = new Map<number, { id: number; nomeServer: string; urlM3u8: string | null }>();
+  const devicesById = new Map<number, { id: number; nomeServer: string; urlM3u8: string | null; activeDeviceUrlId: number | null; status: string | null; lastSeen: Date | null }>();
   ownedDevices.forEach((device: any) => devicesById.set(device.id, device));
-  const targets: MonitorTarget[] = ownedDevices.flatMap((device: any) => device.urlM3u8 ? [{ deviceId: device.id, deviceUrlId: null, deviceName: device.nomeServer, listName: "Lista principal", url: device.urlM3u8 }] : []);
+  const targets: MonitorTarget[] = ownedDevices.flatMap((device: any) => device.urlM3u8 ? [{ deviceId: device.id, deviceUrlId: null, deviceName: device.nomeServer, listName: "Lista principal", url: device.urlM3u8, operationalInApk: device.activeDeviceUrlId === null && device.status === "Liberado" && isWithinConnectedWindow(device.lastSeen, Date.now()) }] : []);
   const childLists = await db.select({ id: deviceUrls.id, deviceId: deviceUrls.deviceId, nome: deviceUrls.nome, urlM3u8: deviceUrls.urlM3u8, xtServer: deviceUrls.xtServer })
     .from(deviceUrls).where(eq(deviceUrls.ativo, true));
   childLists.forEach((list: any) => {
     const device = devicesById.get(list.deviceId);
     const url = list.urlM3u8 || list.xtServer;
-    if (device && url) targets.push({ deviceId: list.deviceId, deviceUrlId: list.id, deviceName: device.nomeServer, listName: list.nome, url });
+    if (device && url) targets.push({ deviceId: list.deviceId, deviceUrlId: list.id, deviceName: device.nomeServer, listName: list.nome, url, operationalInApk: device.activeDeviceUrlId === list.id && device.status === "Liberado" && isWithinConnectedWindow(device.lastSeen, Date.now()) });
   });
   return targets;
 }
@@ -2200,10 +2200,12 @@ export const appRouter = router({
       return targets.map((target) => {
         const key = `${target.deviceId}:${target.deviceUrlId ?? "principal"}`;
         const history = recentChecks.get(key) ?? [];
+        const latest = latestChecks.get(key) ?? null;
+        const lastCheck = target.operationalInApk ? { ...(latest ?? { checkedAt: new Date(), responseTimeMs: null }), status: "success", responseConfirmed: true, message: "Funcionando no APK: cliente ativo usando esta lista" } : latest;
         return {
           ...target,
-          lastCheck: latestChecks.get(key) ?? null,
-          failureConfirmed: hasConfirmedListFailure(history),
+          lastCheck,
+          failureConfirmed: target.operationalInApk ? false : hasConfirmedListFailure(history),
         };
       });
     }),
