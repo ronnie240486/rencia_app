@@ -34,6 +34,7 @@ import { replaceDnsHost } from "./dnsFailover";
 import { requireExplicitDeviceIds } from "./dnsUpdateScope";
 import { CONNECTED_WINDOW_MINUTES, isWithinConnectedWindow } from "./connectedWindow";
 import { hasConfirmedListFailure, probeListUrl, isLikelyM3uUrl } from "./listHealth";
+import { dnsOperationalMessage, hasActiveDeviceUsingDns } from "./dnsOperationalStatus";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
 import { buildServerPilotOverview } from "./serverPilot";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
@@ -3131,8 +3132,11 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) return [];
       const { listHealthChecks } = await import("../drizzle/schema");
-      const entries = await db.select().from(dnsEntries).where(eq(dnsEntries.ownerId, ctx.user.id));
-      const checks = await db.select().from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id));
+      const [entries, checks, activeDevices] = await Promise.all([
+        db.select().from(dnsEntries).where(eq(dnsEntries.ownerId, ctx.user.id)),
+        db.select().from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id)),
+        db.select({ urlM3u8: devices.urlM3u8, status: devices.status, lastSeen: devices.lastSeen }).from(devices).where(eq(devices.ownerId, ctx.user.id)),
+      ]);
       const groups = new Map<string, { group: string; total: number; errors: number; latestAt: Date | null; dns: Array<{ id: number; titulo: string; host: string; status: string; statusCode: number | null; message: string; checkedAt: Date | null; lastFailure: { statusCode: number | null; message: string; checkedAt: Date } | null }> }>();
       for (const entry of entries) {
         const key = entry.grupo || "Padrão";
@@ -3144,8 +3148,10 @@ export const appRouter = router({
         for (const check of related) if (!current.latestAt || new Date(check.checkedAt) > current.latestAt) current.latestAt = new Date(check.checkedAt);
         const latestMessage = String(latest?.message ?? "");
         const contentNotConfirmed = latest?.status === "error" && (latestMessage.toLowerCase().includes("não entregou") || latestMessage.toLowerCase().includes("nao entregou"));
-        const displayStatus = contentNotConfirmed ? "unknown" : (latest?.status ?? "unknown");
-        const displayMessage = contentNotConfirmed ? "Host respondeu; M3U autenticada não foi confirmada neste teste" : (latest?.message ?? "Ainda não verificado");
+        const host = entry.host.replace(/\/+$/, "");
+        const activeInApk = hasActiveDeviceUsingDns(activeDevices, host, Date.now());
+        const displayStatus = activeInApk ? "success" : (contentNotConfirmed ? "unknown" : (latest?.status ?? "unknown"));
+        const displayMessage = activeInApk ? dnsOperationalMessage() : (contentNotConfirmed ? "Host respondeu; M3U autenticada não foi confirmada neste teste" : (latest?.message ?? "Ainda não verificado"));
         const lastFailure = related.find((check: any) => check.status === "error" && !String(check.message ?? "").toLowerCase().includes("não entregou") && !String(check.message ?? "").toLowerCase().includes("nao entregou"));
         current.dns.push({ id: entry.id, titulo: entry.titulo, host: entry.host, status: displayStatus, statusCode: latest?.statusCode ?? null, message: displayMessage, checkedAt: latest?.checkedAt ? new Date(latest.checkedAt) : null, lastFailure: lastFailure?.checkedAt ? { statusCode: lastFailure.statusCode ?? null, message: lastFailure.message ?? "Falha sem mensagem detalhada", checkedAt: new Date(lastFailure.checkedAt) } : null });
         groups.set(key, current);

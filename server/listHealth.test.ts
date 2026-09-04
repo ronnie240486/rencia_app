@@ -46,7 +46,7 @@ describe("validação segura de URL de lista", () => {
       .mockResolvedValueOnce(new Response(null, { status: 200 }))
       .mockResolvedValueOnce(new Response("conta inválida", { status: 200 }));
     await expect(probeListUrl("https://example.com/get.php?username=u&password=p&type=m3u_plus", { requireM3uContent: true, timeoutMs: 1000 }))
-      .resolves.toMatchObject({ status: "error", responseConfirmed: false, message: "Servidor respondeu, mas não entregou uma M3U válida" });
+      .resolves.toMatchObject({ status: "pending", responseConfirmed: false, message: "Servidor respondeu, mas o conteúdo M3U não pôde ser confirmado" });
     fetchMock.mockReset()
       .mockResolvedValueOnce(new Response(null, { status: 200 }))
       .mockResolvedValueOnce(new Response("#EXTM3U\\n#EXTINF:-1,Canal\\nhttps://stream.example/live", { status: 200 }));

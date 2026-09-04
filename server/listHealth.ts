@@ -145,7 +145,7 @@ export async function probeListUrl(value: string, options: ProbeListOptions = {}
         const retryBody = await retryResponse.text();
         const retryResult = classifyListHttpStatus(retryResponse.status, Date.now() - startedAt);
         if (retryResult.responseConfirmed && looksLikeM3uContent(retryBody)) return retryResult;
-        return { ...result, status: "error", responseConfirmed: false, message: "Servidor respondeu, mas não entregou uma M3U válida" };
+        return { ...result, status: "pending", responseConfirmed: false, message: "Servidor respondeu, mas o conteúdo M3U não pôde ser confirmado" };
       }
     }
     return result;

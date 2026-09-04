@@ -1732,3 +1732,27 @@
 - [x] Diferenciar claramente Host respondeu, M3U confirmada e M3U não testada
 - [x] Evitar que o monitor marque como inválida uma lista que está operando no APK
 - [x] Adicionar teste de consistência entre Saúde DNS e Monitor de Listas
+
+## Ajuste do diagnóstico de conteúdo M3U (04/09/2026)
+- [ ] Reconhecer respostas de playlist válidas além dos marcadores textuais atuais
+- [ ] Nunca considerar mensagem de erro, HTML ou resposta vazia como M3U utilizável
+- [ ] Impedir que diagnóstico inconclusivo acione failover enquanto o cliente está operando
+- [ ] Exibir no monitor a diferença entre inconclusivo e falha confirmada
+
+## Teste completo das DNS atualizadas (04/09/2026)
+- [ ] Testar todas as DNS do grupo na ordem após atualização
+- [ ] Marcar verde somente a primeira DNS que confirmar a M3U em uso
+- [ ] Registrar qual DNS foi efetivamente selecionada para o cliente
+- [ ] Manter as demais DNS como alternativas, sem alterar outros clientes
+
+## Confirmação de DNS por cliente ativo (04/09/2026)
+- [x] Relacionar Hosts DNS aos clientes que estão online e usando a lista
+- [x] Marcar DNS como funcionando no APK quando houver cliente ativo confirmado
+- [x] Exibir o motivo da confirmação no card sem esconder falhas reais
+- [x] Adicionar teste de DNS funcionando pelo estado online do cliente
+
+## DNS principal funcionando no APK (04/09/2026)
+- [x] Usar o cliente principal online como confirmação operacional da DNS
+- [x] Mostrar a DNS principal em verde quando a lista estiver comprovadamente rodando
+- [x] Manter “inconclusivo” somente quando não houver confirmação de Host ou cliente ativo
+- [x] Cobrir a classificação operacional com teste
