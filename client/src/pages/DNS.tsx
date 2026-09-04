@@ -14,10 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface DnsForm {
   titulo: string;
   grupo: string;
-  host: string;
+  hosts: string[];
 }
 
-const emptyForm: DnsForm = { titulo: "", grupo: "Padrão", host: "" };
+const emptyForm: DnsForm = { titulo: "", grupo: "Padrão", hosts: [""] };
 
 export default function DNS() {
   const [showDialog, setShowDialog] = useState(false);
@@ -101,15 +101,27 @@ export default function DNS() {
   const targetProfileDns = dnsList.filter((item) => (item.grupo ?? "Padrão") === toProfile && item.ativo);
 
   const openCreate = () => { setEditId(null); setForm(emptyForm); setShowDialog(true); };
-  const openEdit = (d: any) => { setEditId(d.id); setForm({ titulo: d.titulo, grupo: d.grupo ?? "Padrão", host: d.host }); setShowDialog(true); };
+  const openEdit = (d: any) => { setEditId(d.id); setForm({ titulo: d.titulo, grupo: d.grupo ?? "Padrão", hosts: [d.host] }); setShowDialog(true); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.titulo.trim()) return toast.error("Título é obrigatório");
-    if (!form.host.trim()) return toast.error("Host é obrigatório");
+    const hosts = form.hosts.map((host) => host.trim()).filter(Boolean);
+    if (!hosts.length) return toast.error("Adicione pelo menos um Host");
     if (editId) {
-      updateMut.mutate({ id: editId, ...form });
-    } else {
-      createMut.mutate(form);
+      updateMut.mutate({ id: editId, titulo: form.titulo.trim(), grupo: form.grupo.trim() || "Padrão", host: hosts[0] });
+      return;
+    }
+    try {
+      for (let index = 0; index < hosts.length; index += 1) {
+        const host = hosts[index];
+        await createMut.mutateAsync({ titulo: hosts.length === 1 ? form.titulo.trim() : `${form.titulo.trim()} ${String(index + 1).padStart(2, "0")}`, grupo: form.grupo.trim() || "Padrão", host });
+      }
+      toast.success(`${hosts.length} DNS cadastrada(s) no grupo ${form.grupo.trim() || "Padrão"}!`);
+      setShowDialog(false);
+      setForm(emptyForm);
+      await refreshDnsData();
+    } catch {
+      // A mutation já exibe a mensagem detalhada do backend.
     }
   };
 
@@ -423,15 +435,26 @@ export default function DNS() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Host (servidor)</Label>
-              <Input
-                placeholder="Ex: http://servidor.com ou http://servidor.com:8080"
-                value={form.host}
-                onChange={(e) => setForm(f => ({ ...f, host: e.target.value }))}
-                className="font-mono text-sm"
-              />
+              <div className="flex items-center justify-between gap-2">
+                <Label>Hosts (DNS do mesmo grupo)</Label>
+                {!editId && <Button type="button" size="sm" variant="outline" className="gap-1" onClick={() => setForm((f) => ({ ...f, hosts: [...f.hosts, ""] }))}><Plus size={14} /> Adicionar DNS</Button>}
+              </div>
+              <div className="space-y-2">
+                {form.hosts.map((host, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <span className="w-12 shrink-0 text-xs font-semibold text-muted-foreground">DNS {String(index + 1).padStart(2, "0")}</span>
+                    <Input
+                      placeholder="Ex: http://servidor.com ou http://servidor.com:8080"
+                      value={host}
+                      onChange={(e) => setForm((f) => ({ ...f, hosts: f.hosts.map((item, itemIndex) => itemIndex === index ? e.target.value : item) }))}
+                      className="font-mono text-sm"
+                    />
+                    {!editId && form.hosts.length > 1 && <Button type="button" size="icon" variant="ghost" aria-label={`Remover DNS ${index + 1}`} onClick={() => setForm((f) => ({ ...f, hosts: f.hosts.filter((_, itemIndex) => itemIndex !== index) }))}><Trash2 size={14} /></Button>}
+                  </div>
+                ))}
+              </div>
               <p className="text-xs text-muted-foreground">
-                Informe somente o protocolo + domínio + porta. Não inclua caminhos como <code>/get.php</code>.
+                Informe somente protocolo + domínio + porta em cada campo. Não inclua caminhos como <code>/get.php</code>. Todos os Hosts serão salvos no mesmo grupo e usados em ordem.
               </p>
             </div>
           </div>

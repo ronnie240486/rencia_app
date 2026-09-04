@@ -93,9 +93,22 @@ async function retryWithPartialGet(url: string, startedAt: number): Promise<List
 
 export type ProbeListOptions = { requireM3uContent?: boolean; timeoutMs?: number };
 
-function looksLikeM3uContent(value: string) {
+export function hasUsableM3uContent(value: string) {
   const sample = value.slice(0, 64 * 1024).toLowerCase();
   return sample.includes("#extm3u") || sample.includes("#extinf:") || (sample.includes("#ext-x-targetduration") && sample.includes("#ext-x-media"));
+}
+
+export function isLikelyM3uUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return /\/get\.php$/i.test(url.pathname) || /m3u/i.test(url.pathname) || /(?:^|&)type=m3u/i.test(url.search);
+  } catch {
+    return false;
+  }
+}
+
+function looksLikeM3uContent(value: string) {
+  return hasUsableM3uContent(value);
 }
 
 export async function probeListUrl(value: string, options: ProbeListOptions = {}): Promise<ListHealthResult> {
@@ -121,13 +134,19 @@ export async function probeListUrl(value: string, options: ProbeListOptions = {}
           "User-Agent": "Mozilla/5.0 (compatible; RenciaListMonitor/1.0)",
         },
       });
-      await response.body?.cancel();
+      if (!requireM3uContent) await response.body?.cancel();
     }
     const responseTimeMs = Date.now() - startedAt;
     const result = classifyListHttpStatus(response.status, responseTimeMs);
     if (requireM3uContent && result.responseConfirmed) {
       const body = await response.text();
-      if (!looksLikeM3uContent(body)) return { ...result, status: "error", responseConfirmed: false, message: "Servidor respondeu, mas não entregou conteúdo M3U" };
+      if (!looksLikeM3uContent(body)) {
+        const retryResponse = await fetch(validated.url, { method: "GET", redirect: "manual", signal: controller.signal, headers: { Accept: "application/x-mpegURL, application/vnd.apple.mpegurl, text/plain, */*", "User-Agent": "Mozilla/5.0 (compatible; RenciaListMonitor/1.0)" } });
+        const retryBody = await retryResponse.text();
+        const retryResult = classifyListHttpStatus(retryResponse.status, Date.now() - startedAt);
+        if (retryResult.responseConfirmed && looksLikeM3uContent(retryBody)) return retryResult;
+        return { ...result, status: "error", responseConfirmed: false, message: "Servidor respondeu, mas não entregou uma M3U válida" };
+      }
     }
     return result;
   } catch (error) {

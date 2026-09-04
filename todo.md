@@ -1713,3 +1713,10 @@
 - [x] Permitir retorno para uma posição anterior somente após confirmação de saúde
 - [x] Manter a decisão isolada no cliente afetado
 - [x] Adicionar testes para falhas em cada posição e destinos alternativos
+
+## Cadastro múltiplo de DNS no mesmo grupo (03/09/2026)
+- [x] Adicionar botão + Adicionar DNS no formulário de cadastro
+- [x] Permitir vários campos Host no mesmo cadastro do grupo Club/Onix
+- [x] Salvar os hosts como entradas ordenadas do mesmo grupo
+- [x] Manter compatibilidade com o cadastro individual já existente
+- [x] Adicionar testes do cadastro múltiplo
