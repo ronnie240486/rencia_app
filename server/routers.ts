@@ -145,7 +145,7 @@ async function getListMonitorTargets(db: any, ownerId: number): Promise<MonitorT
     .from(devices).where(eq(devices.ownerId, ownerId));
   const devicesById = new Map<number, { id: number; nomeServer: string; urlM3u8: string | null; activeDeviceUrlId: number | null; status: string | null; lastSeen: Date | null }>();
   ownedDevices.forEach((device: any) => devicesById.set(device.id, device));
-  const targets: MonitorTarget[] = ownedDevices.flatMap((device: any) => device.urlM3u8 ? [{ deviceId: device.id, deviceUrlId: null, deviceName: device.nomeServer, listName: "Lista principal", url: device.urlM3u8, operationalInApk: !device.activeDeviceUrlId && device.status !== "Bloqueado" && device.status !== "Expirado" && isWithinConnectedWindow(device.lastSeen, Date.now()) }] : []);
+  const targets: MonitorTarget[] = ownedDevices.flatMap((device: any) => device.urlM3u8 ? [{ deviceId: device.id, deviceUrlId: null, deviceName: device.nomeServer, listName: "Lista principal", url: device.urlM3u8, operationalInApk: device.status !== "Bloqueado" && device.status !== "Expirado" && isWithinConnectedWindow(device.lastSeen, Date.now()) }] : []);
   const childLists = await db.select({ id: deviceUrls.id, deviceId: deviceUrls.deviceId, nome: deviceUrls.nome, urlM3u8: deviceUrls.urlM3u8, xtServer: deviceUrls.xtServer })
     .from(deviceUrls).where(eq(deviceUrls.ativo, true));
   childLists.forEach((list: any) => {

@@ -1769,3 +1769,11 @@
 - [x] Fazer o Monitor marcar a lista recém-aberta como funcionando
 - [x] Preservar atenção apenas para falhas sem atividade operacional
 - [x] Adicionar teste do vínculo entre heartbeat e lista
+
+## Correção publicada do status do Monitor (04/09/2026)
+- [x] Confirmar se o endpoint público retorna a versão e o status operacional novos
+- [x] Corrigir o ponto efetivo que ainda exibe “conteúdo M3U não pôde ser confirmado”
+- [x] Garantir que lista em uso no APK apareça verde no domínio público
+- [x] Validar sem depender de cache do navegador
+- [x] Corrigir activeDeviceUrlId preso em playlist reserva quando o APK está usando a M3U principal
+- [x] Fazer o heartbeat/configuração informar a lista efetivamente usada sem afetar outros clientes
