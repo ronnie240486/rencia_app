@@ -33,7 +33,7 @@ import { getConnectionState } from "./customerProfile";
 import { replaceDnsHost } from "./dnsFailover";
 import { requireExplicitDeviceIds } from "./dnsUpdateScope";
 import { CONNECTED_WINDOW_MINUTES, isWithinConnectedWindow } from "./connectedWindow";
-import { hasConfirmedListFailure, probeListUrl } from "./listHealth";
+import { hasConfirmedListFailure, probeListUrl, isLikelyM3uUrl } from "./listHealth";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
 import { buildServerPilotOverview } from "./serverPilot";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
@@ -156,7 +156,7 @@ async function getListMonitorTargets(db: any, ownerId: number): Promise<MonitorT
 }
 
 async function runListHealthCheck(db: any, ownerId: number, actorUserId: number, target: MonitorTarget) {
-  const result = await probeListUrl(target.url);
+  const result = await probeListUrl(target.url, { requireM3uContent: isLikelyM3uUrl(target.url), timeoutMs: 2500 });
   await db.insert(listHealthChecks).values({
     ownerId,
     deviceId: target.deviceId,

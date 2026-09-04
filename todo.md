@@ -1726,3 +1726,9 @@
 - [x] Exibir separadamente host acessível e M3U autenticada confirmada
 - [x] Fazer o card refletir que uma DNS pode funcionar no APK mesmo sem teste autenticado no painel
 - [x] Adicionar regressão para DNS acessível com M3U protegida
+
+## Alinhamento dos indicadores DNS e M3U (04/09/2026)
+- [x] Usar a mesma requisição autenticada do APK no Monitor de Listas
+- [x] Diferenciar claramente Host respondeu, M3U confirmada e M3U não testada
+- [x] Evitar que o monitor marque como inválida uma lista que está operando no APK
+- [x] Adicionar teste de consistência entre Saúde DNS e Monitor de Listas
