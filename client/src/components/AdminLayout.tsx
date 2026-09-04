@@ -461,7 +461,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
       {isListAlertSummaryOpen && activeListAlerts.length > 0 && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirmed-list-alert-title">
-          <div className="w-full max-w-lg rounded-2xl border border-red-500/40 bg-card p-5 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-red-500/40 bg-card p-5 shadow-2xl">
             <div className="flex items-start gap-3">
               <div className="rounded-xl bg-red-500/15 p-2 text-red-500"><BellRing size={22} /></div>
               <div className="min-w-0 flex-1">
