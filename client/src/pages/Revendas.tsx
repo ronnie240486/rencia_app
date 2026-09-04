@@ -192,7 +192,7 @@ export default function Revendas() {
   return (
     <AdminLayout title="Revendas">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid gap-4 mb-6 sm:grid-cols-2 md:grid-cols-3">
         <Card>
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
@@ -237,7 +237,7 @@ export default function Revendas() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3 mb-5">
+      <div className="flex flex-col items-stretch gap-3 mb-5 sm:flex-row sm:flex-wrap sm:items-center">
         <div className="relative flex-1 min-w-[180px] max-w-xs">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -248,7 +248,7 @@ export default function Revendas() {
           />
         </div>
         {/* Filtro de status */}
-        <div className="flex gap-1">
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-1">
           {(["all", "active", "blocked"] as const).map(s => (
             <Button
               key={s}
@@ -262,7 +262,7 @@ export default function Revendas() {
             </Button>
           ))}
         </div>
-        <Button size="sm" onClick={openCreate} className="gap-2 ml-auto btn-new-resale">
+        <Button size="sm" onClick={openCreate} className="gap-2 sm:ml-auto btn-new-resale">
           <Plus size={15} />
           Nova Revenda
         </Button>
@@ -326,7 +326,7 @@ export default function Revendas() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="grid grid-cols-3 gap-1 sm:flex sm:items-center sm:justify-end">
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
                             <Edit2 size={13} />
                           </Button>
@@ -364,7 +364,7 @@ export default function Revendas() {
 
       {/* Paginação */}
       {(data?.total ?? 0) > 20 && (
-        <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
+        <div className="flex flex-col gap-3 mt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>{data?.total} revendas no total</span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Anterior</Button>
@@ -393,7 +393,7 @@ export default function Revendas() {
               <Input value={form.password} onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))} placeholder={editId ? "Deixe em branco para manter" : "Mínimo de 8 caracteres"} type="password" name="reseller-access-password" autoComplete="off" data-lpignore="true" data-1p-ignore="true" spellCheck={false} />
               <p className="mt-1 text-xs text-muted-foreground">Senha de acesso da revenda. Somente você pode criar ou alterar esta senha.</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label className="text-xs font-medium mb-1.5 block">Plano</Label>
                 <Select value={form.plano} onValueChange={(v) => setForm(f => ({ ...f, plano: v }))}>
@@ -412,7 +412,7 @@ export default function Revendas() {
                 <Input type="date" value={form.planValidade} onChange={(e) => setForm(f => ({ ...f, planValidade: e.target.value }))} className="h-9 text-sm" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label className="text-xs font-medium mb-1.5 block">Limite Devices</Label>
                 <Input
