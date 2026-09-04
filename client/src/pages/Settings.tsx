@@ -262,7 +262,7 @@ export default function Settings() {
   return (
     <AdminLayout title="Ouro Pro">
       <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-muted-foreground text-sm">
             Personalize imagens, cores e mensagens automáticas do seu painel.
           </p>
@@ -282,7 +282,7 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="banner">
-                <TabsList className="grid grid-cols-2 w-full">
+                <TabsList className="grid grid-cols-1 w-full sm:grid-cols-2">
                   <TabsTrigger value="banner" className="gap-1 text-xs">
                     <Image size={13} /> Banner
                   </TabsTrigger>
@@ -305,7 +305,7 @@ export default function Settings() {
                       {/* Banner do APK */}
                       <div className="space-y-2">
                         <Label className="font-semibold">Banner do APK (320×180px)</Label>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row">
                           <Input
                             value={form.trial_banner_url}
                             onChange={e => handleChange("trial_banner_url", e.target.value)}
@@ -326,7 +326,7 @@ export default function Settings() {
                       {/* Logo do APK */}
                       <div className="space-y-2">
                         <Label className="font-semibold">Logo do APK (home_logo)</Label>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row">
                           <Input
                             value={form.trial_logo_url}
                             onChange={e => handleChange("trial_logo_url", e.target.value)}
@@ -347,7 +347,7 @@ export default function Settings() {
                       {/* Fundo principal */}
                       <div className="space-y-2">
                         <Label className="font-semibold">Imagem de fundo principal (960×540px)</Label>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row">
                           <Input
                             value={form.trial_background_url}
                             onChange={e => handleChange("trial_background_url", e.target.value)}
@@ -371,7 +371,7 @@ export default function Settings() {
                       {/* Logo da Sidebar do Painel */}
                       <div className="space-y-2">
                         <Label className="font-semibold">Logo da Sidebar do Painel</Label>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row">
                           <Input
                             value={form.sidebar_logo_url}
                             onChange={e => handleChange("sidebar_logo_url", e.target.value)}
@@ -565,7 +565,7 @@ export default function Settings() {
                       ].map(({ key, label }) => (
                         <div key={key} className="space-y-2">
                           <Label className="font-semibold">{label}</Label>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col gap-2 sm:flex-row">
                             <Input
                               value={form[key] || ""}
                               onChange={e => handleChange(key, e.target.value)}
