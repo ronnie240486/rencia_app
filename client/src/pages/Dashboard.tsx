@@ -71,18 +71,18 @@ function StatCard({ title, value, icon: Icon, color }: {
 }) {
   return (
     <Card className="border-0 shadow-sm">
-      <CardContent className="p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-medium leading-4 text-muted-foreground uppercase tracking-wider mb-1">
-              <span>{title}</span>
-            </p>
-            <p className="text-2xl font-bold leading-none text-foreground">
-              <span>{value}</span>
-            </p>
+      <CardContent className="p-3 sm:p-5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[10px] font-medium leading-3 text-muted-foreground uppercase tracking-wide mb-1">
+             <span>{title}</span>
+           </p>
+            <p className="text-xl font-bold leading-none text-foreground sm:text-2xl">
+             <span>{value}</span>
+           </p>
           </div>
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
-            <Icon className="w-5 h-5 text-white" />
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10 ${color}`}>
+            <Icon className="h-4 w-4 text-white sm:h-5 sm:w-5" />
           </div>
         </div>
       </CardContent>
@@ -349,7 +349,7 @@ export default function Dashboard() {
             <span>{"Erro ao carregar estatísticas."}</span>
           </div>
         )}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
           {statsLoading ? (
             Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
           ) : (

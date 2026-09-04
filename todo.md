@@ -1801,3 +1801,8 @@
 - [x] Alinhar valor, título e ícone sem espaços vazios excessivos
 - [x] Revisar o bloco de fechamento mensal para não ficar cortado após os cartões
 - [x] Validar o Dashboard em viewport móvel e publicar a correção
+
+## Modelo de duas colunas do Dashboard no celular (04/09/2026)
+- [x] Restaurar os indicadores em duas colunas compactas no celular
+- [x] Manter título, valor e ícone alinhados dentro de cada cartão
+- [x] Validar a grade de duas colunas e publicar a preferência aprovada
