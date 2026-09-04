@@ -1777,3 +1777,9 @@
 - [x] Validar sem depender de cache do navegador
 - [x] Corrigir activeDeviceUrlId preso em playlist reserva quando o APK está usando a M3U principal
 - [x] Fazer o heartbeat/configuração informar a lista efetivamente usada sem afetar outros clientes
+
+## Correção do botão Testar MACs (04/09/2026)
+- [x] Identificar se o botão está sem handler ou chamando a procedure errada
+- [x] Fazer Testar MACs executar a verificação em lote uma única vez
+- [x] Exibir estado de carregamento e resultado persistente da verificação
+- [x] Adicionar teste da ação do botão sem alterar cadastros
