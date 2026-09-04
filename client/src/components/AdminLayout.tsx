@@ -513,7 +513,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 flex flex-col min-h-screen w-full">
+      <main className="flex-1 lg:ml-64 flex min-w-0 flex-col min-h-screen w-full">
         {/* Top bar */}
         <header className="sticky top-0 z-20 flex items-center gap-4 px-4 md:px-6 py-3 md:py-4 bg-background/80 backdrop-blur-md border-b border-border min-h-[56px] md:min-h-[64px]">
           <button
@@ -543,7 +543,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 p-4 md:p-6 overflow-auto">
+        <div className="flex-1 min-w-0 p-3 sm:p-4 md:p-6 overflow-auto">
           {children}
         </div>
       </main>
