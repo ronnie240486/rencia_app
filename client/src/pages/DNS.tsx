@@ -56,7 +56,7 @@ export default function DNS() {
   };
 
   const createMut = trpc.dns.create.useMutation({
-    onSuccess: async () => { toast.success("DNS cadastrada!"); setShowDialog(false); setForm(emptyForm); await refreshDnsData(); },
+    onSuccess: () => undefined,
     onError: (e) => toast.error(e.message),
   });
   const updateMut = trpc.dns.update.useMutation({
