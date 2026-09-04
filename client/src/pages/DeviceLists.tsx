@@ -168,7 +168,7 @@ export default function DeviceLists() {
       )}
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-semibold text-foreground">Listas de Reprodução</h2>
         <Button size="sm" onClick={openCreate} className="gap-2 text-white" style={{
           backgroundColor: 'var(--btn-add-list-color)',
@@ -195,7 +195,7 @@ export default function DeviceLists() {
             <div className="divide-y divide-border">
               {hasPrimaryList && <div className="flex items-center gap-3 bg-primary/5 px-4 py-3"><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10"><span className="text-xs font-bold text-primary">1</span></div><div className="min-w-0 flex-1"><div className="flex items-center gap-2 flex-wrap"><p className="text-sm font-medium text-foreground">Lista Principal</p><Badge className="text-xs">Cadastro inicial</Badge><Badge variant="outline" className="text-xs">{device?.modoSelecao}</Badge></div><p className="mt-0.5 truncate text-xs text-muted-foreground">Configurada no cadastro do cliente</p></div></div>}
               {lists?.map((l, idx) => (
-                <div key={l.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                <div key={l.id} className="flex flex-col gap-3 px-4 py-3 hover:bg-muted/30 transition-colors sm:flex-row sm:items-center">
                   <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <span className="text-xs font-bold text-primary">{idx + (hasPrimaryList ? 2 : 1)}</span>
                   </div>
@@ -212,14 +212,14 @@ export default function DeviceLists() {
                       }
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(l)}>
+                  <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-1">
+                    <Button size="icon" variant="ghost" className="min-h-10 h-10 w-full sm:h-7 sm:min-h-7 sm:w-7" onClick={() => openEdit(l)}>
                       <Edit2 size={13} />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" title="Copiar para outros clientes" onClick={() => { setCopySourceId(l.id); setCopyTargets([]); }}>
+                    <Button size="icon" variant="ghost" className="min-h-10 h-10 w-full sm:h-7 sm:min-h-7 sm:w-7" title="Copiar para outros clientes" onClick={() => { setCopySourceId(l.id); setCopyTargets([]); }}>
                       <Copy size={13} />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(l.id)}>
+                    <Button size="icon" variant="ghost" className="min-h-10 h-10 w-full text-destructive hover:text-destructive sm:h-7 sm:min-h-7 sm:w-7" onClick={() => setDeleteId(l.id)}>
                       <Trash2 size={13} />
                     </Button>
                   </div>
