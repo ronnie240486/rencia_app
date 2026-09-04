@@ -1762,3 +1762,10 @@
 - [x] Marcar lista principal em uso como funcionando no APK
 - [x] Remover ícone de atenção quando houver confirmação operacional
 - [x] Adicionar teste de lista ativa com probe técnico inconclusivo
+
+## Vínculo do Monitor com o APK ativo (04/09/2026)
+- [x] Confirmar qual heartbeat atualiza lastSeen e status do dispositivo
+- [x] Relacionar o heartbeat ao MAC e à URL principal efetivamente usada
+- [x] Fazer o Monitor marcar a lista recém-aberta como funcionando
+- [x] Preservar atenção apenas para falhas sem atividade operacional
+- [x] Adicionar teste do vínculo entre heartbeat e lista
