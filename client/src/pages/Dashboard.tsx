@@ -349,7 +349,7 @@ export default function Dashboard() {
             <span>{"Erro ao carregar estatísticas."}</span>
           </div>
         )}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {statsLoading ? (
             Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
           ) : (
@@ -381,7 +381,7 @@ export default function Dashboard() {
                   </div>
               </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            <CardContent className="grid gap-3 text-sm sm:grid-cols-2 sm:grid-cols-4">
               <div><p className="text-muted-foreground">Mês anterior</p><p className="font-semibold">{monthlyPreview?.report.periodStart?.slice(0, 7) ?? "—"}</p></div>
               <div><p className="text-muted-foreground">Receita</p><p className="font-semibold text-emerald-600">{formatCurrency(monthlyPreview?.report.revenue ?? 0)}</p></div>
               <div><p className="text-muted-foreground">Clientes no mês</p><p className="font-semibold">{monthlyPreview?.report.newClientCount ?? 0}</p></div>
@@ -396,7 +396,7 @@ export default function Dashboard() {
               <DialogTitle>Fechamento mensal — {monthlyPreview?.report.periodStart?.slice(0, 7) ?? "mês anterior"}</DialogTitle>
               <DialogDescription>Resumo salvo antes do zeramento da Receita Mensal. Os cadastros permanecem no painel.</DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 sm:grid-cols-3">
               <StatCard title="Receita total" value={formatCurrency(monthlyPreview?.report.revenue ?? 0)} icon={Shield} color="bg-emerald-500" />
               <StatCard title="Clientes no mês" value={monthlyPreview?.report.newClientCount ?? 0} icon={Users} color="bg-blue-500" />
               <StatCard title="Playlists" value={monthlyPreview?.report.playlistCount ?? 0} icon={Layers} color="bg-purple-500" />
