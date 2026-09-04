@@ -1720,3 +1720,9 @@
 - [x] Salvar os hosts como entradas ordenadas do mesmo grupo
 - [x] Manter compatibilidade com o cadastro individual já existente
 - [x] Adicionar testes do cadastro múltiplo
+
+## Correção do status DNS versus M3U (04/09/2026)
+- [x] Não marcar DNS como falha apenas porque o teste sem credenciais não recebeu M3U
+- [x] Exibir separadamente host acessível e M3U autenticada confirmada
+- [x] Fazer o card refletir que uma DNS pode funcionar no APK mesmo sem teste autenticado no painel
+- [x] Adicionar regressão para DNS acessível com M3U protegida

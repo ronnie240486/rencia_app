@@ -3140,10 +3140,14 @@ export const appRouter = router({
         const latest = related[0];
         const current = groups.get(key) || { group: key, total: 0, errors: 0, latestAt: null, dns: [] };
         current.total += related.length;
-        current.errors += related.filter((check: any) => check.status === "error").length;
+        current.errors += related.filter((check: any) => check.status === "error" && !String(check.message ?? "").toLowerCase().includes("não entregou") && !String(check.message ?? "").toLowerCase().includes("nao entregou")).length;
         for (const check of related) if (!current.latestAt || new Date(check.checkedAt) > current.latestAt) current.latestAt = new Date(check.checkedAt);
-        const lastFailure = related.find((check: any) => check.status === "error");
-        current.dns.push({ id: entry.id, titulo: entry.titulo, host: entry.host, status: latest?.status ?? "unknown", statusCode: latest?.statusCode ?? null, message: latest?.message ?? "Ainda não verificado", checkedAt: latest?.checkedAt ? new Date(latest.checkedAt) : null, lastFailure: lastFailure?.checkedAt ? { statusCode: lastFailure.statusCode ?? null, message: lastFailure.message ?? "Falha sem mensagem detalhada", checkedAt: new Date(lastFailure.checkedAt) } : null });
+        const latestMessage = String(latest?.message ?? "");
+        const contentNotConfirmed = latest?.status === "error" && (latestMessage.toLowerCase().includes("não entregou") || latestMessage.toLowerCase().includes("nao entregou"));
+        const displayStatus = contentNotConfirmed ? "unknown" : (latest?.status ?? "unknown");
+        const displayMessage = contentNotConfirmed ? "Host respondeu; M3U autenticada não foi confirmada neste teste" : (latest?.message ?? "Ainda não verificado");
+        const lastFailure = related.find((check: any) => check.status === "error" && !String(check.message ?? "").toLowerCase().includes("não entregou") && !String(check.message ?? "").toLowerCase().includes("nao entregou"));
+        current.dns.push({ id: entry.id, titulo: entry.titulo, host: entry.host, status: displayStatus, statusCode: latest?.statusCode ?? null, message: displayMessage, checkedAt: latest?.checkedAt ? new Date(latest.checkedAt) : null, lastFailure: lastFailure?.checkedAt ? { statusCode: lastFailure.statusCode ?? null, message: lastFailure.message ?? "Falha sem mensagem detalhada", checkedAt: new Date(lastFailure.checkedAt) } : null });
         groups.set(key, current);
       }
       return Array.from(groups.values()).map((item) => ({ ...item, failedDns: item.dns.filter((dns) => dns.status === "error"), health: item.total === 0 ? "unknown" : item.errors / item.total >= 0.5 ? "critical" : item.errors > 0 ? "attention" : "healthy" }));
