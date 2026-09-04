@@ -3139,6 +3139,11 @@ export const appRouter = router({
         db.select().from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id)),
         db.select({ urlM3u8: devices.urlM3u8, status: devices.status, lastSeen: devices.lastSeen }).from(devices).where(eq(devices.ownerId, ctx.user.id)),
       ]);
+      const hostProbes = new Map<string, any>();
+      await Promise.all(entries.map(async (entry: any) => {
+        const host = entry.host.replace(/\/+$/, "");
+        try { hostProbes.set(host, await probeListUrl(host, { timeoutMs: 1500 })); } catch { hostProbes.set(host, null); }
+      }));
       const groups = new Map<string, { group: string; total: number; errors: number; latestAt: Date | null; dns: Array<{ id: number; titulo: string; host: string; status: string; statusCode: number | null; message: string; checkedAt: Date | null; lastFailure: { statusCode: number | null; message: string; checkedAt: Date } | null }> }>();
       for (const entry of entries) {
         const key = entry.grupo || "Padrão";
@@ -3152,8 +3157,10 @@ export const appRouter = router({
         const contentNotConfirmed = latest?.status === "error" && (latestMessage.toLowerCase().includes("não entregou") || latestMessage.toLowerCase().includes("nao entregou"));
         const host = entry.host.replace(/\/+$/, "");
         const activeInApk = hasActiveDeviceUsingDns(activeDevices, host, Date.now());
-        const displayStatus = activeInApk ? "success" : (contentNotConfirmed ? "unknown" : (latest?.status ?? "unknown"));
-        const displayMessage = activeInApk ? dnsOperationalMessage() : (contentNotConfirmed ? "Host respondeu; M3U autenticada não foi confirmada neste teste" : (latest?.message ?? "Ainda não verificado"));
+        const hostProbe = hostProbes.get(host);
+        const hostResponded = activeInApk || hostProbe?.status === "success" || (hostProbe?.statusCode !== null && hostProbe?.statusCode !== undefined && hostProbe.statusCode >= 200 && hostProbe.statusCode < 500);
+        const displayStatus = hostResponded ? "success" : (contentNotConfirmed ? "unknown" : (latest?.status ?? "unknown"));
+        const displayMessage = activeInApk ? dnsOperationalMessage() : (hostResponded ? "Host respondeu" : (contentNotConfirmed ? "Host respondeu; M3U autenticada não foi confirmada neste teste" : (latest?.message ?? "Ainda não verificado")));
         const lastFailure = related.find((check: any) => check.status === "error" && !String(check.message ?? "").toLowerCase().includes("não entregou") && !String(check.message ?? "").toLowerCase().includes("nao entregou"));
         current.dns.push({ id: entry.id, titulo: entry.titulo, host: entry.host, status: displayStatus, statusCode: latest?.statusCode ?? null, message: displayMessage, checkedAt: latest?.checkedAt ? new Date(latest.checkedAt) : null, lastFailure: lastFailure?.checkedAt ? { statusCode: lastFailure.statusCode ?? null, message: lastFailure.message ?? "Falha sem mensagem detalhada", checkedAt: new Date(lastFailure.checkedAt) } : null });
         groups.set(key, current);

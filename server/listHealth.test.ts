@@ -59,4 +59,15 @@ describe("validação segura de URL de lista", () => {
     expect(classifyListTimeout(17002)).toMatchObject({ status: "pending", responseTimeMs: 17002 });
     expect(hasConfirmedListFailure([{ status: "pending" }, { status: "error" }])).toBe(false);
   });
+
+  it("reconhece que o Host respondeu mesmo quando a rota raiz não é uma M3U", () => {
+    expect(classifyListHttpStatus(404, 10).statusCode).toBe(404);
+    expect(classifyListHttpStatus(404, 10).responseConfirmed).toBe(false);
+    expect(classifyListHttpStatus(403, 10).status).toBe("success");
+  });
+
+  it("mantém HTTP 5xx como falha do Host", () => {
+    expect(classifyListHttpStatus(500, 10).status).toBe("error");
+    expect(classifyListHttpStatus(500, 10).responseConfirmed).toBe(false);
+  });
 });

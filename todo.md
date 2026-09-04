@@ -1783,3 +1783,9 @@
 - [x] Fazer Testar MACs executar a verificação em lote uma única vez
 - [x] Exibir estado de carregamento e resultado persistente da verificação
 - [x] Adicionar teste da ação do botão sem alterar cadastros
+
+## Verificação integral do grupo DNS (04/09/2026)
+- [x] Executar teste de todas as DNS do grupo ao abrir ou atualizar a tela do grupo
+- [x] Mostrar resultado individual para Club 01, Club 02 e todas as demais
+- [x] Eliminar “Sem teste” após a execução da verificação do grupo
+- [x] Manter a verificação sem alterar URLs ou DNS de outros clientes
