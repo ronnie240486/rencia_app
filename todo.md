@@ -1795,3 +1795,9 @@
 - [x] Aumentar áreas de toque e manter rolagem normal em telas pequenas
 - [ ] Revisar abas do painel com ações comprimidas e aplicar o mesmo padrão móvel
 - [x] Validar DNS e troca de DNS em massa em viewport de celular
+
+## Correção visual do Dashboard no celular (04/09/2026)
+- [x] Deixar os cartões de indicadores em uma coluna compacta no celular
+- [x] Alinhar valor, título e ícone sem espaços vazios excessivos
+- [x] Revisar o bloco de fechamento mensal para não ficar cortado após os cartões
+- [x] Validar o Dashboard em viewport móvel e publicar a correção

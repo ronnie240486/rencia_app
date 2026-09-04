@@ -71,13 +71,13 @@ function StatCard({ title, value, icon: Icon, color }: {
 }) {
   return (
     <Card className="border-0 shadow-sm">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+            <p className="text-[11px] font-medium leading-4 text-muted-foreground uppercase tracking-wider mb-1">
               <span>{title}</span>
             </p>
-            <p className="text-2xl font-bold text-foreground">
+            <p className="text-2xl font-bold leading-none text-foreground">
               <span>{value}</span>
             </p>
           </div>
