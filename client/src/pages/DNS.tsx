@@ -144,7 +144,8 @@ export default function DNS() {
       <div className="max-w-4xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Server className="w-6 h-6 text-yellow-500" />
@@ -191,7 +192,7 @@ export default function DNS() {
                 {dnsList.map((dns) => (
                   <div
                     key={dns.id}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+                    className="flex flex-col gap-3 p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
@@ -203,11 +204,11 @@ export default function DNS() {
                         <p className="text-xs text-muted-foreground font-mono truncate max-w-xs">{dns.host}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-1">
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 px-2 text-xs"
+                        className="min-h-10 h-auto justify-center px-3 text-xs sm:min-h-7 sm:h-7"
                         onClick={() => { setNewHost(dns.host); toast.info("DNS copiada para o campo 'Nova DNS'"); }}
                         title="Usar como nova DNS"
                       >
@@ -216,7 +217,7 @@ export default function DNS() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 px-2"
+                        className="min-h-10 h-auto justify-center px-3 sm:min-h-7 sm:h-7"
                         onClick={() => copyToClipboard(dns.host)}
                         title="Copiar host"
                       >
@@ -225,7 +226,7 @@ export default function DNS() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 px-2"
+                        className="min-h-10 h-auto justify-center px-3 sm:min-h-7 sm:h-7"
                         onClick={() => openEdit(dns)}
                       >
                         <Pencil size={12} />
@@ -247,7 +248,8 @@ export default function DNS() {
                       )}
                       {(() => {
                         const blocked = serverBlocks.some((block) => block.active && block.host === dns.host.replace(/\/+$/, ""));
-                        return <Button size="sm" variant="ghost" className={`h-7 px-2 ${blocked ? "text-amber-600" : "text-slate-500"}`} title={blocked ? "Liberar servidor para failover" : "Bloquear servidor no failover"} disabled={serverBlockMut.isPending} onClick={() => serverBlockMut.mutate({ host: dns.host, active: !blocked, reason: blocked ? undefined : "Bloqueado manualmente para manutenção" })}>{blocked ? "Liberar" : "Manutenção"}</Button>;
+                        return <Button size="sm" variant="ghost"                         className={`min-h-10 h-auto justify-center px-3 text-xs ${blocked ? "text-amber-600" : "text-slate-500"} sm:min-h-7 sm:h-7`}
+ title={blocked ? "Liberar servidor para failover" : "Bloquear servidor no failover"} disabled={serverBlockMut.isPending} onClick={() => serverBlockMut.mutate({ host: dns.host, active: !blocked, reason: blocked ? undefined : "Bloqueado manualmente para manutenção" })}>{blocked ? "Liberar" : "Manutenção"}</Button>;
                       })()}
                       <Button
                         size="sm"
@@ -276,7 +278,7 @@ export default function DNS() {
             <div className="space-y-2"><Label>Início</Label><Input type="datetime-local" value={maintenanceStartsAt} onChange={(event) => setMaintenanceStartsAt(event.target.value)} /></div>
             <div className="space-y-2"><Label>Término</Label><Input type="datetime-local" value={maintenanceEndsAt} onChange={(event) => setMaintenanceEndsAt(event.target.value)} /></div>
             <div className="space-y-2 md:col-span-2"><Label>Mensagem</Label><Input placeholder="Ex.: Hoje às 23h faremos uma manutenção no servidor." value={maintenanceContent} onChange={(event) => setMaintenanceContent(event.target.value)} /></div>
-            <div className="md:col-span-2"><Button className="text-black dark:text-white" disabled={maintenanceNoticeMut.isPending || maintenanceContent.trim().length < 3 || !maintenanceStartsAt || !maintenanceEndsAt} onClick={() => maintenanceNoticeMut.mutate({ grupo: maintenanceGroup, titulo: maintenanceTitle, conteudo: maintenanceContent, startsAt: new Date(maintenanceStartsAt), endsAt: new Date(maintenanceEndsAt) })}>{maintenanceNoticeMut.isPending ? "Enviando..." : "Programar aviso de manutenção"}</Button></div>
+                          <div className="md:col-span-2"><Button className="w-full text-black dark:text-white sm:w-auto" disabled={maintenanceNoticeMut.isPending || maintenanceContent.trim().length < 3 || !maintenanceStartsAt || !maintenanceEndsAt} onClick={() => maintenanceNoticeMut.mutate({ grupo: maintenanceGroup, titulo: maintenanceTitle, conteudo: maintenanceContent, startsAt: new Date(maintenanceStartsAt), endsAt: new Date(maintenanceEndsAt) })}>{maintenanceNoticeMut.isPending ? "Enviando..." : "Programar aviso de manutenção"}</Button></div>
           </CardContent>
         </Card>
 
@@ -296,7 +298,7 @@ export default function DNS() {
               {/* DNS Atual */}
               <div className="space-y-2">
                 <Label>DNS Atual (a ser substituída)</Label>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <div className="flex-1">
                     {useDropdown ? (
                       <Select value={oldHost} onValueChange={setOldHost}>
@@ -334,7 +336,7 @@ export default function DNS() {
               {/* Nova DNS */}
               <div className="space-y-2">
                 <Label>Nova DNS (somente o servidor)</Label>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Input
                     placeholder="Ex: http://novoservidor.com"
                     value={newHost}

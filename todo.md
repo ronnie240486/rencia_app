@@ -1789,3 +1789,9 @@
 - [x] Mostrar resultado individual para Club 01, Club 02 e todas as demais
 - [x] Eliminar “Sem teste” após a execução da verificação do grupo
 - [x] Manter a verificação sem alterar URLs ou DNS de outros clientes
+
+## Responsividade vertical para celular (04/09/2026)
+- [x] Reorganizar os botões dos cards de DNS em layout vertical sem sobreposição
+- [x] Aumentar áreas de toque e manter rolagem normal em telas pequenas
+- [ ] Revisar abas do painel com ações comprimidas e aplicar o mesmo padrão móvel
+- [x] Validar DNS e troca de DNS em massa em viewport de celular

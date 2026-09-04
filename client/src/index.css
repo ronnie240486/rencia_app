@@ -314,3 +314,18 @@
     }
   }
 }
+@media (max-width: 639px) {
+  /* Alvo mínimo confortável para toque e prevenção de textos cortados no celular. */
+  button, [role="button"] {
+    min-height: 2.5rem;
+    white-space: normal;
+    line-height: 1.2;
+  }
+  input, select, textarea, [role="combobox"] {
+    min-height: 2.75rem;
+    max-width: 100%;
+  }
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}

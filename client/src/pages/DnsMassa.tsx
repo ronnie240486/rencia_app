@@ -63,7 +63,7 @@ export default function DnsMassa() {
               {/* DNS Atual */}
               <div className="space-y-2">
                 <Label>DNS Atual (a ser substituída)</Label>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <div className="flex-1">
                     {useDropdown ? (
                       <Select value={oldUrl} onValueChange={setOldUrl}>
@@ -158,12 +158,12 @@ export default function DnsMassa() {
                 {uniqueUrls.map((url, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between p-2 bg-muted rounded text-xs font-mono cursor-pointer hover:bg-muted/80"
+                    className="flex min-h-12 flex-col gap-1 p-3 bg-muted rounded text-xs font-mono cursor-pointer hover:bg-muted/80 sm:flex-row sm:items-center sm:justify-between"
                     onClick={() => { setOldUrl(url); setUseDropdown(false); }}
                     title="Clique para selecionar como DNS atual"
                   >
                     <span className="truncate flex-1">{url}</span>
-                    <span className="ml-2 text-muted-foreground shrink-0">→ selecionar</span>
+                    <span className="text-muted-foreground shrink-0">Toque para selecionar</span>
                   </div>
                 ))}
               </div>
