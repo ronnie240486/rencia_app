@@ -11,7 +11,7 @@ export type ApkExpirationState = "none" | "upcoming" | "expires_tomorrow" | "exp
 
 export const APK_EXPIRATION_MODAL_WINDOW_DAYS = 7;
 
-type FailoverList = { id: number; nome: string | null; ordem: number; ativo?: boolean };
+type FailoverList = { id: number; nome: string | null; ordem: number; ativo?: boolean; urlM3u8?: string | null; xtServer?: string | null };
 type FailoverEvent = { id: number; fromDeviceUrlId: number | null; toDeviceUrlId: number | null; createdAt: Date | string } | null;
 type ExpirationDevice = { dataExpiracao: Date | string | null; status: string };
 
@@ -80,13 +80,15 @@ export function buildApkExpirationResponseFields(expiration: ReturnType<typeof b
  * Cria o estado que o APK usa para atualizar a lista automaticamente e avisar o cliente.
  * O `transition_id` é estável: o APK deve guardá-lo localmente e só executar a atualização uma vez por transição.
  */
-export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | null }, extraLists: FailoverList[], latestEvent: FailoverEvent) {
+export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | null; urlM3u8?: string | null }, extraLists: FailoverList[], latestEvent: FailoverEvent) {
   const activeExtraIndex = device.activeDeviceUrlId
     ? extraLists.findIndex((list) => list.id === device.activeDeviceUrlId)
     : -1;
   const activeExtra = activeExtraIndex >= 0 ? extraLists[activeExtraIndex] : null;
   const activeListNumber = activeExtra ? activeExtraIndex + 2 : 1;
   const activeListName = safeApkText(activeExtra?.nome).trim() || `Lista ${activeListNumber}`;
+  const activeListUrl = safeApkText(activeExtra?.urlM3u8 || activeExtra?.xtServer).trim();
+  const primaryListUrl = safeApkText(device.urlM3u8).trim();
   const primaryWasRestored = !activeExtra
     && Boolean(latestEvent && latestEvent.fromDeviceUrlId !== null && latestEvent.toDeviceUrlId === null);
   const state: ApkFailoverState = activeExtra
@@ -108,6 +110,11 @@ export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | nul
       action: "switch_playlist",
       command: "switch_playlist",
       change_playlist: true,
+      list_index: activeListNumber,
+      next_list_index: activeListNumber,
+      next_playlist_number: activeListNumber,
+      playlist_url: activeListUrl,
+      next_playlist_url: activeListUrl,
       playlist_sync_message: `A Lista 1 apresentou problema e você foi mudado automaticamente para ${activeListName}. Assim que normalizar, sua lista principal voltará automaticamente.`,
       reload_required: false,
       reload_message: "",
@@ -126,10 +133,13 @@ export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | nul
       playlist_sync_mode: "background",
       action: "switch_playlist",
       command: "switch_playlist",
-      change_playlist: false,
+      change_playlist: true,
       restore_primary: true,
       list_index: 1,
       next_list_index: 1,
+      next_playlist_number: 1,
+      playlist_url: primaryListUrl,
+      next_playlist_url: primaryListUrl,
       playlist_sync_message: "A Lista 1 voltou ao normal e foi restaurada automaticamente.",
       reload_required: false,
       reload_message: "",

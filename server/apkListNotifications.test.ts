@@ -71,8 +71,8 @@ describe("notificações de lista para APK", () => {
 
   it("informa quando uma lista de reserva foi ativada automaticamente", () => {
     const status = buildApkFailoverStatus(
-      { activeDeviceUrlId: 22 },
-      [{ id: 22, nome: "Lista 2 · Backup", ordem: 0 }],
+      { activeDeviceUrlId: 22, urlM3u8: "https://principal.example/lista.m3u" },
+      [{ id: 22, nome: "Lista 2 · Backup", ordem: 0, urlM3u8: "https://reserva.example/lista.m3u" }],
       { id: 91, fromDeviceUrlId: null, toDeviceUrlId: 22, createdAt: new Date("2026-08-14T12:00:00.000Z") },
     );
 
@@ -86,6 +86,8 @@ describe("notificações de lista para APK", () => {
       action: "switch_playlist",
       command: "switch_playlist",
       change_playlist: true,
+      list_index: 2,
+      next_playlist_url: "https://reserva.example/lista.m3u",
       reload_required: false,
       failover_transition_id: 91,
     });
@@ -94,7 +96,7 @@ describe("notificações de lista para APK", () => {
 
   it("informa que a Lista 1 foi restaurada após a recuperação", () => {
     const status = buildApkFailoverStatus(
-      { activeDeviceUrlId: null },
+      { activeDeviceUrlId: null, urlM3u8: "https://principal.example/lista.m3u" },
       [{ id: 22, nome: "Lista 2", ordem: 0 }],
       { id: 92, fromDeviceUrlId: 22, toDeviceUrlId: null, createdAt: new Date("2026-08-14T12:10:00.000Z") },
     );
@@ -105,8 +107,10 @@ describe("notificações de lista para APK", () => {
       active_list_number: 1,
       action: "switch_playlist",
       command: "switch_playlist",
+      change_playlist: true,
       restore_primary: true,
       list_index: 1,
+      next_playlist_url: "https://principal.example/lista.m3u",
       active_list_name: "Lista 1",
       playlist_sync_required: true,
       playlist_sync_mode: "background",

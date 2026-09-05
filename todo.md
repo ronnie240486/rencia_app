@@ -1806,3 +1806,9 @@
 - [x] Restaurar os indicadores em duas colunas compactas no celular
 - [x] Manter título, valor e ícone alinhados dentro de cada cartão
 - [x] Validar a grade de duas colunas e publicar a preferência aprovada
+
+## Correção do failover e da restauração no APK (04/09/2026)
+- [x] Corrigir comando de restauração da lista que voltou sem fechar o APK
+- [ ] Reduzir o tempo de detecção para troca pela Change Playlist após queda confirmada
+- [x] Testar payload de ida para lista reserva e volta para lista original
+- [ ] Publicar a correção para teste real no APK
