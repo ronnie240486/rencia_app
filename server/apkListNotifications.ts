@@ -192,6 +192,21 @@ function mapNotification(alert: any, acknowledgedAlertIds: Set<number>) {
   };
 }
 
+/**
+ * O APK deve receber alerta técnico somente enquanto está realmente na lista
+ * reserva. Falhas antigas ou alertas já lidos não podem reabrir modal quando a
+ * lista principal já está normalizada.
+ */
+export function selectCurrentClientListAlerts<T extends { id: number; type: string }>(
+  alerts: T[],
+  failoverState: ApkFailoverState,
+  acknowledgedAlertIds: Set<number>,
+) {
+  if (failoverState !== "backup_active") return [] as T[];
+  const currentFailure = alerts.find((alert) => alert.type === "critical" && !acknowledgedAlertIds.has(Number(alert.id)));
+  return currentFailure ? [currentFailure] : [] as T[];
+}
+
 async function findDeviceByMac(db: any, macInput: string) {
   const mac = normalizeMacAddress(macInput);
   if (!mac) return null;
@@ -226,12 +241,14 @@ export async function getListNotificationsForMac(db: any, macInput: string) {
     .where(and(eq(listFailoverEvents.ownerId, device.ownerId), eq(listFailoverEvents.deviceId, device.id)))
     .orderBy(desc(listFailoverEvents.createdAt), desc(listFailoverEvents.id))
     .limit(1))[0] ?? null;
+  const failover = buildApkFailoverStatus(device, extraLists, latestFailoverEvent);
+  const currentClientAlerts = selectCurrentClientListAlerts(ownAlerts, failover.failover_state, acknowledgedAlertIds);
 
   return {
     registered: true,
     device,
-    notifications: ownAlerts.map((alert: any) => mapNotification(alert, acknowledgedAlertIds)),
-    failover: buildApkFailoverStatus(device, extraLists, latestFailoverEvent),
+    notifications: currentClientAlerts.map((alert: any) => mapNotification(alert, acknowledgedAlertIds)),
+    failover,
     expiration: buildApkExpirationNotice(device),
   };
 }

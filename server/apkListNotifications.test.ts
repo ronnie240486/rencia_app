@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { buildApkExpirationNotice, buildApkExpirationResponseFields, buildApkFailoverStatus, getClientFacingListMessage, isDeviceListNotificationTitle } from "./apkListNotifications";
+import { buildApkExpirationNotice, buildApkExpirationResponseFields, buildApkFailoverStatus, getClientFacingListMessage, isDeviceListNotificationTitle, selectCurrentClientListAlerts } from "./apkListNotifications";
 
 describe("notificações de lista para APK", () => {
+  it("não reenvia aviso de instabilidade depois que a Lista 1 está normal", () => {
+    const alerts = [{ id: 71, type: "critical" }, { id: 70, type: "success" }];
+    expect(selectCurrentClientListAlerts(alerts, "primary_restored", new Set())).toEqual([]);
+    expect(selectCurrentClientListAlerts(alerts, "primary", new Set())).toEqual([]);
+  });
+
+  it("envia apenas o aviso atual e não lido enquanto a lista reserva está ativa", () => {
+    const alerts = [{ id: 72, type: "critical" }, { id: 71, type: "critical" }, { id: 70, type: "success" }];
+    expect(selectCurrentClientListAlerts(alerts, "backup_active", new Set([72]))).toEqual([{ id: 71, type: "critical" }]);
+    expect(selectCurrentClientListAlerts(alerts, "backup_active", new Set())).toEqual([{ id: 72, type: "critical" }]);
+  });
+
   it("aceita somente alertas de lista pertencentes ao aparelho", () => {
     expect(isDeviceListNotificationTitle("Falha confirmada de lista: Lista 1 · Bruno #42", 42)).toBe(true);
     expect(isDeviceListNotificationTitle("Lista recuperada: Lista 1 · Bruno #42", 42)).toBe(true);

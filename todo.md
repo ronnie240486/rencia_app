@@ -1812,3 +1812,9 @@
 - [x] Reduzir o tempo de detecção para troca pela Change Playlist após queda confirmada
 - [x] Testar payload de ida para lista reserva e volta para lista original
 - [ ] Publicar a correção para teste real no APK
+
+## Aviso de instabilidade persistente nos APKs (05/09/2026)
+- [x] Mostrar o aviso somente para falha de lista confirmada
+- [x] Remover automaticamente o aviso quando a lista voltar a funcionar
+- [x] Impedir repetição do aviso nos aplicativos com lista normal
+- [ ] Validar e publicar a correção nos APKs
