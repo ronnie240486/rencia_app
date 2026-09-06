@@ -81,6 +81,9 @@ const uploadApk = multer({
   },
 });
 
+/** O APK reporta a falha na hora; cada DNS recebe um probe curto e sequencial. */
+const IMMEDIATE_FAILOVER_DNS_PROBE_TIMEOUT_MS = 1_250;
+
 /**
  * Seleciona o cadastro principal ou o vínculo adicional do app que fez a chamada.
  * Nunca escolhe um app por adivinhação quando o mesmo MAC aparece em vários cadastros.
@@ -4699,7 +4702,7 @@ export function registerApiRoutes(app: Express) {
           let workingDns: { entry: typeof sameProfile[number]; result: Awaited<ReturnType<typeof probeListUrl>> } | null = null;
           for (const entry of sameProfile.filter((item) => item.ativo !== false)) {
             if (currentHost && entry.host.replace(/\/+$/, "") === currentHost.replace(/\/+$/, "")) continue;
-            const result = await probeListUrl(replaceDnsHost(currentCandidate.url, entry.host), { requireM3uContent: true, timeoutMs: 2500 });
+            const result = await probeListUrl(replaceDnsHost(currentCandidate.url, entry.host), { requireM3uContent: true, timeoutMs: IMMEDIATE_FAILOVER_DNS_PROBE_TIMEOUT_MS });
             if (isConfirmedListResponse(result)) { workingDns = { entry, result }; break; }
           }
           // A DNS atual não pode ser escolhida novamente quando foi ela que falhou.

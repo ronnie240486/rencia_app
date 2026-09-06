@@ -17,10 +17,17 @@ vi.mock("./listHealth", () => ({
 
 vi.mock("./listFailureAlerts", () => ({ syncConfirmedListFailureAlert: vi.fn().mockResolvedValue(undefined) }));
 
-import { runListFailoverSweep } from "./listFailover";
+import { LIST_FAILOVER_CRON, LIST_FAILOVER_PROBE_TIMEOUT_MS, runListFailoverSweep } from "./listFailover";
 import { buildApkFailoverStatus } from "./apkListNotifications";
 
 type DeviceState = { id: number; ownerId: number; nomeServer: string; nomeServidor?: string; urlM3u8: string; activeDeviceUrlId: number | null; listFailoverEnabled: boolean };
+
+describe("configuração de velocidade do failover", () => {
+  it("usa o ciclo mínimo de um minuto e probes sequenciais curtos", () => {
+    expect(LIST_FAILOVER_CRON).toBe("0 * * * * *");
+    expect(LIST_FAILOVER_PROBE_TIMEOUT_MS).toBe(1_250);
+  });
+});
 
 function createDb(device: DeviceState, dns: Array<{ host: string; grupo: string; ativo: boolean }> = []) {
   const primaryHealth = [{ status: "error" }, { status: "error" }];

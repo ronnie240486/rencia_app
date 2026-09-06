@@ -1809,6 +1809,6 @@
 
 ## Correção do failover e da restauração no APK (04/09/2026)
 - [x] Corrigir comando de restauração da lista que voltou sem fechar o APK
-- [ ] Reduzir o tempo de detecção para troca pela Change Playlist após queda confirmada
+- [x] Reduzir o tempo de detecção para troca pela Change Playlist após queda confirmada
 - [x] Testar payload de ida para lista reserva e volta para lista original
 - [ ] Publicar a correção para teste real no APK

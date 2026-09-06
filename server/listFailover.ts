@@ -7,6 +7,8 @@ import { syncConfirmedListFailureAlert } from "./listFailureAlerts";
 
 /** O menor intervalo permitido pela plataforma é um minuto. */
 export const LIST_FAILOVER_CRON = "0 * * * * *";
+/** Mantém o failover sequencial rápido sem considerar resposta lenta como lista válida. */
+export const LIST_FAILOVER_PROBE_TIMEOUT_MS = 1_250;
 
 type Candidate = { id: number | null; name: string; url: string };
 
@@ -60,7 +62,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     const current = ordered[0];
     const primary = candidates[0];
     if (current.id !== primary.id) {
-      const primaryResult = await probeListUrl(primary.url, { requireM3uContent: true, timeoutMs: 2500 });
+      const primaryResult = await probeListUrl(primary.url, { requireM3uContent: true, timeoutMs: LIST_FAILOVER_PROBE_TIMEOUT_MS });
       checked += 1;
       await recordAutomaticListHealthCheck(db, ownerId, device, primary, primaryResult);
       // A Lista 1 só volta quando uma resposta 2xx/3xx confirma que ela realmente voltou.
@@ -71,7 +73,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
         return;
       }
     }
-    const currentResult = await probeListUrl(current.url, { requireM3uContent: true, timeoutMs: 2500 });
+    const currentResult = await probeListUrl(current.url, { requireM3uContent: true, timeoutMs: LIST_FAILOVER_PROBE_TIMEOUT_MS });
     checked += 1;
     await recordAutomaticListHealthCheck(db, ownerId, device, current, currentResult);
     // Só 2xx/3xx confirma que a DNS atual entrega a lista. Respostas 401/403,
@@ -86,7 +88,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
       const currentHost = sameProfile.find((entry) => current.url.startsWith(entry.host.replace(/\/+$/, "")))?.host;
       for (const entry of orderDnsFailoverEntries(current.url, sameProfile)) {
         if (currentHost && entry.host.replace(/\/+$/, "") === currentHost.replace(/\/+$/, "")) continue;
-        const result = await probeListUrl(replaceDnsHost(current.url, entry.host), { requireM3uContent: true, timeoutMs: 2500 });
+        const result = await probeListUrl(replaceDnsHost(current.url, entry.host), { requireM3uContent: true, timeoutMs: LIST_FAILOVER_PROBE_TIMEOUT_MS });
         probes.push({ host: entry.host, status: isConfirmedListResponse(result) ? "success" : "error" });
         if (isConfirmedListResponse(result)) break;
       }
@@ -107,7 +109,7 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
 
     let replacement: Candidate | null = null;
     for (const candidate of ordered.filter((item) => item.id !== current.id)) {
-      const result = await probeListUrl(candidate.url, { requireM3uContent: true, timeoutMs: 2500 });
+      const result = await probeListUrl(candidate.url, { requireM3uContent: true, timeoutMs: LIST_FAILOVER_PROBE_TIMEOUT_MS });
       checked += 1;
       await recordAutomaticListHealthCheck(db, ownerId, device, candidate, result);
       if (isConfirmedListResponse(result)) { replacement = candidate; break; }
