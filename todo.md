@@ -1817,4 +1817,10 @@
 - [x] Mostrar o aviso somente para falha de lista confirmada
 - [x] Remover automaticamente o aviso quando a lista voltar a funcionar
 - [x] Impedir repetição do aviso nos aplicativos com lista normal
-- [ ] Validar e publicar a correção nos APKs
+- [x] Validar e publicar a correção nos APKs
+
+## Home em duas colunas no celular (06/09/2026)
+- [x] Organizar os dados do Fechamento mensal em duas colunas compactas
+- [x] Manter os botões do Fechamento mensal alinhados sem sobreposição
+- [x] Aplicar o mesmo padrão de duas colunas ao Ranking da Home
+- [x] Validar a Home em viewport móvel e publicar

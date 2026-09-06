@@ -371,17 +371,17 @@ export default function Dashboard() {
                   <CardTitle className="text-base">Fechamento mensal</CardTitle>
                   <p className="mt-1 text-sm text-muted-foreground">Confira o mês anterior antes do início do novo mês. O histórico não apaga clientes nem listas.</p>
                 </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" onClick={() => setMonthlyClosureOpen(true)} disabled={!monthlyPreview} className="gap-2">
+                  <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
+                    <Button variant="outline" onClick={() => setMonthlyClosureOpen(true)} disabled={!monthlyPreview} className="h-auto min-h-10 justify-center gap-1 px-2 py-2 text-xs whitespace-normal sm:h-9 sm:px-3 sm:text-sm">
                       <CalendarDays className="h-4 w-4" /> Ver fechamento
                     </Button>
-                    <Button variant="outline" onClick={() => scheduleStatus.data?.enabled ? disableMonthlySchedule.mutate() : enableMonthlySchedule.mutate()} disabled={enableMonthlySchedule.isPending || disableMonthlySchedule.isPending} className="gap-2">
+                    <Button variant="outline" onClick={() => scheduleStatus.data?.enabled ? disableMonthlySchedule.mutate() : enableMonthlySchedule.mutate()} disabled={enableMonthlySchedule.isPending || disableMonthlySchedule.isPending} className="h-auto min-h-10 justify-center gap-1 px-2 py-2 text-xs whitespace-normal sm:h-9 sm:px-3 sm:text-sm">
                       {scheduleStatus.data?.enabled ? "Desativar automático" : "Ativar automático"}
                     </Button>
                   </div>
               </div>
             </CardHeader>
-            <CardContent className="grid gap-3 text-sm sm:grid-cols-2 sm:grid-cols-4">
+            <CardContent className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4">
               <div><p className="text-muted-foreground">Mês anterior</p><p className="font-semibold">{monthlyPreview?.report.periodStart?.slice(0, 7) ?? "—"}</p></div>
               <div><p className="text-muted-foreground">Receita</p><p className="font-semibold text-emerald-600">{formatCurrency(monthlyPreview?.report.revenue ?? 0)}</p></div>
               <div><p className="text-muted-foreground">Clientes no mês</p><p className="font-semibold">{monthlyPreview?.report.newClientCount ?? 0}</p></div>
@@ -396,7 +396,7 @@ export default function Dashboard() {
               <DialogTitle>Fechamento mensal — {monthlyPreview?.report.periodStart?.slice(0, 7) ?? "mês anterior"}</DialogTitle>
               <DialogDescription>Resumo salvo antes do zeramento da Receita Mensal. Os cadastros permanecem no painel.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-3 sm:grid-cols-2 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <StatCard title="Receita total" value={formatCurrency(monthlyPreview?.report.revenue ?? 0)} icon={Shield} color="bg-emerald-500" />
               <StatCard title="Clientes no mês" value={monthlyPreview?.report.newClientCount ?? 0} icon={Users} color="bg-blue-500" />
               <StatCard title="Playlists" value={monthlyPreview?.report.playlistCount ?? 0} icon={Layers} color="bg-purple-500" />
@@ -709,7 +709,7 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           {miniRanking.some((app) => app.count > 0) ? (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
               {miniRanking.slice(0, 5).map((app, index) => (
                 <div key={app.id} className="flex items-center gap-2 rounded-lg border bg-muted/20 p-2">
                   <span className="w-5 text-center text-xs font-bold text-muted-foreground">#{index + 1}</span>
