@@ -19,9 +19,10 @@ import {
   ChevronLeft, ChevronRight, ChevronDown, List, Pencil, Plus, Search, Trash2, Globe,
   LockKeyhole, SlidersHorizontal, UnlockKeyhole, Download, Mic, MicOff,
 } from "lucide-react";
-import { useRef, useState } from "react";
-import { Link } from "wouter";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation } from "wouter";
 import { getAvailableAppsGridClass } from "@/lib/userCardLayout";
+import { buildUserEditHref, getUsersNavigationState } from "@/lib/userNavigation";
 import { toast } from "sonner";
 import { formatDateOnlyPtBr } from "@shared/dateOnly";
 import { downloadCsv } from "@/lib/csv";
@@ -99,9 +100,11 @@ function AvailableApps({ primaryApp, linkedAppIds }: { primaryApp?: string | nul
 }
 
 export default function Users() {
-  const [search, setSearch] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [page, setPage] = useState(1);
+  const [location] = useLocation();
+  const navigationState = useMemo(() => getUsersNavigationState(location), [location]);
+  const [search, setSearch] = useState(() => navigationState.search);
+  const [searchInput, setSearchInput] = useState(() => navigationState.search);
+  const [page, setPage] = useState(() => navigationState.page);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteManyOpen, setDeleteManyOpen] = useState(false);
@@ -119,6 +122,13 @@ export default function Users() {
   const [bulkUrl, setBulkUrl] = useState("");
   const [isListening, setIsListening] = useState(false);
   const voiceRecognitionRef = useRef<VoiceRecognition | null>(null);
+
+  useEffect(() => {
+    setSearch(navigationState.search);
+    setSearchInput(navigationState.search);
+    setPage(navigationState.page);
+    setSelected(new Set());
+  }, [navigationState]);
 
   const utils = trpc.useUtils();
 
@@ -477,7 +487,7 @@ export default function Users() {
                 <Button size="sm" variant="outline" className="w-full gap-1" onClick={() => setDeleteId(device.id)}><Trash2 className="h-3.5 w-3.5" /> Excluir</Button>
                 <Button size="sm" variant="outline" className="w-full gap-1 text-emerald-700" disabled={renewMutation.isPending} onClick={() => { if (window.confirm(`Registrar renovação de ${device.nomeServer} por R$ ${Number(device.valor || 30).toFixed(2)}?`)) renewMutation.mutate({ deviceId: device.id, amount: Number(device.valor || 30) }); }}>Renovar</Button>
                 <Button size="sm" variant="outline" className="w-full gap-1" disabled={updateStatusMutation.isPending} onClick={() => updateStatusMutation.mutate({ id: device.id, status: device.status === "Bloqueado" ? "Liberado" : "Bloqueado" })}>{device.status === "Bloqueado" ? <UnlockKeyhole className="h-3.5 w-3.5" /> : <LockKeyhole className="h-3.5 w-3.5" />}{device.status === "Bloqueado" ? "Liberar" : "Bloquear"}</Button>
-                <Link href={`/users/${device.id}/edit`}><Button size="sm" variant="outline" className="w-full gap-1"><Pencil className="h-3.5 w-3.5" /> Editar</Button></Link>
+                <Link href={buildUserEditHref(device.id, { search, page })}><Button size="sm" variant="outline" className="w-full gap-1"><Pencil className="h-3.5 w-3.5" /> Editar</Button></Link>
               </div>
             </div>
           ))}
@@ -584,7 +594,7 @@ export default function Users() {
                           >
                             {d.status === "Bloqueado" ? <UnlockKeyhole className="w-3 h-3" /> : <LockKeyhole className="w-3 h-3" />}
                           </Button>
-                          <Link href={`/users/${d.id}/edit`}>
+                          <Link href={buildUserEditHref(d.id, { search, page })}>
                             <Button size="sm" className="h-7 w-7 p-0 bg-blue-500 hover:bg-blue-600" title="Editar">
                               <Pencil className="w-3 h-3" />
                             </Button>

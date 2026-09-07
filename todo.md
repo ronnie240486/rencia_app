@@ -1830,3 +1830,9 @@
 - [x] Exibir os blocos em duas colunas nos cards de usuários em celular
 - [x] Manter os aplicativos liberados legíveis e sem corte
 - [ ] Validar a tela de usuários em viewport móvel e publicar
+
+## Retorno de Listas e preservação da busca (07/09/2026)
+- [x] Voltar de Listas para a edição do cliente quando a tela foi aberta pela edição
+- [x] Manter o termo pesquisado na lupa ao voltar para Usuários depois de salvar
+- [x] Preservar a página e os filtros da listagem durante o fluxo de edição
+- [ ] Testar o fluxo de ida, salvar e volta no celular

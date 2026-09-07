@@ -18,8 +18,9 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
-import { Link, useParams } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
+import { getListsReturnHref, getListsReturnLabel } from "@/lib/userNavigation";
 
 interface ListForm {
   nome: string;
@@ -45,7 +46,10 @@ const emptyForm: ListForm = {
 
 export default function DeviceLists() {
   const { id } = useParams<{ id: string }>();
+  const [location] = useLocation();
   const deviceId = parseInt(id ?? "0");
+  const returnHref = getListsReturnHref(deviceId, location);
+  const returnLabel = getListsReturnLabel(location);
 
   const [showDialog, setShowDialog] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -131,10 +135,10 @@ export default function DeviceLists() {
     <AdminLayout title={`Listas — ${device?.nomeServer ?? "Device"}`}>
       {/* Voltar */}
       <div className="mb-5">
-        <Link href="/users">
+        <Link href={returnHref}>
           <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground -ml-2">
             <ArrowLeft size={15} />
-            Voltar para Usuários
+            {returnLabel}
           </Button>
         </Link>
       </div>

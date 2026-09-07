@@ -16,6 +16,7 @@ import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { toDateOnly } from "@shared/dateOnly";
 import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
+import { buildDeviceListsHref, buildUsersHref, getUsersNavigationState } from "@/lib/userNavigation";
 
 /**
  * Monta a URL M3U8 a partir dos campos XteamCode (usuário, senha, servidor).
@@ -70,8 +71,10 @@ function MacAppBadge({ appId }: { appId: string | null | undefined }) {
 
 export default function UserEdit() {
   const params = useParams<{ id: string }>();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const deviceId = parseInt(params.id ?? "0", 10);
+  const usersNavigation = getUsersNavigationState(location);
+  const usersHref = buildUsersHref(usersNavigation);
 
   const { data: appsData } = trpc.apps.list.useQuery();
   const { data: resellerAppAccess } = trpc.resellerAppAccess.me.useQuery();
@@ -302,7 +305,7 @@ export default function UserEdit() {
       toast.success("Usuário atualizado com sucesso!");
       utils.devices.list.invalidate();
       utils.devices.stats.invalidate();
-      navigate("/users");
+      navigate(usersHref);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -389,7 +392,7 @@ export default function UserEdit() {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Link href="/users">
+          <Link href={usersHref}>
             <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
               <ArrowLeft className="w-3 h-3" /><span>Voltar</span>
             </Button>
@@ -724,7 +727,7 @@ export default function UserEdit() {
                 <p className="text-sm font-semibold text-foreground">Listas do cliente</p>
                 <p className="mt-1 text-xs text-muted-foreground">A lista principal fica neste cadastro. Use o botão para adicionar Lista 2, Lista 3 e as próximas, sem substituir as que já existem.</p>
               </div>
-              <Link href={`/users/${deviceId}/lists`}>
+              <Link href={buildDeviceListsHref(deviceId, usersNavigation)}>
                 <Button type="button" variant="outline" className="w-full gap-2 sm:w-auto"><ListPlus className="h-4 w-4" /> Adicionar lista</Button>
               </Link>
             </div>
