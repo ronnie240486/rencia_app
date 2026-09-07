@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { Link } from "wouter";
+import { getAvailableAppsGridClass } from "@/lib/userCardLayout";
 import { toast } from "sonner";
 import { formatDateOnlyPtBr } from "@shared/dateOnly";
 import { downloadCsv } from "@/lib/csv";
@@ -88,11 +89,11 @@ function MacAppBadge({ appId }: { appId?: string | null }) {
 function AvailableApps({ primaryApp, linkedAppIds }: { primaryApp?: string | null; linkedAppIds?: string[] }) {
   const appNames = Array.from(new Set([primaryApp, ...(linkedAppIds ?? [])].filter((value): value is string => Boolean(value && value.trim()))));
   if (appNames.length === 0) return <span className="text-xs text-muted-foreground">Nenhum aplicativo liberado</span>;
-  return <div className="flex flex-wrap items-center gap-1.5">{appNames.map((appName) => {
+  return <div className={getAvailableAppsGridClass(appNames.length)}>{appNames.map((appName) => {
     const app = findClientAppOption(appName);
-    return <span key={appName} className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-primary/5 px-1.5 py-1 text-[11px] font-medium text-foreground" title={app?.label ?? appName}>
+    return <span key={appName} className="inline-flex min-w-0 items-center gap-1 rounded-full border border-primary/15 bg-primary/5 px-1.5 py-1 text-[11px] font-medium text-foreground" title={app?.label ?? appName}>
       <AppLogoBadge logoUrl={app?.logoUrl} label={app?.label ?? appName} className="h-5 w-5 rounded-full" />
-      <span className="max-w-28 truncate">{app?.label ?? appName}</span>
+      <span className="min-w-0 flex-1 truncate">{app?.label ?? appName}</span>
     </span>;
   })}</div>;
 }
@@ -447,16 +448,21 @@ export default function Users() {
                 <ClientAppAvatar appName={device.app} customerName={device.nomeServer} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-muted-foreground">Cliente</p><p className="truncate font-semibold text-foreground">{device.nomeServer}</p></div><StatusBadge status={device.status as DeviceStatus} /></div>
-                          <div className="mt-1 space-y-1">
-                            {device.macs?.length ? device.macs.map((macItem) => (
-                              <div key={macItem.primary ? "primary-mac" : `secondary-mac-${macItem.id}-${macItem.mac}`} className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted-foreground">
-                                <span className={macItem.primary ? "font-semibold text-primary" : ""}>{macItem.primary ? "Principal" : "Reserva"}: {macItem.mac}</span>
-                                <MacAppBadge appId={macItem.appId} />
-                              </div>
-                            )) : <span>{device.mac || "Sem MAC — adicione em Editar"}</span>}
-                          </div>
                 </div>
               </div>
+              {device.macs?.length ? (
+                <div className="mt-3 grid grid-cols-2 gap-2 border-t pt-3">
+                  {device.macs.map((macItem) => (
+                    <div key={macItem.primary ? "primary-mac" : `secondary-mac-${macItem.id}-${macItem.mac}`} className={`min-w-0 rounded-xl px-2.5 py-2 ${macItem.primary ? "bg-primary/10" : "bg-muted/60"}`}>
+                      <div className="flex min-w-0 items-center justify-between gap-1">
+                        <span className={`text-[10px] font-bold uppercase tracking-wide ${macItem.primary ? "text-primary" : "text-muted-foreground"}`}>{macItem.primary ? "Principal" : "Reserva"}</span>
+                        <MacAppBadge appId={macItem.appId} />
+                      </div>
+                      <p className="mt-1 truncate font-mono text-[11px] font-semibold text-foreground" title={macItem.mac}>{macItem.mac}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="mt-2 text-xs text-muted-foreground">{device.mac || "Sem MAC — adicione em Editar"}</p>}
               <div className="mt-4 grid grid-cols-2 gap-2 border-y py-3">
                 <div className="rounded-xl bg-primary/10 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Playlists</p><p className="mt-0.5 text-lg font-bold text-primary">{device.playlistCount}</p></div>
                 <div className="rounded-xl bg-muted/60 px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Nível</p><p className="mt-0.5 truncate text-sm font-semibold text-foreground">{device.tipo}</p></div>

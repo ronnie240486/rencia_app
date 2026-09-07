@@ -1824,3 +1824,9 @@
 - [x] Manter os botões do Fechamento mensal alinhados sem sobreposição
 - [x] Aplicar o mesmo padrão de duas colunas ao Ranking da Home
 - [x] Validar a Home em viewport móvel e publicar
+
+## Aplicativos e MACs em duas colunas nos usuários (06/09/2026)
+- [x] Agrupar cada aplicativo e seu MAC de reserva em bloco compacto
+- [x] Exibir os blocos em duas colunas nos cards de usuários em celular
+- [x] Manter os aplicativos liberados legíveis e sem corte
+- [ ] Validar a tela de usuários em viewport móvel e publicar
