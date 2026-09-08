@@ -22,7 +22,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { getAvailableAppsGridClass } from "@/lib/userCardLayout";
-import { buildUserEditHref, getUsersNavigationState } from "@/lib/userNavigation";
+import { buildUserEditHref, rememberUsersNavigation, resolveUsersNavigation } from "@/lib/userNavigation";
 import { toast } from "sonner";
 import { formatDateOnlyPtBr } from "@shared/dateOnly";
 import { downloadCsv } from "@/lib/csv";
@@ -102,7 +102,7 @@ function AvailableApps({ primaryApp, linkedAppIds }: { primaryApp?: string | nul
 export default function Users() {
   const [location] = useLocation();
   const locationSearch = useSearch();
-  const navigationState = useMemo(() => getUsersNavigationState(`${location}${locationSearch}`), [location, locationSearch]);
+  const navigationState = useMemo(() => resolveUsersNavigation(`${location}${locationSearch}`), [location, locationSearch]);
   const [search, setSearch] = useState(() => navigationState.search);
   const [searchInput, setSearchInput] = useState(() => navigationState.search);
   const [page, setPage] = useState(() => navigationState.page);
@@ -230,6 +230,7 @@ export default function Users() {
     setSearch(searchInput);
     setPage(1);
     setSelected(new Set());
+    rememberUsersNavigation({ search: searchInput, page: 1 });
   };
 
   const updateSearchInput = (value: string) => {
@@ -237,6 +238,7 @@ export default function Users() {
     setSearch(value);
     setPage(1);
     setSelected(new Set());
+    rememberUsersNavigation({ search: value, page: 1 });
   };
 
   const startVoiceSearch = () => {
@@ -488,7 +490,7 @@ export default function Users() {
                 <Button size="sm" variant="outline" className="w-full gap-1" onClick={() => setDeleteId(device.id)}><Trash2 className="h-3.5 w-3.5" /> Excluir</Button>
                 <Button size="sm" variant="outline" className="w-full gap-1 text-emerald-700" disabled={renewMutation.isPending} onClick={() => { if (window.confirm(`Registrar renovação de ${device.nomeServer} por R$ ${Number(device.valor || 30).toFixed(2)}?`)) renewMutation.mutate({ deviceId: device.id, amount: Number(device.valor || 30) }); }}>Renovar</Button>
                 <Button size="sm" variant="outline" className="w-full gap-1" disabled={updateStatusMutation.isPending} onClick={() => updateStatusMutation.mutate({ id: device.id, status: device.status === "Bloqueado" ? "Liberado" : "Bloqueado" })}>{device.status === "Bloqueado" ? <UnlockKeyhole className="h-3.5 w-3.5" /> : <LockKeyhole className="h-3.5 w-3.5" />}{device.status === "Bloqueado" ? "Liberar" : "Bloquear"}</Button>
-                <Link href={buildUserEditHref(device.id, { search, page })}><Button size="sm" variant="outline" className="w-full gap-1"><Pencil className="h-3.5 w-3.5" /> Editar</Button></Link>
+                <Link href={buildUserEditHref(device.id, { search, page })} onClick={() => rememberUsersNavigation({ search, page })}><Button size="sm" variant="outline" className="w-full gap-1"><Pencil className="h-3.5 w-3.5" /> Editar</Button></Link>
               </div>
             </div>
           ))}
@@ -595,7 +597,7 @@ export default function Users() {
                           >
                             {d.status === "Bloqueado" ? <UnlockKeyhole className="w-3 h-3" /> : <LockKeyhole className="w-3 h-3" />}
                           </Button>
-                          <Link href={buildUserEditHref(d.id, { search, page })}>
+                          <Link href={buildUserEditHref(d.id, { search, page })} onClick={() => rememberUsersNavigation({ search, page })}>
                             <Button size="sm" className="h-7 w-7 p-0 bg-blue-500 hover:bg-blue-600" title="Editar">
                               <Pencil className="w-3 h-3" />
                             </Button>

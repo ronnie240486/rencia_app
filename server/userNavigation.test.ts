@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { buildDeviceListsHref, buildUserEditHref, buildUsersHref, getListsReturnHref, getListsReturnLabel, getUsersNavigationState } from "../client/src/lib/userNavigation";
+import { buildDeviceListsHref, buildUserEditHref, buildUsersHref, getListsReturnHref, getListsReturnLabel, getUsersNavigationState, resolveUsersNavigation } from "../client/src/lib/userNavigation";
 
 describe("navegação preservada entre usuários, edição e listas", () => {
   it("interpreta a busca separada do caminho, como o roteador do navegador entrega", () => {
     expect(getUsersNavigationState("/users" + "?search=Roni&page=2")).toEqual({ search: "Roni", page: 2 });
+  });
+
+  it("recupera a busca lembrada quando a rota chega sem parâmetros", () => {
+    expect(resolveUsersNavigation("/users", { search: "Roni", page: 2 })).toEqual({ search: "Roni", page: 2 });
   });
 
   it("mantém busca e página ao abrir a edição e voltar após salvar", () => {
@@ -17,11 +21,11 @@ describe("navegação preservada entre usuários, edição e listas", () => {
     const listHref = buildDeviceListsHref(42, { search: "Roni", page: 2 });
     expect(listHref).toBe("/users/42/lists?returnTo=edit&search=Roni&page=2");
     expect(getListsReturnHref(42, listHref)).toBe("/users/42/edit?search=Roni&page=2");
-    expect(getListsReturnLabel(listHref)).toBe("Voltar para Editar usuário");
+    expect(getListsReturnLabel(42, listHref)).toBe("Voltar para Editar usuário");
   });
 
   it("mantém o retorno padrão para Usuários quando Listas foi aberta sem origem de edição", () => {
-    expect(getListsReturnHref(42, "/users/42/lists")).toBe("/users");
-    expect(getListsReturnLabel("/users/42/lists")).toBe("Voltar para Usuários");
+    expect(getListsReturnHref(42, "/users/42/lists", { search: "", page: 1 })).toBe("/users");
+    expect(getListsReturnLabel(42, "/users/42/lists")).toBe("Voltar para Usuários");
   });
 });

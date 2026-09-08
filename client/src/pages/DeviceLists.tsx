@@ -51,7 +51,7 @@ export default function DeviceLists() {
   const deviceId = parseInt(id ?? "0");
   const fullLocation = `${location}${locationSearch}`;
   const returnHref = getListsReturnHref(deviceId, fullLocation);
-  const returnLabel = getListsReturnLabel(fullLocation);
+  const returnLabel = getListsReturnLabel(deviceId, fullLocation);
 
   const [showDialog, setShowDialog] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);

@@ -1841,3 +1841,9 @@
 - [x] Reproduzir por que o botão Voltar de Listas não retornou à edição
 - [x] Corrigir a persistência de busca que não foi aplicada no celular
 - [ ] Fazer uma validação real no navegador antes de publicar novamente
+
+## Correção robusta do retorno e busca (07/09/2026)
+- [x] Gravar a origem da edição antes de abrir Listas
+- [x] Fazer Voltar de Listas retornar diretamente para Editar usuário
+- [x] Manter a última busca digitada após salvar, mesmo sem parâmetro na URL
+- [ ] Testar os dois fluxos e publicar somente após validação funcional

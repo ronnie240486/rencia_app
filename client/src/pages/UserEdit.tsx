@@ -16,7 +16,7 @@ import { Link, useLocation, useParams, useSearch } from "wouter";
 import { toast } from "sonner";
 import { toDateOnly } from "@shared/dateOnly";
 import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
-import { buildDeviceListsHref, buildUsersHref, getUsersNavigationState } from "@/lib/userNavigation";
+import { buildDeviceListsHref, buildUsersHref, rememberListsEditOrigin, resolveUsersNavigation } from "@/lib/userNavigation";
 
 /**
  * Monta a URL M3U8 a partir dos campos XteamCode (usuário, senha, servidor).
@@ -74,7 +74,7 @@ export default function UserEdit() {
   const [location, navigate] = useLocation();
   const locationSearch = useSearch();
   const deviceId = parseInt(params.id ?? "0", 10);
-  const usersNavigation = getUsersNavigationState(`${location}${locationSearch}`);
+  const usersNavigation = resolveUsersNavigation(`${location}${locationSearch}`);
   const usersHref = buildUsersHref(usersNavigation);
 
   const { data: appsData } = trpc.apps.list.useQuery();
@@ -728,7 +728,7 @@ export default function UserEdit() {
                 <p className="text-sm font-semibold text-foreground">Listas do cliente</p>
                 <p className="mt-1 text-xs text-muted-foreground">A lista principal fica neste cadastro. Use o botão para adicionar Lista 2, Lista 3 e as próximas, sem substituir as que já existem.</p>
               </div>
-              <Link href={buildDeviceListsHref(deviceId, usersNavigation)}>
+              <Link href={buildDeviceListsHref(deviceId, usersNavigation)} onClick={() => rememberListsEditOrigin(deviceId, usersNavigation)}>
                 <Button type="button" variant="outline" className="w-full gap-2 sm:w-auto"><ListPlus className="h-4 w-4" /> Adicionar lista</Button>
               </Link>
             </div>
