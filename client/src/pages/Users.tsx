@@ -20,7 +20,7 @@ import {
   LockKeyhole, SlidersHorizontal, UnlockKeyhole, Download, Mic, MicOff,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { getAvailableAppsGridClass } from "@/lib/userCardLayout";
 import { buildUserEditHref, getUsersNavigationState } from "@/lib/userNavigation";
 import { toast } from "sonner";
@@ -101,7 +101,8 @@ function AvailableApps({ primaryApp, linkedAppIds }: { primaryApp?: string | nul
 
 export default function Users() {
   const [location] = useLocation();
-  const navigationState = useMemo(() => getUsersNavigationState(location), [location]);
+  const locationSearch = useSearch();
+  const navigationState = useMemo(() => getUsersNavigationState(`${location}${locationSearch}`), [location, locationSearch]);
   const [search, setSearch] = useState(() => navigationState.search);
   const [searchInput, setSearchInput] = useState(() => navigationState.search);
   const [page, setPage] = useState(() => navigationState.page);

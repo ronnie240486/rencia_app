@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { buildDeviceListsHref, buildUserEditHref, buildUsersHref, getListsReturnHref, getListsReturnLabel, getUsersNavigationState } from "../client/src/lib/userNavigation";
 
 describe("navegação preservada entre usuários, edição e listas", () => {
+  it("interpreta a busca separada do caminho, como o roteador do navegador entrega", () => {
+    expect(getUsersNavigationState("/users" + "?search=Roni&page=2")).toEqual({ search: "Roni", page: 2 });
+  });
+
   it("mantém busca e página ao abrir a edição e voltar após salvar", () => {
     const state = getUsersNavigationState("/users?search=Roni&page=2");
     expect(state).toEqual({ search: "Roni", page: 2 });

@@ -12,7 +12,7 @@ import { CLIENT_APP_OPTIONS } from "@/lib/clientAppOptions";
 import { AppLogoBadge } from "@/components/AppLogoBadge";
 import { AlertTriangle, ArrowLeft, CalendarSearch, ChevronDown, ListPlus, Loader2, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useParams } from "wouter";
+import { Link, useLocation, useParams, useSearch } from "wouter";
 import { toast } from "sonner";
 import { toDateOnly } from "@shared/dateOnly";
 import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
@@ -72,8 +72,9 @@ function MacAppBadge({ appId }: { appId: string | null | undefined }) {
 export default function UserEdit() {
   const params = useParams<{ id: string }>();
   const [location, navigate] = useLocation();
+  const locationSearch = useSearch();
   const deviceId = parseInt(params.id ?? "0", 10);
-  const usersNavigation = getUsersNavigationState(location);
+  const usersNavigation = getUsersNavigationState(`${location}${locationSearch}`);
   const usersHref = buildUsersHref(usersNavigation);
 
   const { data: appsData } = trpc.apps.list.useQuery();

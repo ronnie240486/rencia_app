@@ -1836,3 +1836,8 @@
 - [x] Manter o termo pesquisado na lupa ao voltar para Usuários depois de salvar
 - [x] Preservar a página e os filtros da listagem durante o fluxo de edição
 - [ ] Testar o fluxo de ida, salvar e volta no celular
+
+## Regressão do retorno e da busca publicada (07/09/2026)
+- [x] Reproduzir por que o botão Voltar de Listas não retornou à edição
+- [x] Corrigir a persistência de busca que não foi aplicada no celular
+- [ ] Fazer uma validação real no navegador antes de publicar novamente

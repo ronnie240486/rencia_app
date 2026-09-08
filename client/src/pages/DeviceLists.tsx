@@ -18,7 +18,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
-import { Link, useLocation, useParams } from "wouter";
+import { Link, useLocation, useParams, useSearch } from "wouter";
 import { toast } from "sonner";
 import { getListsReturnHref, getListsReturnLabel } from "@/lib/userNavigation";
 
@@ -47,9 +47,11 @@ const emptyForm: ListForm = {
 export default function DeviceLists() {
   const { id } = useParams<{ id: string }>();
   const [location] = useLocation();
+  const locationSearch = useSearch();
   const deviceId = parseInt(id ?? "0");
-  const returnHref = getListsReturnHref(deviceId, location);
-  const returnLabel = getListsReturnLabel(location);
+  const fullLocation = `${location}${locationSearch}`;
+  const returnHref = getListsReturnHref(deviceId, fullLocation);
+  const returnLabel = getListsReturnLabel(fullLocation);
 
   const [showDialog, setShowDialog] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
