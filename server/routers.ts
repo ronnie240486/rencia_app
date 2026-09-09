@@ -35,6 +35,7 @@ import { requireExplicitDeviceIds } from "./dnsUpdateScope";
 import { CONNECTED_WINDOW_MINUTES, isWithinConnectedWindow } from "./connectedWindow";
 import { hasConfirmedListFailure, probeListUrl, isLikelyM3uUrl } from "./listHealth";
 import { dnsOperationalMessage, hasActiveDeviceUsingDns } from "./dnsOperationalStatus";
+import { getDnsGroupCurrentHealth } from "./dnsGroupHealth";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
 import { buildServerPilotOverview } from "./serverPilot";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
@@ -3165,7 +3166,10 @@ export const appRouter = router({
         current.dns.push({ id: entry.id, titulo: entry.titulo, host: entry.host, status: displayStatus, statusCode: latest?.statusCode ?? null, message: displayMessage, checkedAt: latest?.checkedAt ? new Date(latest.checkedAt) : null, lastFailure: lastFailure?.checkedAt ? { statusCode: lastFailure.statusCode ?? null, message: lastFailure.message ?? "Falha sem mensagem detalhada", checkedAt: new Date(lastFailure.checkedAt) } : null });
         groups.set(key, current);
       }
-      return Array.from(groups.values()).map((item) => ({ ...item, failedDns: item.dns.filter((dns) => dns.status === "error"), health: item.total === 0 ? "unknown" : item.errors / item.total >= 0.5 ? "critical" : item.errors > 0 ? "attention" : "healthy" }));
+      return Array.from(groups.values()).map((item) => {
+        const failedDns = item.dns.filter((dns) => dns.status === "error");
+        return { ...item, failedDns, currentErrors: failedDns.length, health: getDnsGroupCurrentHealth(item.dns.map((dns) => dns.status)) };
+      });
     }),
     listServerBlocks: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();

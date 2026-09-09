@@ -1847,3 +1847,9 @@
 - [x] Fazer Voltar de Listas retornar diretamente para Editar usuário
 - [x] Manter a última busca digitada após salvar, mesmo sem parâmetro na URL
 - [ ] Testar os dois fluxos e publicar somente após validação funcional
+
+## Selo DNS após recuperação (09/09/2026)
+- [x] Calcular o selo do grupo pela última verificação de cada DNS
+- [x] Manter contagem e registro de falhas anteriores apenas como histórico
+- [x] Exibir Saudável quando todos os Hosts do grupo estão funcionando agora
+- [ ] Validar no celular e publicar a correção
