@@ -5,6 +5,8 @@ describe("saúde atual de grupos DNS", () => {
   it("fica saudável quando Hosts atualmente respondem, mesmo com falhas antigas", () => {
     expect(getDnsGroupCurrentHealth(["success"])).toBe("healthy");
     expect(getDnsGroupCurrentHealth(["success", "unknown"])).toBe("healthy");
+    // A tela usa este resultado atual e não a contagem de falhas antigas do histórico.
+    expect(getDnsGroupCurrentHealth(["success", "success"])).not.toBe("attention");
   });
 
   it("mantém alerta somente para falha atual e crítico quando todos falharam agora", () => {

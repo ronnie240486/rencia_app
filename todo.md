@@ -1853,3 +1853,8 @@
 - [x] Manter contagem e registro de falhas anteriores apenas como histórico
 - [x] Exibir Saudável quando todos os Hosts do grupo estão funcionando agora
 - [ ] Validar no celular e publicar a correção
+
+## Histórico HTTP 404 enganoso na DNS (09/09/2026)
+- [x] Ocultar falha histórica de Host quando a DNS está funcionando agora
+- [x] Mostrar falha somente quando o último teste da lista real falhar
+- [ ] Testar o card DNS e publicar a correção
