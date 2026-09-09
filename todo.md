@@ -1858,3 +1858,9 @@
 - [x] Ocultar falha histórica de Host quando a DNS está funcionando agora
 - [x] Mostrar falha somente quando o último teste da lista real falhar
 - [ ] Testar o card DNS e publicar a correção
+
+## Atualização e limpeza do Monitor de Listas (09/09/2026)
+- [x] Atualizar os dados do monitor automaticamente sem recarregar a página
+- [x] Adicionar lixeira para limpar somente o histórico de uma lista/servidor normalizado
+- [x] Pedir confirmação antes de apagar registros do monitor
+- [ ] Testar e publicar sem remover listas ou clientes

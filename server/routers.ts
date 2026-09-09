@@ -38,6 +38,7 @@ import { dnsOperationalMessage, hasActiveDeviceUsingDns } from "./dnsOperational
 import { getDnsGroupCurrentHealth } from "./dnsGroupHealth";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
 import { buildServerPilotOverview } from "./serverPilot";
+import { normalizeListMonitorHistoryUrl } from "./listMonitorHistory";
 import { bulkDeviceUpdateSchema } from "./deviceBulk";
 import { autoBackupSettings, backupSnapshots, historyRetentionSettings, monthlyRevenueClosures, monthlyRevenueSettings } from "../drizzle/schema";
 import { createBackupSnapshot, restoreBackupSnapshot, AUTO_BACKUP_CRON } from "./backupService";
@@ -2243,6 +2244,15 @@ export const appRouter = router({
         grouped.set(check.urlSnapshot, current);
       }
       return Array.from(grouped.values()).map((item) => ({ ...item, errorRate: item.checks ? Math.round((item.errors / item.checks) * 100) : 0, avgResponseMs: item.responseSamples ? Math.round(item.totalResponseMs / item.responseSamples) : null })).sort((a, b) => b.errorRate - a.errorRate || b.errors - a.errors);
+    }),
+
+    clearHistory: ownerProcedure.input(z.object({ url: z.string().trim().min(1).max(4096) })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const url = normalizeListMonitorHistoryUrl(input.url);
+      await db.delete(listHealthChecks).where(and(eq(listHealthChecks.ownerId, ctx.user.id), eq(listHealthChecks.urlSnapshot, url)));
+      await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "list_monitor", entityId: 0, action: "history_cleared", summary: "Histórico de monitoramento de uma lista foi limpo" });
+      return { cleared: true };
     }),
 
     serverPilot: ownerProcedure.query(async ({ ctx }) => {
