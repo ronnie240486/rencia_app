@@ -1863,4 +1863,9 @@
 - [x] Atualizar os dados do monitor automaticamente sem recarregar a página
 - [x] Adicionar lixeira para limpar somente o histórico de uma lista/servidor normalizado
 - [x] Pedir confirmação antes de apagar registros do monitor
-- [ ] Testar e publicar sem remover listas ou clientes
+- [x] Testar e publicar sem remover listas ou clientes
+
+## Resumo de falhas abrindo repetidamente (10/09/2026)
+- [x] Fechar o resumo técnico durante a sessão ao tocar em Continuar no painel
+- [x] Reabrir o resumo apenas quando existirem alertas novos desde o último fechamento
+- [x] Testar o comportamento com atualização automática e publicar

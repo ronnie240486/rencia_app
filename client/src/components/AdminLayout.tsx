@@ -4,7 +4,7 @@ import { getLoginUrl } from "@/const";
 import { cn } from "@/lib/utils";
 import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS, isOwnerOnlyRoute } from "./sidebarNavigation";
 import { permissionForRoute } from "@shared/resellerPermissions";
-import { currentListAlertDay, DISMISSED_LIST_ALERTS_SESSION_KEY, getActiveConfirmedListAlerts, hasPresentedListAlertSummary, listAlertSummaryStorageKey, parseDismissedListAlertIds } from "./listAlertDismissal";
+import { dismissedListAlertStorageKey, DISMISSED_LIST_ALERTS_SESSION_KEY, getActiveConfirmedListAlerts, mergeDismissedListAlertIds, parseDismissedListAlertIds } from "./listAlertDismissal";
 import {
   BarChart3,
   ChevronDown,
@@ -163,14 +163,14 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [location, setLocation] = useLocation();
-  const dailyListAlertSummaryKey = listAlertSummaryStorageKey((user as any)?.id);
+  const dismissedListAlertsStorageKey = dismissedListAlertStorageKey((user as any)?.id);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isListAlertSummaryOpen, setIsListAlertSummaryOpen] = useState(false);
   const [dismissedListAlertIds, setDismissedListAlertIds] = useState<number[]>(() =>
-    typeof window === "undefined" ? [] : parseDismissedListAlertIds(window.sessionStorage.getItem(DISMISSED_LIST_ALERTS_SESSION_KEY))
-  );
-  const [hasPresentedSummary, setHasPresentedSummary] = useState(() =>
-    typeof window === "undefined" ? false : hasPresentedListAlertSummary(window.localStorage.getItem(dailyListAlertSummaryKey))
+    typeof window === "undefined" ? [] : mergeDismissedListAlertIds(
+      parseDismissedListAlertIds(window.sessionStorage.getItem(DISMISSED_LIST_ALERTS_SESSION_KEY)),
+      parseDismissedListAlertIds(window.localStorage.getItem(dismissedListAlertsStorageKey)),
+    )
   );
   const [openNavGroups, setOpenNavGroups] = useState<string[]>(() => [...INITIAL_OPEN_NAV_GROUPS]);
   const [isDark, setIsDark] = useState(() => {
@@ -197,21 +197,13 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const activeListAlerts = getActiveConfirmedListAlerts(panelAlerts, dismissedListAlertIds);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    setHasPresentedSummary(hasPresentedListAlertSummary(window.localStorage.getItem(dailyListAlertSummaryKey)));
-  }, [dailyListAlertSummaryKey]);
-
-  useEffect(() => {
-    if (activeListAlerts.length > 0 && !hasPresentedSummary) {
-      window.localStorage.setItem(dailyListAlertSummaryKey, currentListAlertDay());
-      setHasPresentedSummary(true);
-      setIsListAlertSummaryOpen(true);
-    }
-  }, [activeListAlerts.length, hasPresentedSummary, dailyListAlertSummaryKey]);
+    if (activeListAlerts.length > 0) setIsListAlertSummaryOpen(true);
+  }, [activeListAlerts.length]);
 
   const dismissListAlertSummary = (openAlerts = false) => {
-    const next = Array.from(new Set([...dismissedListAlertIds, ...activeListAlerts.map(alert => alert.id)]));
+    const next = mergeDismissedListAlertIds(dismissedListAlertIds, activeListAlerts.map(alert => alert.id));
     window.sessionStorage.setItem(DISMISSED_LIST_ALERTS_SESSION_KEY, JSON.stringify(next));
+    window.localStorage.setItem(dismissedListAlertsStorageKey, JSON.stringify(next));
     setDismissedListAlertIds(next);
     setIsListAlertSummaryOpen(false);
     if (openAlerts) setLocation("/alertas");
