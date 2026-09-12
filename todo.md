@@ -1869,3 +1869,9 @@
 - [x] Fechar o resumo técnico durante a sessão ao tocar em Continuar no painel
 - [x] Reabrir o resumo apenas quando existirem alertas novos desde o último fechamento
 - [x] Testar o comportamento com atualização automática e publicar
+
+## Ranking de servidores na Home (10/09/2026)
+- [x] Mostrar abaixo do Ranking de APK os servidores Club, Epic, Slin e demais grupos cadastrados
+- [x] Exibir a quantidade real de clientes em cada servidor
+- [x] Abrir modal com os clientes vinculados ao servidor escolhido
+- [x] Validar a visualização em duas colunas no celular e publicar

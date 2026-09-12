@@ -14,7 +14,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AlertTriangle, CalendarDays, Crown, Layers, Search, Shield,
-  Star, Users, Wifi, WifiOff, RefreshCw, Activity, Download, Upload,
+  Star, Users, Wifi, WifiOff, RefreshCw, Activity, Download, Upload, Server,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect, useMemo, useState } from "react";
@@ -102,6 +102,8 @@ export default function Dashboard() {
   const [confirmingImport, setConfirmingImport] = useState(false);
   const [backupReminderOpen, setBackupReminderOpen] = useState(false);
   const [monthlyClosureOpen, setMonthlyClosureOpen] = useState(false);
+  const [serverRankingOpen, setServerRankingOpen] = useState(false);
+  const [selectedServer, setSelectedServer] = useState<string | null>(null);
 
   const backupWeekKey = () => {
     const now = new Date();
@@ -212,6 +214,11 @@ export default function Dashboard() {
   const enableMonthlySchedule = trpc.monthlyRevenue.enableSchedule.useMutation({ onSuccess: () => scheduleStatus.refetch() });
   const disableMonthlySchedule = trpc.monthlyRevenue.disableSchedule.useMutation({ onSuccess: () => scheduleStatus.refetch() });
   const { data: appStats } = trpc.ranking.appStats.useQuery();
+  const { data: serverRanking = [] } = trpc.ranking.serverStats.useQuery();
+  const { data: selectedServerClients = [], isLoading: selectedServerLoading } = trpc.ranking.serverClients.useQuery(
+    { serverName: selectedServer ?? "" },
+    { enabled: Boolean(selectedServer) },
+  );
   const { data: planInfo } = trpc.plan.info.useQuery();
   const { data: recentDevices, isLoading: recentLoading } = trpc.devices.recentList.useQuery({ search: recentSearch, limit: 5 });
   const { data: expiringSoon } = trpc.devices.expiringSoon.useQuery({ days: 7 });
@@ -726,6 +733,59 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Server className="h-4 w-4 text-primary" /> Ranking de servidores
+            </CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">Clientes cadastrados em Club, Epic, Slin e nos demais perfis de servidor.</p>
+          </div>
+          <Button size="sm" variant="outline" className="shrink-0" onClick={() => setServerRankingOpen(true)}>Ver todos</Button>
+        </CardHeader>
+        <CardContent>
+          {serverRanking.length > 0 ? (
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
+              {serverRanking.slice(0, 6).map((server, index) => (
+                <button key={server.name} type="button" onClick={() => setSelectedServer(server.name)} className="flex min-w-0 items-center gap-2 rounded-lg border bg-muted/20 p-2 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <span className="w-5 shrink-0 text-center text-xs font-bold text-muted-foreground">#{index + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold">{server.name}</p>
+                    <p className="text-xs text-muted-foreground">{server.clientCount} {server.clientCount === 1 ? "cliente" : "clientes"}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="py-4 text-center text-sm text-muted-foreground">Nenhum cliente possui um perfil de servidor definido ainda.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={serverRankingOpen} onOpenChange={setServerRankingOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Ranking completo de servidores</DialogTitle>
+            <DialogDescription>Toque em um servidor para ver os clientes cadastrados nele.</DialogDescription>
+          </DialogHeader>
+          {serverRanking.length > 0 ? <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {serverRanking.map((server, index) => <button key={server.name} type="button" onClick={() => { setServerRankingOpen(false); setSelectedServer(server.name); }} className="rounded-lg border p-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><p className="text-xs font-bold text-muted-foreground">#{index + 1}</p><p className="mt-1 truncate text-sm font-semibold">{server.name}</p><p className="mt-1 text-xs text-muted-foreground">{server.clientCount} {server.clientCount === 1 ? "cliente" : "clientes"}</p></button>)}
+          </div> : <p className="py-6 text-center text-sm text-muted-foreground">Nenhum servidor com clientes cadastrados.</p>}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(selectedServer)} onOpenChange={(open) => { if (!open) setSelectedServer(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Clientes do servidor {selectedServer ?? ""}</DialogTitle>
+            <DialogDescription>Clientes que usam este perfil de servidor.</DialogDescription>
+          </DialogHeader>
+          {selectedServerLoading ? <div className="space-y-2">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-14" />)}</div> : selectedServerClients.length > 0 ? <div className="space-y-2">
+            {selectedServerClients.map((client) => <div key={client.id} className="rounded-lg border p-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{client.nomeServer}</p><p className="mt-1 truncate font-mono text-xs text-muted-foreground">{client.mac ?? "Sem MAC"}</p></div><Badge variant={client.status === "Liberado" ? "secondary" : "outline"} className={client.status === "Liberado" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : ""}>{client.status}</Badge></div><p className="mt-2 text-xs text-muted-foreground">{client.app || "Aplicativo não definido"}</p></div>)}
+          </div> : <p className="py-6 text-center text-sm text-muted-foreground">Nenhum cliente encontrado neste servidor.</p>}
+        </DialogContent>
+      </Dialog>
       </div>
     </AdminLayout>
   );

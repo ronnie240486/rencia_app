@@ -36,6 +36,7 @@ import { CONNECTED_WINDOW_MINUTES, isWithinConnectedWindow } from "./connectedWi
 import { hasConfirmedListFailure, probeListUrl, isLikelyM3uUrl } from "./listHealth";
 import { dnsOperationalMessage, hasActiveDeviceUsingDns } from "./dnsOperationalStatus";
 import { getDnsGroupCurrentHealth } from "./dnsGroupHealth";
+import { buildServerRanking, getServerRankingClients, type ServerRankingDevice } from "./serverRanking";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
 import { buildServerPilotOverview } from "./serverPilot";
 import { normalizeListMonitorHistoryUrl } from "./listMonitorHistory";
@@ -3615,6 +3616,36 @@ export const appRouter = router({
         future,
         total: ouropro + maximus + ultra + prestige + optimus + imperio + infinitus + supremus + evolux + ominus + magnus + excellence + future
       };
+    }),
+
+    serverStats: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db.select({
+        id: devices.id,
+        nomeServidor: devices.nomeServidor,
+        nomeServer: devices.nomeServer,
+        mac: devices.mac,
+        app: devices.app,
+        status: devices.status,
+        dataExpiracao: devices.dataExpiracao,
+      }).from(devices).limit(10_000);
+      return buildServerRanking(rows as ServerRankingDevice[]);
+    }),
+
+    serverClients: protectedProcedure.input(z.object({ serverName: z.string().trim().min(1).max(255) })).query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db.select({
+        id: devices.id,
+        nomeServidor: devices.nomeServidor,
+        nomeServer: devices.nomeServer,
+        mac: devices.mac,
+        app: devices.app,
+        status: devices.status,
+        dataExpiracao: devices.dataExpiracao,
+      }).from(devices).limit(10_000);
+      return getServerRankingClients(rows as ServerRankingDevice[], input.serverName);
     }),
   }),
 });
