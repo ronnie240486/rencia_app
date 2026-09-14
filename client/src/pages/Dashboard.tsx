@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
+import { buildUserEditHref } from "@/lib/userNavigation";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
 import { getConnectedQueryMinutes, isWithinConnectedWindow, type ConnectedFilter } from "@shared/connectedWindow";
@@ -782,7 +783,7 @@ export default function Dashboard() {
             <DialogDescription>Clientes que usam este perfil de servidor.</DialogDescription>
           </DialogHeader>
           {selectedServerLoading ? <div className="space-y-2">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-14" />)}</div> : selectedServerClients.length > 0 ? <div className="space-y-2">
-            {selectedServerClients.map((client) => <div key={client.id} className="rounded-lg border p-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{client.nomeServer}</p><p className="mt-1 truncate font-mono text-xs text-muted-foreground">{client.mac ?? "Sem MAC"}</p></div><Badge variant={client.status === "Liberado" ? "secondary" : "outline"} className={client.status === "Liberado" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : ""}>{client.status}</Badge></div><p className="mt-2 text-xs text-muted-foreground">{client.app || "Aplicativo não definido"}</p></div>)}
+            {selectedServerClients.map((client) => <Link key={client.id} href={buildUserEditHref(client.id)} onClick={() => setSelectedServer(null)} className="block rounded-lg border p-3 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{client.nomeServer}</p><p className="mt-1 truncate font-mono text-xs text-muted-foreground">{client.mac ?? "Sem MAC"}</p></div><Badge variant={client.status === "Liberado" ? "secondary" : "outline"} className={client.status === "Liberado" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : ""}>{client.status}</Badge></div><p className="mt-2 text-xs text-muted-foreground">{client.app || "Aplicativo não definido"}</p><p className="mt-2 text-xs font-semibold text-primary">Toque para editar cadastro</p></Link>)}
           </div> : <p className="py-6 text-center text-sm text-muted-foreground">Nenhum cliente encontrado neste servidor.</p>}
         </DialogContent>
       </Dialog>

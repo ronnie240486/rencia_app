@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { getVisibleNavigationGroups, INITIAL_OPEN_NAV_GROUPS, isOwnerOnlyRoute } from "./sidebarNavigation";
 import { permissionForRoute } from "@shared/resellerPermissions";
 import { dismissedListAlertStorageKey, DISMISSED_LIST_ALERTS_SESSION_KEY, getActiveConfirmedListAlerts, mergeDismissedListAlertIds, parseDismissedListAlertIds } from "./listAlertDismissal";
+import { shouldAutoOpenTechnicalAlertSummary } from "./technicalAlertSummary";
 import {
   BarChart3,
   ChevronDown,
@@ -197,7 +198,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const activeListAlerts = getActiveConfirmedListAlerts(panelAlerts, dismissedListAlertIds);
 
   useEffect(() => {
-    if (activeListAlerts.length > 0) setIsListAlertSummaryOpen(true);
+    if (shouldAutoOpenTechnicalAlertSummary() && activeListAlerts.length > 0) {
+      setIsListAlertSummaryOpen(true);
+      return;
+    }
+    setIsListAlertSummaryOpen(false);
   }, [activeListAlerts.length]);
 
   const dismissListAlertSummary = (openAlerts = false) => {

@@ -1875,3 +1875,17 @@
 - [x] Exibir a quantidade real de clientes em cada servidor
 - [x] Abrir modal com os clientes vinculados ao servidor escolhido
 - [x] Validar a visualização em duas colunas no celular e publicar
+
+## Atualização de imagens e desempenho de cadastros (12/09/2026)
+- [ ] Fazer o OuroPro reconhecer imagens novas do painel sem desinstalar ou reinstalar o APK
+- [ ] Garantir que a atualização preserve URLs e o cache apenas até a nova versão visual ser publicada
+- [ ] Carregar inicialmente apenas os clientes/cadastros visíveis na tela
+- [ ] Buscar as próximas páginas sob demanda sem apagar busca, filtros ou seleção
+- [ ] Cobrir atualização de imagem e paginação com testes e publicar
+
+## Pop-up técnico e clientes por servidor (12/09/2026)
+- [x] Não abrir automaticamente o resumo para falhas antigas, inconclusivas ou já normalizadas
+- [x] Manter a Central de Alertas acessível sem bloquear o painel com pop-up repetido
+- [x] Exibir todos os clientes no modal de Club, Onix, Epic, Slin e outros servidores
+- [x] Abrir diretamente o Editar cadastro ao tocar em um cliente do modal de servidor
+- [x] Validar a ausência do pop-up automático e a rota de edição no modal, e publicar
