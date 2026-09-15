@@ -1892,3 +1892,6 @@
 
 - [x] Reduzir a página inicial de Clientes/Cadastros para 20 registros e carregar as páginas seguintes sob demanda
 - [x] Limitar o enriquecimento de MACs, aplicativos e playlists aos 20 registros da página visível
+
+- [x] Fazer a imagem de fundo do OuroPro atualizar após alteração no painel, sem desinstalar e reinstalar o APK
+- [x] Validar a rota /api/v4/bg.php com revisão visual nova e cache compatível com o aplicativo

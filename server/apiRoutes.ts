@@ -235,6 +235,16 @@ async function resolveVersionedPublicImageUrl(storedUrl: string, revision: strin
   return appendVisualRevision(await resolvePublicImageUrl(storedUrl), revision);
 }
 
+export function buildBackgroundResponseHeaders(backgroundUrl: string) {
+  const visualRevision = buildVisualRevision(backgroundUrl);
+  return {
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+    Pragma: "no-cache",
+    Expires: "0",
+    ETag: `"${visualRevision}"`,
+  };
+}
+
 /**
  * Decodifica o payload enviado pelo APK BoxV3 (Security.getStringData).
  *
@@ -1701,12 +1711,29 @@ export function registerApiRoutes(app: Express) {
         return;
       }
 
-      // Resolver URL pública (gera presigned URL se for manus-storage protegido)
+      // Resolver URL pública (gera presigned URL se for manus-storage protegido).
+      // Entregamos os bytes diretamente: redirect para o S3 deixava o APK/Glide
+      // reutilizar a imagem antiga mesmo depois de uma troca no painel.
       const resolvedUrl = await resolvePublicImageUrl(bgUrl);
-
-      // Usar redirect para que o Glide faça cache da URL final do S3
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.redirect(302, resolvedUrl);
+      const imageResponse = await fetch(resolvedUrl, {
+        headers: { Accept: "image/*" },
+        cache: "no-store",
+      });
+      if (!imageResponse.ok) {
+        res.status(204).end();
+        return;
+      }
+      const contentType = imageResponse.headers.get("content-type") || "image/jpeg";
+      if (!contentType.toLowerCase().startsWith("image/")) {
+        res.status(204).end();
+        return;
+      }
+      const imageBytes = Buffer.from(await imageResponse.arrayBuffer());
+      const responseHeaders = buildBackgroundResponseHeaders(bgUrl);
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", String(imageBytes.length));
+      for (const [header, value] of Object.entries(responseHeaders)) res.setHeader(header, value);
+      res.status(200).send(imageBytes);
     } catch (error) {
       console.error("[API] /api/v4/bg.php error:", error);
       res.status(204).end();
