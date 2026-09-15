@@ -133,7 +133,8 @@ const GENERIC_APP_UPLOAD_FIELD = /^(prestige|optimus|imperio|infinitus|supremus|
 // Cache de configurações para evitar query no banco a cada request
 let settingsCache: Record<string, string> = {};
 let settingsCacheTime = 0;
-const SETTINGS_CACHE_TTL = 60_000; // 60 segundos
+// Alterações visuais precisam chegar ao APK logo após salvar no painel.
+const SETTINGS_CACHE_TTL = 5_000;
 
 async function getSettings(): Promise<Record<string, string>> {
   const now = Date.now();
@@ -213,6 +214,25 @@ async function resolvePublicImageUrl(storedUrl: string): Promise<string> {
   }
   // URL externa: converter para HTTPS e retornar
   return convertToHttps(storedUrl);
+}
+
+export function buildVisualRevision(...sources: Array<string | null | undefined>) {
+  const seed = sources.map((source) => source?.trim() ?? "").join("\u001f");
+  let hash = 2166136261;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+export function appendVisualRevision(url: string, revision: string) {
+  if (!url) return "";
+  return `${url}${url.includes("#") ? "&" : "#"}rencia-visual=${encodeURIComponent(revision)}`;
+}
+
+async function resolveVersionedPublicImageUrl(storedUrl: string, revision: string) {
+  return appendVisualRevision(await resolvePublicImageUrl(storedUrl), revision);
 }
 
 /**
@@ -1098,15 +1118,26 @@ export function registerApiRoutes(app: Express) {
       const words = buildWords(cfg);
 
       // Resolver URLs de imagens para URLs públicas (presigned S3)
+      const visualRevision = buildVisualRevision(
+        cfg.trial_logo_url,
+        cfg.trial_banner_url,
+        cfg.trial_background_url,
+        cfg.icon_reload_url,
+        cfg.icon_exit_url,
+        cfg.icon_settings_url,
+        cfg.icon_live_tv_url,
+        cfg.icon_movies_url,
+        cfg.icon_series_url,
+      );
       const [postResolvedLogoUrl, postResolvedBannerUrl, postResolvedIconReload, postResolvedIconExit, postResolvedIconSettings, postResolvedIconLiveTv, postResolvedIconMovies, postResolvedIconSeries] = await Promise.all([
-        resolvePublicImageUrl(cfg.trial_logo_url || ""),
-        resolvePublicImageUrl(cfg.trial_banner_url || ""),
-        resolvePublicImageUrl(cfg.icon_reload_url || ""),
-        resolvePublicImageUrl(cfg.icon_exit_url || ""),
-        resolvePublicImageUrl(cfg.icon_settings_url || ""),
-        resolvePublicImageUrl(cfg.icon_live_tv_url || ""),
-        resolvePublicImageUrl(cfg.icon_movies_url || ""),
-        resolvePublicImageUrl(cfg.icon_series_url || ""),
+        resolveVersionedPublicImageUrl(cfg.trial_logo_url || "", visualRevision),
+        resolveVersionedPublicImageUrl(cfg.trial_banner_url || "", visualRevision),
+        resolveVersionedPublicImageUrl(cfg.icon_reload_url || "", visualRevision),
+        resolveVersionedPublicImageUrl(cfg.icon_exit_url || "", visualRevision),
+        resolveVersionedPublicImageUrl(cfg.icon_settings_url || "", visualRevision),
+        resolveVersionedPublicImageUrl(cfg.icon_live_tv_url || "", visualRevision),
+        resolveVersionedPublicImageUrl(cfg.icon_movies_url || "", visualRevision),
+        resolveVersionedPublicImageUrl(cfg.icon_series_url || "", visualRevision),
       ]);
 
       // O APK BoxV3 busca impact_phrase, contact, trial_ended, etc. dentro de
@@ -1143,6 +1174,7 @@ export function registerApiRoutes(app: Express) {
         series_label: cfg.app_series_label || "Séries",
         banner_url: postResolvedBannerUrl,
         logo_url: postResolvedLogoUrl,
+        visual_revision: visualRevision,
         contact: words.contact,
         contact_whatsapp: words.str_whatsapp,
         contact_website: words.str_link,
@@ -1643,7 +1675,7 @@ export function registerApiRoutes(app: Express) {
         : "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
 
       // Usar redirect para que o Glide faça cache da URL final do S3
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.redirect(302, targetUrl);
     } catch (error) {
       console.error("[API] /api/v4/logo.php error:", error);
@@ -1673,7 +1705,7 @@ export function registerApiRoutes(app: Express) {
       const resolvedUrl = await resolvePublicImageUrl(bgUrl);
 
       // Usar redirect para que o Glide faça cache da URL final do S3
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.redirect(302, resolvedUrl);
     } catch (error) {
       console.error("[API] /api/v4/bg.php error:", error);
@@ -1690,10 +1722,21 @@ export function registerApiRoutes(app: Express) {
   app.get("/api/app-config", async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
+      const visualRevision = buildVisualRevision(
+        cfg.trial_logo_url,
+        cfg.trial_banner_url,
+        cfg.trial_background_url,
+        cfg.icon_live_tv_url,
+        cfg.icon_movies_url,
+        cfg.icon_series_url,
+        cfg.icon_account_url,
+        cfg.icon_change_playlist_url,
+      );
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.json({
-        background_url: cfg.trial_background_url || "",
-        logo_url: cfg.trial_logo_url || "",
-        banner_url: cfg.trial_banner_url || "",
+        background_url: appendVisualRevision(cfg.trial_background_url || "", visualRevision),
+        logo_url: appendVisualRevision(cfg.trial_logo_url || "", visualRevision),
+        banner_url: appendVisualRevision(cfg.trial_banner_url || "", visualRevision),
         support_text: cfg.trial_support_text || "Suporte com seu revendedor",
         contact_whatsapp: cfg.contact_whatsapp || "",
         contact_website: cfg.contact_website || "",
@@ -1703,13 +1746,14 @@ export function registerApiRoutes(app: Express) {
         app_movies_label: cfg.app_movies_label || "Filmes",
         app_series_label: cfg.app_series_label || "S\u00e9ries",
         // Ícones dos botões
-        icon_live_tv_url: cfg.icon_live_tv_url || "",
-        icon_movies_url: cfg.icon_movies_url || "",
-        icon_series_url: cfg.icon_series_url || "",
-        icon_account_url: cfg.icon_account_url || "",
-        icon_change_playlist_url: cfg.icon_change_playlist_url || "",
+        icon_live_tv_url: appendVisualRevision(cfg.icon_live_tv_url || "", visualRevision),
+        icon_movies_url: appendVisualRevision(cfg.icon_movies_url || "", visualRevision),
+        icon_series_url: appendVisualRevision(cfg.icon_series_url || "", visualRevision),
+        icon_account_url: appendVisualRevision(cfg.icon_account_url || "", visualRevision),
+        icon_change_playlist_url: appendVisualRevision(cfg.icon_change_playlist_url || "", visualRevision),
         impact_phrase: cfg.impact_phrase || "",
         contact_info: cfg.contact_info || "",
+        visual_revision: visualRevision,
         updated_at: new Date().toISOString(),
       });
     } catch (error) {

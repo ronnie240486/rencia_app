@@ -30,7 +30,7 @@ import { normalizeVoiceSearchTranscript } from "@/lib/voiceSearch";
 import { findClientAppOption } from "@/lib/clientAppOptions";
 import { AppLogoBadge } from "@/components/AppLogoBadge";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20;
 
 type DeviceStatus = "Liberado" | "Bloqueado" | "Expirado";
 type DeviceTipo = "Usuario" | "Revenda" | "UltraMaster" | "Master";

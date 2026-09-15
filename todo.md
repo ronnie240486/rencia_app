@@ -1877,8 +1877,8 @@
 - [x] Validar a visualização em duas colunas no celular e publicar
 
 ## Atualização de imagens e desempenho de cadastros (12/09/2026)
-- [ ] Fazer o OuroPro reconhecer imagens novas do painel sem desinstalar ou reinstalar o APK
-- [ ] Garantir que a atualização preserve URLs e o cache apenas até a nova versão visual ser publicada
+- [x] Fazer o OuroPro reconhecer imagens novas do painel sem desinstalar ou reinstalar o APK
+- [x] Garantir que a atualização preserve URLs e o cache apenas até a nova versão visual ser publicada
 - [ ] Carregar inicialmente apenas os clientes/cadastros visíveis na tela
 - [ ] Buscar as próximas páginas sob demanda sem apagar busca, filtros ou seleção
 - [ ] Cobrir atualização de imagem e paginação com testes e publicar
@@ -1889,3 +1889,6 @@
 - [x] Exibir todos os clientes no modal de Club, Onix, Epic, Slin e outros servidores
 - [x] Abrir diretamente o Editar cadastro ao tocar em um cliente do modal de servidor
 - [x] Validar a ausência do pop-up automático e a rota de edição no modal, e publicar
+
+- [x] Reduzir a página inicial de Clientes/Cadastros para 20 registros e carregar as páginas seguintes sob demanda
+- [ ] Adiar enriquecimentos pesados de MACs e aplicativos até a página visível ser solicitada
