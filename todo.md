@@ -1891,4 +1891,4 @@
 - [x] Validar a ausência do pop-up automático e a rota de edição no modal, e publicar
 
 - [x] Reduzir a página inicial de Clientes/Cadastros para 20 registros e carregar as páginas seguintes sob demanda
-- [ ] Adiar enriquecimentos pesados de MACs e aplicativos até a página visível ser solicitada
+- [x] Limitar o enriquecimento de MACs, aplicativos e playlists aos 20 registros da página visível
