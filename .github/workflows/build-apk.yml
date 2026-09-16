@@ -1,0 +1,50 @@
+name: Gerar APK (Ouro Pro / Maximus / etc.)
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Perfil de build (preview ou production)"
+        required: true
+        default: "preview"
+        type: choice
+        options:
+          - preview
+          - production
+  push:
+    branches:
+      - main
+    paths:
+      - "maximus-player-source/**"
+
+jobs:
+  build:
+    name: Build Android APK via EAS
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: maximus-player-source
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Instalar EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Login no Expo (via token salvo nos Secrets)
+        run: echo "EXPO_TOKEN configurado via variável de ambiente"
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Gerar build do APK
+        run: eas build --platform android --profile ${{ github.event.inputs.profile || 'preview' }} --non-interactive --no-wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
