@@ -1,4 +1,6 @@
 import type { Express } from "express";
+import path from "path";
+import fs from "fs";
 import { ENV } from "./env";
 
 export function registerStorageProxy(app: Express) {
@@ -6,6 +8,19 @@ export function registerStorageProxy(app: Express) {
     const key = (req.params as Record<string, string>)[0];
     if (!key) {
       res.status(400).send("Missing storage key");
+      return;
+    }
+
+    // Serve local override, se existir (não depende do Manus e sobrevive a re-sincronizações)
+    const distPath =
+      process.env.NODE_ENV === "development"
+        ? path.resolve(import.meta.dirname, "../..", "dist", "public")
+        : path.resolve(import.meta.dirname, "public");
+    const localDir = path.join(distPath, "manus-storage");
+    const localPath = path.join(localDir, key);
+    if (localPath.startsWith(localDir) && fs.existsSync(localPath)) {
+      res.set("Cache-Control", "public, max-age=86400");
+      res.sendFile(localPath);
       return;
     }
 
