@@ -10,7 +10,8 @@
 
 const PROXY_BASE = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/iptv-proxy`;
 
-const PANEL_BASE = 'https://renciaapp.manus.space/api/v5';
+const PANEL_BASE_PRIMARY = 'https://renciaapp-production.up.railway.app/api/v5';
+const PANEL_BASE_FALLBACK = 'https://renciaapp.manus.space/api/v5';
 
 const commonHeaders: Record<string, string> = {
   Accept: 'application/json, text/plain, */*',
@@ -156,33 +157,47 @@ function normalize(json: any, macFallback: string): MacStatus {
 }
 
 export async function checkMac(mac: string): Promise<MacStatus> {
-  const upstream = `${PANEL_BASE}/check_mac.php?mac=${encodeURIComponent(mac)}`;
-  try {
-    const res = await fetch(proxied(upstream), { headers: commonHeaders });
-    const json = await safeJson<any>(res);
-    if (!json) return { authorized: false, registered: false, mac, message: 'Resposta inválida.' };
-    return normalize(json, mac);
-  } catch {
-    return { authorized: false, registered: false, mac, message: 'Falha de conexão.' };
+  const path = `/check_mac.php?mac=${encodeURIComponent(mac)}`;
+  let lastResult: MacStatus | null = null;
+  for (const base of [PANEL_BASE_PRIMARY, PANEL_BASE_FALLBACK]) {
+    try {
+      const res = await fetch(proxied(`${base}${path}`), { headers: commonHeaders });
+      const json = await safeJson<any>(res);
+      if (json) {
+        const normalized = normalize(json, mac);
+        if (normalized.authorized) return normalized;
+        lastResult = normalized;
+      }
+    } catch {
+      // tenta o próximo servidor
+    }
   }
+  return lastResult ?? { authorized: false, registered: false, mac, message: 'Falha de conexão.' };
 }
 
 export async function checkExpire(mac: string): Promise<{ expired: boolean; expire_date?: string | null }> {
-  const upstream = `${PANEL_BASE}/check_expire.php?mac=${encodeURIComponent(mac)}`;
-  try {
-    const res = await fetch(proxied(upstream), { headers: commonHeaders });
-    const json = await safeJson<any>(res);
-    if (!json) return { expired: true };
-    return { expired: !!json.expired, expire_date: json.expire_date };
-  } catch {
-    return { expired: true };
+  const path = `/check_expire.php?mac=${encodeURIComponent(mac)}`;
+  let lastResult: { expired: boolean; expire_date?: string | null } | null = null;
+  for (const base of [PANEL_BASE_PRIMARY, PANEL_BASE_FALLBACK]) {
+    try {
+      const res = await fetch(proxied(`${base}${path}`), { headers: commonHeaders });
+      const json = await safeJson<any>(res);
+      if (json) {
+        const result = { expired: !!json.expired, expire_date: json.expire_date };
+        if (!result.expired) return result;
+        lastResult = result;
+      }
+    } catch {
+      // tenta o próximo servidor
+    }
   }
+  return lastResult ?? { expired: true };
 }
 
 /** Deve ser chamada após a API externa concluir um teste e devolver os dados do interessado. */
 export async function registerCompletedTest(input: CompletedMaximusTest): Promise<CompletedMaximusTestResponse> {
   try {
-    const response = await fetch(`${PANEL_BASE}/maximus-test-result`, {
+    const response = await fetch(`${PANEL_BASE_PRIMARY}/maximus-test-result`, {
       method: "POST",
       headers: { ...commonHeaders, "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -225,7 +240,7 @@ export async function runConfiguredDnsTest(input: {
 /** Reporta erro nativo do player para o painel ativar uma lista reserva sem esperar o cron. */
 export async function reportPlaybackFailure(mac: string): Promise<PlaybackFailoverResponse> {
   try {
-    const res = await fetch(`${PANEL_BASE}/playback-failure`, {
+    const res = await fetch(`${PANEL_BASE_PRIMARY}/playback-failure`, {
       method: 'POST',
       headers: { ...commonHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({ mac }),
