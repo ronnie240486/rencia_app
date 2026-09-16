@@ -1,7 +1,14 @@
 // Preconfigured storage helpers for Manus WebDev templates
 // Uploads via Forge Server presigned URL to S3 (PUT direct).
 // Downloads return /manus-storage/{key} paths served via 307 redirect.
+//
+// Fallback (Railway e outros ambientes sem Forge configurado): grava o
+// arquivo direto no disco, na mesma pasta que o storageProxy já serve
+// localmente (client/public/manus-storage). Assim, upload de imagens/APKs
+// funciona sem depender de nenhuma credencial do Manus.
 
+import path from "path";
+import fs from "fs";
 import { ENV } from "./_core/env";
 
 function getForgeConfig() {
@@ -9,9 +16,7 @@ function getForgeConfig() {
   const forgeKey = ENV.forgeApiKey;
 
   if (!forgeUrl || !forgeKey) {
-    throw new Error(
-      "Storage config missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY",
-    );
+    return null;
   }
 
   return { forgeUrl: forgeUrl.replace(/\/+$/, ""), forgeKey };
@@ -28,12 +33,46 @@ function appendHashSuffix(relKey: string): string {
   return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
 }
 
+function localStorageDir(): string {
+  const distPath =
+    process.env.NODE_ENV === "development"
+      ? path.resolve(import.meta.dirname, "..", "dist", "public")
+      : path.resolve(import.meta.dirname, "public");
+  return path.join(distPath, "manus-storage");
+}
+
+function publicBaseUrl(): string {
+  if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/+$/, "");
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  return "";
+}
+
+async function localStoragePut(
+  relKey: string,
+  data: Buffer | Uint8Array | string,
+): Promise<{ key: string; url: string }> {
+  const key = appendHashSuffix(normalizeKey(relKey));
+  const dir = localStorageDir();
+  const filePath = path.join(dir, key);
+  if (!filePath.startsWith(dir)) {
+    throw new Error("Invalid storage key");
+  }
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const buffer = typeof data === "string" ? Buffer.from(data) : Buffer.from(data as Uint8Array);
+  fs.writeFileSync(filePath, buffer);
+  return { key, url: `/manus-storage/${key}` };
+}
+
 export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
+  const forge = getForgeConfig();
+  if (!forge) {
+    return localStoragePut(relKey, data);
+  }
+  const { forgeUrl, forgeKey } = forge;
   const key = appendHashSuffix(normalizeKey(relKey));
 
   // 1. Get presigned PUT URL from Forge
@@ -77,9 +116,15 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
 }
 
 export async function storageGetSignedUrl(relKey: string): Promise<string> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
+  const forge = getForgeConfig();
   const key = normalizeKey(relKey);
 
+  if (!forge) {
+    // Arquivo local: já é servido publicamente pelo storageProxy, sem precisar assinar.
+    return `${publicBaseUrl()}/manus-storage/${key}`;
+  }
+
+  const { forgeUrl, forgeKey } = forge;
   const getUrl = new URL("v1/storage/presign/get", forgeUrl + "/");
   getUrl.searchParams.set("path", key);
 
