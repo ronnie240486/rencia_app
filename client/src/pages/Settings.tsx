@@ -282,7 +282,7 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="banner">
-                <TabsList className="grid grid-cols-1 w-full sm:grid-cols-2">
+                <TabsList className="grid grid-cols-2 w-full">
                   <TabsTrigger value="banner" className="gap-1 text-xs">
                     <Image size={13} /> Banner
                   </TabsTrigger>
