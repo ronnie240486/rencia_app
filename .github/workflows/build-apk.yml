@@ -1,16 +1,7 @@
 name: Gerar APK (Ouro Pro / Maximus / etc.)
 
 on:
-  workflow_dispatch:
-    inputs:
-      profile:
-        description: "Perfil de build (preview ou production)"
-        required: true
-        default: "preview"
-        type: choice
-        options:
-          - preview
-          - production
+  workflow_dispatch: {}
   push:
     branches:
       - main
@@ -19,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: Build Android APK via EAS
+    name: Build Android APK (nativo, sem Expo/EAS)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,18 +24,32 @@ jobs:
         with:
           node-version: 20
 
+      - name: Configurar Java (necessário pro Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Instalar dependências
         run: npm install
 
-      - name: Instalar EAS CLI
-        run: npm install -g eas-cli
-
-      - name: Login no Expo (via token salvo nos Secrets)
-        run: echo "EXPO_TOKEN configurado via variável de ambiente"
+      - name: Gerar projeto nativo Android (expo prebuild)
+        run: npx expo prebuild --platform android --non-interactive
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_BACKEND_URL: https://renciaapp-production.up.railway.app
 
-      - name: Gerar build do APK
-        run: eas build --platform android --profile ${{ github.event.inputs.profile || 'preview' }} --non-interactive --no-wait
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      - name: Dar permissão de execução ao Gradle
+        run: chmod +x android/gradlew
+
+      - name: Compilar o APK
+        working-directory: maximus-player-source/android
+        run: ./gradlew assembleDebug
+
+      - name: Publicar o APK gerado
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-gerado
+          path: maximus-player-source/android/app/build/outputs/apk/debug/app-debug.apk
