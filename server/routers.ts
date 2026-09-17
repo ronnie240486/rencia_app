@@ -2840,6 +2840,25 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    /**
+     * Teste manual, sob demanda, de uma URL de servidor guardada numa
+     * configuração de app (ex.: "API do Servidor" do Maximus). Antes essa
+     * URL era só um texto salvo sem nenhuma forma de saber se ela respondia
+     * de verdade — reaproveita o mesmo probeListUrl usado no teste de DNS.
+     */
+    testUrl: protectedProcedure
+      .input(z.object({ url: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        const probe = await probeListUrl(input.url.trim(), { timeoutMs: 6000 });
+        const hostResponded = probe.status === "success" || (probe.statusCode !== null && probe.statusCode >= 200 && probe.statusCode < 500);
+        return {
+          status: (hostResponded ? "success" : "error") as "success" | "error",
+          message: hostResponded ? "Servidor respondeu" : (probe.message || "Não foi possível conectar ao servidor"),
+          statusCode: probe.statusCode,
+          checkedAt: new Date(),
+        };
+      }),
+
     updateMany: protectedProcedure
       .input(z.record(z.string(), z.string()))
       .mutation(async ({ ctx, input }) => {
