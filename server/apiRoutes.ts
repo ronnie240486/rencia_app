@@ -1260,7 +1260,13 @@ export function registerApiRoutes(app: Express) {
     // presente em TODO caminho de resposta, inclusive quando o MAC ainda
     // não está cadastrado — é justamente esse o caso de uso do botão TESTE
     // (dispositivo novo, ninguém cadastrou nada ainda).
-    const cfg = await getSettings();
+    const rawCfg = await getSettings();
+    // ATENÇÃO: essa rota é pública (sem login, qualquer app com o MAC
+    // consegue chamar) e devolve as configs inteiras espalhadas na raiz da
+    // resposta — inclusive chaves sensíveis como o Access Token do Mercado
+    // Pago, que nunca pode vazar pra fora. Sempre usar "cfg" (filtrado)
+    // daqui pra baixo, nunca "rawCfg" direto.
+    const { gpcpro_mp_access_token: _mpToken, ...cfg } = rawCfg;
 
     if (!mac) {
       res.status(400).json({ ...cfg, mac_registered: false, error: "Parâmetro 'mac' é obrigatório." });
@@ -1401,6 +1407,16 @@ export function registerApiRoutes(app: Express) {
         // Sem token configurado — o app cai pro link fixo (gpcpro_lock_button_url),
         // se houver um. Não é um erro de verdade, só "não configurado".
         res.status(404).json({ error: "not_configured" });
+        return;
+      }
+      // Um Access Token de verdade é uma linha só, sem espaço nem quebra de
+      // linha (ex: APP_USR-xxxx ou TEST-xxxx). Se vier outra coisa colada
+      // ali por engano (aconteceu: alguém colou um trecho de código no
+      // campo errado), o `fetch` abaixo quebraria com um erro genérico de
+      // "header inválido" — melhor avisar direito o que está errado.
+      if (/[\r\n]/.test(accessToken) || !/^(APP_USR|TEST)-/.test(accessToken)) {
+        console.error("[MP] gpcpro_mp_access_token configurado não parece um Access Token válido.");
+        res.status(502).json({ error: "invalid_token", message: "O Access Token do Mercado Pago salvo no painel não parece válido (deveria começar com APP_USR- ou TEST-, numa linha só). Confira o campo em Configurações → Pagamento Automático." });
         return;
       }
 
