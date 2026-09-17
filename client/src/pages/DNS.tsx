@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Server, ArrowRightLeft, RefreshCw, Loader2, Copy, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Server, ArrowRightLeft, RefreshCw, Loader2, Copy, CheckCircle2, Wifi, WifiOff } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -37,6 +37,7 @@ export default function DNS() {
   const [fromProfile, setFromProfile] = useState("");
   const [toProfile, setToProfile] = useState("");
   const [targetProfileDnsId, setTargetProfileDnsId] = useState("");
+  const [testResults, setTestResults] = useState<Record<number, { status: "success" | "error"; message: string; checkedAt: string }>>({});
   const utils = trpc.useUtils();
 
   const { data: dnsList = [], isLoading, refetch } = trpc.dns.list.useQuery();
@@ -81,6 +82,14 @@ export default function DNS() {
   });
   const profileSwapMut = trpc.dns.swapProfileForDevices.useMutation({
     onSuccess: async (data) => { toast.success(`${data.updated} cliente(s) trocado(s) de ${data.fromGroup} para ${data.toGroup}.`); setFromProfile(""); setToProfile(""); setTargetProfileDnsId(""); await refreshDnsData(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const testHostMut = trpc.dns.testHost.useMutation({
+    onSuccess: (data, variables) => {
+      setTestResults((prev) => ({ ...prev, [variables.id]: { status: data.status, message: data.message, checkedAt: new Date(data.checkedAt).toLocaleTimeString("pt-BR") } }));
+      if (data.status === "success") toast.success(`DNS online — ${data.message}`);
+      else toast.error(`DNS não respondeu — ${data.message}`);
+    },
     onError: (e) => toast.error(e.message),
   });
   const swapMut = trpc.devices.bulkSwapDns.useMutation({
@@ -202,9 +211,30 @@ export default function DNS() {
                         <p className="font-medium text-sm">{dns.titulo}</p>
                         <Badge variant="secondary" className="mt-1 text-[10px]">Grupo: {dns.grupo ?? "Padrão"}</Badge>
                         <p className="text-xs text-muted-foreground font-mono truncate max-w-xs">{dns.host}</p>
+                        {testResults[dns.id] && (
+                          <p className={`mt-1 text-[11px] font-medium ${testResults[dns.id].status === "success" ? "text-emerald-600" : "text-red-600"}`}>
+                            {testResults[dns.id].status === "success" ? "Online" : "Falhou"} · {testResults[dns.id].message} · {testResults[dns.id].checkedAt}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className={`min-h-10 h-auto justify-center px-3 text-xs sm:min-h-7 sm:h-7 ${testResults[dns.id]?.status === "success" ? "text-emerald-600" : testResults[dns.id]?.status === "error" ? "text-red-600" : ""}`}
+                        title="Testar agora se esta DNS está online"
+                        disabled={testHostMut.isPending && testHostMut.variables?.id === dns.id}
+                        onClick={() => testHostMut.mutate({ id: dns.id })}
+                      >
+                        {testHostMut.isPending && testHostMut.variables?.id === dns.id ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : testResults[dns.id]?.status === "error" ? (
+                          <WifiOff size={12} />
+                        ) : (
+                          <Wifi size={12} />
+                        )}
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
