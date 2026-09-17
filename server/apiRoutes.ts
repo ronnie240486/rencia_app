@@ -1240,15 +1240,27 @@ export function registerApiRoutes(app: Express) {
   app.get("/api/guim.php", async (req: Request, res: Response) => {
     const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : null;
 
+    // O app Maximus (client.ts / getTestRegisterUrl, fetchAppExtras) espera
+    // encontrar as configurações "gpcpro_*" (API do Servidor do gerador de
+    // teste, frase de impacto, tela de bloqueio, etc.) direto na raiz dessa
+    // resposta — mas até aqui essa rota só devolvia as listas do device
+    // (`data`), nunca essas configurações. Resultado: o app sempre caía no
+    // link de fallback fixo (nuvixtv.sigmab.pro), ignorando qualquer coisa
+    // configurada em "API do Servidor" no painel. IMPORTANTE: precisa estar
+    // presente em TODO caminho de resposta, inclusive quando o MAC ainda
+    // não está cadastrado — é justamente esse o caso de uso do botão TESTE
+    // (dispositivo novo, ninguém cadastrou nada ainda).
+    const cfg = await getSettings();
+
     if (!mac) {
-      res.status(400).json({ mac_registered: false, error: "Parâmetro 'mac' é obrigatório." });
+      res.status(400).json({ ...cfg, mac_registered: false, error: "Parâmetro 'mac' é obrigatório." });
       return;
     }
 
     try {
       const db = await getDb();
       if (!db) {
-        res.status(503).json({ error: "Erro ao conectar ao banco de dados" });
+        res.status(503).json({ ...cfg, error: "Erro ao conectar ao banco de dados" });
         return;
       }
 
@@ -1257,7 +1269,7 @@ export function registerApiRoutes(app: Express) {
       const result = resolvedDevice ? [resolvedDevice] : [];
 
       if (result.length === 0) {
-        res.json({ data: [] });
+        res.json({ ...cfg, data: [] });
         return;
       }
 
@@ -1265,7 +1277,7 @@ export function registerApiRoutes(app: Express) {
       const isAllowed = device.status === "Liberado";
 
       if (!isAllowed) {
-        res.json({ data: [] });
+        res.json({ ...cfg, data: [] });
         return;
       }
 
@@ -1346,14 +1358,14 @@ export function registerApiRoutes(app: Express) {
       }
 
       // Adicionar observadorApiUrl na resposta se existir
-      const response: any = { data: responseData };
+      const response: any = { ...cfg, data: responseData };
       if (observadorApiUrl) {
         response.observador_api_url = observadorApiUrl;
       }
       res.json(response);
     } catch (error) {
       console.error("[API] GET /api/guim.php error:", error);
-      res.status(500).json({ error: "Erro interno do servidor." });
+      res.status(500).json({ ...cfg, error: "Erro interno do servidor." });
     }
   });
 
