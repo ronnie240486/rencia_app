@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Image, Upload, LayoutGrid, Smartphone } from "lucide-react";
+import { Loader2, Save, Image, Upload, LayoutGrid, Smartphone, Wifi, WifiOff } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 
 const DEFAULT_VALUES: Record<string, string> = {
@@ -72,6 +72,15 @@ function UploadButton({ field, uploadingField, onUpload }: { field: string; uplo
 export default function SettingsGpcpro() {
   const { data: settings, isLoading, refetch } = trpc.settings.getAll.useQuery();
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [serverUrlTestResult, setServerUrlTestResult] = useState<{ status: "success" | "error"; message: string } | null>(null);
+  const testUrlMut = trpc.settings.testUrl.useMutation({
+    onSuccess: (data) => {
+      setServerUrlTestResult({ status: data.status, message: data.message });
+      if (data.status === "success") toast.success(`Servidor online — ${data.message}`);
+      else toast.error(`Servidor não respondeu — ${data.message}`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const handleFileUpload = async (field: string, file: File) => {
     try {
@@ -332,13 +341,32 @@ export default function SettingsGpcpro() {
 
               <div className="space-y-2">
                 <Label className="font-semibold">API do Servidor</Label>
-                <Input
-                  value={form.gpcpro_server_url}
-                  onChange={e => handleChange("gpcpro_server_url", e.target.value)}
-                  placeholder="Ex: https://renciaapp.manus.space"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    value={form.gpcpro_server_url}
+                    onChange={e => { handleChange("gpcpro_server_url", e.target.value); setServerUrlTestResult(null); }}
+                    placeholder="Ex: https://renciaapp-production.up.railway.app"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Testar agora se esse endereço responde"
+                    disabled={!form.gpcpro_server_url.trim() || testUrlMut.isPending}
+                    onClick={() => testUrlMut.mutate({ url: form.gpcpro_server_url.trim() })}
+                  >
+                    {testUrlMut.isPending ? <Loader2 size={14} className="animate-spin" /> : serverUrlTestResult?.status === "error" ? <WifiOff size={14} /> : <Wifi size={14} />}
+                  </Button>
+                </div>
+                {serverUrlTestResult && (
+                  <p className={`text-xs font-medium ${serverUrlTestResult.status === "success" ? "text-emerald-600" : "text-red-600"}`}>
+                    {serverUrlTestResult.status === "success" ? "Online" : "Falhou"} · {serverUrlTestResult.message}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
-                  URL da API do servidor que o Maximus usará. Sempre que você mudar, o app usará a nova URL automaticamente.
+                  Este campo é apenas informativo — só é enviado ao app dentro da resposta do painel (<code>dns_url</code>/<code>test_api_url</code>).
+                  O aplicativo Maximus já vem fixo apontando para <code>renciaapp-production.up.railway.app</code>; mudar este texto aqui
+                  não muda pra onde o app se conecta, então use o botão ao lado só pra conferir se o endereço colado responde, não pra trocar o servidor do app.
                 </p>
               </div>
             </CardContent>
