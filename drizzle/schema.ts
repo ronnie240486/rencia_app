@@ -406,6 +406,25 @@ export const payments = mysqlTable("payments", {
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = typeof payments.$inferInsert;
 
+// Pagamentos automáticos do Mercado Pago (botão "Renovar Agora" da tela de
+// bloqueio do Maximus). Guarda o id do pagamento no Mercado Pago pra nunca
+// aplicar a mesma renovação duas vezes, mesmo que o webhook deles chegue
+// repetido (o Mercado Pago reenvia a notificação se não receber 200 rápido).
+export const mercadoPagoPayments = mysqlTable("mercado_pago_payments", {
+  id: int("id").autoincrement().primaryKey(),
+  mpPaymentId: varchar("mpPaymentId", { length: 64 }).notNull().unique(),
+  mac: varchar("mac", { length: 32 }).notNull(),
+  deviceId: int("deviceId"),
+  amount: decimal("amount", { precision: 10, scale: 2 }),
+  status: varchar("status", { length: 32 }).notNull(),
+  daysAdded: int("daysAdded"),
+  rawPayload: text("rawPayload"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type MercadoPagoPayment = typeof mercadoPagoPayments.$inferSelect;
+export type InsertMercadoPagoPayment = typeof mercadoPagoPayments.$inferInsert;
+
 // Etiquetas organizacionais aplicadas aos clientes de cada painel
 export const customerTags = mysqlTable("customer_tags", {
   id: int("id").autoincrement().primaryKey(),
