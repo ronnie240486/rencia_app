@@ -14,6 +14,23 @@ const additions = [
   "ALTER TABLE `devices` ADD COLUMN `activeDeviceUrlId` int NULL",
   "ALTER TABLE `devices` ADD COLUMN `listFailoverEnabled` boolean NOT NULL DEFAULT true",
   "ALTER TABLE `devices` ADD COLUMN `maxConcurrentConnections` int NOT NULL DEFAULT 1",
+  // Faltava aqui — a coluna existe no schema.ts (migração 0061) desde antes,
+  // mas nunca tinha sido incluída nesta lista. Sem ela, o Railway nunca criava
+  // a coluna em produção, e tudo que depende do perfil de servidor do cliente
+  // (nomeServidor) — como o "Ranking de servidores" do Dashboard — ficava
+  // sempre vazio ou dando erro de coluna inexistente, mesmo com o código certo.
+  "ALTER TABLE `devices` ADD COLUMN `nomeServidor` varchar(255) NULL",
+  // device_macs (0062) e sua coluna appId (0063) também nunca tinham sido
+  // adicionadas aqui — necessárias pra função de MAC adicional no mesmo cliente.
+  `CREATE TABLE IF NOT EXISTS \`device_macs\` (
+    \`id\` int AUTO_INCREMENT PRIMARY KEY,
+    \`deviceId\` int NOT NULL,
+    \`mac\` varchar(64) NOT NULL,
+    \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY \`device_macs_mac_unique\` (\`mac\`)
+  )`,
+  "ALTER TABLE `device_macs` ADD COLUMN `appId` varchar(64) NULL",
+  "CREATE INDEX `device_macs_device_idx` ON `device_macs` (`deviceId`)",
   `CREATE TABLE IF NOT EXISTS \`device_app_links\` (
     \`id\` int AUTO_INCREMENT PRIMARY KEY,
     \`deviceId\` int NOT NULL,
@@ -29,8 +46,8 @@ try {
       await connection.execute(statement);
       console.log("[Railway migration] Estrutura adicionada.");
     } catch (error) {
-      if (error && typeof error === "object" && "code" in error && error.code === "ER_DUP_FIELDNAME") {
-        console.log("[Railway migration] Campo já existente; mantido.");
+      if (error && typeof error === "object" && "code" in error && (error.code === "ER_DUP_FIELDNAME" || error.code === "ER_DUP_KEYNAME")) {
+        console.log("[Railway migration] Campo/índice já existente; mantido.");
         continue;
       }
       throw error;
