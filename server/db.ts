@@ -678,8 +678,11 @@ export async function getConnectedDevices(ownerId: number, minutesAgo = CONNECTE
   if (!db) return [];
   const cutoff = new Date(Date.now() - minutesAgo * 60 * 1000);
   const { gte } = await import("drizzle-orm");
-  return db.select({
+
+  const principalRows = await db.select({
     id: devices.id,
+    macId: sql<number>`0`,
+    primaryMac: sql<boolean>`true`,
     mac: devices.mac,
     nomeServer: devices.nomeServer,
     app: devices.app,
@@ -691,9 +694,34 @@ export async function getConnectedDevices(ownerId: number, minutesAgo = CONNECTE
     currentContent: devices.currentContent,
     forceShowChannel: devices.forceShowChannel,
   }).from(devices)
-    .where(and(eq(devices.ownerId, ownerId), gte(devices.lastSeen, cutoff)))
-    .orderBy(desc(devices.lastSeen))
-    .limit(50);
+    .where(and(eq(devices.ownerId, ownerId), gte(devices.lastSeen, cutoff)));
+
+  // MACs "reserva"/adicionais (cadastrados em "+ Adicionar MAC") têm sua
+  // própria atividade (lastSeen/currentContent) desde que o heartbeat passou
+  // a gravar nelas — ver /api/v5/heartbeat. Antes disso só existia a linha do
+  // MAC principal aqui, então dois aparelhos (ex.: TV box + celular) usando a
+  // mesma lista nunca apareciam separados, cada um com seu próprio canal.
+  const aliasRows = await db.select({
+    id: devices.id,
+    macId: deviceMacs.id,
+    primaryMac: sql<boolean>`false`,
+    mac: deviceMacs.mac,
+    nomeServer: devices.nomeServer,
+    app: devices.app,
+    lastActiveAppId: deviceMacs.lastActiveAppId,
+    tipo: devices.tipo,
+    status: devices.status,
+    lastSeen: deviceMacs.lastSeen,
+    dataExpiracao: devices.dataExpiracao,
+    currentContent: deviceMacs.currentContent,
+    forceShowChannel: devices.forceShowChannel,
+  }).from(deviceMacs)
+    .innerJoin(devices, eq(deviceMacs.deviceId, devices.id))
+    .where(and(eq(devices.ownerId, ownerId), gte(deviceMacs.lastSeen, cutoff)));
+
+  return [...principalRows, ...aliasRows]
+    .sort((a, b) => new Date(b.lastSeen ?? 0).getTime() - new Date(a.lastSeen ?? 0).getTime())
+    .slice(0, 50);
 }
 
 // ─── Profile Update ───────────────────────────────────────────────────────────
