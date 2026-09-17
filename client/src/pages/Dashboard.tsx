@@ -518,8 +518,9 @@ export default function Dashboard() {
                     const activeApp = d.lastActiveAppId && d.lastActiveAppId in MANAGED_APP_CATALOG
                       ? MANAGED_APP_CATALOG[d.lastActiveAppId as keyof typeof MANAGED_APP_CATALOG].displayName
                       : d.app;
+                    const isPrimaryMac = d.primaryMac !== false;
                     return (
-                      <TableRow key={d.id}>
+                      <TableRow key={`${d.id}-${d.macId ?? 0}`}>
                         <TableCell>
                           <div className="flex items-center gap-1">
                             {isRecent ? (
@@ -535,7 +536,14 @@ export default function Dashboard() {
                           </div>
                         </TableCell>
                         <TableCell className="text-xs font-mono"><span>{d.mac}</span></TableCell>
-                        <TableCell className="text-xs"><span>{d.nomeServer}</span></TableCell>
+                        <TableCell className="text-xs">
+                          <span>{d.nomeServer}</span>
+                          {!isPrimaryMac && (
+                            <Badge variant="outline" className="ml-1.5 text-[10px] font-normal">
+                              <span>MAC extra</span>
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell><Badge variant="outline" className="text-xs"><span>{activeApp || "—"}</span></Badge></TableCell>
                         <TableCell>
                           <Badge variant="secondary" className="text-xs"><span>{d.tipo}</span></Badge>
@@ -550,11 +558,15 @@ export default function Dashboard() {
                             ) : (
                               <span className="text-muted-foreground flex-1">—</span>
                             )}
-                            <EditCurrentContentButton deviceId={d.id} currentContent={d.currentContent} />
+                            {isPrimaryMac && <EditCurrentContentButton deviceId={d.id} currentContent={d.currentContent} />}
                           </div>
                         </TableCell>
                         <TableCell className="text-xs">
-                          <ForceShowChannelToggle deviceId={d.id} forceShowChannel={d.forceShowChannel ?? false} />
+                          {isPrimaryMac ? (
+                            <ForceShowChannelToggle deviceId={d.id} forceShowChannel={d.forceShowChannel ?? false} />
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           <span>{formatLastSeen(d.lastSeen)}</span>
