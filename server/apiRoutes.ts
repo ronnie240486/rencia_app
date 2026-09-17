@@ -24,7 +24,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials, suggestions, storeInvites, deviceAppLinks } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials, suggestions, storeInvites, deviceAppLinks, deviceMacs } from "../drizzle/schema";
 import { eq, or, and, asc, desc, sql, inArray } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, exportLegacyV2Backup, importBackup, previewBackupImport } from "./exportImport";
@@ -49,6 +49,7 @@ import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../sha
 import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
 import { isConfirmedListResponse, probeListUrl } from "./listHealth";
 import { findDeviceByAnyMac, findDeviceMatchByAnyMac } from "./deviceMacLookup";
+import { normalizeMacForStorage } from "../shared/mac";
 import { buildHeartbeatMacLookup } from "./heartbeatMac";
 import { comparePassword } from "./auth";
 import { isLoginAccessAllowed, resolveLoginMacBinding } from "./appLogin";
@@ -4618,6 +4619,35 @@ export function registerApiRoutes(app: Express) {
         const sameMacRows = await db.select().from(devices).where(or(
           ...macCandidates.map((candidate) => eq(devices.mac, candidate)),
         ));
+
+        // MAC "reserva" (o adicionado em "+ Adicionar MAC" na ficha do cliente):
+        // não existe na tabela devices, só como apelido em deviceMacs, apontando
+        // pro MESMO cadastro do MAC principal. Antes, o heartbeat desse MAC não
+        // encontrava nenhuma linha aqui em cima, o UPDATE não afetava nada, e
+        // mesmo assim a rota respondia "success" — por isso o MAC reserva nunca
+        // aparecia (nem online, nem canal) em "Dispositivos Conectados", mesmo
+        // com o heartbeat chegando certinho no servidor. Agora grava a atividade
+        // no próprio registro do MAC reserva (device_macs), sem tocar no que o
+        // MAC principal estiver reportando.
+        if (sameMacRows.length === 0) {
+          const aliasMac = normalizeMacForStorage(rawMac);
+          if (aliasMac) {
+            const aliasRows = await db.select({ id: deviceMacs.id, deviceId: deviceMacs.deviceId })
+              .from(deviceMacs).where(eq(deviceMacs.mac, aliasMac)).limit(1);
+            if (aliasRows[0]) {
+              const aliasUpdateData: { lastSeen: Date; currentContent?: string; lastActiveAppId?: string } = {
+                lastSeen: new Date(),
+              };
+              if (currentContent) aliasUpdateData.currentContent = currentContent;
+              if (reportedAppId) aliasUpdateData.lastActiveAppId = reportedAppId;
+              await db.update(deviceMacs).set(aliasUpdateData).where(eq(deviceMacs.id, aliasRows[0].id));
+              const remote = await claimRemoteCommandForMac(db, mac);
+              res.json({ success: true, mac, contentUpdated: Boolean(currentContent), command: remote.command, session: { enforced: false, allowed: true }, timestamp: new Date().toISOString() });
+              return;
+            }
+          }
+        }
+
         const activityDevice = await selectDeviceForReportedApp(db, sameMacRows, reportedAppId);
         if (reportedAppId && !activityDevice) {
           res.status(403).json({ success: false, message: "MAC não vinculado ao aplicativo informado" });
