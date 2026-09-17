@@ -364,9 +364,9 @@ export default function SettingsGpcpro() {
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Este campo é apenas informativo — só é enviado ao app dentro da resposta do painel (<code>dns_url</code>/<code>test_api_url</code>).
-                  O aplicativo Maximus já vem fixo apontando para <code>renciaapp-production.up.railway.app</code>; mudar este texto aqui
-                  não muda pra onde o app se conecta, então use o botão ao lado só pra conferir se o endereço colado responde, não pra trocar o servidor do app.
+                  É esse link que o botão <strong>TESTE</strong> do app usa pra gerar um teste automático, sem precisar chamar você no WhatsApp
+                  (o app continua conectado normalmente em <code>renciaapp-production.up.railway.app</code> pra tudo mais — isso aqui não muda isso).
+                  Use o botão ao lado pra conferir se o endereço colado responde antes de salvar.
                 </p>
               </div>
             </CardContent>
