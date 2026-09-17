@@ -1,4 +1,4 @@
-import { boolean, decimal, int, index, mysqlEnum, mysqlTable, text, timestamp, varchar, date, uniqueIndex } from "drizzle-orm/mysql-core";
+import { boolean, datetime, decimal, int, index, mysqlEnum, mysqlTable, text, timestamp, varchar, date, uniqueIndex } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 
 export const users = mysqlTable("users", {
@@ -106,6 +106,13 @@ export const deviceMacs = mysqlTable("device_macs", {
   mac: varchar("mac", { length: 64 }).notNull().unique(),
   appId: varchar("appId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  // Atividade própria deste MAC (reserva/adicional). Antes, o heartbeat de um
+  // MAC adicional não tinha onde gravar e ficava só no registro do MAC
+  // principal (ou era descartado) — por isso "Dispositivos Conectados" nunca
+  // mostrava o MAC reserva separado, mesmo assistindo outro canal.
+  lastSeen: datetime("lastSeen"),
+  currentContent: text("currentContent"),
+  lastActiveAppId: varchar("lastActiveAppId", { length: 64 }),
 }, (table) => ({
   deviceMacDeviceIdx: index("device_macs_device_idx").on(table.deviceId),
 }));
