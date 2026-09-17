@@ -3095,6 +3095,36 @@ export const appRouter = router({
         await db.delete(dnsEntries).where(and(eq(dnsEntries.id, input.id), eq(dnsEntries.ownerId, ctx.user.id)));
         return { success: true };
       }),
+    /**
+     * Teste manual, sob demanda, de um único Host de DNS cadastrado — o
+     * botão "Testar agora" da tela de DNS. Reaproveita a mesma checagem
+     * usada no card de Saúde dos Grupos (probeListUrl / hasActiveDeviceUsingDns)
+     * pra dar uma resposta imediata sem esperar o próximo ciclo automático.
+     */
+    testHost: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const entry = (await db.select().from(dnsEntries).where(and(eq(dnsEntries.id, input.id), eq(dnsEntries.ownerId, ctx.user.id))).limit(1))[0];
+        if (!entry) throw new TRPCError({ code: "NOT_FOUND", message: "DNS não encontrada." });
+        const host = entry.host.replace(/\/+$/, "");
+
+        const activeDevices = await db.select({ urlM3u8: devices.urlM3u8, status: devices.status, lastSeen: devices.lastSeen })
+          .from(devices).where(eq(devices.ownerId, ctx.user.id));
+        if (hasActiveDeviceUsingDns(activeDevices, host, Date.now())) {
+          return { status: "success" as const, message: dnsOperationalMessage(), statusCode: null as number | null, checkedAt: new Date() };
+        }
+
+        const probe = await probeListUrl(host, { timeoutMs: 5000 });
+        const hostResponded = probe.status === "success" || (probe.statusCode !== null && probe.statusCode >= 200 && probe.statusCode < 500);
+        return {
+          status: (hostResponded ? "success" : "error") as "success" | "error",
+          message: hostResponded ? "Host respondeu" : (probe.message || "Não foi possível conectar ao servidor"),
+          statusCode: probe.statusCode,
+          checkedAt: new Date(),
+        };
+      }),
     applyGroupToDevices: protectedProcedure
       .input(z.object({ grupo: z.string().min(1), targetDnsId: z.number() }))
       .mutation(async ({ ctx, input }) => {
