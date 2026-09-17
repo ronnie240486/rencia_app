@@ -1672,22 +1672,42 @@ export function registerApiRoutes(app: Express) {
    * GET /api/v4/logo.php
    * Endpoint usado pela classe Logo.java do APK para carregar o logo dinâmico.
    * Retorna a imagem do logo configurada no painel, ou o logo padrão OURO REVENDA.
-   * Suporta: redirect para URL externa ou proxy da imagem.
+   *
+   * Antes fazia redirect(302) pra URL final do S3, contando com o Glide
+   * cachear essa URL. Isso trava o logo antigo pra sempre sempre que o
+   * upload reaproveita a mesma chave/URL no S3 (só o conteúdo muda, a URL
+   * não) — exatamente o mesmo problema já corrigido no /api/v4/bg.php
+   * abaixo. Agora fazemos proxy dos bytes com cabeçalhos no-cache, igual
+   * ao bg.php, garantindo que o app sempre busque a imagem atual.
    */
   app.get("/api/v4/logo.php", async (_req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
       const logoUrl = cfg.trial_logo_url || "";
+      const fallbackUrl = "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
 
-      // Resolver URL pública (gera presigned URL se for manus-storage protegido)
-      const resolvedUrl = logoUrl ? await resolvePublicImageUrl(logoUrl) : "";
-      const targetUrl = (resolvedUrl && resolvedUrl.startsWith("http") && !resolvedUrl.includes(","))
-        ? resolvedUrl
-        : "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
+      const isValidUrl = logoUrl && logoUrl.startsWith("http") && !logoUrl.includes(",") && !logoUrl.includes(" ");
+      const resolvedUrl = isValidUrl ? await resolvePublicImageUrl(logoUrl) : fallbackUrl;
 
-      // Usar redirect para que o Glide faça cache da URL final do S3
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.redirect(302, targetUrl);
+      const imageResponse = await fetch(resolvedUrl, {
+        headers: { Accept: "image/*" },
+        cache: "no-store",
+      });
+      if (!imageResponse.ok) {
+        res.status(204).end();
+        return;
+      }
+      const contentType = imageResponse.headers.get("content-type") || "image/png";
+      if (!contentType.toLowerCase().startsWith("image/")) {
+        res.status(204).end();
+        return;
+      }
+      const imageBytes = Buffer.from(await imageResponse.arrayBuffer());
+      const responseHeaders = buildBackgroundResponseHeaders(logoUrl || fallbackUrl);
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", String(imageBytes.length));
+      for (const [header, value] of Object.entries(responseHeaders)) res.setHeader(header, value);
+      res.status(200).send(imageBytes);
     } catch (error) {
       console.error("[API] /api/v4/logo.php error:", error);
       res.status(204).end();
