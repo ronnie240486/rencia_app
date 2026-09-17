@@ -137,6 +137,16 @@ let settingsCacheTime = 0;
 // Alterações visuais precisam chegar ao APK logo após salvar no painel.
 const SETTINGS_CACHE_TTL = 5_000;
 
+// Exportado pra quem grava settings por outro caminho (ex: routers.ts,
+// usado pelo painel via tRPC em settings.updateMany) avisar esse módulo que
+// o cache guardado aqui ficou desatualizado — sem isso, uma mudança feita
+// pelo painel podia levar até SETTINGS_CACHE_TTL (5s) pra aparecer pro
+// app, ou nem isso se o próximo getSettings() daqui ainda visse o cache
+// "fresco" por coincidência de timing.
+export function invalidateSettingsCache() {
+  settingsCacheTime = 0;
+}
+
 async function getSettings(): Promise<Record<string, string>> {
   const now = Date.now();
   if (now - settingsCacheTime < SETTINGS_CACHE_TTL && Object.keys(settingsCache).length > 0) {
@@ -2692,6 +2702,18 @@ export function registerApiRoutes(app: Express) {
 
       if (!isAllowed) {
         await lastSeenUpdate;
+        // Cliente bloqueado/expirado também precisa do WhatsApp (do
+        // revendedor, ou do suporte como fallback) — antes essa resposta só
+        // trazia "testConfig" (link do teste), então a tela de bloqueio do
+        // Maximus recebia status.whatsapp_url/reseller_whatsapp vazios e o
+        // botão ZAP mostrava "WhatsApp não configurado" mesmo com o número
+        // certinho preenchido no painel, porque esse ramo (dispositivo
+        // bloqueado) nunca chegava a montar esses campos — só o ramo
+        // "liberado" mais abaixo fazia isso.
+        const blockedWhatsapp = (maximusSettings.gpcpro_contact_whatsapp || maximusSettings.contact_whatsapp || "").trim();
+        const blockedResellerWhatsapp = (maximusSettings.gpcpro_reseller_whatsapp || maximusSettings.reseller_whatsapp || maximusSettings.contact_whatsapp || "").trim();
+        const blockedResellerName = (maximusSettings.gpcpro_reseller_contact_name || maximusSettings.reseller_contact_name || maximusSettings.contact_info || "").trim();
+        const blockedAppName = (maximusSettings.gpcpro_app_name || "Maximus").trim();
         res.json({
           success: false,
           error: "Device blocked",
@@ -2701,6 +2723,10 @@ export function registerApiRoutes(app: Express) {
           ...buildApkExpirationResponseFields(expirationNotice),
           registered: true,
           ...testConfig,
+          app_name: blockedAppName,
+          whatsapp_url: blockedWhatsapp.replace(/\D/g, "") ? `https://wa.me/${blockedWhatsapp.replace(/\D/g, "")}` : "",
+          reseller_contact: blockedResellerName,
+          reseller_whatsapp: blockedResellerWhatsapp,
         });
         return;
       }
