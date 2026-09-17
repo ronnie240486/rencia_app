@@ -24,7 +24,7 @@ import type { Express, Request, Response } from "express";
 import multer from "multer";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
-import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials, suggestions, storeInvites, deviceAppLinks, deviceMacs } from "../drizzle/schema";
+import { devices, appSettings, deviceUrls, carouselSlides, dnsEntries, users, nuvixConfig, playerCredentials, listFailoverEvents, appCredentials, suggestions, storeInvites, deviceAppLinks, deviceMacs, payments, mercadoPagoPayments } from "../drizzle/schema";
 import { eq, or, and, asc, desc, sql, inArray } from "drizzle-orm";
 import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, exportLegacyV2Backup, importBackup, previewBackupImport } from "./exportImport";
@@ -39,7 +39,7 @@ import { orderDeviceUrlsForActive } from "./devicePlaylistOrder";
 import { getAllPlaybackFailoverCandidates } from "./playbackFailover";
 import { buildAppUpdateResponse } from "./appUpdateResponse";
 import { safeApkText } from "./apkSafeValues";
-import { daysUntilDateOnly } from "../shared/dateOnly";
+import { daysUntilDateOnly, dateOnlyForDatabase, toDateOnly } from "../shared/dateOnly";
 import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistration";
 import { maximusTestConfiguration } from "./maximusTestApi";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
@@ -1376,6 +1376,195 @@ export function registerApiRoutes(app: Express) {
     } catch (error) {
       console.error("[API] GET /api/guim.php error:", error);
       res.status(500).json({ ...cfg, error: "Erro interno do servidor." });
+    }
+  });
+
+  /**
+   * GET /api/mp/create-preference?mac=XX:XX:XX:XX:XX:XX
+   * Gera um link de pagamento (Checkout Pro) do Mercado Pago pro botão
+   * "Renovar Agora" da tela de bloqueio do Maximus. Cada toque gera um link
+   * novo (a preferência do Mercado Pago pode expirar/já ter sido usada),
+   * por isso isso não vem junto com o resto das configs em /api/guim.php —
+   * precisa ser sob demanda.
+   */
+  app.get("/api/mp/create-preference", async (req: Request, res: Response) => {
+    try {
+      const mac = typeof req.query.mac === "string" ? req.query.mac.trim() : null;
+      if (!mac) {
+        res.status(400).json({ error: "Parâmetro 'mac' é obrigatório." });
+        return;
+      }
+
+      const cfg = await getSettings();
+      const accessToken = (cfg.gpcpro_mp_access_token || "").trim();
+      if (!accessToken) {
+        // Sem token configurado — o app cai pro link fixo (gpcpro_lock_button_url),
+        // se houver um. Não é um erro de verdade, só "não configurado".
+        res.status(404).json({ error: "not_configured" });
+        return;
+      }
+
+      const price = parseFloat((cfg.gpcpro_mp_price || "").replace(",", ".")) || 30;
+      const appName = (cfg.gpcpro_app_name || "Maximus").trim();
+
+      const db = await getDb();
+      if (!db) {
+        res.status(503).json({ error: "Erro ao conectar ao banco de dados" });
+        return;
+      }
+      const device = await findDeviceByAnyMac(db, mac);
+      if (!device) {
+        res.status(404).json({ error: "Dispositivo não encontrado" });
+        return;
+      }
+
+      const notificationUrl = `${req.protocol}://${req.get("host")}/api/mp/webhook`;
+
+      const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          items: [
+            {
+              title: `Renovação ${appName}`,
+              quantity: 1,
+              currency_id: "BRL",
+              unit_price: price,
+            },
+          ],
+          // Usado pra identificar QUAL cliente pagou quando o webhook chegar
+          // (ver /api/mp/webhook abaixo) — nunca confiar em nada que não
+          // seja isso + reconsultado na API do Mercado Pago.
+          external_reference: mac.toUpperCase(),
+          notification_url: notificationUrl,
+        }),
+      });
+
+      if (!mpResponse.ok) {
+        const errText = await mpResponse.text().catch(() => "");
+        console.error("[MP] Erro ao criar preferência:", mpResponse.status, errText);
+        res.status(502).json({ error: "Erro ao gerar link de pagamento no Mercado Pago" });
+        return;
+      }
+
+      const mpData: any = await mpResponse.json();
+      // sandbox_init_point aparece quando o token é de teste (TEST-...);
+      // init_point é o link real de produção (token APP_USR-...).
+      const url = mpData.init_point || mpData.sandbox_init_point;
+      if (!url) {
+        res.status(502).json({ error: "Mercado Pago não retornou link de pagamento" });
+        return;
+      }
+
+      res.json({ url });
+    } catch (error) {
+      console.error("[API] /api/mp/create-preference error:", error);
+      res.status(500).json({ error: "Erro interno do servidor." });
+    }
+  });
+
+  /**
+   * POST /api/mp/webhook
+   * Notificação do Mercado Pago quando um pagamento muda de status. Nunca
+   * confiamos em nada que vem nessa notificação além do ID — o valor e o
+   * status de verdade são sempre reconsultados direto na API do Mercado
+   * Pago com o NOSSO access token, então não dá pra falsificar uma
+   * aprovação só chamando essa rota com dados inventados.
+   */
+  app.post("/api/mp/webhook", async (req: Request, res: Response) => {
+    // Sempre responder 200 rápido — se demorar ou der erro, o Mercado Pago
+    // fica reenviando a mesma notificação por dias.
+    res.status(200).json({ received: true });
+
+    try {
+      const paymentId =
+        (req.query["data.id"] as string) ||
+        (req.body?.data?.id as string) ||
+        (req.query.id as string) ||
+        (req.body?.id as string);
+      const topic = (req.query.topic as string) || (req.body?.type as string) || "";
+
+      if (!paymentId || (topic && topic !== "payment")) {
+        return;
+      }
+
+      const cfg = await getSettings();
+      const accessToken = (cfg.gpcpro_mp_access_token || "").trim();
+      if (!accessToken) return;
+
+      const paymentRes = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!paymentRes.ok) {
+        console.error("[MP webhook] Erro ao consultar pagamento", paymentId, paymentRes.status);
+        return;
+      }
+      const payment: any = await paymentRes.json();
+
+      if (payment.status !== "approved") {
+        return;
+      }
+
+      const mac = String(payment.external_reference || "").trim().toUpperCase();
+      if (!mac) return;
+
+      const db = await getDb();
+      if (!db) return;
+
+      // Idempotência: se esse mpPaymentId já foi processado (o Mercado Pago
+      // reenvia a mesma notificação várias vezes), não renovar de novo.
+      const already = await db.select().from(mercadoPagoPayments)
+        .where(eq(mercadoPagoPayments.mpPaymentId, String(payment.id)))
+        .limit(1);
+      if (already.length > 0) return;
+
+      const device = await findDeviceByAnyMac(db, mac);
+      if (!device) {
+        console.error("[MP webhook] Dispositivo não encontrado pra MAC", mac, "(pagamento", payment.id, ")");
+        return;
+      }
+
+      const renewalDays = parseInt(cfg.gpcpro_mp_renewal_days || "30", 10) || 30;
+      const now = new Date();
+      // Se ainda não venceu, soma a partir do vencimento atual (não perde os
+      // dias que já tinham sido pagos); se já venceu ou nunca teve data, soma
+      // a partir de hoje.
+      const currentExpiry = device.dataExpiracao ? new Date(device.dataExpiracao) : null;
+      const base = currentExpiry && currentExpiry.getTime() > now.getTime() ? currentExpiry : now;
+      const newExpiry = new Date(base);
+      newExpiry.setUTCDate(newExpiry.getUTCDate() + renewalDays);
+
+      await db.update(devices)
+        .set({ status: "Liberado", dataExpiracao: dateOnlyForDatabase(toDateOnly(newExpiry)) })
+        .where(eq(devices.id, device.id));
+
+      await db.insert(mercadoPagoPayments).values({
+        mpPaymentId: String(payment.id),
+        mac,
+        deviceId: device.id,
+        amount: String(payment.transaction_amount ?? ""),
+        status: payment.status,
+        daysAdded: renewalDays,
+        rawPayload: JSON.stringify(payment).slice(0, 8000),
+      });
+
+      // Também aparece no histórico financeiro normal do painel (Pagamentos),
+      // igual um pagamento registrado manualmente.
+      await db.insert(payments).values({
+        ownerId: device.ownerId,
+        deviceId: device.id,
+        amount: String(payment.transaction_amount ?? "0"),
+        status: "paid",
+        paidAt: now,
+        note: `Mercado Pago automático (pagamento ${payment.id})`,
+      });
+
+      console.log(`[MP webhook] Renovado dispositivo ${device.id} (MAC ${mac}) por ${renewalDays} dias — pagamento ${payment.id}`);
+    } catch (error) {
+      console.error("[API] /api/mp/webhook error:", error);
     }
   });
 
