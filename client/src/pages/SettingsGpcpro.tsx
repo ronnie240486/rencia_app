@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Image, Upload, LayoutGrid, Smartphone, Wifi, WifiOff } from "lucide-react";
+import { Loader2, Save, Image, Upload, LayoutGrid, Smartphone, Wifi, WifiOff, Eye, EyeOff } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 
 const DEFAULT_VALUES: Record<string, string> = {
@@ -38,6 +38,11 @@ const DEFAULT_VALUES: Record<string, string> = {
   gpcpro_reseller_email: "",
   // URL do servidor
   gpcpro_server_url: "",
+  // Pagamento automático (Mercado Pago) — renova o cliente sozinho quando o
+  // botão "Renovar Agora" da tela de bloqueio for pago.
+  gpcpro_mp_access_token: "",
+  gpcpro_mp_price: "30.00",
+  gpcpro_mp_renewal_days: "30",
 };
 
 function UploadButton({ field, uploadingField, onUpload }: { field: string; uploadingField: string | null; onUpload: (field: string, file: File) => void }) {
@@ -72,6 +77,7 @@ function UploadButton({ field, uploadingField, onUpload }: { field: string; uplo
 export default function SettingsGpcpro() {
   const { data: settings, isLoading, refetch } = trpc.settings.getAll.useQuery();
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [showMpToken, setShowMpToken] = useState(false);
   const [serverUrlTestResult, setServerUrlTestResult] = useState<{ status: "success" | "error"; message: string } | null>(null);
   const testUrlMut = trpc.settings.testUrl.useMutation({
     onSuccess: (data) => {
@@ -411,6 +417,9 @@ export default function SettingsGpcpro() {
                   onChange={e => handleChange("gpcpro_lock_button_url", e.target.value)}
                   placeholder="https://wa.me/5511999999999"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Usado só se o Mercado Pago (abaixo) não estiver configurado, ou se a geração do link de pagamento falhar na hora.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label className="font-semibold">Nome do App</Label>
@@ -420,6 +429,62 @@ export default function SettingsGpcpro() {
                   placeholder="Maximus"
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* ═══ SEÇÃO: Pagamento Automático (Mercado Pago) ═══ */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Pagamento Automático (Mercado Pago)</CardTitle>
+              <CardDescription>
+                Com isso configurado, o botão "Renovar Agora" da tela de bloqueio gera um link de pagamento na hora, e o cliente é
+                liberado sozinho assim que o Mercado Pago confirmar o pagamento — sem você precisar fazer nada.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <Label className="font-semibold">Access Token do Mercado Pago</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type={showMpToken ? "text" : "password"}
+                    value={form.gpcpro_mp_access_token}
+                    onChange={e => handleChange("gpcpro_mp_access_token", e.target.value)}
+                    placeholder="APP_USR-...."
+                    autoComplete="off"
+                  />
+                  <Button type="button" variant="outline" size="icon" onClick={() => setShowMpToken(v => !v)}>
+                    {showMpToken ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Pegue em "Suas integrações" → sua aplicação → "Credenciais de produção" no site do Mercado Pago. Token de teste
+                  (começa com <code>TEST-</code>) gera um link de pagamento de teste, não cobra de verdade.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="font-semibold">Valor da renovação (R$)</Label>
+                  <Input
+                    value={form.gpcpro_mp_price}
+                    onChange={e => handleChange("gpcpro_mp_price", e.target.value)}
+                    placeholder="30.00"
+                    inputMode="decimal"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold">Dias liberados ao pagar</Label>
+                  <Input
+                    value={form.gpcpro_mp_renewal_days}
+                    onChange={e => handleChange("gpcpro_mp_renewal_days", e.target.value)}
+                    placeholder="30"
+                    inputMode="numeric"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O sistema confirma cada pagamento direto com a API do Mercado Pago antes de liberar — não dá pra fraudar mandando uma
+                notificação falsa. Cada pagamento só renova uma vez, mesmo que o Mercado Pago reenvie o aviso.
+              </p>
             </CardContent>
           </Card>
 
