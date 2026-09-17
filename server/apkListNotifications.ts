@@ -77,10 +77,25 @@ export function buildApkExpirationResponseFields(expiration: ReturnType<typeof b
 }
 
 /**
+ * Por quanto tempo depois de um evento "voltou pra Lista 1" o APK ainda recebe
+ * o aviso de sincronização. Passado esse prazo, tratamos a transição como já
+ * entregue (o cliente já deveria ter recebido e aplicado num app funcionando
+ * normalmente) e paramos de mandar `playlist_sync_required: true` pra sempre.
+ *
+ * Sem esse limite, um evento antigo (de dias ou semanas atrás) continuava
+ * sendo reportado como pendente indefinidamente, porque o servidor só guarda
+ * "qual foi o último evento" — nunca "o app já confirmou que aplicou". Isso
+ * fazia qualquer aparelho que tivesse os dados apagados/reinstalados voltar a
+ * receber e reaplicar a MESMA sincronização de lista a cada consulta (a cada
+ * 60s), disparando um recarregamento completo do catálogo repetidamente.
+ */
+const RESTORED_TRANSITION_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+/**
  * Cria o estado que o APK usa para atualizar a lista automaticamente e avisar o cliente.
  * O `transition_id` é estável: o APK deve guardá-lo localmente e só executar a atualização uma vez por transição.
  */
-export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | null; urlM3u8?: string | null }, extraLists: FailoverList[], latestEvent: FailoverEvent) {
+export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | null; urlM3u8?: string | null }, extraLists: FailoverList[], latestEvent: FailoverEvent, reference: Date = new Date()) {
   const activeExtraIndex = device.activeDeviceUrlId
     ? extraLists.findIndex((list) => list.id === device.activeDeviceUrlId)
     : -1;
@@ -89,8 +104,12 @@ export function buildApkFailoverStatus(device: { activeDeviceUrlId: number | nul
   const activeListName = safeApkText(activeExtra?.nome).trim() || `Lista ${activeListNumber}`;
   const activeListUrl = safeApkText(activeExtra?.urlM3u8 || activeExtra?.xtServer).trim();
   const primaryListUrl = safeApkText(device.urlM3u8).trim();
+  const restoredEventAgeMs = latestEvent
+    ? reference.getTime() - (latestEvent.createdAt instanceof Date ? latestEvent.createdAt.getTime() : new Date(latestEvent.createdAt).getTime())
+    : Infinity;
   const primaryWasRestored = !activeExtra
-    && Boolean(latestEvent && latestEvent.fromDeviceUrlId !== null && latestEvent.toDeviceUrlId === null);
+    && Boolean(latestEvent && latestEvent.fromDeviceUrlId !== null && latestEvent.toDeviceUrlId === null)
+    && restoredEventAgeMs <= RESTORED_TRANSITION_WINDOW_MS;
   const state: ApkFailoverState = activeExtra
     ? "backup_active"
     : primaryWasRestored ? "primary_restored" : "primary";

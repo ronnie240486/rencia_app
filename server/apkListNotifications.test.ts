@@ -111,6 +111,7 @@ describe("notificações de lista para APK", () => {
       { activeDeviceUrlId: null, urlM3u8: "https://principal.example/lista.m3u" },
       [{ id: 22, nome: "Lista 2", ordem: 0 }],
       { id: 92, fromDeviceUrlId: 22, toDeviceUrlId: null, createdAt: new Date("2026-08-14T12:10:00.000Z") },
+      new Date("2026-08-14T13:00:00.000Z"),
     );
 
     expect(status).toMatchObject({
@@ -130,6 +131,28 @@ describe("notificações de lista para APK", () => {
       failover_transition_id: 92,
     });
     expect(status.playlist_sync_message).toContain("Lista 1 voltou ao normal");
+  });
+
+  it("para de mandar a sincronização de 'Lista 1 restaurada' depois de 48h (evita loop em reinstalação)", () => {
+    const recentEnough = buildApkFailoverStatus(
+      { activeDeviceUrlId: null, urlM3u8: "https://principal.example/lista.m3u" },
+      [{ id: 22, nome: "Lista 2", ordem: 0 }],
+      { id: 92, fromDeviceUrlId: 22, toDeviceUrlId: null, createdAt: new Date("2026-08-14T12:10:00.000Z") },
+      new Date("2026-08-16T12:00:00.000Z"), // 47h59min depois
+    );
+    expect(recentEnough).toMatchObject({ failover_state: "primary_restored", playlist_sync_required: true });
+
+    const stale = buildApkFailoverStatus(
+      { activeDeviceUrlId: null, urlM3u8: "https://principal.example/lista.m3u" },
+      [{ id: 22, nome: "Lista 2", ordem: 0 }],
+      { id: 92, fromDeviceUrlId: 22, toDeviceUrlId: null, createdAt: new Date("2026-08-14T12:10:00.000Z") },
+      new Date("2026-09-17T02:00:00.000Z"), // muitos dias depois — ex: app reinstalado/dados apagados
+    );
+    expect(stale).toMatchObject({
+      failover_state: "primary",
+      playlist_sync_required: false,
+      playlist_sync_message: "",
+    });
   });
 
   it("não envia texto null ao aplicativo quando não há aviso nem troca de lista", () => {
