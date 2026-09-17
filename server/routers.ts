@@ -25,6 +25,7 @@ import { normalizeMessageTemplate } from "./messageTemplate";
 import { buildSessionOverview } from "./sessionControl";
 import { buildResellerClientDetails, summarizeResellerDevicePerformance, summarizeResellerFinance } from "./resellerReport";
 import { buildRenewalAgenda } from "./renewalAgenda";
+import { invalidateSettingsCache } from "./apiRoutes";
 import { buildMaintenanceOverview } from "./maintenanceCenter";
 import { buildApkUpdateOverview, buildConfiguredAppVersions } from "./apkUpdates";
 import { buildBulkMessageRecipients, normalizeBulkMessageDnsHost } from "./bulkMessages";
@@ -2871,6 +2872,12 @@ export const appRouter = router({
             .values({ key, value })
             .onDuplicateKeyUpdate({ set: { value } });
         }
+        // O check_mac.php/guim.php (server/apiRoutes.ts) guardam as
+        // configurações num cache próprio de até 5s pra não bater no banco
+        // a cada request do app — sem isso aqui, uma mudança feita nessa
+        // tela podia ficar até 5s "presa" no cache antes do app conseguir
+        // vê-la, mesmo já salva no banco.
+        invalidateSettingsCache();
         return { success: true };
       }),
 
