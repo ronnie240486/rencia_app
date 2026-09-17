@@ -38,6 +38,21 @@ const additions = [
     \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY \`device_app_links_device_app_unique\` (\`deviceId\`, \`appId\`)
   )`,
+  // Renovação automática via Mercado Pago (botão "Renovar Agora" da tela de
+  // bloqueio) — registra cada pagamento aprovado pra nunca renovar o mesmo
+  // cliente duas vezes, mesmo se o Mercado Pago reenviar a notificação.
+  `CREATE TABLE IF NOT EXISTS \`mercado_pago_payments\` (
+    \`id\` int AUTO_INCREMENT PRIMARY KEY,
+    \`mpPaymentId\` varchar(64) NOT NULL,
+    \`mac\` varchar(32) NOT NULL,
+    \`deviceId\` int NULL,
+    \`amount\` decimal(10,2) NULL,
+    \`status\` varchar(32) NOT NULL,
+    \`daysAdded\` int NULL,
+    \`rawPayload\` text NULL,
+    \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY \`mercado_pago_payments_mpPaymentId_unique\` (\`mpPaymentId\`)
+  )`,
 ];
 
 try {
