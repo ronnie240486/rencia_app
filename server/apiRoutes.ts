@@ -1427,17 +1427,14 @@ export function registerApiRoutes(app: Express) {
       const price = parseFloat((cfg.gpcpro_mp_price || "").replace(",", ".")) || 30;
       const appName = (cfg.gpcpro_app_name || "Maximus").trim();
 
-      const db = await getDb();
-      if (!db) {
-        res.status(503).json({ error: "Erro ao conectar ao banco de dados" });
-        return;
-      }
-      const device = await findDeviceByAnyMac(db, mac);
-      if (!device) {
-        res.status(404).json({ error: "Dispositivo não encontrado" });
-        return;
-      }
-
+      // ATENÇÃO: propositalmente NÃO exige que o dispositivo já exista no
+      // painel. O botão "Renovar Agora" aparece também na tela "Como
+      // entrar" (MAC novo, nunca cadastrado) — exigir um device existente
+      // aqui fazia esse botão falhar sempre nessa tela, com "Dispositivo
+      // não encontrado", mesmo com o Mercado Pago configurado certinho. Se
+      // o pagamento for aprovado pra um MAC sem cadastro, o webhook abaixo
+      // CRIA o dispositivo (mesmo padrão usado em
+      // /api/v5/maximus-test-result pro botão TESTE).
       const notificationUrl = `${req.protocol}://${req.get("host")}/api/mp/webhook`;
 
       const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
@@ -1541,30 +1538,59 @@ export function registerApiRoutes(app: Express) {
         .limit(1);
       if (already.length > 0) return;
 
-      const device = await findDeviceByAnyMac(db, mac);
-      if (!device) {
-        console.error("[MP webhook] Dispositivo não encontrado pra MAC", mac, "(pagamento", payment.id, ")");
-        return;
-      }
-
       const renewalDays = parseInt(cfg.gpcpro_mp_renewal_days || "30", 10) || 30;
       const now = new Date();
-      // Se ainda não venceu, soma a partir do vencimento atual (não perde os
-      // dias que já tinham sido pagos); se já venceu ou nunca teve data, soma
-      // a partir de hoje.
-      const currentExpiry = device.dataExpiracao ? new Date(device.dataExpiracao) : null;
-      const base = currentExpiry && currentExpiry.getTime() > now.getTime() ? currentExpiry : now;
-      const newExpiry = new Date(base);
-      newExpiry.setUTCDate(newExpiry.getUTCDate() + renewalDays);
 
-      await db.update(devices)
-        .set({ status: "Liberado", dataExpiracao: dateOnlyForDatabase(toDateOnly(newExpiry)) })
-        .where(eq(devices.id, device.id));
+      let device = await findDeviceByAnyMac(db, mac);
+      let deviceId: number;
+      let ownerId: number;
+
+      if (!device) {
+        // MAC pagou sem nunca ter sido cadastrado (botão "Renovar Agora" da
+        // tela "Como entrar", pra quem nem quis testar antes) — cria o
+        // dispositivo já liberado, em vez de descartar o pagamento. Mesmo
+        // dono usado pelo botão TESTE quando cria um device novo (ver
+        // /api/v5/maximus-test-result).
+        const owner = (await db.select({ id: users.id }).from(users).where(eq(users.isOwner, true)).limit(1))[0];
+        if (!owner) {
+          console.error("[MP webhook] Proprietário do painel não encontrado — não deu pra criar o dispositivo pra MAC", mac, "(pagamento", payment.id, ")");
+          return;
+        }
+        const newExpiry = new Date(now);
+        newExpiry.setUTCDate(newExpiry.getUTCDate() + renewalDays);
+        const inserted = await db.insert(devices).values({
+          ownerId: owner.id,
+          mac,
+          nomeServer: "Cliente Mercado Pago",
+          tipo: "Usuario",
+          modoSelecao: "M3U8",
+          app: "Maximus",
+          status: "Liberado",
+          dataExpiracao: dateOnlyForDatabase(toDateOnly(newExpiry)),
+        });
+        deviceId = Number((inserted as any)[0]?.insertId ?? (inserted as any).insertId);
+        ownerId = owner.id;
+        console.log(`[MP webhook] Dispositivo novo criado (MAC ${mac}) via pagamento ${payment.id}`);
+      } else {
+        deviceId = device.id;
+        ownerId = device.ownerId;
+        // Se ainda não venceu, soma a partir do vencimento atual (não perde
+        // os dias que já tinham sido pagos); se já venceu ou nunca teve
+        // data, soma a partir de hoje.
+        const currentExpiry = device.dataExpiracao ? new Date(device.dataExpiracao) : null;
+        const base = currentExpiry && currentExpiry.getTime() > now.getTime() ? currentExpiry : now;
+        const newExpiry = new Date(base);
+        newExpiry.setUTCDate(newExpiry.getUTCDate() + renewalDays);
+
+        await db.update(devices)
+          .set({ status: "Liberado", dataExpiracao: dateOnlyForDatabase(toDateOnly(newExpiry)) })
+          .where(eq(devices.id, device.id));
+      }
 
       await db.insert(mercadoPagoPayments).values({
         mpPaymentId: String(payment.id),
         mac,
-        deviceId: device.id,
+        deviceId,
         amount: String(payment.transaction_amount ?? ""),
         status: payment.status,
         daysAdded: renewalDays,
@@ -1574,15 +1600,15 @@ export function registerApiRoutes(app: Express) {
       // Também aparece no histórico financeiro normal do painel (Pagamentos),
       // igual um pagamento registrado manualmente.
       await db.insert(payments).values({
-        ownerId: device.ownerId,
-        deviceId: device.id,
+        ownerId,
+        deviceId,
         amount: String(payment.transaction_amount ?? "0"),
         status: "paid",
         paidAt: now,
         note: `Mercado Pago automático (pagamento ${payment.id})`,
       });
 
-      console.log(`[MP webhook] Renovado dispositivo ${device.id} (MAC ${mac}) por ${renewalDays} dias — pagamento ${payment.id}`);
+      console.log(`[MP webhook] Renovado dispositivo ${deviceId} (MAC ${mac}) por ${renewalDays} dias — pagamento ${payment.id}`);
     } catch (error) {
       console.error("[API] /api/mp/webhook error:", error);
     }
