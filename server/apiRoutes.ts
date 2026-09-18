@@ -249,9 +249,13 @@ async function resolveVersionedPublicImageUrl(storedUrl: string, revision: strin
 export function buildBackgroundResponseHeaders(backgroundUrl: string) {
   const visualRevision = buildVisualRevision(backgroundUrl);
   return {
-    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-    Pragma: "no-cache",
-    Expires: "0",
+    // "no-cache" (sem "no-store") deixa o OkHttp do APK GUARDAR a resposta,
+    // mas sempre confirmar com a gente antes de reusar — é o ETag abaixo que
+    // faz essa confirmação ser rápida (204/304, poucos bytes) em vez de
+    // baixar a imagem inteira de novo toda vez que a tela abre. Antes disso
+    // era "no-store", que proibia guardar QUALQUER coisa — daí a demora
+    // sempre que a tela de fundo/logo aparecia.
+    "Cache-Control": "no-cache, must-revalidate",
     ETag: `"${visualRevision}"`,
   };
 }
@@ -1907,13 +1911,26 @@ export function registerApiRoutes(app: Express) {
    * abaixo. Agora fazemos proxy dos bytes com cabeçalhos no-cache, igual
    * ao bg.php, garantindo que o app sempre busque a imagem atual.
    */
-  app.get("/api/v4/logo.php", async (_req: Request, res: Response) => {
+  app.get("/api/v4/logo.php", async (req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
       const logoUrl = cfg.trial_logo_url || "";
       const fallbackUrl = "https://d2xsxph8kpxj0f.cloudfront.net/310519663162366914/LDyffp73FNnPjitdoAxnFa/ouro_logo_offline-B8wgSvvarHoKB4eoYgKxDA.png";
 
       const isValidUrl = logoUrl && logoUrl.startsWith("http") && !logoUrl.includes(",") && !logoUrl.includes(" ");
+      const responseHeaders = buildBackgroundResponseHeaders(logoUrl || fallbackUrl);
+
+      // O ETag já reflete a imagem configurada AGORA, sem precisar baixar
+      // nada — se o APK/Glide mandar o mesmo ETag que já tinha (If-None-Match),
+      // a imagem não mudou, então só confirmamos (204/304, poucos bytes) em
+      // vez de baixar e reenviar tudo de novo. É isso que faz o logo/fundo
+      // aparecer na hora quando nada mudou desde a última vez que abriu.
+      if (req.headers["if-none-match"] === responseHeaders.ETag) {
+        for (const [header, value] of Object.entries(responseHeaders)) res.setHeader(header, value);
+        res.status(304).end();
+        return;
+      }
+
       const resolvedUrl = isValidUrl ? await resolvePublicImageUrl(logoUrl) : fallbackUrl;
 
       const imageResponse = await fetch(resolvedUrl, {
@@ -1930,7 +1947,6 @@ export function registerApiRoutes(app: Express) {
         return;
       }
       const imageBytes = Buffer.from(await imageResponse.arrayBuffer());
-      const responseHeaders = buildBackgroundResponseHeaders(logoUrl || fallbackUrl);
       res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Length", String(imageBytes.length));
       for (const [header, value] of Object.entries(responseHeaders)) res.setHeader(header, value);
@@ -1947,7 +1963,7 @@ export function registerApiRoutes(app: Express) {
    * O APK só aceita HTTP 200 com bytes da imagem — NÃO aceita redirect 302.
    * Por isso fazemos proxy da imagem: baixamos do S3 e servimos diretamente.
    */
-  app.get("/api/v4/bg.php", async (_req: Request, res: Response) => {
+  app.get("/api/v4/bg.php", async (req: Request, res: Response) => {
     try {
       const cfg = await getSettings();
       const bgUrl = cfg.trial_background_url || "";
@@ -1956,6 +1972,16 @@ export function registerApiRoutes(app: Express) {
       const isValidUrl = bgUrl && bgUrl.startsWith("http") && !bgUrl.includes(",") && !bgUrl.includes(" ");
       if (!isValidUrl) {
         res.status(204).end();
+        return;
+      }
+
+      // Mesma lógica do /api/v4/logo.php: se o ETag que o app já tinha bate
+      // com o de agora, a imagem não mudou — responde rápido (304) sem
+      // baixar nada de novo.
+      const responseHeaders = buildBackgroundResponseHeaders(bgUrl);
+      if (req.headers["if-none-match"] === responseHeaders.ETag) {
+        for (const [header, value] of Object.entries(responseHeaders)) res.setHeader(header, value);
+        res.status(304).end();
         return;
       }
 
@@ -1977,7 +2003,6 @@ export function registerApiRoutes(app: Express) {
         return;
       }
       const imageBytes = Buffer.from(await imageResponse.arrayBuffer());
-      const responseHeaders = buildBackgroundResponseHeaders(bgUrl);
       res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Length", String(imageBytes.length));
       for (const [header, value] of Object.entries(responseHeaders)) res.setHeader(header, value);
@@ -2879,12 +2904,26 @@ export function registerApiRoutes(app: Express) {
       }
 
       if (!deviceMatch) {
+        // Mesmo problema já corrigido no ramo "bloqueado" mais abaixo: essa
+        // resposta (MAC novo, ainda não cadastrado — a tela "Como entrar"
+        // logo na primeira abertura do app) nunca incluía o WhatsApp, só o
+        // link de teste. Resultado: o botão ZAP não funcionava justamente
+        // na tela que mais precisa dele (antes mesmo de qualquer teste ou
+        // cadastro existir).
+        const newDeviceWhatsapp = (maximusSettings.gpcpro_contact_whatsapp || maximusSettings.contact_whatsapp || "").trim();
+        const newDeviceResellerWhatsapp = (maximusSettings.gpcpro_reseller_whatsapp || maximusSettings.reseller_whatsapp || maximusSettings.contact_whatsapp || "").trim();
+        const newDeviceResellerName = (maximusSettings.gpcpro_reseller_contact_name || maximusSettings.reseller_contact_name || maximusSettings.contact_info || "").trim();
+        const newDeviceAppName = (maximusSettings.gpcpro_app_name || "Maximus").trim();
         res.json({
           success: false,
           error: "Device not found",
           mac: macWithColons,
           registered: false,
           ...testConfig,
+          app_name: newDeviceAppName,
+          whatsapp_url: newDeviceWhatsapp.replace(/\D/g, "") ? `https://wa.me/${newDeviceWhatsapp.replace(/\D/g, "")}` : "",
+          reseller_contact: newDeviceResellerName,
+          reseller_whatsapp: newDeviceResellerWhatsapp,
         });
         return;
       }
