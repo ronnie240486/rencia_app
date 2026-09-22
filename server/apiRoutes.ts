@@ -2265,9 +2265,16 @@ export function registerApiRoutes(app: Express) {
       if (!device) { res.status(404).json({ registered: false, error: "MAC não cadastrado." }); return; }
       const resolvedAppId = resolvedMatch?.appId?.toLowerCase() ?? null;
       if (resolvedAppId && resolvedAppId !== appId) { res.status(403).json({ registered: true, error: "Este MAC não está vinculado a este aplicativo." }); return; }
-      // Marca atividade no cadastro do aplicativo consultado, inclusive quando o MAC
-      // também existe em outro app (por exemplo, Ouro Pro e Optimus).
-      await db.update(devices).set({ lastSeen: new Date(), lastActiveAppId: appId }).where(eq(devices.id, device.id));
+      // Marca atividade no cadastro do aplicativo consultado. Quando o MAC é um
+      // MAC reserva (device_macs), `device` é o cadastro PRINCIPAL (pode ser de
+      // outro app) — gravar lastSeen ali faria o principal aparecer "Online" no
+      // Dashboard só porque o app reserva chamou essa rota. Nesse caso grava a
+      // atividade na própria linha de device_macs em vez do cadastro principal.
+      if (!resolvedMatch?.primary && resolvedMatch?.aliasMacId) {
+        await db.update(deviceMacs).set({ lastSeen: new Date(), lastActiveAppId: appId }).where(eq(deviceMacs.id, resolvedMatch.aliasMacId));
+      } else {
+        await db.update(devices).set({ lastSeen: new Date(), lastActiveAppId: appId }).where(eq(devices.id, device.id));
+      }
       const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
       const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
       const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns, device.nomeServidor);
@@ -2971,7 +2978,19 @@ export function registerApiRoutes(app: Express) {
       }
 
       // Atualizar lastSeen em paralelo com as leituras necessárias para responder ao APK.
-      const lastSeenUpdate = db.update(devices).set({ lastSeen: now }).where(eq(devices.id, device.id));
+      // Se o MAC resolvido é um MAC reserva (device_macs), `device` é o
+      // cadastro PRINCIPAL (que pode ser de outro app). Gravar lastSeen ali
+      // faria o cadastro principal aparecer "Online" no Dashboard só porque
+      // o app do MAC reserva (ex.: Fusion) chamou essa rota — grave a
+      // atividade na própria linha de device_macs nesse caso.
+      let lastSeenUpdate;
+      if (resolvedMatch && !resolvedMatch.primary && resolvedMatch.aliasMacId) {
+        const aliasUpdateData: { lastSeen: Date; lastActiveAppId?: string } = { lastSeen: now };
+        if (resolvedMatch.appId) aliasUpdateData.lastActiveAppId = resolvedMatch.appId;
+        lastSeenUpdate = db.update(deviceMacs).set(aliasUpdateData).where(eq(deviceMacs.id, resolvedMatch.aliasMacId));
+      } else {
+        lastSeenUpdate = db.update(devices).set({ lastSeen: now }).where(eq(devices.id, device.id));
+      }
 
       const isAllowed = device.status === "Liberado";
 
