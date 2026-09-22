@@ -223,7 +223,18 @@ export async function addDeviceMac(deviceId: number, ownerId: number, rawMac: st
       if (normalizedAppId && existing[0].appId !== normalizedAppId) await db.update(deviceMacs).set({ appId: normalizedAppId }).where(eq(deviceMacs.id, existing[0].id));
       return { id: existing[0].id, mac, appId: normalizedAppId || existing[0].appId, primary: false };
     }
-    throw new Error("Este MAC já está vinculado a outro cliente.");
+    // Autocorreção de dados órfãos: exclusões antigas (antes da correção em
+    // deleteDeviceReferences) podiam deixar essa linha de device_macs
+    // apontando pra um cliente que não existe mais. Sem isso, esse MAC
+    // ficaria travado pra sempre com "já vinculado a outro cliente" mesmo
+    // não pertencendo a ninguém de verdade. Confirma se o cliente dono ainda
+    // existe antes de bloquear — se não existir, libera o MAC e segue.
+    const ownerStillExists = await db.select({ id: devices.id }).from(devices).where(eq(devices.id, existing[0].deviceId)).limit(1);
+    if (!ownerStillExists.length) {
+      await db.delete(deviceMacs).where(eq(deviceMacs.id, existing[0].id));
+    } else {
+      throw new Error("Este MAC já está vinculado a outro cliente.");
+    }
   }
   if (!owned[0].mac) {
     await db.update(devices).set({ mac }).where(eq(devices.id, deviceId));
@@ -249,7 +260,14 @@ export async function updateDeviceMac(deviceId: number, ownerId: number, macId: 
     db.select({ id: devices.id }).from(devices).where(and(eq(devices.mac, mac), sql`${devices.id} <> ${deviceId}`)).limit(1),
     db.select({ id: deviceMacs.id, deviceId: deviceMacs.deviceId }).from(deviceMacs).where(and(eq(deviceMacs.mac, mac), sql`${deviceMacs.id} <> ${macId}`)).limit(1),
   ]);
-  if (deviceConflict.length || (aliasConflict.length && aliasConflict[0].deviceId !== deviceId)) throw new Error("Este MAC já está vinculado a outro cliente.");
+  if (deviceConflict.length) throw new Error("Este MAC já está vinculado a outro cliente.");
+  if (aliasConflict.length && aliasConflict[0].deviceId !== deviceId) {
+    // Mesma autocorreção de órfãos do addDeviceMac(): antes de bloquear,
+    // confirma se o cliente dono do conflito ainda existe de verdade.
+    const ownerStillExists = await db.select({ id: devices.id }).from(devices).where(eq(devices.id, aliasConflict[0].deviceId)).limit(1);
+    if (ownerStillExists.length) throw new Error("Este MAC já está vinculado a outro cliente.");
+    await db.delete(deviceMacs).where(eq(deviceMacs.id, aliasConflict[0].id));
+  }
   const result = await db.update(deviceMacs).set({ mac, appId: normalizedAppId }).where(and(eq(deviceMacs.id, macId), eq(deviceMacs.deviceId, deviceId)));
   const affectedRows = Number((result as any)[0]?.affectedRows ?? (result as any).affectedRows ?? 0);
   if (affectedRows === 0) throw new Error("MAC secundário não encontrado.");
@@ -358,6 +376,14 @@ export async function deleteManyDevices(ids: number[], ownerId: number) {
 
 /** Remove todos os rastros operacionais de dispositivos antes de liberar os MACs. */
 async function deleteDeviceReferences(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, deviceIds: number[]) {
+  // IMPORTANTE: sem isso, os MACs reserva ("+ Adicionar MAC") de um cliente
+  // excluído ficavam ÓRFÃOS em device_macs — sumiam do painel (já que o
+  // cadastro principal não existe mais), mas continuavam ocupando o MAC pra
+  // sempre, porque addDeviceMac() rejeita qualquer MAC que já exista em
+  // device_macs, mesmo apontando pra um cliente que não existe mais. Isso
+  // travava permanentemente a reutilização daquele MAC em qualquer cliente
+  // novo, com a mensagem "Este MAC já está vinculado a outro cliente."
+  await db.delete(deviceMacs).where(inArray(deviceMacs.deviceId, deviceIds));
   await db.delete(deviceAppLinks).where(inArray(deviceAppLinks.deviceId, deviceIds));
   await db.delete(appCredentials).where(inArray(appCredentials.deviceId, deviceIds));
   await db.delete(deviceListNotificationReceipts).where(inArray(deviceListNotificationReceipts.deviceId, deviceIds));
