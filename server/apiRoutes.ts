@@ -4090,47 +4090,11 @@ export function registerApiRoutes(app: Express) {
     }
   });
 
-  /**
-   * GET /api/v5/bg_roku
-   * Retorna a imagem de fundo
-   */
-  app.get("/api/v5/bg_roku", async (req: Request, res: Response) => {
-    try {
-      const cfg = await getSettings();
-      const bgUrl = (cfg.gpcpro_background_url || cfg.trial_background_url || "").trim();
-      
-      if (bgUrl) {
-        const resolvedUrl = await resolvePublicImageUrl(bgUrl);
-        res.redirect(resolvedUrl || bgUrl);
-      } else {
-        res.status(404).json({ error: "Background not found" });
-      }
-    } catch (error) {
-      console.error("[API] /api/v5/bg_roku error:", error);
-      res.status(500).json({ error: "Internal error" });
-    }
-  });
-
-  /**
-   * GET /api/v5/logo_roku
-   * Retorna a imagem do logo
-   */
-  app.get("/api/v5/logo_roku", async (req: Request, res: Response) => {
-    try {
-      const cfg = await getSettings();
-      const logoUrl = (cfg.gpcpro_logo_url || cfg.trial_logo_url || "").trim();
-      
-      if (logoUrl) {
-        const resolvedUrl = await resolvePublicImageUrl(logoUrl);
-        res.redirect(resolvedUrl || logoUrl);
-      } else {
-        res.status(404).json({ error: "Logo not found" });
-      }
-    } catch (error) {
-      console.error("[API] /api/v5/logo_roku error:", error);
-      res.status(500).json({ error: "Internal error" });
-    }
-  });
+  // Observação: /api/v5/bg_roku e /api/v5/logo_roku já são definidas mais acima
+  // (perto de /api/v5/get_playlist_roku). Como o Express usa sempre a PRIMEIRA
+  // rota cadastrada para o mesmo método+caminho, uma segunda definição aqui
+  // nunca era executada — era código morto, removido para não confundir quem
+  // for mexer nisso depois achando que essa é a versão ativa.
 
   /**
    * GET /api/v5/get_playlist_roku?mac=XX:XX:XX:XX:XX:XX
