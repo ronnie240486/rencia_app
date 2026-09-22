@@ -22,6 +22,63 @@ function getForgeConfig() {
   return { forgeUrl: forgeUrl.replace(/\/+$/, ""), forgeKey };
 }
 
+function getCloudinaryConfig() {
+  const cloudName = ENV.cloudinaryCloudName;
+  const apiKey = ENV.cloudinaryApiKey;
+  const apiSecret = ENV.cloudinaryApiSecret;
+  if (!cloudName || !apiKey || !apiSecret) return null;
+  return { cloudName, apiKey, apiSecret };
+}
+
+async function sha1Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// Guarda o arquivo numa conta gratuita do Cloudinary (fora do container).
+// Existe porque nem todo serviço/plano do Railway oferece "Volume" (disco
+// persistente) — sem ele, UPLOADS_DIR não resolve nada, já que o container
+// inteiro é recriado a cada deploy. O Cloudinary devolve uma URL pública
+// (https://res.cloudinary.com/...) que já funciona em todo o resto do
+// código sem nenhuma mudança: qualquer URL que não seja "/manus-storage/..."
+// já é tratada como externa (ver resolvePublicImageUrl em apiRoutes.ts).
+async function cloudinaryPut(
+  relKey: string,
+  data: Buffer | Uint8Array | string,
+  contentType: string,
+): Promise<{ key: string; url: string }> {
+  const cfg = getCloudinaryConfig();
+  if (!cfg) throw new Error("Cloudinary não configurado");
+
+  const key = appendHashSuffix(normalizeKey(relKey));
+  const lastDot = key.lastIndexOf(".");
+  const publicId = lastDot === -1 ? key : key.slice(0, lastDot);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = await sha1Hex(`public_id=${publicId}&timestamp=${timestamp}${cfg.apiSecret}`);
+
+  const buffer = typeof data === "string" ? Buffer.from(data) : Buffer.from(data as Uint8Array);
+  const form = new FormData();
+  form.append("file", new Blob([buffer], { type: contentType }));
+  form.append("public_id", publicId);
+  form.append("timestamp", String(timestamp));
+  form.append("api_key", cfg.apiKey);
+  form.append("signature", signature);
+
+  const resourceType = contentType.startsWith("video/") ? "video" : contentType.startsWith("image/") ? "image" : "raw";
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cfg.cloudName}/${resourceType}/upload`;
+  const resp = await fetch(uploadUrl, { method: "POST", body: form });
+  if (!resp.ok) {
+    const msg = await resp.text().catch(() => resp.statusText);
+    throw new Error(`Cloudinary upload falhou (${resp.status}): ${msg}`);
+  }
+  const json = (await resp.json()) as { secure_url?: string; url?: string };
+  const url = json.secure_url || json.url;
+  if (!url) throw new Error("Cloudinary não retornou URL do arquivo");
+  return { key, url };
+}
+
 function normalizeKey(relKey: string): string {
   return relKey.replace(/^\/+/, "");
 }
@@ -33,7 +90,17 @@ function appendHashSuffix(relKey: string): string {
   return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
 }
 
-function localStorageDir(): string {
+// Onde os arquivos enviados pelo painel (logo, banner, imagem de fundo,
+// APK) ficam guardados quando o Forge (storage do Manus) não está
+// configurado — é o caso do Railway. IMPORTANTE: por padrão isso é uma
+// pasta dentro do próprio build (dist/public/manus-storage), que o Railway
+// APAGA e recria do zero a cada deploy — é por isso que uma imagem
+// configurada no painel "some" depois de qualquer atualização do sistema,
+// mesmo sem ninguém ter mexido nela. Configurando a variável de ambiente
+// UPLOADS_DIR pra apontar pra um Volume persistente do Railway, os
+// arquivos passam a sobreviver aos deploys. Ver README/instruções do painel.
+export function localStorageDir(): string {
+  if (ENV.uploadsDir) return ENV.uploadsDir;
   const distPath =
     process.env.NODE_ENV === "development"
       ? path.resolve(import.meta.dirname, "..", "dist", "public")
@@ -70,6 +137,10 @@ export async function storagePut(
 ): Promise<{ key: string; url: string }> {
   const forge = getForgeConfig();
   if (!forge) {
+    const cloudinary = getCloudinaryConfig();
+    if (cloudinary) {
+      return cloudinaryPut(relKey, data, contentType);
+    }
     return localStoragePut(relKey, data);
   }
   const { forgeUrl, forgeKey } = forge;
