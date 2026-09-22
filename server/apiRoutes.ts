@@ -1746,8 +1746,13 @@ export function registerApiRoutes(app: Express) {
 
       // Montar URL absoluta para o APK acessar
       // Usar o origin da requisição (funciona tanto no dev quanto em produção)
+      // Se storagePut já devolveu uma URL absoluta (Cloudinary, ex.:
+      // https://res.cloudinary.com/...), NÃO gruda o origin do painel na
+      // frente — isso gerava um link quebrado (as duas URLs coladas) e foi o
+      // motivo da imagem de fundo do OuroPro parar de puxar depois de
+      // configurar o Cloudinary: toda imagem nova salvava um link inválido.
       const reqOrigin = (req.headers.origin as string) || (req.headers.referer ? new URL(req.headers.referer as string).origin : null) || 'https://renciaapp.manus.space';
-      const absoluteUrl = `${reqOrigin}${url}`;
+      const absoluteUrl = /^https?:\/\//i.test(url) ? url : `${reqOrigin}${url}`;
 
       // Atualizar no banco de dados
       const db = await getDb();
