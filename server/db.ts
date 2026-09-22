@@ -4,7 +4,7 @@ import { appCredentials, apps, auditLogs, customerNotes, deviceAppLinks, deviceL
 import { ENV } from './_core/env';
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 import { normalizeMacForStorage } from "../shared/mac";
-import { isManagedAppId, managedAppIdForValue } from "../shared/appCatalog";
+import { isManagedAppId, managedAppIdForValue, MANAGED_APP_CATALOG } from "../shared/appCatalog";
 import { countDevicePlaylists } from "./devicePlaylistCount";
 import { CONNECTED_WINDOW_MINUTES } from "./connectedWindow";
 import { addIptvServerRevenue, parseIptvServerValue } from "./iptvServerRevenue";
@@ -701,13 +701,17 @@ export async function getConnectedDevices(ownerId: number, minutesAgo = CONNECTE
   // a gravar nelas — ver /api/v5/heartbeat. Antes disso só existia a linha do
   // MAC principal aqui, então dois aparelhos (ex.: TV box + celular) usando a
   // mesma lista nunca apareciam separados, cada um com seu próprio canal.
-  const aliasRows = await db.select({
+  const aliasRowsRaw = await db.select({
     id: devices.id,
     macId: deviceMacs.id,
     primaryMac: sql<boolean>`false`,
     mac: deviceMacs.mac,
     nomeServer: devices.nomeServer,
-    app: devices.app,
+    // App do cadastro PRINCIPAL, usado só de fallback quando o MAC reserva
+    // não tem appId próprio (linha antiga, criada antes de "+ Adicionar MAC"
+    // guardar o app escolhido para aquele MAC específico).
+    principalApp: devices.app,
+    aliasAppId: deviceMacs.appId,
     lastActiveAppId: deviceMacs.lastActiveAppId,
     tipo: devices.tipo,
     status: devices.status,
@@ -718,6 +722,16 @@ export async function getConnectedDevices(ownerId: number, minutesAgo = CONNECTE
   }).from(deviceMacs)
     .innerJoin(devices, eq(deviceMacs.deviceId, devices.id))
     .where(and(eq(devices.ownerId, ownerId), gte(deviceMacs.lastSeen, cutoff)));
+
+  // BUG que fazia "Dispositivos Conectados" mostrar o MAC reserva com o
+  // aplicativo do cadastro PRINCIPAL (ex.: MAC reserva do Fusion aparecendo
+  // como "Ouro Pro", só porque o cliente tem Ouro Pro como app principal):
+  // a query acima devolvia sempre devices.app, ignorando que "+ Adicionar
+  // MAC" já grava o app certo daquele MAC específico em deviceMacs.appId.
+  const aliasRows = aliasRowsRaw.map(({ principalApp, aliasAppId, ...row }) => {
+    const catalogEntry = aliasAppId && isManagedAppId(aliasAppId) ? MANAGED_APP_CATALOG[aliasAppId] : null;
+    return { ...row, app: catalogEntry?.displayName ?? principalApp };
+  });
 
   return [...principalRows, ...aliasRows]
     .sort((a, b) => new Date(b.lastSeen ?? 0).getTime() - new Date(a.lastSeen ?? 0).getTime())
