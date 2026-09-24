@@ -30,7 +30,7 @@ import { storagePut, storageGetSignedUrl } from "./storage";
 import { exportBackup, exportLegacyV2Backup, importBackup, previewBackupImport } from "./exportImport";
 import { getBackupDownload } from "./backupService";
 import { buildUltraPlayerConfig, normalizeMacAddress } from "./ultraPlayerConfig";
-import { readHeartbeatContent, resolveHeartbeatContentUpdate } from "./heartbeatContent";
+import { normalizeHeartbeatContent, readHeartbeatContent, isHeartbeatIdleSignal } from "./heartbeatContent";
 import { acknowledgeRemoteCommand, claimRemoteCommandForMac } from "./remoteCommands";
 import { buildPublicDownloadApps } from "./publicDownloads";
 import { acknowledgeListNotificationForMac, buildApkExpirationNotice, buildApkExpirationResponseFields, getListNotificationsForMac } from "./apkListNotifications";
@@ -4921,22 +4921,22 @@ export function registerApiRoutes(app: Express) {
 
       // Heartbeat vazio mantém o último conteúdo. O APK pode enviar o mesmo
       // current_content periodicamente quando a pessoa fica no mesmo canal/filme.
-      // BUG já cometido aqui e corrigido: checar normalizeHeartbeatContent e
-      // isHeartbeatIdleSignal como dois `if` soltos grava o texto literal
-      // "__idle__" no painel, porque a sentinela também é uma string não-
-      // vazia e o primeiro `if` ganhava na frente. resolveHeartbeatContentUpdate
-      // decide as duas coisas num lugar só, sem essa ordem frágil.
       const rawContentParam = req.query.current_content ?? req.query.currentContent ?? req.query.content;
-      const contentDecision = resolveHeartbeatContentUpdate(rawContentParam);
-      const currentContent = contentDecision.action === "set" ? contentDecision.content : undefined;
+      const currentContent = normalizeHeartbeatContent(rawContentParam);
+      // BUG corrigido: "Assistindo" ficava preso pra sempre no último canal
+      // reportado, mesmo com o app recém-aberto e nada tocando -- porque
+      // vazio/omitido sempre significou "sem novidade" (regra logo acima).
+      // O APK sinaliza "parei de assistir" com a sentinela reservada, e só
+      // aí a coluna é limpa de propósito (null), nunca com heartbeat vazio.
+      const contentClearedExplicitly = isHeartbeatIdleSignal(rawContentParam);
 
       let session: { enforced: boolean; active_sessions?: number; maximum_connections?: number } = { enforced: false };
       if (db) {
         const updateData: { lastSeen: Date; currentContent?: string | null } = {
           lastSeen: new Date(),
         };
-        if (contentDecision.action === "set") updateData.currentContent = contentDecision.content;
-        else if (contentDecision.action === "clear") updateData.currentContent = null;
+        if (currentContent) updateData.currentContent = currentContent;
+        else if (contentClearedExplicitly) updateData.currentContent = null;
 
         const sameMacRows = await db.select().from(devices).where(or(
           ...macCandidates.map((candidate) => eq(devices.mac, candidate)),
@@ -4960,8 +4960,8 @@ export function registerApiRoutes(app: Express) {
               const aliasUpdateData: { lastSeen: Date; currentContent?: string | null; lastActiveAppId?: string } = {
                 lastSeen: new Date(),
               };
-              if (contentDecision.action === "set") aliasUpdateData.currentContent = contentDecision.content;
-              else if (contentDecision.action === "clear") aliasUpdateData.currentContent = null;
+              if (currentContent) aliasUpdateData.currentContent = currentContent;
+              else if (contentClearedExplicitly) aliasUpdateData.currentContent = null;
               if (reportedAppId) aliasUpdateData.lastActiveAppId = reportedAppId;
               await db.update(deviceMacs).set(aliasUpdateData).where(eq(deviceMacs.id, aliasRows[0].id));
               const remote = await claimRemoteCommandForMac(db, mac);

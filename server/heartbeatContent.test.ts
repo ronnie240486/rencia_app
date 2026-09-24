@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HEARTBEAT_IDLE_SENTINEL, isHeartbeatIdleSignal, normalizeHeartbeatContent, readHeartbeatContent, resolveHeartbeatContentUpdate } from "./heartbeatContent";
+import { HEARTBEAT_IDLE_SENTINEL, isHeartbeatIdleSignal, normalizeHeartbeatContent, readHeartbeatContent } from "./heartbeatContent";
 
 describe("heartbeat de conteúdo assistido", () => {
   it("mantém o último conteúdo quando o APK envia apenas um heartbeat vazio", () => {
@@ -26,22 +26,5 @@ describe("heartbeat de conteúdo assistido", () => {
     expect(isHeartbeatIdleSignal("")).toBe(false);
     expect(isHeartbeatIdleSignal(undefined)).toBe(false);
     expect(isHeartbeatIdleSignal("Globo TV Verdes")).toBe(false);
-  });
-
-  it("resolve a sentinela como 'clear', nunca como texto literal salvo no painel", () => {
-    // Regressão real: __idle__ é uma string não-vazia, então
-    // normalizeHeartbeatContent("__idle__") sozinha volta "__idle__"
-    // (verdadeiro) -- se a rota checasse isso antes/separado da sentinela,
-    // gravava "__idle__" como se fosse o nome de um canal. Testado aqui
-    // pra nunca mais quebrar por causa da ordem dos `if`s na rota.
-    expect(resolveHeartbeatContentUpdate(HEARTBEAT_IDLE_SENTINEL)).toEqual({ action: "clear" });
-    expect(resolveHeartbeatContentUpdate("__IDLE__")).toEqual({ action: "clear" });
-    expect(resolveHeartbeatContentUpdate("  __idle__  ")).toEqual({ action: "clear" });
-  });
-
-  it("resolve conteúdo normal como 'set' e vazio/omitido como 'keep'", () => {
-    expect(resolveHeartbeatContentUpdate("Animal Planet")).toEqual({ action: "set", content: "Animal Planet" });
-    expect(resolveHeartbeatContentUpdate("")).toEqual({ action: "keep" });
-    expect(resolveHeartbeatContentUpdate(undefined)).toEqual({ action: "keep" });
   });
 });

@@ -33,25 +33,3 @@ export const HEARTBEAT_IDLE_SENTINEL = "__idle__";
 export function isHeartbeatIdleSignal(value: unknown): boolean {
   return typeof value === "string" && value.trim().toLowerCase() === HEARTBEAT_IDLE_SENTINEL;
 }
-
-export type HeartbeatContentDecision =
-  | { action: "keep" }
-  | { action: "set"; content: string }
-  | { action: "clear" };
-
-/**
- * Ponto único de decisão do que fazer com currentContent num heartbeat.
- * Existe pra nunca mais repetir o bug já cometido aqui: checar
- * normalizeHeartbeatContent(valor) e isHeartbeatIdleSignal(valor) como
- * dois `if` separados na rota -- a sentinela "__idle__" É uma string não-
- * vazia, então normalizeHeartbeatContent("__idle__") volta "__idle__"
- * (verdadeiro) e o `if (currentContent)` ganhava na frente do `else if`
- * da sentinela, gravando o texto literal "__idle__" no painel em vez de
- * limpar. A sentinela tem que ser resolvida ANTES de normalizar, sempre
- * pelo mesmo lugar -- por isso essa função concentra as duas checagens.
- */
-export function resolveHeartbeatContentUpdate(value: unknown): HeartbeatContentDecision {
-  if (isHeartbeatIdleSignal(value)) return { action: "clear" };
-  const content = normalizeHeartbeatContent(value);
-  return content ? { action: "set", content } : { action: "keep" };
-}
