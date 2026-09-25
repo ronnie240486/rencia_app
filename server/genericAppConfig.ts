@@ -14,17 +14,32 @@ export function findDeviceForManagedApp<T extends AppBoundDevice>(devices: T[], 
   return devices.find(device => normalizedAliases.has((device.app || "").trim().toLocaleLowerCase("pt-BR")));
 }
 
-export function buildGenericAppConfig(appId: string, displayName: string, settings: GenericAppSettings, playlistUrls: string[], urlEpg = "") {
+export function buildGenericAppConfig(appId: string, displayName: string, settings: GenericAppSettings, playlistUrls: string[], urlEpg = "", playlistNames: string[] = []) {
   const prefix = `${appId}_`;
   const text = (suffix: string, fallback = "") => settings[`${prefix}${suffix}`] || fallback;
   const defaultLogoUrl = isManagedAppId(appId) ? MANAGED_APP_CATALOG[appId].defaultLogoUrl : "";
+  const serverApiUrl = text("server_api_url");
+  const filteredPlaylistUrls: string[] = [];
+  const filteredPlaylistNames: string[] = [];
+  playlistUrls.forEach((url, index) => {
+    if (!url) return;
+    filteredPlaylistUrls.push(url);
+    filteredPlaylistNames.push(playlistNames[index] || "");
+  });
   return {
     app_id: appId,
     app_name: text("app_name", displayName),
     impact_phrase: text("impact_phrase"),
     message_title: text("message_title"),
     message_text: text("message_text"),
-    server_api_url: text("server_api_url"),
+    server_api_url: serverApiUrl,
+    // Campo usado pelo botão "Testar API do Servidor" no app (mesmo papel do
+    // "test_api_url" que o check_mac.php já manda pro Maximus). Cada app
+    // gerenciado pode ter seu próprio "<appId>_test_api_url" nas settings;
+    // enquanto essa seção própria não tiver um campo dedicado no admin, cai
+    // pro mesmo valor de server_api_url (já configurável hoje), então o
+    // teste funciona sem exigir nenhuma migração nem tela nova agora.
+    test_api_url: text("test_api_url", serverApiUrl),
     apk_download_url: text("apk_download_url"),
     apk_version: text("apk_version"),
     block_title: text("block_title"),
@@ -56,7 +71,14 @@ export function buildGenericAppConfig(appId: string, displayName: string, settin
       language: text("language", "pt-BR"),
       contact_email: text("contact_email"),
     },
-    playlist_urls: playlistUrls.filter(Boolean),
+    playlist_urls: filteredPlaylistUrls,
+    // Nome de cada lista, no MESMO índice/ordem de playlist_urls acima --
+    // campo NOVO e adicional (pedido do Future: mostrar só o nome da lista
+    // pro cliente, nunca a URL com usuário/senha do provedor). playlist_urls
+    // continua exatamente igual, então nenhum app que já usa essa rota
+    // precisa mudar nada. Filtra em par com playlist_urls (mesmo critério,
+    // Boolean(url)) pra nunca desalinhar os índices entre os dois arrays.
+    playlist_names: filteredPlaylistNames,
     urlEpg: urlEpg || "",
   };
 }
