@@ -2275,15 +2275,24 @@ export function registerApiRoutes(app: Express) {
       } else {
         await db.update(devices).set({ lastSeen: new Date(), lastActiveAppId: appId }).where(eq(devices.id, device.id));
       }
-      const extras = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
+      const extras = await db.select({ url: deviceUrls.urlM3u8, nome: deviceUrls.nome }).from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
       const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
       const selectedDnsProfile = selectDnsProfileEntries(device.urlM3u8, profileDns, device.nomeServidor);
       const failoverUrls = buildDnsFailoverUrls(device.urlM3u8, selectedDnsProfile);
       const primaryPlaylistUrl = failoverUrls[0] || device.urlM3u8 || "";
       const appPlaylistUrls = primaryPlaylistUrl ? [primaryPlaylistUrl, ...extras.map((item) => item.url || "")] : extras.map((item) => item.url || "");
+      // Nome de cada lista, no MESMO índice/ordem de appPlaylistUrls acima --
+      // vem da coluna "nome" de device_urls (extras) e, pra primeira posição
+      // (a URL principal do cadastro, que não passa por device_urls), do
+      // nome do servidor/perfil já usado no dashboard. Campo NOVO e
+      // adicional (ver buildGenericAppConfig): não muda playlist_urls pra
+      // nenhum app que já consome essa rota hoje.
+      const appPlaylistNames = primaryPlaylistUrl
+        ? [device.nomeServidor || "", ...extras.map((item) => item.nome || "")]
+        : extras.map((item) => item.nome || "");
       const settings = await getSettings();
       res.setHeader("Cache-Control", "no-store");
-      res.json({ registered: true, allowed: device.status === "Liberado", mac, playlist_url: primaryPlaylistUrl, primary_dns_url: primaryPlaylistUrl, failover_urls: failoverUrls, server_profile: selectedDnsProfile[0]?.grupo || null, ...buildGenericAppConfig(appId, appDef.displayName, settings, appPlaylistUrls, device.urlEpg || "") });
+      res.json({ registered: true, allowed: device.status === "Liberado", mac, playlist_url: primaryPlaylistUrl, primary_dns_url: primaryPlaylistUrl, failover_urls: failoverUrls, server_profile: selectedDnsProfile[0]?.grupo || null, ...buildGenericAppConfig(appId, appDef.displayName, settings, appPlaylistUrls, device.urlEpg || "", appPlaylistNames) });
     } catch (error) {
       console.error("[API] configuração de aplicativo genérico", error);
       res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do aplicativo." });
