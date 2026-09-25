@@ -2299,6 +2299,33 @@ export function registerApiRoutes(app: Express) {
     }
   });
 
+  /**
+   * GET /api/v5/apps/:appId/preview
+   * Configuração PÚBLICA de um app gerenciado (logo, mensagens, API de
+   * teste, etc.), sem precisar de nenhum MAC cadastrado. Existe pra dar
+   * suporte à tela de ativação mostrar "Testar API do Painel" funcionando
+   * mesmo ANTES do cliente cadastrar o aparelho -- pedido explícito: "o
+   * teste tem que funcionar antes de cadastrar o MAC, pro cliente conhecer
+   * o aplicativo". Não toca em nenhuma tabela de device/cliente, só lê as
+   * settings do próprio app -- não tem custo de risco pra rotas existentes.
+   */
+  app.get("/api/v5/apps/:appId/preview", async (req: Request, res: Response) => {
+    const appId = String(req.params.appId || "").trim().toLowerCase();
+    if (!isManagedAppId(appId) || !NEW_MANAGED_APP_IDS.includes(appId)) {
+      res.status(400).json({ error: "Aplicativo inválido." });
+      return;
+    }
+    try {
+      const appDef = MANAGED_APP_CATALOG[appId];
+      const settings = await getSettings();
+      res.setHeader("Cache-Control", "no-store");
+      res.json(buildGenericAppConfig(appId, appDef.displayName, settings, [], ""));
+    } catch (error) {
+      console.error("[API] preview de aplicativo genérico", error);
+      res.status(500).json({ error: "Não foi possível obter a configuração pública do aplicativo." });
+    }
+  });
+
   /** GET /api/v5/apps/:appId/update?mac=... — atualização exclusiva de cada novo APK. */
   app.get("/api/v5/apps/:appId/update", async (req: Request, res: Response) => {
     const appId = String(req.params.appId || "").trim().toLowerCase();
