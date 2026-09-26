@@ -3694,6 +3694,14 @@ export function registerApiRoutes(app: Express) {
       const rawMac = typeof body.mac === "string" ? body.mac : "";
       const rawPhone = typeof body.phone === "string" ? body.phone : typeof body.telefone === "string" ? body.telefone : undefined;
       const test = normalizeCompletedTest({ mac: rawMac, name: rawName, phone: rawPhone });
+      // "app_id" é NOVO e opcional -- criado pra esse teste passar a marcar
+      // o cliente com o app CERTO (ex.: "Future") em vez de sempre gravar
+      // "Maximus" igual antes, não importa quem chamou. Sem esse campo (ou
+      // com um app_id desconhecido), mantém "Maximus" -- exatamente o
+      // comportamento de sempre, então nenhum app que já chama essa rota
+      // muda de comportamento.
+      const rawAppId = typeof body.app_id === "string" ? body.app_id.trim().toLowerCase() : "";
+      const testAppName = isManagedAppId(rawAppId) ? MANAGED_APP_CATALOG[rawAppId].displayName : "Maximus";
 
       if (!test.mac) {
         res.status(400).json({ success: false, error: "MAC inválido." });
@@ -3719,7 +3727,7 @@ export function registerApiRoutes(app: Express) {
           return;
         }
 
-        await db.update(devices).set({ nomeServer: test.name, telefone: test.phone, app: "Maximus", lastSeen: now }).where(eq(devices.id, existing.id));
+        await db.update(devices).set({ nomeServer: test.name, telefone: test.phone, app: testAppName, lastSeen: now }).where(eq(devices.id, existing.id));
         res.json({ success: true, created: false, updated: true, device_id: existing.id, name: test.name });
         return;
       }
@@ -3736,7 +3744,7 @@ export function registerApiRoutes(app: Express) {
         nomeServer: test.name,
         tipo: "Usuario",
         modoSelecao: "M3U8",
-        app: "Maximus",
+        app: testAppName,
         status: "Bloqueado",
         telefone: test.phone,
         lastSeen: now,
