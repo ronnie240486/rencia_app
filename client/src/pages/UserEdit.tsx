@@ -356,6 +356,33 @@ export default function UserEdit() {
       if (!urlM3u8.trim()) { toast.error("URL M3U8 é obrigatória no modo M3U8."); return; }
     }
 
+    // Bug real relatado: reseller troca a lista de um cliente cujo teste
+    // venceu (pra converter em assinante pago) e esquece de também mudar o
+    // Status e a Data de vencimento, que continuam com os valores antigos
+    // (o painel marca "Expirado" sozinho assim que a data passa -- ver
+    // apiRoutes.ts, rota /api/guim.php). O salvamento "funciona" sem erro
+    // nenhum, mas o app do cliente continua recebendo lista vazia (se
+    // Status != Liberado) ou "assinatura vencida" (se a Data de vencimento
+    // ficou no passado) -- e não tem nenhum aviso disso na hora de salvar.
+    // Só avisa quando a lista foi de fato alterada, pra não incomodar em
+    // edições de rotina (telefone, nome) de um cliente que segue bloqueado
+    // de propósito.
+    const urlMudou = urlM3u8.trim() !== (device?.urlM3u8 ?? "").trim();
+    if (urlMudou) {
+      const dataVencimento = form.dataExpiracao ? new Date(`${form.dataExpiracao}T23:59:59`) : null;
+      const dataVencidaOuVazia = !dataVencimento || Number.isNaN(dataVencimento.getTime()) || dataVencimento.getTime() < Date.now();
+      if (form.status !== "Liberado" || dataVencidaOuVazia) {
+        const avisos = [
+          form.status !== "Liberado" ? `o Status está como "${form.status}" (precisa ser "Liberado")` : null,
+          dataVencidaOuVazia ? "a Data de vencimento está vazia ou no passado" : null,
+        ].filter(Boolean).join(" e ");
+        const confirmado = window.confirm(
+          `Você trocou a lista, mas ${avisos}. Assim, o aplicativo do cliente vai continuar mostrando "sem lista" ou "assinatura vencida" mesmo com a lista nova salva.\n\nSalvar assim mesmo?`
+        );
+        if (!confirmado) return;
+      }
+    }
+
     updateMutation.mutate({
       id: deviceId,
       mac: form.mac.trim() || undefined,
