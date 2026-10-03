@@ -333,7 +333,24 @@ export async function updateDevice(id: number, ownerId: number, data: Partial<{
   if (data.tipo !== undefined) updateData.tipo = data.tipo;
   if (data.modoSelecao !== undefined) updateData.modoSelecao = data.modoSelecao;
   if (data.app !== undefined) updateData.app = data.app;
-  if (data.urlM3u8 !== undefined) updateData.urlM3u8 = data.urlM3u8;
+  if (data.urlM3u8 !== undefined) {
+    updateData.urlM3u8 = data.urlM3u8;
+    // Bug real relatado: o failover automático (server/listFailover.ts, roda
+    // a cada minuto via cron) pode ter apontado activeDeviceUrlId pra uma
+    // lista extra em algum momento (ex.: a Lista Principal de um teste
+    // vencido falhou no probe automático e o painel trocou sozinho pra uma
+    // lista de reserva antiga). Depois disso, /api/guim.php passa a mandar
+    // a Lista Principal por ÚLTIMO no array (não excluída, só reordenada) --
+    // e como o APK usa playlist_position=0 por padrão, ele continua tocando
+    // a lista extra antiga, mesmo com a Lista Principal certinha no banco.
+    // Sem isso, o revendedor podia trocar a URL aqui quantas vezes quisesse
+    // que o cliente seguia vendo o conteúdo antigo, até a pessoa achar o
+    // truque de apagar a lista extra e recriar do zero. Uma troca explícita
+    // da Lista Principal feita aqui tem que valer NA HORA -- por isso zera
+    // activeDeviceUrlId junto. Se essa lista nova cair de verdade depois, o
+    // failover automático pode assumir de novo normalmente.
+    updateData.activeDeviceUrlId = null;
+  }
   if (data.urlEpg !== undefined) updateData.urlEpg = data.urlEpg;
   if (data.valor !== undefined) updateData.valor = data.valor;
   if (data.dataExpiracao !== undefined) updateData.dataExpiracao = data.dataExpiracao ? dateOnlyForDatabase(data.dataExpiracao) : null;

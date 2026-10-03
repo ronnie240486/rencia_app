@@ -627,6 +627,11 @@ export function registerApiRoutes(app: Express) {
     if (id) {
       const device = await portalDevice(user.id, id); if (!device) { res.status(404).json({ success: false, error: "Cliente não encontrado." }); return; }
       if (!playlist) delete data.urlM3u8;
+      // Mesma correção do painel principal (server/db.ts, updateDevice):
+      // troca explícita da Lista Principal precisa zerar activeDeviceUrlId,
+      // senão o failover automático pode deixar o APK preso numa lista
+      // extra antiga mesmo com a Lista Principal certa salva no banco.
+      else data.activeDeviceUrlId = null;
       await db.update(devices).set(data).where(and(eq(devices.id, device.id), eq(devices.ownerId, user.id)));
       res.json({ success: true, id: device.id }); return;
     }
