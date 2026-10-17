@@ -1014,6 +1014,9 @@ export function registerApiRoutes(app: Express) {
         const wordsNf = buildWords(cfgNf);
         const notFoundPayload = {
           mac_registered: false,
+          // true somente quando o MAC realmente não existe mais no painel (cliente excluído);
+          // erro de banco/exceção NÃO manda isso, pra um problema temporário nunca bloquear ninguém.
+          device_deleted: true,
           mac_address: macAddress,
           expire_date: null,
           urls: [],
@@ -2494,7 +2497,7 @@ export function registerApiRoutes(app: Express) {
       const sameMacRows = matchedDevice ? [matchedDevice] : [];
       const activityDevice = await selectDeviceForReportedApp(db, sameMacRows, reportedAppId);
       if (reportedAppId && !activityDevice) {
-        res.status(403).json({ ok: false, error: "MAC não vinculado ao aplicativo informado" });
+        res.status(403).json({ ok: false, error: "MAC não vinculado ao aplicativo informado", unregistered: !matchedDevice });
         return;
       }
 
@@ -2546,7 +2549,7 @@ export function registerApiRoutes(app: Express) {
       // Bloqueio TOTAL: cliente bloqueado/expirado no painel recebe blocked=true
       // no próprio heartbeat -- o app que estiver tocando algo trava na hora.
       const accessBlocked = Boolean(sessionDevice && sessionDevice.status !== "Liberado");
-      res.json({ ok: true, mac: formattedMac, content: currentContent, app: activityDevice?.app ?? null, blocked: accessBlocked, lock: accessBlocked ? 1 : 0, session: { ...session, allowed: true } });
+      res.json({ ok: true, mac: formattedMac, content: currentContent, app: activityDevice?.app ?? null, blocked: accessBlocked, lock: accessBlocked ? 1 : 0, unregistered: !sessionDevice, session: { ...session, allowed: true } });
     } catch (error) {
       console.error("[API] /api/v4/heartbeat.php error:", error);
       res.status(500).json({ ok: false, error: "Erro interno" });
