@@ -16,6 +16,7 @@ import { eq, and, inArray, sql, desc, isNotNull, isNull, like, or, gt, gte, lt }
 import { users, appSettings, devices, deviceUrls, dnsEntries, carouselSlides, carouselConfig, suggestions, notices, localCredentials, nuvixConfig, auditLogs, listHealthChecks, payments, messageTemplates, resellerBillings, customerTags, deviceTags, customerNotes, maintenanceTasks, internalAlerts, listFailoverSettings, listFailoverEvents, remoteDeviceCommands, appCredentials, resellerPermissions, appSessions, storeInvites, googleDriveBackupConnections, deviceAppLinks, iptvServers, iptvServerAlertLogs, iptvServerAlertSettings, iptvServerWhatsAppBusinessSettings } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { recordAudit } from "./audit";
+import { moveDevicesToTrash, listExpiredDeviceIds, listDeletedDevices, restoreDeletedDevice, purgeDeletedDevices } from "./deviceTrash";
 import { dateOnlyForDatabase } from "../shared/dateOnly";
 import { normalizeMacForStorage } from "../shared/mac";
 import { getEnforcedDeviceLimit } from "./deviceLimit";
@@ -1193,6 +1194,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const device = await getDeviceById(input.id, ctx.user.id);
         if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Device não encontrado." });
+        try { await moveDevicesToTrash(ctx.user.id, [input.id]); } catch (error) { throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error instanceof Error ? error.message : "Não foi possível guardar na lixeira." }); }
         await deleteDevice(input.id, ctx.user.id);
         await recordAudit({
           ownerId: ctx.user.id,
@@ -1209,14 +1211,42 @@ export const appRouter = router({
     deleteMany: protectedProcedure
       .input(z.object({ ids: z.array(z.number()) }))
       .mutation(async ({ ctx, input }) => {
+        try { await moveDevicesToTrash(ctx.user.id, input.ids); } catch (error) { throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error instanceof Error ? error.message : "Não foi possível guardar na lixeira." }); }
         await deleteManyDevices(input.ids, ctx.user.id);
         return { success: true };
       }),
 
     deleteExpired: protectedProcedure.mutation(async ({ ctx }) => {
+      try { await moveDevicesToTrash(ctx.user.id, await listExpiredDeviceIds(ctx.user.id)); } catch (error) { throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: error instanceof Error ? error.message : "Não foi possível guardar na lixeira." }); }
       await deleteExpiredDevices(ctx.user.id);
       return { success: true };
     }),
+
+    // Lixeira de clientes: guarda tudo (listas, MACs, credenciais...) e permite restaurar.
+    trashList: protectedProcedure.query(async ({ ctx }) => listDeletedDevices(ctx.user.id)),
+
+    trashRestore: protectedProcedure
+      .input(z.object({ id: z.number().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        let result;
+        try { result = await restoreDeletedDevice(input.id, ctx.user.id); } catch (error) { throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Não foi possível restaurar." }); }
+        await recordAudit({
+          ownerId: ctx.user.id,
+          actorUserId: ctx.user.id,
+          entityType: "device",
+          entityId: result.restoredDeviceId,
+          action: "restored",
+          summary: `Cliente ${result.nomeServer} restaurado da lixeira (${result.lists} lista(s))`,
+        });
+        return { success: true, ...result };
+      }),
+
+    trashPurge: protectedProcedure
+      .input(z.object({ id: z.number().positive().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        await purgeDeletedDevices(ctx.user.id, input.id);
+        return { success: true };
+      }),
 
     updateCurrentContent: protectedProcedure
       .input(z.object({ id: z.number(), currentContent: z.string().nullable() }))
