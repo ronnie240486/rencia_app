@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Save, Image, Upload, Palette, MessageCircle, Smartphone, LayoutGrid } from "lucide-react";
+import { Loader2, Save, Image, Upload, Palette, MessageCircle, Smartphone, LayoutGrid, Wifi, WifiOff } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { useLocation } from "wouter";
 
@@ -19,6 +19,8 @@ const DEFAULT_VALUES: Record<string, string> = {
   sidebar_logo_url: "",
   // Contato
   contact_website: "",
+  // API do Servidor (gerador de TESTE do app Ouro Pro) -- igual ao campo do Maximus.
+  ouropro_server_api_url: "",
   contact_whatsapp: "",
   impact_phrase: "",
   contact_info: "",
@@ -155,6 +157,16 @@ export default function Settings() {
     onSuccess: () => {
       toast.success("Configurações salvas!");
       refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const [serverUrlTestResult, setServerUrlTestResult] = useState<{ status: "success" | "error"; message: string } | null>(null);
+  const testUrlMut = trpc.settings.testUrl.useMutation({
+    onSuccess: (data) => {
+      setServerUrlTestResult({ status: data.status, message: data.message });
+      if (data.status === "success") toast.success(`Servidor online — ${data.message}`);
+      else toast.error(`Servidor não respondeu — ${data.message}`);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -434,6 +446,36 @@ export default function Settings() {
                             onChange={e => handleChange("contact_website", e.target.value)}
                             placeholder="Ex: https://ouropro.com.br"
                           />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="font-semibold">API do Servidor (botão TESTE)</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              value={form.ouropro_server_api_url}
+                              onChange={e => { handleChange("ouropro_server_api_url", e.target.value); setServerUrlTestResult(null); }}
+                              placeholder="Ex: https://nuvixtv.sigmab.pro/api/chatbot/XXXX/YYYY"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              title="Testar agora se esse endereço responde"
+                              disabled={!(form.ouropro_server_api_url || "").trim() || testUrlMut.isPending}
+                              onClick={() => testUrlMut.mutate({ url: form.ouropro_server_api_url.trim() })}
+                            >
+                              {testUrlMut.isPending ? <Loader2 size={14} className="animate-spin" /> : serverUrlTestResult?.status === "error" ? <WifiOff size={14} /> : <Wifi size={14} />}
+                            </Button>
+                          </div>
+                          {serverUrlTestResult && (
+                            <p className={`text-xs font-medium ${serverUrlTestResult.status === "success" ? "text-emerald-600" : "text-red-600"}`}>
+                              {serverUrlTestResult.status === "success" ? "Online" : "Falhou"} · {serverUrlTestResult.message}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            É esse link que o botão <strong>TESTE</strong> do Ouro Pro usa pra gerar um teste automático (campo <code>ouropro_server_api_url</code>).
+                            Se ficar vazio, o app usa o link da API do Servidor do Maximus. Use o botão ao lado pra conferir se o endereço responde antes de salvar.
+                          </p>
                         </div>
 
                         <div className="space-y-2">
