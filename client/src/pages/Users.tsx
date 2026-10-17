@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ChevronLeft, ChevronRight, ChevronDown, List, Pencil, Plus, Search, Trash2, Globe,
-  LockKeyhole, SlidersHorizontal, UnlockKeyhole, Download, Mic, MicOff,
+  LockKeyhole, SlidersHorizontal, UnlockKeyhole, Download, Mic, MicOff, ArchiveRestore,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
@@ -29,6 +29,7 @@ import { downloadCsv } from "@/lib/csv";
 import { normalizeVoiceSearchTranscript } from "@/lib/voiceSearch";
 import { findClientAppOption } from "@/lib/clientAppOptions";
 import { AppLogoBadge } from "@/components/AppLogoBadge";
+import { DeviceTrashDialog } from "@/components/DeviceTrashDialog";
 
 const PAGE_SIZE = 20;
 
@@ -110,6 +111,7 @@ export default function Users() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteManyOpen, setDeleteManyOpen] = useState(false);
   const [deleteExpiredOpen, setDeleteExpiredOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
 
   // DNS em massa
   const [dnsDialogOpen, setDnsDialogOpen] = useState(false);
@@ -389,6 +391,10 @@ export default function Users() {
             >
               <Trash2 className="w-3 h-3" />
               Deletar Expirados
+            </Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => setTrashOpen(true)}>
+              <ArchiveRestore className="w-3 h-3" />
+              Lixeira
             </Button>
           </div>
         </div>
@@ -777,7 +783,7 @@ export default function Users() {
           <DialogHeader>
             <DialogTitle>Confirmar exclusão</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja deletar este usuário? Esta ação não pode ser desfeita.
+              Tem certeza que deseja deletar este usuário? Ele vai para a Lixeira e pode ser restaurado com todas as listas.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -801,7 +807,7 @@ export default function Users() {
           <DialogHeader>
             <DialogTitle>Deletar {selected.size} usuário(s)</DialogTitle>
             <DialogDescription>
-              Esta ação não pode ser desfeita. Deseja continuar?
+              Os clientes vão para a Lixeira e podem ser restaurados com todas as listas. Deseja continuar?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -825,7 +831,7 @@ export default function Users() {
           <DialogHeader>
             <DialogTitle>Deletar usuários expirados</DialogTitle>
             <DialogDescription>
-              Todos os usuários com data de expiração passada serão removidos. Esta ação não pode ser desfeita.
+              Todos os usuários com data de expiração passada serão removidos e ficarão na Lixeira para restaurar.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -842,6 +848,7 @@ export default function Users() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <DeviceTrashDialog open={trashOpen} onOpenChange={setTrashOpen} />
     </AdminLayout>
   );
 }
