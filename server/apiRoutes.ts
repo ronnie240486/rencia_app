@@ -42,6 +42,7 @@ import { safeApkText } from "./apkSafeValues";
 import { daysUntilDateOnly, dateOnlyForDatabase, toDateOnly } from "../shared/dateOnly";
 import { isPanelTestName, normalizeCompletedTest } from "./maximusTestRegistration";
 import { maximusTestConfiguration } from "./maximusTestApi";
+import { registerReviewDemoRoute } from "./reviewDemo";
 import { buildGenericAppConfig, findDeviceForManagedApp } from "./genericAppConfig";
 import { resolveEpgUrl } from "./epgFallback";
 import { buildDnsFailoverUrls, replaceDnsHost, sanitizeUrlForProbe, selectDnsProfileEntries } from "./dnsFailover";
@@ -441,6 +442,7 @@ function buildWords(cfg: Record<string, string>) {
 }
 
 export function registerApiRoutes(app: Express) {
+  registerReviewDemoRoute(app);
   /**
    * Middleware de redirecionamento para pagea.uk (Abcde e Abcde1)
    * Redireciona requisições de pagea.uk para renciaapp.manus.space
