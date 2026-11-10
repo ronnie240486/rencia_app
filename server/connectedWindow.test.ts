@@ -4,8 +4,9 @@ import { CONNECTED_WINDOW_MS, CONNECTED_WINDOW_MINUTES, getConnectedQueryMinutes
 describe("janela de dispositivos conectados", () => {
   const now = new Date("2026-08-30T12:00:00.000Z").getTime();
 
-  it("mantém a janela máxima de Assistindo para todos os filtros do painel", () => {
-    expect([15, 30, 60, 120].map(getConnectedQueryMinutes)).toEqual([120, 120, 120, 120]);
+  it("respeita a janela escolhida em cada filtro do painel", () => {
+    expect([15, 30, 60, 120].map(getConnectedQueryMinutes)).toEqual([15, 30, 60, 120]);
+    expect(getConnectedQueryMinutes("online")).toBe(5);
   });
 
   it("mostra Online agora somente para atividade recente", () => {

@@ -485,6 +485,7 @@ export async function addDeviceUrl(data: {
   xtServer?: string;
   xtUsername?: string;
   xtPassword?: string;
+  nomeServidor?: string;
   ordem?: number;
 }) {
   const db = await getDb();
@@ -497,6 +498,7 @@ export async function addDeviceUrl(data: {
     xtServer: data.xtServer ?? null,
     xtUsername: data.xtUsername ?? null,
     xtPassword: data.xtPassword ?? null,
+    nomeServidor: data.nomeServidor?.trim() || null,
     ordem: data.ordem ?? 0,
     ativo: true,
   });
@@ -509,6 +511,7 @@ export async function updateDeviceUrl(id: number, data: Partial<{
   xtServer: string;
   xtUsername: string;
   xtPassword: string;
+  nomeServidor: string;
   ordem: number;
   ativo: boolean;
 }>) {
@@ -521,6 +524,7 @@ export async function updateDeviceUrl(id: number, data: Partial<{
   if (data.xtServer !== undefined) updateData.xtServer = data.xtServer;
   if (data.xtUsername !== undefined) updateData.xtUsername = data.xtUsername;
   if (data.xtPassword !== undefined) updateData.xtPassword = data.xtPassword;
+  if (data.nomeServidor !== undefined) updateData.nomeServidor = data.nomeServidor.trim() || null;
   if (data.ordem !== undefined) updateData.ordem = data.ordem;
   if (data.ativo !== undefined) updateData.ativo = data.ativo;
   if (Object.keys(updateData).length === 0) return;

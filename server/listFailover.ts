@@ -10,7 +10,7 @@ export const LIST_FAILOVER_CRON = "0 * * * * *";
 /** Mantém o failover sequencial rápido sem considerar resposta lenta como lista válida. */
 export const LIST_FAILOVER_PROBE_TIMEOUT_MS = 1_250;
 
-type Candidate = { id: number | null; name: string; url: string };
+type Candidate = { id: number | null; name: string; url: string; profile?: string | null };
 
 /** A troca só pode ocorrer depois de dois erros técnicos seguidos na mesma lista. */
 async function hasConfirmedFailoverFailure(db: any, ownerId: number, deviceId: number, candidate: Candidate) {
@@ -53,8 +53,8 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
   await Promise.all(deviceRows.map(async (device: any) => {
     const extras = await db.select().from(deviceUrls).where(and(eq(deviceUrls.deviceId, device.id), eq(deviceUrls.ativo, true))).orderBy(asc(deviceUrls.ordem));
     const candidates: Candidate[] = [
-      ...(device.urlM3u8 ? [{ id: null, name: "Lista 1", url: device.urlM3u8 }] : []),
-      ...extras.map((list: any): Candidate => ({ id: list.id as number, name: list.nome || `Lista ${list.ordem + 2}`, url: (list.urlM3u8 || list.xtServer || "").trim() })).filter((candidate: Candidate) => Boolean(candidate.url)),
+      ...(device.urlM3u8 ? [{ id: null, name: "Lista 1", url: device.urlM3u8, profile: device.nomeServidor ?? null }] : []),
+      ...extras.map((list: any): Candidate => ({ id: list.id as number, name: list.nome || `Lista ${list.ordem + 2}`, url: (list.urlM3u8 || list.xtServer || "").trim(), profile: list.nomeServidor ?? null })).filter((candidate: Candidate) => Boolean(candidate.url)),
     ].filter((candidate) => !blockedHosts.some((host: string) => candidate.url.startsWith(host)));
     if (!candidates.length) return;
 
@@ -81,7 +81,8 @@ export async function runListFailoverSweep(db: any, ownerId: number) {
     if (isConfirmedListResponse(currentResult)) return;
     // Antes de mudar de playlist, o painel testa em paralelo todas as DNS do mesmo perfil.
     const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, ownerId));
-    const sameProfile = selectDnsProfileEntries(current.url, profileDns, device.nomeServidor);
+    // Cada lista usa o próprio perfil; lista sem perfil descobre o grupo pelo host dela.
+    const sameProfile = selectDnsProfileEntries(current.url, profileDns, current.profile);
     let dnsProfileExhausted = false;
     if (sameProfile.length > 1) {
       const probes: Array<{ host: string; status: "success" | "error" }> = [];

@@ -2364,20 +2364,26 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       const current = (await db.select().from(listFailoverSettings).where(eq(listFailoverSettings.ownerId, ctx.user.id)).limit(1))[0];
+      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      // O agendador externo (Manus) é opcional: no Railway quem roda a varredura a cada minuto é o próprio
+      // servidor (listFailoverRunner). Se o agendador externo falhar, o monitoramento liga do mesmo jeito.
       if (current?.scheduleCronTaskUid) {
-        const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
         if (sessionToken) {
-          try { await updateHeartbeatJob(current.scheduleCronTaskUid, { cron: LIST_FAILOVER_CRON, description: "Monitoramento e troca automática de listas a cada 1 minuto" }, sessionToken); } catch { /* mantém o job para o próximo ciclo de ativação */ }
+          try { await updateHeartbeatJob(current.scheduleCronTaskUid, { cron: LIST_FAILOVER_CRON, description: "Monitoramento e troca automática de listas a cada 1 minuto" }, sessionToken); } catch { /* o servidor roda a varredura sozinho */ }
         }
         await db.update(listFailoverSettings).set({ enabled: true, intervalMinutes: 1, lastError: null }).where(eq(listFailoverSettings.id, current.id));
         return { enabled: true, existingSchedule: true };
       }
-      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
-      if (!sessionToken) throw new TRPCError({ code: "UNAUTHORIZED", message: "Sua sessão expirou. Entre novamente para ativar o monitoramento." });
-      const job = await createHeartbeatJob({ name: `monitor-listas-${ctx.user.id}`, cron: LIST_FAILOVER_CRON, path: "/api/scheduled/list-failover", description: "Monitoramento e troca automática de listas a cada 1 minuto" }, sessionToken);
-      if (current) await db.update(listFailoverSettings).set({ enabled: true, intervalMinutes: 1, scheduleCronTaskUid: job.taskUid, lastError: null }).where(eq(listFailoverSettings.id, current.id));
-      else await db.insert(listFailoverSettings).values({ ownerId: ctx.user.id, enabled: true, intervalMinutes: 1, scheduleCronTaskUid: job.taskUid });
-      return { enabled: true, taskUid: job.taskUid };
+      let taskUid: string | null = null;
+      if (sessionToken) {
+        try {
+          const job = await createHeartbeatJob({ name: `monitor-listas-${ctx.user.id}`, cron: LIST_FAILOVER_CRON, path: "/api/scheduled/list-failover", description: "Monitoramento e troca automática de listas a cada 1 minuto" }, sessionToken);
+          taskUid = job.taskUid;
+        } catch { /* sem agendador externo: o próprio servidor agenda */ }
+      }
+      if (current) await db.update(listFailoverSettings).set({ enabled: true, intervalMinutes: 1, scheduleCronTaskUid: taskUid, lastError: null }).where(eq(listFailoverSettings.id, current.id));
+      else await db.insert(listFailoverSettings).values({ ownerId: ctx.user.id, enabled: true, intervalMinutes: 1, scheduleCronTaskUid: taskUid });
+      return { enabled: true, taskUid };
     }),
     disable: protectedProcedure.mutation(async ({ ctx }) => {
       const db = await getDb();
@@ -2578,6 +2584,7 @@ export const appRouter = router({
         xtServer: z.string().optional(),
         xtUsername: z.string().optional(),
         xtPassword: z.string().optional(),
+        nomeServidor: z.string().optional(),
         ordem: z.number().optional().default(0),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -2606,6 +2613,7 @@ export const appRouter = router({
         xtServer: z.string().optional(),
         xtUsername: z.string().optional(),
         xtPassword: z.string().optional(),
+        nomeServidor: z.string().optional(),
         ordem: z.number().optional(),
         ativo: z.boolean().optional(),
       }))
@@ -2638,7 +2646,7 @@ export const appRouter = router({
         const targets = await db.select({ id: devices.id }).from(devices).where(and(eq(devices.ownerId, ctx.user.id), inArray(devices.id, input.targetDeviceIds.filter((id) => id !== input.sourceDeviceId))));
         for (const target of targets) {
           const countResult = await db.select({ count: sql<number>`count(*)` }).from(deviceUrls).where(eq(deviceUrls.deviceId, target.id));
-          await db.insert(deviceUrls).values({ deviceId: target.id, nome: source.nome, modoSelecao: source.modoSelecao, urlM3u8: source.urlM3u8, xtServer: source.xtServer, xtUsername: source.xtUsername, xtPassword: source.xtPassword, ordem: Number(countResult[0]?.count ?? 0), ativo: source.ativo });
+          await db.insert(deviceUrls).values({ deviceId: target.id, nome: source.nome, modoSelecao: source.modoSelecao, urlM3u8: source.urlM3u8, xtServer: source.xtServer, xtUsername: source.xtUsername, xtPassword: source.xtPassword, nomeServidor: source.nomeServidor, ordem: Number(countResult[0]?.count ?? 0), ativo: source.ativo });
         }
         await recordAudit({ ownerId: ctx.user.id, actorUserId: ctx.user.id, entityType: "list", entityId: input.sourceId, action: "duplicated", summary: `Lista ${source.nome} copiada para ${targets.length} cliente(s)`, afterData: { targetDeviceIds: targets.map((target) => target.id) } });
         return { copied: targets.length };
