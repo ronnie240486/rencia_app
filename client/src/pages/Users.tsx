@@ -196,7 +196,7 @@ export default function Users() {
   const renewMutation = trpc.renewals.renew.useMutation({
     onSuccess: async (result) => {
       await invalidateDeviceData();
-      toast.success(result.duplicate ? "Renovação já registrada neste mês." : `Renovado até ${formatDate(result.expirationDate)} e valor contabilizado.`);
+      toast.success(result.duplicate ? "Renovação já registrada agora há pouco." : `Renovado até ${formatDate(result.expirationDate)} e valor contabilizado.${result.reactivated ? " Cliente voltou para Liberado." : ""}`);
     },
     onError: (e) => toast.error(e.message),
   });
