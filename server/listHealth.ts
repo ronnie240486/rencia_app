@@ -67,7 +67,27 @@ export async function validateListUrl(value: string, options: { allowCredentials
   return { valid: true as const, url: url.toString() };
 }
 
-async function retryWithPartialGet(url: string, startedAt: number): Promise<ListHealthResult | null> {
+/** Lê só o começo da resposta (sem baixar a lista inteira). */
+async function readTextPrefix(response: Response, limitBytes: number) {
+  const reader = response.body?.getReader();
+  if (!reader) return "";
+  const decoder = new TextDecoder();
+  let text = "";
+  let total = 0;
+  try {
+    while (total < limitBytes) {
+      const { done, value } = await reader.read();
+      if (done || !value) break;
+      total += value.byteLength;
+      text += decoder.decode(value, { stream: true });
+    }
+  } finally {
+    await reader.cancel().catch(() => undefined);
+  }
+  return text;
+}
+
+async function retryWithPartialGet(url: string, startedAt: number, requireM3uContent = false): Promise<ListHealthResult | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
   try {
@@ -76,13 +96,22 @@ async function retryWithPartialGet(url: string, startedAt: number): Promise<List
       redirect: "manual",
       signal: controller.signal,
       headers: {
-        Range: "bytes=0-1023",
+        Range: requireM3uContent ? "bytes=0-65535" : "bytes=0-1023",
         Accept: "application/x-mpegURL, application/vnd.apple.mpegurl, text/plain, */*",
         "User-Agent": "Mozilla/5.0 (compatible; RenciaListMonitor/1.0)",
       },
     });
-    await response.body?.cancel();
     const result = classifyListHttpStatus(response.status, Date.now() - startedAt);
+    if (requireM3uContent && result.responseConfirmed) {
+      // Antes aceitava qualquer HTTP 2xx/3xx após a lentidão: uma lista caída que respondia 200 com
+      // corpo vazio/erro era dada como "voltou". Agora exige conteúdo M3U de verdade.
+      const body = await readTextPrefix(response, 64 * 1024);
+      if (!looksLikeM3uContent(body)) {
+        return { ...result, status: "pending", responseConfirmed: false, message: "Servidor respondeu, mas o conteúdo M3U não pôde ser confirmado" };
+      }
+      return { ...result, message: "Lista disponível após resposta lenta" };
+    }
+    await response.body?.cancel();
     return result.status === "success" ? { ...result, message: "Lista disponível após resposta lenta" } : result;
   } catch {
     return null;
@@ -152,7 +181,7 @@ export async function probeListUrl(value: string, options: ProbeListOptions = {}
   } catch (error) {
     const responseTimeMs = Date.now() - startedAt;
     if (error instanceof Error && error.name === "AbortError") {
-      const retry = await retryWithPartialGet(validated.url, startedAt);
+      const retry = await retryWithPartialGet(validated.url, startedAt, requireM3uContent);
       return retry ?? classifyListTimeout(Date.now() - startedAt);
     }
     return { status: "error", statusCode: null, responseTimeMs, message: "Não foi possível conectar ao servidor", responseConfirmed: false };
