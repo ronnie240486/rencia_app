@@ -13,6 +13,7 @@ import { registerBackupScheduleRoutes } from "../backupSchedule";
 import { registerHistoryRetentionScheduleRoutes } from "../historyRetentionSchedule";
 import { registerListFailoverScheduleRoutes } from "../listFailoverSchedule";
 import { startListFailoverRunner } from "../listFailoverRunner";
+import { ensureAdditiveSchema } from "../ensureSchema";
 import { registerIptvServerAlertScheduleRoutes } from "../iptvServerAlertSchedule";
 import { registerMonthlyRevenueScheduleRoutes } from "../monthlyRevenueSchedule";
 
@@ -112,6 +113,8 @@ async function startServer() {
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
+
+  await ensureAdditiveSchema().catch((error) => console.error("[schema] falha ao garantir colunas:", error));
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
