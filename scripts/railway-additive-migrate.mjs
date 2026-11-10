@@ -30,6 +30,8 @@ const additions = [
     UNIQUE KEY \`device_macs_mac_unique\` (\`mac\`)
   )`,
   "ALTER TABLE `device_macs` ADD COLUMN `appId` varchar(64) NULL",
+  // Perfil de servidor por lista (cada lista extra pode ser de um servidor diferente).
+  "ALTER TABLE `device_urls` ADD COLUMN `nomeServidor` varchar(255) NULL",
   "CREATE INDEX `device_macs_device_idx` ON `device_macs` (`deviceId`)",
   `CREATE TABLE IF NOT EXISTS \`device_app_links\` (
     \`id\` int AUTO_INCREMENT PRIMARY KEY,
