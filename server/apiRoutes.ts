@@ -2488,14 +2488,17 @@ export function registerApiRoutes(app: Express) {
 
       const now = new Date();
       const updateSet: Record<string, unknown> = { lastSeen: now };
-      // IMPORTANTE: Só atualizar currentContent se houver novo valor
-      // Nunca limpar o canal anterior
-      if (currentContent) updateSet.currentContent = currentContent;
+      // Heartbeat vazio mantém o último conteúdo (apps antigos). Já a sentinela
+      // "__idle__" (app saiu do player) limpa o "Assistindo" na hora.
+      const contentDecision = resolveHeartbeatContentUpdate(currentContent);
+      if (contentDecision.action === "set") updateSet.currentContent = contentDecision.content;
+      else if (contentDecision.action === "clear") updateSet.currentContent = null;
       if (reportedAppVersion) updateSet.appVersion = reportedAppVersion;
       const reportedManagedAppId = resolveManagedAppId(reportedAppId);
       if (reportedManagedAppId) updateSet.lastActiveAppId = reportedManagedAppId;
 
-      const matchedDevice = await findDeviceByAnyMac(db, formattedMac);
+      const macMatch = await findDeviceMatchByAnyMac(db, formattedMac);
+      const matchedDevice = macMatch?.device ?? null;
       const sameMacRows = matchedDevice ? [matchedDevice] : [];
       const activityDevice = await selectDeviceForReportedApp(db, sameMacRows, reportedAppId);
       if (reportedAppId && !activityDevice) {
@@ -2535,7 +2538,15 @@ export function registerApiRoutes(app: Express) {
 
       // APKs atualizados enviam app/app_id: assim somente o cadastro daquele
       // aplicativo recebe o status Assistindo, mesmo com o mesmo MAC físico.
-      if (activityDevice) {
+      if (macMatch && !macMatch.primary && macMatch.aliasMacId) {
+        // MAC reserva: grava a atividade na própria linha de device_macs (é ela que o
+        // Dashboard lista), senão o aparelho reserva nunca muda de canal no painel.
+        const aliasUpdate: Record<string, unknown> = { lastSeen: now };
+        if (contentDecision.action === "set") aliasUpdate.currentContent = contentDecision.content;
+        else if (contentDecision.action === "clear") aliasUpdate.currentContent = null;
+        if (reportedManagedAppId) aliasUpdate.lastActiveAppId = reportedManagedAppId;
+        await db.update(deviceMacs).set(aliasUpdate).where(eq(deviceMacs.id, macMatch.aliasMacId));
+      } else if (activityDevice) {
         await db.update(devices).set(updateSet).where(eq(devices.id, activityDevice.id));
       } else {
         // Compatibilidade apenas para MACs com um único cadastro no painel.
@@ -2551,7 +2562,7 @@ export function registerApiRoutes(app: Express) {
       // Bloqueio TOTAL: cliente bloqueado/expirado no painel recebe blocked=true
       // no próprio heartbeat -- o app que estiver tocando algo trava na hora.
       const accessBlocked = Boolean(sessionDevice && sessionDevice.status !== "Liberado");
-      res.json({ ok: true, mac: formattedMac, content: currentContent, app: activityDevice?.app ?? null, blocked: accessBlocked, lock: accessBlocked ? 1 : 0, unregistered: !sessionDevice, session: { ...session, allowed: true } });
+      res.json({ ok: true, mac: formattedMac, content: contentDecision.action === "set" ? contentDecision.content : null, app: activityDevice?.app ?? null, blocked: accessBlocked, lock: accessBlocked ? 1 : 0, unregistered: !sessionDevice, session: { ...session, allowed: true } });
     } catch (error) {
       console.error("[API] /api/v4/heartbeat.php error:", error);
       res.status(500).json({ ok: false, error: "Erro interno" });
@@ -5023,7 +5034,10 @@ export function registerApiRoutes(app: Express) {
               if (reportedAppId) aliasUpdateData.lastActiveAppId = reportedAppId;
               await db.update(deviceMacs).set(aliasUpdateData).where(eq(deviceMacs.id, aliasRows[0].id));
               const remote = await claimRemoteCommandForMac(db, mac);
-              res.json({ success: true, mac, contentUpdated: Boolean(currentContent), command: remote.command, session: { enforced: false, allowed: true }, timestamp: new Date().toISOString() });
+              // MAC reserva também respeita bloqueio/vencimento do cadastro principal.
+              const aliasOwner = await db.select({ status: devices.status }).from(devices).where(eq(devices.id, aliasRows[0].deviceId)).limit(1);
+              const aliasBlocked = Boolean(aliasOwner[0] && aliasOwner[0].status !== "Liberado");
+              res.json({ success: true, mac, contentUpdated: Boolean(currentContent), command: remote.command, blocked: aliasBlocked, lock: aliasBlocked ? 1 : 0, session: { enforced: false, allowed: true }, timestamp: new Date().toISOString() });
               return;
             }
           }
@@ -5167,8 +5181,8 @@ export function registerApiRoutes(app: Express) {
         .where(and(eq(deviceUrls.deviceId, device.id), eq(deviceUrls.ativo, true)))
         .orderBy(asc(deviceUrls.ordem), asc(deviceUrls.id));
       const candidates = [
-        ...(device.urlM3u8 ? [{ id: null as number | null, name: 'Lista 1', url: device.urlM3u8 }] : []),
-        ...extraLists.filter((item) => Boolean(item.urlM3u8 || item.xtServer)).map((item) => ({ id: item.id, name: item.nome || `Lista ${item.ordem + 2}`, url: (item.urlM3u8 || item.xtServer || '').trim() })),
+        ...(device.urlM3u8 ? [{ id: null as number | null, name: 'Lista 1', url: device.urlM3u8, profile: device.nomeServidor ?? null }] : []),
+        ...extraLists.filter((item) => Boolean(item.urlM3u8 || item.xtServer)).map((item) => ({ id: item.id as number | null, name: item.nome || `Lista ${item.ordem + 2}`, url: (item.urlM3u8 || item.xtServer || '').trim(), profile: item.nomeServidor ?? null })),
       ];
       const currentId = device.activeDeviceUrlId ?? null;
       const currentPosition = candidates.findIndex((item) => item.id === currentId) + 1;
@@ -5179,7 +5193,7 @@ export function registerApiRoutes(app: Express) {
       const currentCandidate = candidates[currentPosition - 1];
       if (currentCandidate?.url) {
         const profileDns = await db.select({ host: dnsEntries.host, grupo: dnsEntries.grupo, ativo: dnsEntries.ativo }).from(dnsEntries).where(eq(dnsEntries.ownerId, device.ownerId)).orderBy(asc(dnsEntries.createdAt));
-        const sameProfile = selectDnsProfileEntries(currentCandidate.url, profileDns, device.nomeServidor);
+        const sameProfile = selectDnsProfileEntries(currentCandidate.url, profileDns, currentCandidate.profile);
         if (sameProfile.length > 1) {
           const currentHost = sameProfile.find((entry) => currentCandidate.url.startsWith(entry.host.replace(/\/+$/, "")))?.host;
           let workingDns: { entry: typeof sameProfile[number]; result: Awaited<ReturnType<typeof probeListUrl>> } | null = null;
