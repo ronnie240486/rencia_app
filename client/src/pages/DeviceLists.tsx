@@ -17,7 +17,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useLocation, useParams, useSearch } from "wouter";
 import { toast } from "sonner";
 import { getListsReturnHref, getListsReturnLabel } from "@/lib/userNavigation";
@@ -29,8 +29,22 @@ interface ListForm {
   xtServer: string;
   xtUsername: string;
   xtPassword: string;
+  nomeServidor: string;
   ordem: number;
   ativo: boolean;
+}
+
+/** Troca só o servidor (protocolo + host) da URL, mantendo caminho, usuário e senha. */
+function replacePlaylistHost(url: string, host: string): string {
+  try {
+    const current = new URL(url);
+    const alternate = new URL(host);
+    current.protocol = alternate.protocol;
+    current.host = alternate.host;
+    return current.toString();
+  } catch {
+    return url;
+  }
 }
 
 const emptyForm: ListForm = {
@@ -40,6 +54,7 @@ const emptyForm: ListForm = {
   xtServer: "",
   xtUsername: "",
   xtPassword: "",
+  nomeServidor: "",
   ordem: 0,
   ativo: true,
 };
@@ -60,6 +75,36 @@ export default function DeviceLists() {
   const [copySourceId, setCopySourceId] = useState<number | null>(null);
   const [copyTargets, setCopyTargets] = useState<number[]>([]);
   const utils = trpc.useUtils();
+  const { data: configuredDns = [] } = trpc.dns.list.useQuery();
+  const serverProfiles = useMemo(() => {
+    const groups = new Map<string, typeof configuredDns>();
+    for (const entry of configuredDns) {
+      const group = entry.grupo?.trim() || "Padrão";
+      groups.set(group, [...(groups.get(group) ?? []), entry]);
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b, "pt-BR"));
+  }, [configuredDns]);
+  const profileEntries = serverProfiles.find(([group]) => group === form.nomeServidor)?.[1] ?? [];
+  const currentListUrl = form.modoSelecao === "M3U8" ? form.urlM3u8 : form.xtServer;
+  const selectedProfileDns = profileEntries.find((entry) => currentListUrl.trim().startsWith(entry.host.replace(/\/+$/, "")))
+    ?? profileEntries.find((entry) => entry.ativo !== false)
+    ?? profileEntries[0];
+
+  // Escolher o perfil (e a DNS principal) já ajusta o servidor da lista, igual na edição do cliente.
+  const applyListProfile = (group: string, dnsId?: string) => {
+    if (group === "none") {
+      setForm((f) => ({ ...f, nomeServidor: "" }));
+      return;
+    }
+    const entries = serverProfiles.find(([name]) => name === group)?.[1] ?? [];
+    const selected = entries.find((entry) => String(entry.id) === (dnsId ?? "")) ?? entries.find((entry) => entry.ativo !== false) ?? entries[0];
+    setForm((f) => ({
+      ...f,
+      nomeServidor: group,
+      xtServer: selected && f.modoSelecao === "XTeamCode" ? selected.host : f.xtServer,
+      urlM3u8: selected && f.modoSelecao === "M3U8" ? replacePlaylistHost(f.urlM3u8, selected.host) : f.urlM3u8,
+    }));
+  };
 
   const { data: device } = trpc.devices.getById.useQuery({ id: deviceId }, { enabled: !!deviceId });
   const { data: lists, isLoading, refetch } = trpc.deviceUrls.list.useQuery({ deviceId }, { enabled: !!deviceId });
@@ -105,6 +150,7 @@ export default function DeviceLists() {
       xtServer: l.xtServer ?? "",
       xtUsername: l.xtUsername ?? "",
       xtPassword: l.xtPassword ?? "",
+      nomeServidor: l.nomeServidor ?? "",
       ordem: l.ordem ?? 0,
       ativo: l.ativo ?? true,
     });
@@ -123,6 +169,8 @@ export default function DeviceLists() {
       xtServer: form.modoSelecao === "XTeamCode" ? form.xtServer : undefined,
       xtUsername: form.modoSelecao === "XTeamCode" ? form.xtUsername : undefined,
       xtPassword: form.modoSelecao === "XTeamCode" ? form.xtPassword : undefined,
+      // "" limpa o perfil da lista (sem perfil).
+      nomeServidor: form.nomeServidor,
       ordem: form.ordem,
     };
 
@@ -209,6 +257,7 @@ export default function DeviceLists() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium text-foreground">{l.nome}</p>
                       <Badge variant="outline" className="text-xs">{l.modoSelecao}</Badge>
+                      {l.nomeServidor && <Badge variant="secondary" className="text-xs">Perfil: {l.nomeServidor}</Badge>}
                       {!l.ativo && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground truncate mt-0.5">
@@ -260,6 +309,41 @@ export default function DeviceLists() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-3">
+              <div>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">PERFIL DO SERVIDOR</Label>
+                <p className="mt-1 text-sm font-semibold text-foreground">{form.nomeServidor ? form.nomeServidor : "Não identificado"}</p>
+              </div>
+              {serverProfiles.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Perfil</Label>
+                    <Select value={form.nomeServidor || "none"} onValueChange={(value) => applyListProfile(value)}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Escolha o perfil" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem perfil</SelectItem>
+                        {serverProfiles.map(([group, entries]) => <SelectItem key={group} value={group}>{group} ({entries.length} DNS)</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {form.nomeServidor && profileEntries.length > 0 && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">DNS principal</Label>
+                      <Select value={String(selectedProfileDns?.id ?? "")} onValueChange={(value) => applyListProfile(form.nomeServidor, value)}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Escolha a DNS" /></SelectTrigger>
+                        <SelectContent>
+                          {profileEntries.map((entry) => <SelectItem key={entry.id} value={String(entry.id)}>{entry.titulo} — {entry.host}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Cadastre DNS na página DNS para poder escolher um perfil.</p>
+              )}
+              <p className="text-xs text-muted-foreground">Se esta lista falhar, o painel testa as outras DNS do mesmo perfil e deixa a que estiver funcionando.</p>
             </div>
 
             {form.modoSelecao === "M3U8" && (

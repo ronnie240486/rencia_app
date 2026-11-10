@@ -10,7 +10,7 @@ import { trpc } from "@/lib/trpc";
 import { buildUserEditHref } from "@/lib/userNavigation";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
-import { getConnectedQueryMinutes, isWithinConnectedWindow, type ConnectedFilter } from "@shared/connectedWindow";
+import { getConnectedQueryMinutes, isOnlineNow, type ConnectedFilter } from "@shared/connectedWindow";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -246,9 +246,9 @@ export default function Dashboard() {
   };
 
   const { data: connectedDevices, isLoading: connectedLoading, isFetching: connectedRefreshing, refetch: refetchConnected } = trpc.connected.list.useQuery(
-    // O filtro escolhido continua visível, mas a listagem nunca remove Assistindo antes de 2 horas.
+    // O filtro escolhido vale de verdade (15 min mostra só quem apareceu nos últimos 15 min).
     { minutesAgo: getConnectedQueryMinutes(connectedFilter) },
-    { refetchInterval: 60_000 } // atualiza a cada 1 minuto para mostrar canal assistido em tempo real
+    { refetchInterval: 10_000, refetchIntervalInBackground: false, staleTime: 0 } // atualiza a cada 10 s para mostrar o canal assistido em tempo real
   );
 
   const formatDate = (d: Date | string | null | undefined) => {
@@ -493,7 +493,7 @@ export default function Dashboard() {
                 <WifiOff className="w-8 h-8 opacity-30" />
                 <p className="text-sm">
                   <span>{"Nenhum dispositivo conectado nos últimos "}</span>
-                  <span>{connectedFilter === "online" ? "agora" : "as últimas 2 horas"}</span>
+                  <span>{connectedFilter === "online" ? "agora" : connectedFilter < 60 ? `os últimos ${connectedFilter} minutos` : `as últimas ${connectedFilter / 60} horas`}</span>
                 </p>
               </div>
             ) : (
@@ -513,7 +513,7 @@ export default function Dashboard() {
                 </TableHeader>
                 <TableBody>
                   {(connectedDevices ?? []).map(d => {
-                    const isRecent = isWithinConnectedWindow(d.lastSeen);
+                    const isRecent = isOnlineNow(d.lastSeen);
                     const isFixed = d.forceShowChannel === true;
                     const activeApp = d.lastActiveAppId && d.lastActiveAppId in MANAGED_APP_CATALOG
                       ? MANAGED_APP_CATALOG[d.lastActiveAppId as keyof typeof MANAGED_APP_CATALOG].displayName
