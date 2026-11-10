@@ -37,6 +37,7 @@ import { requireExplicitDeviceIds } from "./dnsUpdateScope";
 import { CONNECTED_WINDOW_MINUTES, isWithinConnectedWindow } from "./connectedWindow";
 import { hasConfirmedListFailure, probeListUrl, isLikelyM3uUrl } from "./listHealth";
 import { dnsOperationalMessage, hasActiveDeviceUsingDns } from "./dnsOperationalStatus";
+import { evaluateDnsEntries } from "./dnsEvaluate";
 import { getDnsGroupCurrentHealth } from "./dnsGroupHealth";
 import { buildServerRanking, getServerRankingClients, type ServerRankingDevice } from "./serverRanking";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
@@ -236,6 +237,18 @@ async function loadMonthlyRevenueReport(ownerId: number, period: { periodStart: 
   const extraCounts = new Map<number, number>();
   for (const row of urlRows) if (row.ativo) extraCounts.set(row.deviceId, (extraCounts.get(row.deviceId) ?? 0) + 1);
   return buildMonthlyRevenueReport(period, deviceRows.map((row) => ({ ...row, playlistCount: (row.urlM3u8 ? 1 : 0) + (extraCounts.get(row.id) ?? 0) })), serverRows);
+}
+
+
+/** Lista M3U real de algum cliente do dono, usada para testar DNS sem uso com credencial verdadeira. */
+async function collectSampleListUrls(db: any, ownerId: number): Promise<string[]> {
+  try {
+    const main = await db.select({ url: devices.urlM3u8 }).from(devices).where(and(eq(devices.ownerId, ownerId), isNotNull(devices.urlM3u8))).orderBy(desc(devices.lastSeen)).limit(60);
+    const extra = await db.select({ url: deviceUrls.urlM3u8 }).from(deviceUrls).innerJoin(devices, eq(devices.id, deviceUrls.deviceId)).where(and(eq(devices.ownerId, ownerId), isNotNull(deviceUrls.urlM3u8))).limit(60);
+    return Array.from(new Set([...main, ...extra].map((row: any) => String(row.url ?? "").trim()).filter((url) => /^https?:\/\/.+[?&]username=/i.test(url) || /\/(get|player_api)\.php/i.test(url))));
+  } catch {
+    return [];
+  }
 }
 
 export const appRouter = router({
@@ -2350,7 +2363,15 @@ export const appRouter = router({
       if (!db) return { setting: null, events: [] };
       const setting = (await db.select().from(listFailoverSettings).where(eq(listFailoverSettings.ownerId, ctx.user.id)).limit(1))[0] ?? null;
       const events = await db.select().from(listFailoverEvents).where(eq(listFailoverEvents.ownerId, ctx.user.id)).orderBy(desc(listFailoverEvents.createdAt)).limit(50);
-      return { setting, events };
+      const deviceIds = Array.from(new Set(events.map(event => event.deviceId)));
+      const deviceRows = deviceIds.length ? await db.select({ id: devices.id, nome: devices.nomeServer, mac: devices.mac }).from(devices).where(inArray(devices.id, deviceIds)) : [];
+      const byId = new Map(deviceRows.map(row => [row.id, row]));
+      const monitored = (await db.select({ id: devices.id }).from(devices).where(and(eq(devices.ownerId, ctx.user.id), eq(devices.listFailoverEnabled, true)))).length;
+      return {
+        setting,
+        monitoredDevices: monitored,
+        events: events.map(event => ({ ...event, deviceName: byId.get(event.deviceId)?.nome ?? null, deviceMac: byId.get(event.deviceId)?.mac ?? null })),
+      };
     }),
     runNow: protectedProcedure.mutation(async ({ ctx }) => {
       const db = await getDb();
@@ -3209,22 +3230,14 @@ export const appRouter = router({
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         const entry = (await db.select().from(dnsEntries).where(and(eq(dnsEntries.id, input.id), eq(dnsEntries.ownerId, ctx.user.id))).limit(1))[0];
         if (!entry) throw new TRPCError({ code: "NOT_FOUND", message: "DNS não encontrada." });
-        const host = entry.host.replace(/\/+$/, "");
-
+        const allEntries = await db.select().from(dnsEntries).where(eq(dnsEntries.ownerId, ctx.user.id));
         const activeDevices = await db.select({ urlM3u8: devices.urlM3u8, status: devices.status, lastSeen: devices.lastSeen })
           .from(devices).where(eq(devices.ownerId, ctx.user.id));
-        if (hasActiveDeviceUsingDns(activeDevices, host, Date.now())) {
-          return { status: "success" as const, message: dnsOperationalMessage(), statusCode: null as number | null, checkedAt: new Date() };
-        }
-
-        const probe = await probeListUrl(host, { timeoutMs: 5000 });
-        const hostResponded = probe.status === "success" || (probe.statusCode !== null && probe.statusCode >= 200 && probe.statusCode < 500);
-        return {
-          status: (hostResponded ? "success" : "error") as "success" | "error",
-          message: hostResponded ? "Host respondeu" : (probe.message || "Não foi possível conectar ao servidor"),
-          statusCode: probe.statusCode,
-          checkedAt: new Date(),
-        };
+        const sampleListUrls = await collectSampleListUrls(db, ctx.user.id);
+        const groupEntries = allEntries.filter((item: any) => (item.grupo || "Padrão") === (entry.grupo || "Padrão"));
+        const outcomes = await evaluateDnsEntries(groupEntries.map((item: any) => ({ id: item.id, host: item.host, grupo: item.grupo })), activeDevices, sampleListUrls, { timeoutMs: 6000 });
+        const outcome = outcomes.get(entry.id) ?? { status: "unknown" as const, message: "Sem confirmação", statusCode: null, source: "none" as const };
+        return { status: outcome.status, message: outcome.message, statusCode: outcome.statusCode as number | null, source: outcome.source, checkedAt: new Date() };
       }),
     applyGroupToDevices: protectedProcedure
       .input(z.object({ grupo: z.string().min(1), targetDnsId: z.number() }))
@@ -3282,11 +3295,8 @@ export const appRouter = router({
         db.select().from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id)),
         db.select({ urlM3u8: devices.urlM3u8, status: devices.status, lastSeen: devices.lastSeen }).from(devices).where(eq(devices.ownerId, ctx.user.id)),
       ]);
-      const hostProbes = new Map<string, any>();
-      await Promise.all(entries.map(async (entry: any) => {
-        const host = entry.host.replace(/\/+$/, "");
-        try { hostProbes.set(host, await probeListUrl(host, { timeoutMs: 1500 })); } catch { hostProbes.set(host, null); }
-      }));
+      const sampleListUrls = await collectSampleListUrls(db, ctx.user.id);
+      const outcomes = await evaluateDnsEntries(entries.map((item: any) => ({ id: item.id, host: item.host, grupo: item.grupo })), activeDevices, sampleListUrls, { timeoutMs: 4000 });
       const groups = new Map<string, { group: string; total: number; errors: number; latestAt: Date | null; dns: Array<{ id: number; titulo: string; host: string; status: string; statusCode: number | null; message: string; checkedAt: Date | null; lastFailure: { statusCode: number | null; message: string; checkedAt: Date } | null }> }>();
       for (const entry of entries) {
         const key = entry.grupo || "Padrão";
@@ -3296,16 +3306,11 @@ export const appRouter = router({
         current.total += related.length;
         current.errors += related.filter((check: any) => check.status === "error" && !String(check.message ?? "").toLowerCase().includes("não entregou") && !String(check.message ?? "").toLowerCase().includes("nao entregou")).length;
         for (const check of related) if (!current.latestAt || new Date(check.checkedAt) > current.latestAt) current.latestAt = new Date(check.checkedAt);
-        const latestMessage = String(latest?.message ?? "");
-        const contentNotConfirmed = latest?.status === "error" && (latestMessage.toLowerCase().includes("não entregou") || latestMessage.toLowerCase().includes("nao entregou"));
-        const host = entry.host.replace(/\/+$/, "");
-        const activeInApk = hasActiveDeviceUsingDns(activeDevices, host, Date.now());
-        const hostProbe = hostProbes.get(host);
-        const hostResponded = activeInApk || hostProbe?.status === "success" || (hostProbe?.statusCode !== null && hostProbe?.statusCode !== undefined && hostProbe.statusCode >= 200 && hostProbe.statusCode < 500);
-        const displayStatus = hostResponded ? "success" : (contentNotConfirmed ? "unknown" : (latest?.status ?? "unknown"));
-        const displayMessage = activeInApk ? dnsOperationalMessage() : (hostResponded ? "Host respondeu" : (contentNotConfirmed ? "Host respondeu; M3U autenticada não foi confirmada neste teste" : (latest?.message ?? "Ainda não verificado")));
+        const outcome = outcomes.get(entry.id) ?? { status: "unknown" as const, message: "Ainda não verificado", statusCode: null };
+        const displayStatus = outcome.status;
+        const displayMessage = outcome.message;
         const lastFailure = related.find((check: any) => check.status === "error" && !String(check.message ?? "").toLowerCase().includes("não entregou") && !String(check.message ?? "").toLowerCase().includes("nao entregou"));
-        current.dns.push({ id: entry.id, titulo: entry.titulo, host: entry.host, status: displayStatus, statusCode: latest?.statusCode ?? null, message: displayMessage, checkedAt: latest?.checkedAt ? new Date(latest.checkedAt) : null, lastFailure: lastFailure?.checkedAt ? { statusCode: lastFailure.statusCode ?? null, message: lastFailure.message ?? "Falha sem mensagem detalhada", checkedAt: new Date(lastFailure.checkedAt) } : null });
+        current.dns.push({ id: entry.id, titulo: entry.titulo, host: entry.host, status: displayStatus, statusCode: outcome.statusCode ?? latest?.statusCode ?? null, message: displayMessage, checkedAt: latest?.checkedAt ? new Date(latest.checkedAt) : null, lastFailure: lastFailure?.checkedAt ? { statusCode: lastFailure.statusCode ?? null, message: lastFailure.message ?? "Falha sem mensagem detalhada", checkedAt: new Date(lastFailure.checkedAt) } : null });
         groups.set(key, current);
       }
       return Array.from(groups.values()).map((item) => {
