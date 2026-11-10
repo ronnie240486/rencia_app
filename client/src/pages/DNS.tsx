@@ -47,7 +47,7 @@ export default function DNS() {
   const [fromProfile, setFromProfile] = useState("");
   const [toProfile, setToProfile] = useState("");
   const [targetProfileDnsId, setTargetProfileDnsId] = useState("");
-  const [testResults, setTestResults] = useState<Record<number, { status: "success" | "error"; message: string; checkedAt: string }>>({});
+  const [testResults, setTestResults] = useState<Record<number, { status: "success" | "error" | "unknown"; message: string; checkedAt: string }>>({});
   const utils = trpc.useUtils();
 
   const { data: dnsList = [], isLoading, refetch } = trpc.dns.list.useQuery();
@@ -98,6 +98,7 @@ export default function DNS() {
     onSuccess: (data, variables) => {
       setTestResults((prev) => ({ ...prev, [variables.id]: { status: data.status, message: data.message, checkedAt: new Date(data.checkedAt).toLocaleTimeString("pt-BR") } }));
       if (data.status === "success") toast.success(`DNS online — ${data.message}`);
+      else if (data.status === "unknown") toast.info(`Sem confirmação — ${data.message}`);
       else toast.error(`DNS não respondeu — ${data.message}`);
     },
     onError: (e) => toast.error(e.message),
@@ -210,7 +211,7 @@ export default function DNS() {
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Saúde dos Grupos DNS</CardTitle><CardDescription>Consolidado pelas verificações recentes das listas.</CardDescription></CardHeader>
             <CardContent className="grid gap-2 sm:grid-cols-2">
-              {groupHealth.map((group) => <div key={group.group} className="rounded-lg border p-3 space-y-2"><div className="flex items-center justify-between gap-3"><div><p className="font-medium text-sm">{group.group}</p><p className="text-xs text-muted-foreground">{group.currentErrors ? `${group.currentErrors} falha(s) atual(is)` : "Todos os Hosts respondendo agora"} · {group.errors} falha(s) no histórico</p></div><Badge className={group.health === "healthy" ? "bg-emerald-600" : group.health === "critical" ? "bg-red-600" : group.health === "attention" ? "bg-amber-600" : "bg-slate-500"}>{group.health === "healthy" ? "Saudável" : group.health === "critical" ? "Crítico" : group.health === "attention" ? "Atenção" : "Sem testes"}</Badge></div>{group.dns?.map((dns) => <div key={dns.id} className="rounded-md bg-muted/40 px-2 py-1.5 text-xs"><div className="flex items-center justify-between gap-2"><span className="font-medium">{dns.titulo}</span><span className={dns.status === "error" ? "text-red-600 font-medium" : dns.status === "success" ? "text-emerald-600" : "text-muted-foreground"}>{dns.status === "error" ? "Falhou" : dns.status === "success" ? "Funcionando" : dns.message?.includes("Host respondeu") ? "Host respondeu" : "Sem teste"}</span></div><p className="font-mono text-[11px] text-muted-foreground truncate">{dns.host}</p>{dns.status === "error" && <p className="text-red-600">Falha atual: {dns.message}{dns.statusCode ? ` (HTTP ${dns.statusCode})` : ""}{dns.checkedAt ? ` · ${new Date(dns.checkedAt).toLocaleString("pt-BR")}` : ""}</p>}</div>)}</div>)}
+              {groupHealth.map((group) => <div key={group.group} className="rounded-lg border p-3 space-y-2"><div className="flex items-center justify-between gap-3"><div><p className="font-medium text-sm">{group.group}</p><p className="text-xs text-muted-foreground">{group.currentErrors ? `${group.currentErrors} falha(s) confirmada(s)` : group.dns?.some((d) => d.status === "unknown") ? "Nenhuma falha confirmada" : "Todos os Hosts respondendo agora"} · {group.errors} falha(s) no histórico</p></div><Badge className={group.health === "healthy" ? "bg-emerald-600" : group.health === "critical" ? "bg-red-600" : group.health === "attention" ? "bg-amber-600" : "bg-slate-500"}>{group.health === "healthy" ? "Saudável" : group.health === "critical" ? "Crítico" : group.health === "attention" ? "Atenção" : "Sem confirmação"}</Badge></div>{group.dns?.map((dns) => <div key={dns.id} className="rounded-md bg-muted/40 px-2 py-1.5 text-xs"><div className="flex items-center justify-between gap-2"><span className="font-medium">{dns.titulo}</span><span className={dns.status === "error" ? "text-red-600 font-medium" : dns.status === "success" ? "text-emerald-600" : "text-muted-foreground"}>{dns.status === "error" ? "Falhou" : dns.status === "success" ? "Funcionando" : "Sem confirmação"}</span></div><p className="font-mono text-[11px] text-muted-foreground truncate">{dns.host}</p>{dns.status === "success" && <p className="text-[11px] text-muted-foreground">{dns.message}</p>}{dns.status === "unknown" && <p className="text-[11px] text-muted-foreground">{dns.message}</p>}{dns.status === "error" && <p className="text-red-600">Falha atual: {dns.message}{dns.statusCode ? ` (HTTP ${dns.statusCode})` : ""}{dns.checkedAt ? ` · ${new Date(dns.checkedAt).toLocaleString("pt-BR")}` : ""}</p>}</div>)}</div>)}
             </CardContent>
           </Card>
         )}
@@ -270,8 +271,8 @@ export default function DNS() {
                         <Badge variant="secondary" className="mt-1 text-[10px]">Grupo: {dns.grupo ?? "Padrão"}</Badge>
                         <p className="text-xs text-muted-foreground font-mono truncate max-w-xs">{dns.host}</p>
                         {testResults[dns.id] && (
-                          <p className={`mt-1 text-[11px] font-medium ${testResults[dns.id].status === "success" ? "text-emerald-600" : "text-red-600"}`}>
-                            {testResults[dns.id].status === "success" ? "Online" : "Falhou"} · {testResults[dns.id].message} · {testResults[dns.id].checkedAt}
+                          <p className={`mt-1 text-[11px] font-medium ${testResults[dns.id].status === "success" ? "text-emerald-600" : testResults[dns.id].status === "unknown" ? "text-muted-foreground" : "text-red-600"}`}>
+                            {testResults[dns.id].status === "success" ? "Online" : testResults[dns.id].status === "unknown" ? "Sem confirmação" : "Falhou"} · {testResults[dns.id].message} · {testResults[dns.id].checkedAt}
                           </p>
                         )}
                       </div>
