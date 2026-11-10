@@ -12,6 +12,7 @@ import { registerApiRoutes } from "../apiRoutes";
 import { registerBackupScheduleRoutes } from "../backupSchedule";
 import { registerHistoryRetentionScheduleRoutes } from "../historyRetentionSchedule";
 import { registerListFailoverScheduleRoutes } from "../listFailoverSchedule";
+import { startListFailoverRunner } from "../listFailoverRunner";
 import { registerIptvServerAlertScheduleRoutes } from "../iptvServerAlertSchedule";
 import { registerMonthlyRevenueScheduleRoutes } from "../monthlyRevenueSchedule";
 
@@ -114,6 +115,7 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    startListFailoverRunner();
   });
 }
 
