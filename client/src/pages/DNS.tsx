@@ -19,11 +19,21 @@ interface DnsForm {
 
 const emptyForm: DnsForm = { titulo: "", grupo: "Padrão", hosts: [""] };
 
+const ALL_PROVIDERS = "__all__";
+/** Tira o número do fim do título ("Club 01" -> "Club") pra juntar as DNS do mesmo servidor. */
+const baseTitle = (titulo: string) => titulo.replace(/\s*\d+\s*$/, "").trim() || titulo.trim();
+/** Servidor/aba da DNS: o grupo quando foi definido; no grupo "Padrão", o nome do título sem o número. */
+const providerOf = (d: { titulo: string; grupo?: string | null }) => {
+  const grupo = (d.grupo ?? "Padrão").trim() || "Padrão";
+  return grupo !== "Padrão" ? grupo : baseTitle(d.titulo);
+};
+
 export default function DNS() {
   const [showDialog, setShowDialog] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<DnsForm>(emptyForm);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [activeProvider, setActiveProvider] = useState<string>(ALL_PROVIDERS);
 
   // Troca em massa
   const [oldHost, setOldHost] = useState("");
@@ -109,7 +119,17 @@ export default function DNS() {
   const profileGroups = Array.from(new Set(dnsList.map((item) => item.grupo ?? "Padrão"))).sort((a, b) => a.localeCompare(b, "pt-BR"));
   const targetProfileDns = dnsList.filter((item) => (item.grupo ?? "Padrão") === toProfile && item.ativo);
 
-  const openCreate = () => { setEditId(null); setForm(emptyForm); setShowDialog(true); };
+  const providers = Array.from(new Set(dnsList.map((item) => providerOf(item)))).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const shownProvider = providers.includes(activeProvider) ? activeProvider : ALL_PROVIDERS;
+  const visibleDns = shownProvider === ALL_PROVIDERS ? dnsList : dnsList.filter((item) => providerOf(item) === shownProvider);
+
+  const openCreate = () => {
+    setEditId(null);
+    // Dentro da aba de um servidor, o cadastro já vem com o nome (e o grupo) dele.
+    const sample = shownProvider === ALL_PROVIDERS ? null : dnsList.find((item) => providerOf(item) === shownProvider);
+    setForm(sample ? { titulo: shownProvider, grupo: sample.grupo ?? "Padrão", hosts: [""] } : emptyForm);
+    setShowDialog(true);
+  };
   const openEdit = (d: any) => { setEditId(d.id); setForm({ titulo: d.titulo, grupo: d.grupo ?? "Padrão", hosts: [d.host] }); setShowDialog(true); };
 
   const handleSave = async () => {
@@ -117,7 +137,23 @@ export default function DNS() {
     const hosts = form.hosts.map((host) => host.trim()).filter(Boolean);
     if (!hosts.length) return toast.error("Adicione pelo menos um Host");
     if (editId) {
-      updateMut.mutate({ id: editId, titulo: form.titulo.trim(), grupo: form.grupo.trim() || "Padrão", host: hosts[0] });
+      const grupo = form.grupo.trim() || "Padrão";
+      const base = baseTitle(form.titulo);
+      // Os campos além do primeiro são DNS novas, acrescentadas ao mesmo servidor/grupo.
+      const extras = hosts.slice(1);
+      const alreadyInServer = dnsList.filter((item) => (item.grupo ?? "Padrão") === grupo && baseTitle(item.titulo) === base).length;
+      try {
+        await updateMut.mutateAsync({ id: editId, titulo: form.titulo.trim(), grupo, host: hosts[0] });
+        for (let index = 0; index < extras.length; index += 1) {
+          await createMut.mutateAsync({ titulo: `${base} ${String(alreadyInServer + index + 1).padStart(2, "0")}`, grupo, host: extras[index] });
+        }
+        if (extras.length) {
+          toast.success(`${extras.length} DNS nova(s) acrescentada(s) em ${base}.`);
+          await refreshDnsData();
+        }
+      } catch {
+        // A mutation já exibe a mensagem detalhada do backend.
+      }
       return;
     }
     try {
@@ -186,6 +222,28 @@ export default function DNS() {
             <CardDescription>Seus servidores DNS salvos. Clique para usar na troca em massa.</CardDescription>
           </CardHeader>
           <CardContent>
+            {providers.length > 1 && (
+              <div className="mb-3 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Servidores DNS">
+                {[ALL_PROVIDERS, ...providers].map((name) => {
+                  const count = name === ALL_PROVIDERS ? dnsList.length : dnsList.filter((item) => providerOf(item) === name).length;
+                  const selected = shownProvider === name;
+                  return (
+                    <Button
+                      key={name}
+                      type="button"
+                      size="sm"
+                      role="tab"
+                      aria-selected={selected}
+                      variant={selected ? "default" : "outline"}
+                      className={`shrink-0 h-8 text-xs ${selected ? "bg-yellow-500! text-black! hover:bg-yellow-600!" : ""}`}
+                      onClick={() => setActiveProvider(name)}
+                    >
+                      {name === ALL_PROVIDERS ? "Todos" : name} ({count})
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 size={20} className="animate-spin text-muted-foreground" />
@@ -198,7 +256,7 @@ export default function DNS() {
               </div>
             ) : (
               <div className="space-y-2">
-                {dnsList.map((dns) => (
+                {visibleDns.map((dns) => (
                   <div
                     key={dns.id}
                     className="flex flex-col gap-3 p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors sm:flex-row sm:items-center sm:justify-between"
@@ -469,7 +527,7 @@ export default function DNS() {
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <Label>Hosts (DNS do mesmo grupo)</Label>
-                {!editId && <Button type="button" size="sm" variant="outline" className="gap-1" onClick={() => setForm((f) => ({ ...f, hosts: [...f.hosts, ""] }))}><Plus size={14} /> Adicionar DNS</Button>}
+                <Button type="button" size="sm" variant="outline" className="gap-1" onClick={() => setForm((f) => ({ ...f, hosts: [...f.hosts, ""] }))}><Plus size={14} /> Adicionar DNS</Button>
               </div>
               <div className="space-y-2">
                 {form.hosts.map((host, index) => (
@@ -481,12 +539,13 @@ export default function DNS() {
                       onChange={(e) => setForm((f) => ({ ...f, hosts: f.hosts.map((item, itemIndex) => itemIndex === index ? e.target.value : item) }))}
                       className="font-mono text-sm"
                     />
-                    {!editId && form.hosts.length > 1 && <Button type="button" size="icon" variant="ghost" aria-label={`Remover DNS ${index + 1}`} onClick={() => setForm((f) => ({ ...f, hosts: f.hosts.filter((_, itemIndex) => itemIndex !== index) }))}><Trash2 size={14} /></Button>}
+                    {form.hosts.length > 1 && (!editId || index > 0) && <Button type="button" size="icon" variant="ghost" aria-label={`Remover DNS ${index + 1}`} onClick={() => setForm((f) => ({ ...f, hosts: f.hosts.filter((_, itemIndex) => itemIndex !== index) }))}><Trash2 size={14} /></Button>}
                   </div>
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
                 Informe somente protocolo + domínio + porta em cada campo. Não inclua caminhos como <code>/get.php</code>. Todos os Hosts serão salvos no mesmo grupo e usados em ordem.
+                {editId ? " Ao editar, o primeiro campo é a DNS que você está alterando e os campos novos são acrescentados ao mesmo servidor." : ""}
               </p>
             </div>
           </div>
