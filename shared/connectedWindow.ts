@@ -6,9 +6,8 @@ export const ONLINE_NOW_MS = ONLINE_NOW_MINUTES * 60_000;
 export type ConnectedFilter = number | "online";
 
 export function getConnectedQueryMinutes(selectedFilter: ConnectedFilter) {
-  return selectedFilter === "online"
-    ? ONLINE_NOW_MINUTES
-    : Math.max(selectedFilter, CONNECTED_WINDOW_MINUTES);
+  // O filtro escolhido vale de verdade: 15 min mostra só quem apareceu nos últimos 15 min.
+  return selectedFilter === "online" ? ONLINE_NOW_MINUTES : selectedFilter;
 }
 
 export function isOnlineNow(lastSeen: Date | string | null | undefined, now = Date.now()) {
