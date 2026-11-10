@@ -1806,20 +1806,25 @@ export const appRouter = router({
     renew: protectedProcedure.input(z.object({ deviceId: z.number().positive(), amount: z.number().positive().optional().default(30) })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Banco de dados indisponível." });
-      const device = (await db.select({ id: devices.id, dataExpiracao: devices.dataExpiracao, valor: devices.valor }).from(devices).where(and(eq(devices.id, input.deviceId), eq(devices.ownerId, ctx.user.id))).limit(1))[0];
+      const device = (await db.select({ id: devices.id, dataExpiracao: devices.dataExpiracao, valor: devices.valor, status: devices.status }).from(devices).where(and(eq(devices.id, input.deviceId), eq(devices.ownerId, ctx.user.id))).limit(1))[0];
       if (!device) throw new TRPCError({ code: "NOT_FOUND", message: "Cliente não encontrado." });
       const monthKey = new Date().toISOString().slice(0, 7);
       const renewalNote = `renovacao:${monthKey}`;
-      const already = (await db.select({ id: payments.id }).from(payments).where(and(eq(payments.ownerId, ctx.user.id), eq(payments.deviceId, input.deviceId), eq(payments.note, renewalNote), eq(payments.status, "paid"))).limit(1))[0];
+      // Só barra clique duplicado (mesma renovação enviada duas vezes em seguida). Antes bloqueava qualquer
+      // 2ª renovação no mesmo mês e o cliente ficava como expirado sem mudar nada.
+      const duplicateSince = new Date(Date.now() - 60 * 1000);
+      const already = (await db.select({ id: payments.id }).from(payments).where(and(eq(payments.ownerId, ctx.user.id), eq(payments.deviceId, input.deviceId), eq(payments.note, renewalNote), eq(payments.status, "paid"), gte(payments.paidAt, duplicateSince))).limit(1))[0];
       if (already) return { success: true, duplicate: true, paymentId: already.id };
       const base = device.dataExpiracao && new Date(`${device.dataExpiracao}T00:00:00Z`) > new Date() ? new Date(`${device.dataExpiracao}T00:00:00Z`) : new Date();
       const next = new Date(base);
       next.setUTCMonth(next.getUTCMonth() + 1);
       const nextDate = next.toISOString().slice(0, 10);
-      await db.update(devices).set({ dataExpiracao: dateOnlyForDatabase(nextDate) }).where(and(eq(devices.id, input.deviceId), eq(devices.ownerId, ctx.user.id)));
+      // Renovou: se estava Expirado, volta a Liberado sozinho. Bloqueado (decisão manual) não é mexido.
+      const reactivated = device.status === "Expirado";
+      await db.update(devices).set({ dataExpiracao: dateOnlyForDatabase(nextDate), ...(reactivated ? { status: "Liberado" as const } : {}) }).where(and(eq(devices.id, input.deviceId), eq(devices.ownerId, ctx.user.id)));
       const payment = await db.insert(payments).values({ ownerId: ctx.user.id, deviceId: input.deviceId, amount: String(input.amount || device.valor || "30.00"), status: "paid", dueDate: dateOnlyForDatabase(nextDate), paidAt: new Date(), note: renewalNote });
       const paymentId = Number((payment as any)[0]?.insertId ?? (payment as any).insertId);
-      return { success: true, duplicate: false, paymentId, expirationDate: nextDate, amount: input.amount || Number(device.valor || 30) };
+      return { success: true, duplicate: false, paymentId, expirationDate: nextDate, amount: input.amount || Number(device.valor || 30), reactivated };
     }),
   }),
 
