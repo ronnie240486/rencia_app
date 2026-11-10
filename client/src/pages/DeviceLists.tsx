@@ -107,7 +107,7 @@ export default function DeviceLists() {
   };
 
   const { data: device } = trpc.devices.getById.useQuery({ id: deviceId }, { enabled: !!deviceId });
-  const { data: lists, isLoading, refetch } = trpc.deviceUrls.list.useQuery({ deviceId }, { enabled: !!deviceId });
+  const { data: lists, isLoading, refetch, error: listsError } = trpc.deviceUrls.list.useQuery({ deviceId }, { enabled: !!deviceId });
   const hasPrimaryList = Boolean(device?.urlM3u8);
   const totalListCount = (lists?.length ?? 0) + (hasPrimaryList ? 1 : 0);
   const { data: availableTargets = [] } = trpc.deviceUrls.copyTargets.useQuery({ deviceId }, { enabled: !!deviceId && copySourceId !== null });
@@ -247,7 +247,8 @@ export default function DeviceLists() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {hasPrimaryList && <div className="flex items-center gap-3 bg-primary/5 px-4 py-3"><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10"><span className="text-xs font-bold text-primary">1</span></div><div className="min-w-0 flex-1"><div className="flex items-center gap-2 flex-wrap"><p className="text-sm font-medium text-foreground">Lista Principal</p><Badge className="text-xs">Cadastro inicial</Badge><Badge variant="outline" className="text-xs">{device?.modoSelecao}</Badge></div><p className="mt-0.5 truncate text-xs text-muted-foreground">Configurada no cadastro do cliente</p></div></div>}
+              {listsError && <div className="px-4 py-3 text-xs text-destructive">Não foi possível carregar as listas reserva: {listsError.message}</div>}
+              {hasPrimaryList && <div className="flex items-center gap-3 bg-primary/5 px-4 py-3"><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10"><span className="text-xs font-bold text-primary">1</span></div><div className="min-w-0 flex-1"><div className="flex items-center gap-2 flex-wrap"><p className="text-sm font-medium text-foreground">Lista Principal</p><Badge className="text-xs">Cadastro inicial</Badge><Badge variant="outline" className="text-xs">{device?.modoSelecao}</Badge></div><p className="mt-0.5 truncate text-xs text-muted-foreground">Configurada no cadastro do cliente</p></div><Link href={`/users/${deviceId}/edit`}><Button size="icon" variant="ghost" className="h-7 w-7" title="Editar lista principal"><Edit2 size={13} /></Button></Link></div>}
               {lists?.map((l, idx) => (
                 <div key={l.id} className="flex flex-col gap-3 px-4 py-3 hover:bg-muted/30 transition-colors sm:flex-row sm:items-center">
                   <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
