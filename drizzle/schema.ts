@@ -157,6 +157,8 @@ export const deviceUrls = mysqlTable("device_urls", {
   xtServer: text("xtServer"),
   xtUsername: varchar("xtUsername", { length: 255 }),
   xtPassword: varchar("xtPassword", { length: 255 }),
+  // Perfil de servidor (grupo de DNS) desta lista. Vazio = descobre pelo host da própria lista.
+  nomeServidor: varchar("nomeServidor", { length: 255 }),
   ordem: int("ordem").default(0).notNull(),
   ativo: boolean("ativo").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
