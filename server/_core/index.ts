@@ -13,7 +13,7 @@ import { registerBackupScheduleRoutes } from "../backupSchedule";
 import { registerHistoryRetentionScheduleRoutes } from "../historyRetentionSchedule";
 import { registerListFailoverScheduleRoutes } from "../listFailoverSchedule";
 import { startListFailoverRunner } from "../listFailoverRunner";
-import { ensureAdditiveSchema } from "../ensureSchema";
+import { ensureAdditiveSchema, ensureOperationalIndexes } from "../ensureSchema";
 import { registerIptvServerAlertScheduleRoutes } from "../iptvServerAlertSchedule";
 import { registerMonthlyRevenueScheduleRoutes } from "../monthlyRevenueSchedule";
 
@@ -119,6 +119,7 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
     startListFailoverRunner();
+    setTimeout(() => { ensureOperationalIndexes().catch((error) => console.error("[schema] índices:", error)); }, 20_000);
   });
 }
 
