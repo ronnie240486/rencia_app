@@ -34,27 +34,33 @@ export async function evaluateDnsEntries(
   const now = options.now ?? Date.now();
   const results = new Map<number, DnsEvalOutcome>();
   const networkFailed = new Set<number>();
-  const probedOk = new Set<number>();
+  // Só "carregou uma lista M3U de verdade pelo painel" prova que o painel alcança o provedor.
+  // O endereço responder na raiz NÃO prova (cada DNS pode tratar a raiz de um jeito).
+  const panelLoadedRealList = new Set<number>();
 
   await Promise.all(entries.map(async (entry) => {
     const host = norm(entry.host);
-    if (hasActiveDeviceUsingDns(activeDevices, host, now)) {
-      results.set(entry.id, { status: "success", message: dnsOperationalMessage(), statusCode: null, source: "apk" });
-      return;
-    }
     const groupHosts = entries.filter((other) => groupOf(other) === groupOf(entry)).map((other) => norm(other.host));
     const sample = sampleListUrls.find((url) => groupHosts.some((groupHost) => url.startsWith(groupHost)));
+    if (hasActiveDeviceUsingDns(activeDevices, host, now)) {
+      results.set(entry.id, { status: "success", message: dnsOperationalMessage(), statusCode: null, source: "apk" });
+      // Também testa com a lista real: se o painel consegue carregar por ela, isso vale como prova de que o painel alcança o provedor.
+      if (sample) {
+        const real = await probe(replaceDnsHost(sample, host), { requireM3uContent: true, timeoutMs }).catch(() => null);
+        if (real && isConfirmedListResponse(real)) panelLoadedRealList.add(entry.id);
+      }
+      return;
+    }
     const [real, plain] = await Promise.all([
       sample ? probe(replaceDnsHost(sample, host), { requireM3uContent: true, timeoutMs }).catch(() => null) : Promise.resolve(null),
       probe(host, { timeoutMs }).catch(() => null),
     ]);
     if (real && isConfirmedListResponse(real)) {
-      probedOk.add(entry.id);
+      panelLoadedRealList.add(entry.id);
       results.set(entry.id, { status: "success", message: "Lista real carregou por esta DNS", statusCode: real.statusCode, source: "real" });
       return;
     }
     if (hostResponded(plain)) {
-      probedOk.add(entry.id);
       results.set(entry.id, { status: "success", message: "Host respondeu", statusCode: plain?.statusCode ?? null, source: "host" });
       return;
     }
@@ -72,9 +78,9 @@ export async function evaluateDnsEntries(
 
   for (const entry of entries) {
     if (!networkFailed.has(entry.id)) continue;
-    const siblingReachable = entries.some((other) => other.id !== entry.id && groupOf(other) === groupOf(entry) && probedOk.has(other.id));
+    const siblingReachable = entries.some((other) => other.id !== entry.id && groupOf(other) === groupOf(entry) && panelLoadedRealList.has(other.id));
     results.set(entry.id, siblingReachable
-      ? { status: "error", message: "Não respondeu ao painel, enquanto outra DNS do mesmo grupo respondeu", statusCode: null, source: "none" }
+      ? { status: "error", message: "Não respondeu ao painel, enquanto outra DNS do mesmo grupo carregou a lista de verdade pelo painel", statusCode: null, source: "none" }
       : { status: "unknown", message: "Sem confirmação: o painel não conseguiu conectar e nenhum cliente usa esta DNS agora. Se funciona no aparelho, está OK.", statusCode: null, source: "none" });
   }
   return results;

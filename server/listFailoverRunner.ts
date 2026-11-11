@@ -1,5 +1,5 @@
-import { eq } from "drizzle-orm";
-import { listFailoverSettings } from "../drizzle/schema";
+import { eq, lt, sql } from "drizzle-orm";
+import { listFailoverEvents, listFailoverSettings, listHealthChecks } from "../drizzle/schema";
 import { getDb } from "./db";
 import { recordFailoverRun, runListFailoverSweep } from "./listFailover";
 
@@ -37,6 +37,31 @@ export async function runDueListFailoverSweeps(now = Date.now()) {
   }
 }
 
+let lastPruneAt = 0;
+
+/**
+ * Limpeza automática (1x por hora): o histórico de testes de lista crescia sem parar porque a rotina de
+ * retenção dependia de um agendador externo. Mantém 3 dias de testes e 30 dias do histórico de trocas.
+ * Apaga em lotes pequenos para não travar o banco.
+ */
+export async function pruneOperationalHistory(now = Date.now()) {
+  if (now - lastPruneAt < 60 * 60_000) return;
+  lastPruneAt = now;
+  const db = await getDb();
+  if (!db) return;
+  try {
+    const checksCutoff = new Date(now - 3 * 24 * 60 * 60_000);
+    for (let i = 0; i < 20; i += 1) {
+      const result: any = await db.delete(listHealthChecks).where(lt(listHealthChecks.checkedAt, checksCutoff)).limit(5000);
+      const affected = Number(result?.[0]?.affectedRows ?? result?.affectedRows ?? 0);
+      if (affected < 5000) break;
+    }
+    await db.delete(listFailoverEvents).where(lt(listFailoverEvents.createdAt, new Date(now - 30 * 24 * 60 * 60_000)));
+  } catch (error) {
+    console.error("[list-failover] limpeza do histórico falhou:", error);
+  }
+}
+
 /**
  * Monitoramento automático de listas/DNS dentro do próprio servidor. Antes ele dependia de um agendador
  * externo (Manus) que não existe no Railway; sem isso a troca de DNS/lista só acontecia quando o app
@@ -47,6 +72,7 @@ export function startListFailoverRunner() {
   started = true;
   const timer = setInterval(() => {
     runDueListFailoverSweeps().catch((error) => console.error("[list-failover] tick falhou:", error));
+    pruneOperationalHistory().catch(() => undefined);
   }, TICK_MS);
   timer.unref?.();
   console.log("[list-failover] monitoramento automático ativo (checa a cada minuto os donos com o monitoramento ligado).");

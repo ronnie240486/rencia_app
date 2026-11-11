@@ -240,6 +240,8 @@ async function loadMonthlyRevenueReport(ownerId: number, period: { periodStart: 
 }
 
 
+const dnsGroupHealthCache = new Map<number, { at: number; key: string; outcomes: Awaited<ReturnType<typeof evaluateDnsEntries>> }>();
+
 /** Lista M3U real de algum cliente do dono, usada para testar DNS sem uso com credencial verdadeira. */
 async function collectSampleListUrls(db: any, ownerId: number): Promise<string[]> {
   try {
@@ -3292,11 +3294,19 @@ export const appRouter = router({
       const { listHealthChecks } = await import("../drizzle/schema");
       const [entries, checks, activeDevices] = await Promise.all([
         db.select().from(dnsEntries).where(eq(dnsEntries.ownerId, ctx.user.id)),
-        db.select().from(listHealthChecks).where(eq(listHealthChecks.ownerId, ctx.user.id)),
+        db.select().from(listHealthChecks).where(and(eq(listHealthChecks.ownerId, ctx.user.id), gte(listHealthChecks.checkedAt, new Date(Date.now() - 3 * 24 * 60 * 60_000)))).orderBy(desc(listHealthChecks.checkedAt)).limit(3000),
         db.select({ urlM3u8: devices.urlM3u8, status: devices.status, lastSeen: devices.lastSeen }).from(devices).where(eq(devices.ownerId, ctx.user.id)),
       ]);
-      const sampleListUrls = await collectSampleListUrls(db, ctx.user.id);
-      const outcomes = await evaluateDnsEntries(entries.map((item: any) => ({ id: item.id, host: item.host, grupo: item.grupo })), activeDevices, sampleListUrls, { timeoutMs: 4000 });
+      // Cache de 60s: abrir/atualizar a tela de DNS não pode refazer todos os testes de rede a cada vez.
+      const cached = dnsGroupHealthCache.get(ctx.user.id);
+      let outcomes: Awaited<ReturnType<typeof evaluateDnsEntries>>;
+      if (cached && Date.now() - cached.at < 60_000 && cached.key === entries.map((item: any) => `${item.id}:${item.host}:${item.grupo}`).join("|")) {
+        outcomes = cached.outcomes;
+      } else {
+        const sampleListUrls = await collectSampleListUrls(db, ctx.user.id);
+        outcomes = await evaluateDnsEntries(entries.map((item: any) => ({ id: item.id, host: item.host, grupo: item.grupo })), activeDevices, sampleListUrls, { timeoutMs: 4000 });
+        dnsGroupHealthCache.set(ctx.user.id, { at: Date.now(), key: entries.map((item: any) => `${item.id}:${item.host}:${item.grupo}`).join("|"), outcomes });
+      }
       const groups = new Map<string, { group: string; total: number; errors: number; latestAt: Date | null; dns: Array<{ id: number; titulo: string; host: string; status: string; statusCode: number | null; message: string; checkedAt: Date | null; lastFailure: { statusCode: number | null; message: string; checkedAt: Date } | null }> }>();
       for (const entry of entries) {
         const key = entry.grupo || "Padrão";
@@ -3310,7 +3320,7 @@ export const appRouter = router({
         const displayStatus = outcome.status;
         const displayMessage = outcome.message;
         const lastFailure = related.find((check: any) => check.status === "error" && !String(check.message ?? "").toLowerCase().includes("não entregou") && !String(check.message ?? "").toLowerCase().includes("nao entregou"));
-        current.dns.push({ id: entry.id, titulo: entry.titulo, host: entry.host, status: displayStatus, statusCode: outcome.statusCode ?? latest?.statusCode ?? null, message: displayMessage, checkedAt: latest?.checkedAt ? new Date(latest.checkedAt) : null, lastFailure: lastFailure?.checkedAt ? { statusCode: lastFailure.statusCode ?? null, message: lastFailure.message ?? "Falha sem mensagem detalhada", checkedAt: new Date(lastFailure.checkedAt) } : null });
+        current.dns.push({ id: entry.id, titulo: entry.titulo, host: entry.host, status: displayStatus, statusCode: outcome.statusCode ?? latest?.statusCode ?? null, message: displayMessage, checkedAt: new Date(), lastFailure: lastFailure?.checkedAt ? { statusCode: lastFailure.statusCode ?? null, message: lastFailure.message ?? "Falha sem mensagem detalhada", checkedAt: new Date(lastFailure.checkedAt) } : null });
         groups.set(key, current);
       }
       return Array.from(groups.values()).map((item) => {
