@@ -242,7 +242,10 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     // Cor primária dos botões
     const primaryHsl = hexToOklch(settings.primary_color);
     if (primaryHsl) {
-      document.documentElement.style.setProperty("--primary", `${primaryHsl.h} ${primaryHsl.s}% ${primaryHsl.l}%`);
+      // O tema usa cores completas (oklch). Um valor "H S% L%" solto é inválido e deixava os botões primários
+      // transparentes (texto escuro sobre fundo escuro). Usa hsl() válido e escolhe a cor da letra pelo contraste.
+      document.documentElement.style.setProperty("--primary", `hsl(${primaryHsl.h} ${primaryHsl.s}% ${primaryHsl.l}%)`);
+      document.documentElement.style.setProperty("--primary-foreground", primaryHsl.l > 58 ? "#111111" : "#ffffff");
     }
 
     // Cor da sidebar
