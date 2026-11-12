@@ -355,7 +355,8 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       : [...current, label]);
   };
 
-  const SidebarContent = () => (
+  // Função de render (não componente): evita remontar o menu a cada re-render, o que fazia o menu "mexer sozinho" e perder o clique no X.
+  const renderSidebarContent = () => (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Logo */}
       <div className="px-4 py-4 border-b border-sidebar-border shrink-0">
@@ -483,7 +484,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         className="hidden lg:flex flex-col w-64 flex-shrink-0 fixed left-0 top-0 h-full z-30"
         style={{ background: "var(--sidebar)" }}
       >
-        <SidebarContent />
+        {renderSidebarContent()}
       </aside>
 
       {/* Mobile Sidebar Overlay */}
@@ -498,13 +499,15 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             style={{ background: "var(--sidebar)" }}
           >
             <button
+              type="button"
+              aria-label="Fechar menu"
               onClick={() => setSidebarOpen(false)}
-              className="absolute top-4 right-4 p-2 rounded-lg transition-colors"
-              style={{ color: "oklch(0.55 0.02 255)" }}
+              className="absolute top-3 right-3 z-20 p-3 rounded-lg transition-colors hover:bg-sidebar-accent"
+              style={{ color: "oklch(0.75 0.02 255)" }}
             >
               <X size={18} />
             </button>
-            <SidebarContent />
+            {renderSidebarContent()}
           </aside>
         </div>
       )}
