@@ -38,6 +38,7 @@ import { CONNECTED_WINDOW_MINUTES, isWithinConnectedWindow } from "./connectedWi
 import { hasConfirmedListFailure, probeListUrl, isLikelyM3uUrl } from "./listHealth";
 import { dnsOperationalMessage, hasActiveDeviceUsingDns } from "./dnsOperationalStatus";
 import { evaluateDnsEntries } from "./dnsEvaluate";
+import { CLIENT_FILTERS } from "../shared/clientFilters";
 import { getDnsGroupCurrentHealth } from "./dnsGroupHealth";
 import { buildServerRanking, getServerRankingClients, type ServerRankingDevice } from "./serverRanking";
 import { lookupPlaylistExpiration } from "./playlistExpiration";
@@ -935,6 +936,7 @@ export const appRouter = router({
         search: z.string().optional().default(""),
         page: z.number().min(1).optional().default(1),
         pageSize: z.number().min(1).max(100).optional().default(50),
+        filter: z.enum(CLIENT_FILTERS).optional().default("all"),
       }))
       .query(async ({ ctx, input }) => {
         return listDevices(ctx.user.id, input);

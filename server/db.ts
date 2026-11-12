@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq, gte, inArray, like, lt, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { addDaysToIsoDate, brazilToday, type ClientFilter } from "../shared/clientFilters";
 import { appCredentials, apps, auditLogs, customerNotes, deviceAppLinks, deviceListNotificationReceipts, deviceMacs, deviceTags, devices, deviceUrls, InsertUser, iptvServers, listFailoverEvents, listHealthChecks, localCredentials, maintenanceTasks, notices, payments, remoteDeviceCommands, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { dateOnlyForDatabase } from "../shared/dateOnly";
@@ -85,10 +86,11 @@ export async function listDevices(ownerId: number, opts: {
   search?: string;
   page?: number;
   pageSize?: number;
+  filter?: ClientFilter;
 }) {
   const db = await getDb();
-  if (!db) return { data: [], total: 0 };
-  const { search = "", page = 1, pageSize = 50 } = opts;
+  if (!db) return { data: [], total: 0, filterCounts: null };
+  const { search = "", page = 1, pageSize = 50, filter = "all" } = opts;
   const offset = (page - 1) * pageSize;
 
   const conditions = [eq(devices.ownerId, ownerId)];
@@ -108,7 +110,29 @@ export async function listDevices(ownerId: number, opts: {
     );
   }
 
+  // Filtros rápidos (botões do topo). A data de hoje é a de Brasília, não a do servidor.
+  const today = brazilToday();
+  const inSevenDays = addDaysToIsoDate(today, 7);
+  const inactiveBefore = new Date(Date.now() - 30 * 24 * 60 * 60_000);
+  const filterConditions = {
+    expired: or(and(sql`${devices.dataExpiracao} IS NOT NULL`, sql`${devices.dataExpiracao} < ${today}`), eq(devices.status, "Expirado")),
+    today: sql`${devices.dataExpiracao} = ${today}`,
+    week: and(sql`${devices.dataExpiracao} > ${today}`, sql`${devices.dataExpiracao} <= ${inSevenDays}`),
+    blocked: eq(devices.status, "Bloqueado"),
+    inactive: or(sql`${devices.lastSeen} IS NULL`, lt(devices.lastSeen, inactiveBefore)),
+  } as const;
+  const baseConditions = [...conditions];
+  if (filter !== "all") conditions.push(filterConditions[filter]!);
+
   const whereClause = and(...conditions);
+  const countsPromise = db.select({
+    expired: sql<number>`COALESCE(SUM(CASE WHEN (${devices.dataExpiracao} IS NOT NULL AND ${devices.dataExpiracao} < ${today}) OR ${devices.status} = 'Expirado' THEN 1 ELSE 0 END), 0)`,
+    today: sql<number>`COALESCE(SUM(CASE WHEN ${devices.dataExpiracao} = ${today} THEN 1 ELSE 0 END), 0)`,
+    week: sql<number>`COALESCE(SUM(CASE WHEN ${devices.dataExpiracao} > ${today} AND ${devices.dataExpiracao} <= ${inSevenDays} THEN 1 ELSE 0 END), 0)`,
+    blocked: sql<number>`COALESCE(SUM(CASE WHEN ${devices.status} = 'Bloqueado' THEN 1 ELSE 0 END), 0)`,
+    inactive: sql<number>`COALESCE(SUM(CASE WHEN ${devices.lastSeen} IS NULL OR ${devices.lastSeen} < ${inactiveBefore} THEN 1 ELSE 0 END), 0)`,
+    all: count(),
+  }).from(devices).where(and(...baseConditions));
   const [data, totalRows] = await Promise.all([
     db.select().from(devices).where(whereClause).orderBy(desc(devices.dataCadastro)).limit(pageSize).offset(offset),
     db.select({ count: count() }).from(devices).where(whereClause),
@@ -156,6 +180,10 @@ export async function listDevices(ownerId: number, opts: {
       ],
     })),
     total: totalRows[0]?.count ?? 0,
+    filterCounts: await countsPromise.then((rows) => {
+      const row = rows[0];
+      return row ? { all: Number(row.all), expired: Number(row.expired), today: Number(row.today), week: Number(row.week), blocked: Number(row.blocked), inactive: Number(row.inactive) } : null;
+    }).catch(() => null),
   };
 }
 
