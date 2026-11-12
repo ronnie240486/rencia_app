@@ -411,12 +411,12 @@ export default function Users() {
               <Button
                 key={key}
                 size="sm"
-                variant={active ? "default" : "outline"}
-                className={`h-8 text-xs gap-1 ${active ? "" : tone}`}
+                variant="outline"
+                className={`h-8 text-xs gap-1 ${active ? "border-primary bg-primary/20 font-semibold text-foreground hover:bg-primary/30 hover:text-foreground" : tone}`}
                 onClick={() => { setFilter(key); setPage(1); setSelected(new Set()); }}
               >
                 {CLIENT_FILTER_LABELS[key]}
-                {typeof total === "number" && <span className={`rounded-full px-1.5 text-[10px] font-semibold ${active ? "bg-primary-foreground/20" : "bg-muted"}`}>{total}</span>}
+                {typeof total === "number" && <span className={`rounded-full px-1.5 text-[10px] font-semibold ${active ? "bg-primary/30 text-foreground" : "bg-muted"}`}>{total}</span>}
               </Button>
             );
           })}
