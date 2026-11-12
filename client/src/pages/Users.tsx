@@ -20,6 +20,7 @@ import {
   LockKeyhole, SlidersHorizontal, UnlockKeyhole, Download, Mic, MicOff, ArchiveRestore,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CLIENT_FILTERS, CLIENT_FILTER_LABELS, type ClientFilter } from "@shared/clientFilters";
 import { Link, useLocation, useSearch } from "wouter";
 import { getAvailableAppsGridClass } from "@/lib/userCardLayout";
 import { buildUserEditHref, rememberUsersNavigation, resolveUsersNavigation } from "@/lib/userNavigation";
@@ -107,6 +108,7 @@ export default function Users() {
   const [search, setSearch] = useState(() => navigationState.search);
   const [searchInput, setSearchInput] = useState(() => navigationState.search);
   const [page, setPage] = useState(() => navigationState.page);
+  const [filter, setFilter] = useState<ClientFilter>("all");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteManyOpen, setDeleteManyOpen] = useState(false);
@@ -135,7 +137,7 @@ export default function Users() {
 
   const utils = trpc.useUtils();
 
-  const { data, isLoading } = trpc.devices.list.useQuery({ search, page, pageSize: PAGE_SIZE });
+  const { data, isLoading } = trpc.devices.list.useQuery({ search, page, pageSize: PAGE_SIZE, filter });
   const exportClientsQuery = trpc.dataExports.clients.useQuery({ search }, { enabled: false });
   const devices = data?.data ?? [];
   const total = data?.total ?? 0;
@@ -397,6 +399,27 @@ export default function Users() {
               Lixeira
             </Button>
           </div>
+        </div>
+
+        {/* Filtros rápidos */}
+        <div className="flex flex-wrap gap-2">
+          {CLIENT_FILTERS.map((key) => {
+            const total = data?.filterCounts?.[key];
+            const active = filter === key;
+            const tone = key === "expired" ? "text-red-600" : key === "today" ? "text-amber-600" : key === "week" ? "text-orange-600" : "";
+            return (
+              <Button
+                key={key}
+                size="sm"
+                variant={active ? "default" : "outline"}
+                className={`h-8 text-xs gap-1 ${active ? "" : tone}`}
+                onClick={() => { setFilter(key); setPage(1); setSelected(new Set()); }}
+              >
+                {CLIENT_FILTER_LABELS[key]}
+                {typeof total === "number" && <span className={`rounded-full px-1.5 text-[10px] font-semibold ${active ? "bg-primary-foreground/20" : "bg-muted"}`}>{total}</span>}
+              </Button>
+            );
+          })}
         </div>
 
         {/* Search + Bulk Actions */}
