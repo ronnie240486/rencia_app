@@ -181,6 +181,34 @@ export async function storagePut(
   return { key, url: `/manus-storage/${key}` };
 }
 
+// Limite do plano gratuito do Cloudinary é 10 MB por arquivo; deixa uma folga.
+const CLOUDINARY_SAFE_BYTES = 9 * 1024 * 1024;
+
+/**
+ * Para backups (arquivos que crescem com o tempo): usa o mesmo destino do storagePut, mas se o
+ * Cloudinary recusar (arquivo grande demais / plano gratuito) cai para o disco do painel
+ * (UPLOADS_DIR / Volume do Railway) em vez de falhar o backup inteiro.
+ */
+export async function storagePutBackup(
+  relKey: string,
+  data: Buffer | Uint8Array | string,
+  contentType = "application/octet-stream",
+): Promise<{ key: string; url: string }> {
+  const size = typeof data === "string" ? Buffer.byteLength(data) : data.byteLength;
+  const cloudinaryOnly = !getForgeConfig() && !!getCloudinaryConfig();
+  if (cloudinaryOnly && size > CLOUDINARY_SAFE_BYTES) {
+    console.warn(`[Backup] Arquivo de ${size} bytes excede o limite do Cloudinary; salvando no disco do painel.`);
+    return localStoragePut(relKey, data);
+  }
+  try {
+    return await storagePut(relKey, data, contentType);
+  } catch (error) {
+    if (!cloudinaryOnly) throw error;
+    console.warn("[Backup] Cloudinary recusou o backup; salvando no disco do painel:", error instanceof Error ? error.message : error);
+    return localStoragePut(relKey, data);
+  }
+}
+
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
   return { key, url: `/manus-storage/${key}` };

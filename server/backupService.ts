@@ -2,7 +2,8 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { autoBackupSettings, backupSnapshots } from "../drizzle/schema";
 import { getDb } from "./db";
 import { exportBackup, importBackup } from "./exportImport";
-import { storageGetSignedUrl, storagePut } from "./storage";
+import { gzipSync, gunzipSync } from "zlib";
+import { storageGetSignedUrl, storagePutBackup } from "./storage";
 import { uploadGoogleDriveBackup } from "./googleDriveBackup";
 
 export const AUTO_BACKUP_CRON = "0 0 6 * * *"; // 03:00 no horário de Brasília (UTC-3)
@@ -35,13 +36,15 @@ export async function createBackupSnapshot(ownerId: number, type: "automatic" | 
     const backup = await exportBackup(ownerId);
     const content = JSON.stringify(backup);
     const filename = `backup-${runKey ?? now.toISOString().replace(/[:.]/g, "-")}.json`;
-    const stored = await storagePut(`backups/${ownerId}/${filename}`, content, "application/json");
+    // O backup completo pode passar de dezenas de MB em JSON; compactado cai ~10x e cabe no Cloudinary gratuito.
+    const compressed = gzipSync(Buffer.from(content, "utf8"), { level: 9 });
+    const stored = await storeBackupFile(`backups/${ownerId}/${filename}.gz`, compressed);
     const googleDrive = await uploadGoogleDriveBackup(ownerId, filename, content);
     const result = await db.insert(backupSnapshots).values({
       ownerId,
       storageKey: stored.key,
       storageUrl: stored.url,
-      fileSize: Buffer.byteLength(content, "utf8"),
+      fileSize: compressed.byteLength,
       type,
       runKey,
       googleDriveFileId: googleDrive.fileId,
@@ -63,15 +66,51 @@ export async function createBackupSnapshot(ownerId: number, type: "automatic" | 
   }
 }
 
+const MULTIPART_PREFIX = "multi:";
+const PART_BYTES = 8 * 1024 * 1024; // abaixo dos 10 MB do Cloudinary gratuito
+
+/** Guarda o backup inteiro; se ainda for grande demais depois de compactado, divide em partes de 8 MB. */
+async function storeBackupFile(key: string, data: Buffer) {
+  if (data.byteLength <= PART_BYTES) return storagePutBackup(key, data, "application/gzip");
+  const keys: string[] = [];
+  const urls: string[] = [];
+  for (let start = 0, index = 1; start < data.byteLength; start += PART_BYTES, index += 1) {
+    const part = await storagePutBackup(`${key}.part${index}`, data.subarray(start, start + PART_BYTES), "application/octet-stream");
+    keys.push(part.key);
+    urls.push(part.url);
+  }
+  return { key: MULTIPART_PREFIX + JSON.stringify(keys), url: MULTIPART_PREFIX + JSON.stringify(urls) };
+}
+
+async function fetchStoredBytes(url: string, key: string) {
+  const target = /^https?:\/\//i.test(url) ? url : await storageGetSignedUrl(key);
+  const response = await fetch(target);
+  if (!response.ok) throw new Error("Não foi possível baixar o arquivo do backup");
+  return Buffer.from(await response.arrayBuffer());
+}
+
+/** Lê o arquivo do backup (Cloudinary, disco ou Forge) e descompacta se estiver em gzip (backups novos). */
+async function readSnapshotBytes(snapshot: { storageKey: string; storageUrl: string }) {
+  let raw: Buffer;
+  if (snapshot.storageUrl.startsWith(MULTIPART_PREFIX)) {
+    const urls = JSON.parse(snapshot.storageUrl.slice(MULTIPART_PREFIX.length)) as string[];
+    const keys = snapshot.storageKey.startsWith(MULTIPART_PREFIX) ? (JSON.parse(snapshot.storageKey.slice(MULTIPART_PREFIX.length)) as string[]) : [];
+    const parts: Buffer[] = [];
+    for (let i = 0; i < urls.length; i += 1) parts.push(await fetchStoredBytes(urls[i], keys[i] ?? ""));
+    raw = Buffer.concat(parts);
+  } else {
+    raw = await fetchStoredBytes(snapshot.storageUrl, snapshot.storageKey);
+  }
+  return raw.length > 2 && raw[0] === 0x1f && raw[1] === 0x8b ? gunzipSync(raw) : raw;
+}
+
 export async function restoreBackupSnapshot(ownerId: number, snapshotId: number) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
   const snapshot = (await db.select().from(backupSnapshots).where(and(eq(backupSnapshots.id, snapshotId), eq(backupSnapshots.ownerId, ownerId))).limit(1))[0];
   if (!snapshot) throw new Error("Backup não encontrado");
-  const signedUrl = await storageGetSignedUrl(snapshot.storageKey);
-  const response = await fetch(signedUrl);
-  if (!response.ok) throw new Error("Não foi possível baixar o backup");
-  return importBackup(ownerId, await response.json());
+  const bytes = await readSnapshotBytes(snapshot);
+  return importBackup(ownerId, JSON.parse(bytes.toString("utf8")));
 }
 
 /** Retorna os bytes do backup para a rota autenticada enviar como anexo de download. */
@@ -80,8 +119,11 @@ export async function getBackupDownload(ownerId: number, snapshotId: number) {
   if (!db) throw new Error("Banco de dados indisponível");
   const snapshot = (await db.select().from(backupSnapshots).where(and(eq(backupSnapshots.id, snapshotId), eq(backupSnapshots.ownerId, ownerId))).limit(1))[0];
   if (!snapshot) throw new Error("Backup não encontrado");
-  const signedUrl = await storageGetSignedUrl(snapshot.storageKey);
-  const response = await fetch(signedUrl);
-  if (!response.ok) throw new Error("Não foi possível preparar o download do backup");
-  return { filename: backupDownloadFilename(snapshot.createdAt), content: Buffer.from(await response.arrayBuffer()) };
+  return { filename: backupDownloadFilename(snapshot.createdAt), content: await readSnapshotBytes(snapshot) };
 }
+
+/** Somente para testes. */
+export const __test = {
+  storeBackupFile,
+  fetchMulti: (snapshot: { key: string; url: string }) => readSnapshotBytes({ storageKey: snapshot.key, storageUrl: snapshot.url }),
+};
