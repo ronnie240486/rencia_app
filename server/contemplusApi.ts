@@ -158,6 +158,10 @@ export function registerContemplusApi(app: Express, getSettings: () => Promise<R
             support_message: text("support_message"),
             support_whatsapp: text("support_whatsapp"),
             tabs_visibility: ALL_TABS,
+            // "Lista global" do app: o catálogo de filmes/séries usa o mesmo acesso Xtream do cliente.
+            catalog: access && ready
+              ? { enabled: 1, dns: access.server, username: access.username, password: access.password, movies: 1, series: 1, auto_refresh: 1, refresh_hours: 12, is_stale: 0, revision: String(Math.floor(ts / 3600)), updated_at_ts: ts, next_refresh_at: "" }
+              : { enabled: 0, dns: "", username: "", password: "", movies: 0, series: 0, auto_refresh: 0, refresh_hours: 12, is_stale: 0, revision: "", updated_at_ts: ts },
             login_trial: { enabled: 0, days: 0, profiles: 1 },
           });
           return;
