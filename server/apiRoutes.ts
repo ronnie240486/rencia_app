@@ -50,6 +50,7 @@ import { isManagedAppId, MANAGED_APP_CATALOG, NEW_MANAGED_APP_IDS } from "../sha
 import { resolveManagedAppId, selectActivityDevice } from "./activityDeviceSelection";
 import { isConfirmedListResponse, probeListUrl } from "./listHealth";
 import { findDeviceByAnyMac, findDeviceMatchByAnyMac } from "./deviceMacLookup";
+import { registerContemplusApi } from "./contemplusApi";
 import { normalizeMacForStorage } from "../shared/mac";
 import { buildHeartbeatMacLookup } from "./heartbeatMac";
 import { comparePassword } from "./auth";
@@ -130,7 +131,7 @@ const UPLOAD_FIELD_KEYS: Record<string, string> = {
   ultra_icon_series_url: "ultra_icon_series_url",
 };
 
-const GENERIC_APP_UPLOAD_FIELD = /^(prestige|optimus|imperio|infinitus|supremus|evolux|ominus|magnus|excellence|future|furious)_(logo_url|banner_url|background_url|message_image_url|icon_live_tv_url|icon_movies_url|icon_series_url)$/;
+const GENERIC_APP_UPLOAD_FIELD = /^(prestige|optimus|imperio|infinitus|supremus|evolux|ominus|magnus|excellence|future|furious|contemplus)_(logo_url|banner_url|background_url|message_image_url|icon_live_tv_url|icon_movies_url|icon_series_url)$/;
 
 // Cache de configurações para evitar query no banco a cada request
 let settingsCache: Record<string, string> = {};
@@ -2308,6 +2309,9 @@ export function registerApiRoutes(app: Express) {
       res.status(500).json({ registered: false, error: "Não foi possível obter a configuração do aplicativo." });
     }
   });
+
+  // Compatibilidade do APK Contemplus (api.php no estilo do painel original).
+  registerContemplusApi(app, getSettings);
 
   /**
    * GET /api/v5/apps/:appId/preview

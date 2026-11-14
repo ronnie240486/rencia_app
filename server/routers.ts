@@ -3705,7 +3705,7 @@ export const appRouter = router({
   ranking: router({
     appStats: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();  
-      if (!db) return { ouropro: 0, maximus: 0, ultra: 0, prestige: 0, optimus: 0, imperio: 0, infinitus: 0, supremus: 0, evolux: 0, ominus: 0, magnus: 0, excellence: 0, future: 0, furious: 0, total: 0 };
+      if (!db) return { ouropro: 0, maximus: 0, ultra: 0, prestige: 0, optimus: 0, imperio: 0, infinitus: 0, supremus: 0, evolux: 0, ominus: 0, magnus: 0, excellence: 0, future: 0, furious: 0, contemplus: 0, total: 0 };
       
       const result = await db.select({
         app: devices.app,
@@ -3748,6 +3748,7 @@ export const appRouter = router({
       const excellence = (counts['Excellence'] || 0) + (linkedCounts.excellence || 0);
       const future = (counts['Future'] || 0) + (counts['Future Player'] || 0) + (linkedCounts.future || 0);
       const furious = (counts['Furious'] || 0) + (counts['Furious Player'] || 0) + (linkedCounts.furious || 0);
+      const contemplus = (counts['Contemplus'] || 0) + (counts['Contemplus Player'] || 0) + (linkedCounts.contemplus || 0);
       
       return {
         ouropro,
@@ -3764,7 +3765,8 @@ export const appRouter = router({
         excellence,
         future,
         furious,
-        total: ouropro + maximus + ultra + prestige + optimus + imperio + infinitus + supremus + evolux + ominus + magnus + excellence + future + furious
+        contemplus,
+        total: ouropro + maximus + ultra + prestige + optimus + imperio + infinitus + supremus + evolux + ominus + magnus + excellence + future + furious + contemplus
       };
     }),
 
