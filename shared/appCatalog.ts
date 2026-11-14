@@ -115,7 +115,7 @@ export const MANAGED_APP_CATALOG = {
     settingsRoute: "/aplicativos/furious",
     publicSlug: "furious",
     deviceAliases: ["Furious", "Furious Player"],
-    defaultLogoUrl: "/manus-storage/furious-logo-20261113_7c1e5a90.png",
+    defaultLogoUrl: "/manus-storage/icone.png",
   },
 } as const;
 
