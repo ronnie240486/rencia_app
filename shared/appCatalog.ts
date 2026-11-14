@@ -1,4 +1,4 @@
-export type ManagedAppId = "ouropro" | "fusion" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence" | "future" | "furious";
+export type ManagedAppId = "ouropro" | "fusion" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence" | "future" | "furious" | "contemplus";
 
 export const APP_CONFIGURATION_FEATURES = [
   "logo", "banner", "background", "message", "content_icons", "playlist", "mac_integration", "updates",
@@ -117,9 +117,17 @@ export const MANAGED_APP_CATALOG = {
     deviceAliases: ["Furious", "Furious Player"],
     defaultLogoUrl: "/manus-storage/icone.png",
   },
+  contemplus: {
+    id: "contemplus",
+    displayName: "Contemplus",
+    settingsRoute: "/aplicativos/contemplus",
+    publicSlug: "contemplus",
+    deviceAliases: ["Contemplus", "Contemplus Player"],
+    defaultLogoUrl: "/manus-storage/contemplus-logo-20261114_c0a1b2d3.png",
+  },
 } as const;
 
-export const NEW_MANAGED_APP_IDS: ManagedAppId[] = ["prestige", "optimus", "imperio", "infinitus", "supremus", "evolux", "ominus", "magnus", "excellence", "future", "furious"];
+export const NEW_MANAGED_APP_IDS: ManagedAppId[] = ["prestige", "optimus", "imperio", "infinitus", "supremus", "evolux", "ominus", "magnus", "excellence", "future", "furious", "contemplus"];
 
 export function isManagedAppId(value: string): value is ManagedAppId {
   return Object.prototype.hasOwnProperty.call(MANAGED_APP_CATALOG, value);
