@@ -1,4 +1,4 @@
-export type ManagedAppId = "ouropro" | "fusion" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence" | "future";
+export type ManagedAppId = "ouropro" | "fusion" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence" | "future" | "furious";
 
 export const APP_CONFIGURATION_FEATURES = [
   "logo", "banner", "background", "message", "content_icons", "playlist", "mac_integration", "updates",
@@ -109,9 +109,17 @@ export const MANAGED_APP_CATALOG = {
     deviceAliases: ["Future", "Future Player"],
     defaultLogoUrl: "/manus-storage/future-logo-20260827_1a714bae.jpg",
   },
+  furious: {
+    id: "furious",
+    displayName: "Furious",
+    settingsRoute: "/aplicativos/furious",
+    publicSlug: "furious",
+    deviceAliases: ["Furious", "Furious Player"],
+    defaultLogoUrl: "/manus-storage/furious-logo-20261113_7c1e5a90.png",
+  },
 } as const;
 
-export const NEW_MANAGED_APP_IDS: ManagedAppId[] = ["prestige", "optimus", "imperio", "infinitus", "supremus", "evolux", "ominus", "magnus", "excellence", "future"];
+export const NEW_MANAGED_APP_IDS: ManagedAppId[] = ["prestige", "optimus", "imperio", "infinitus", "supremus", "evolux", "ominus", "magnus", "excellence", "future", "furious"];
 
 export function isManagedAppId(value: string): value is ManagedAppId {
   return Object.prototype.hasOwnProperty.call(MANAGED_APP_CATALOG, value);
