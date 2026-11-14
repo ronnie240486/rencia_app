@@ -28,7 +28,7 @@ const FALLBACK_LOGOS: Record<PublicAppSlug, string> = {
   magnus: "/manus-storage/magnus-logo-20260827_850f6f6f.jpg",
   excellence: "/manus-storage/excellence-logo-20260827_31e22412.png",
   future: "/manus-storage/future-logo-20260827_1a714bae.jpg",
-  furious: "/manus-storage/furious-logo-20261113_7c1e5a90.png",
+  furious: "/manus-storage/icone.png",
 };
 
 function safePublicUrl(value: string | undefined): string {
