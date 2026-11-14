@@ -21,6 +21,7 @@ export const CLIENT_APP_OPTIONS: ClientAppOption[] = [
   { value: "Excellence", label: "Excellence", logoUrl: MANAGED_APP_CATALOG.excellence.defaultLogoUrl },
   { value: "Future", label: "Future", logoUrl: MANAGED_APP_CATALOG.future.defaultLogoUrl },
   { value: "Furious", label: "Furious", logoUrl: MANAGED_APP_CATALOG.furious.defaultLogoUrl },
+  { value: "Contemplus", label: "Contemplus", logoUrl: MANAGED_APP_CATALOG.contemplus.defaultLogoUrl },
   { value: "Outro", label: "Outro aplicativo" },
 ];
 
