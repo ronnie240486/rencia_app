@@ -12,7 +12,7 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 
 const APP_NAMES: Record<string, string> = {
-  ouropro: "Ouro Pro", fusion: "Fusion", maximus: "Maximus Player", prestige: "Prestige", optimus: "Optimus", imperio: "Império Play", infinitus: "Infinitus", supremus: "Supreme", evolux: "Evolux", ominus: "Ominus", magnus: "Magnus", excellence: "Excellence",
+  ouropro: "Ouro Pro", fusion: "Fusion", maximus: "Maximus Player", prestige: "Prestige", optimus: "Optimus", imperio: "Império Play", infinitus: "Infinitus", supremus: "Supreme", evolux: "Evolux", ominus: "Ominus", magnus: "Magnus", excellence: "Excellence", future: "Future", furious: "Furious",
 };
 
 function formatDate(value: Date | string | null) {

@@ -5,7 +5,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { resolveRequestedDownloadSlug } from "@/lib/publicStoreRoute";
 
 type DownloadApp = {
-  slug: "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence" | "future";
+  slug: "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence" | "future" | "furious";
   name: string;
   version: string;
   downloadUrl: string;
@@ -42,6 +42,7 @@ const SHORT_DOWNLOAD_SLUGS: Record<string, DownloadApp["slug"]> = {
   "/g": "magnus",
   "/ex": "excellence",
   "/f": "future",
+  "/fu": "furious",
 };
 
 const APP_SHOWCASES: Partial<Record<DownloadApp["slug"], { title: string; images: Array<{ url: string; label: string }> }>> = {

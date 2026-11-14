@@ -280,6 +280,7 @@ export default function Dashboard() {
     { id: "magnus", name: "Magnus", logo: MANAGED_APP_CATALOG.magnus.defaultLogoUrl, count: appStats?.magnus ?? 0 },
     { id: "excellence", name: "Excellence", logo: MANAGED_APP_CATALOG.excellence.defaultLogoUrl, count: appStats?.excellence ?? 0 },
     { id: "future", name: "Future", logo: MANAGED_APP_CATALOG.future.defaultLogoUrl, count: appStats?.future ?? 0 },
+    { id: "furious", name: "Furious", logo: MANAGED_APP_CATALOG.furious.defaultLogoUrl, count: appStats?.furious ?? 0 },
   ].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "pt-BR")), [appStats]);
 
   return (

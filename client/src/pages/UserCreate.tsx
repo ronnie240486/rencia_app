@@ -58,6 +58,7 @@ const APP_ID_BY_NAME: Record<string, string> = {
   Magnus: "magnus",
   Excellence: "excellence",
   Future: "future",
+  Furious: "furious",
 };
 
 function newLista(isPrimary = false): ListaItem {

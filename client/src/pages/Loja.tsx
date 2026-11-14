@@ -12,7 +12,7 @@ import { trpc } from "@/lib/trpc";
 import { MANAGED_APP_CATALOG } from "@shared/appCatalog";
 import { PUBLIC_STORE_URL } from "@shared/publicStore";
 
-type PublicSlug = "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence" | "future";
+type PublicSlug = "ouropro" | "ultra" | "maximus" | "prestige" | "optimus" | "imperio" | "infinitus" | "supremus" | "evolux" | "ominus" | "magnus" | "excellence" | "future" | "furious";
 
 const PUBLIC_SHORT_PATHS: Record<PublicSlug, string> = {
   ouropro: "/o",
@@ -28,6 +28,7 @@ const PUBLIC_SHORT_PATHS: Record<PublicSlug, string> = {
   magnus: "/g",
   excellence: "/ex",
   future: "/f",
+  furious: "/fu",
 };
 
 interface AppConfig {
@@ -51,6 +52,7 @@ const APPS: AppConfig[] = [
   { name: "Magnus", logo: MANAGED_APP_CATALOG.magnus.defaultLogoUrl, color: "orange", publicSlug: "magnus" },
   { name: "Excellence", logo: MANAGED_APP_CATALOG.excellence.defaultLogoUrl, color: "purple", publicSlug: "excellence" },
   { name: "Future", logo: MANAGED_APP_CATALOG.future.defaultLogoUrl, color: "cyan", publicSlug: "future" },
+  { name: "Furious", logo: MANAGED_APP_CATALOG.furious.defaultLogoUrl, color: "orange", publicSlug: "furious" },
 ];
 
 function fallbackDownload(settings: Record<string, string> | undefined, slug: PublicSlug) {
@@ -66,6 +68,7 @@ function fallbackDownload(settings: Record<string, string> | undefined, slug: Pu
   if (slug === "magnus") return settings?.magnus_apk_download_url || "";
   if (slug === "excellence") return settings?.excellence_apk_download_url || "";
   if (slug === "future") return settings?.future_apk_download_url || "";
+  if (slug === "furious") return settings?.furious_apk_download_url || "";
   return settings?.maximus_download_url || settings?.gpcpro_apk_download_url || "";
 }
 
@@ -82,6 +85,7 @@ function fallbackVersion(settings: Record<string, string> | undefined, slug: Pub
   if (slug === "magnus") return settings?.magnus_apk_version || "";
   if (slug === "excellence") return settings?.excellence_apk_version || "";
   if (slug === "future") return settings?.future_apk_version || "";
+  if (slug === "furious") return settings?.furious_apk_version || "";
   return settings?.maximus_version || settings?.gpcpro_apk_version || "";
 }
 
