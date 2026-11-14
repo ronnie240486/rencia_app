@@ -281,6 +281,7 @@ export default function Dashboard() {
     { id: "excellence", name: "Excellence", logo: MANAGED_APP_CATALOG.excellence.defaultLogoUrl, count: appStats?.excellence ?? 0 },
     { id: "future", name: "Future", logo: MANAGED_APP_CATALOG.future.defaultLogoUrl, count: appStats?.future ?? 0 },
     { id: "furious", name: "Furious", logo: MANAGED_APP_CATALOG.furious.defaultLogoUrl, count: appStats?.furious ?? 0 },
+    { id: "contemplus", name: "Contemplus", logo: MANAGED_APP_CATALOG.contemplus.defaultLogoUrl, count: appStats?.contemplus ?? 0 },
   ].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "pt-BR")), [appStats]);
 
   return (

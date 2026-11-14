@@ -756,6 +756,7 @@ export default function Users() {
                 <option value="Excellence">Excellence</option>
                 <option value="Future">Future</option>
                 <option value="Furious">Furious</option>
+                <option value="Contemplus">Contemplus</option>
                 <option value="Outro">Outro aplicativo</option>
               </select>
             </div>

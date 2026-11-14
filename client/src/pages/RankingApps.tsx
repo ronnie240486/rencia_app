@@ -35,6 +35,7 @@ export default function RankingApps() {
       'Excellence': appStats?.excellence || 0,
       'Future': appStats?.future || 0,
       'Furious': appStats?.furious || 0,
+      'Contemplus': appStats?.contemplus || 0,
     };
   }, [appStats]);
 
@@ -75,6 +76,7 @@ export default function RankingApps() {
       { id: "excellence", name: "Excellence", logo: MANAGED_APP_CATALOG.excellence.defaultLogoUrl, color: "purple", users: appCounts['Excellence'] || 0 },
       { id: "future", name: "Future", logo: MANAGED_APP_CATALOG.future.defaultLogoUrl, color: "cyan", users: appCounts['Future'] || 0 },
       { id: "furious", name: "Furious", logo: MANAGED_APP_CATALOG.furious.defaultLogoUrl, color: "yellow", users: appCounts['Furious'] || 0 },
+      { id: "contemplus", name: "Contemplus", logo: MANAGED_APP_CATALOG.contemplus.defaultLogoUrl, color: "purple", users: appCounts['Contemplus'] || 0 },
     ];
 
     return apps
