@@ -11,7 +11,7 @@ describe("loja pública de downloads", () => {
       public_maximus_active: "false",
     });
 
-    expect(apps).toHaveLength(12);
+    expect(apps).toHaveLength(13);
     expect(apps.find((app) => app.slug === "ouropro")).toMatchObject({ version: "7.1.0", isAvailable: true });
     expect(apps.find((app) => app.slug === "ultra")).toMatchObject({ isAvailable: false });
     expect(apps.find((app) => app.slug === "maximus")).toBeUndefined();
