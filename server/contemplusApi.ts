@@ -69,21 +69,32 @@ export function registerContemplusApi(app: Express, getSettings: () => Promise<R
 
       let access: XtreamAccess | null = null;
       let servers: string[] = [];
+      let listNames: string[] = [];
+      let activeNumber = 1;
       if (registered && device) {
-        const extras = await db.select({ url: deviceUrls.urlM3u8, server: deviceUrls.xtServer, user: deviceUrls.xtUsername, pass: deviceUrls.xtPassword })
+        const extras = await db.select({ id: deviceUrls.id, nome: deviceUrls.nome, url: deviceUrls.urlM3u8, server: deviceUrls.xtServer, user: deviceUrls.xtUsername, pass: deviceUrls.xtPassword })
           .from(deviceUrls).where(eq(deviceUrls.deviceId, device.id)).orderBy(asc(deviceUrls.ordem));
-        access = parseXtreamAccess(device.urlM3u8);
-        if (!access) {
-          for (const extra of extras) {
-            access = parseXtreamAccess(extra.url) || (extra.server && extra.user && extra.pass ? parseXtreamAccess(extra.server) && { server: parseXtreamAccess(extra.server)!.server, username: extra.user, password: extra.pass } : null);
-            if (access) break;
-          }
+        const accessOf = (e: { url: string | null; server: string | null; user: string | null; pass: string | null }): XtreamAccess | null => {
+          const fromUrl = parseXtreamAccess(e.url);
+          if (fromUrl) return fromUrl;
+          const srv = parseXtreamAccess(e.server);
+          return srv && e.user && e.pass ? { server: srv.server, username: e.user, password: e.pass } : null;
+        };
+        const candidates: { name: string; access: XtreamAccess | null }[] = [];
+        if (device.urlM3u8) candidates.push({ name: device.nomeServidor || "Lista 1", access: parseXtreamAccess(device.urlM3u8) });
+        const activeId = device.activeDeviceUrlId ?? null;
+        let activeIdx = 0;
+        for (const extra of extras) {
+          if (extra.id === activeId) activeIdx = candidates.length;
+          candidates.push({ name: extra.nome || `Lista ${candidates.length + 1}`, access: accessOf(extra) });
         }
+        listNames = candidates.map((c) => c.name);
+        activeNumber = activeIdx + 1;
+        access = candidates[activeIdx]?.access || candidates.find((c) => c.access)?.access || null;
         if (access) {
           servers = [access.server];
-          for (const extra of extras) {
-            const other = parseXtreamAccess(extra.url);
-            if (other && other.username === access.username && !servers.includes(other.server)) servers.push(other.server);
+          for (const c of candidates) {
+            if (c.access && c.access.username === access.username && !servers.includes(c.access.server)) servers.push(c.access.server);
           }
         }
       }
@@ -167,6 +178,19 @@ export function registerContemplusApi(app: Express, getSettings: () => Promise<R
           return;
         case "get_tabs_visibility":
           res.json({ success: true, tabs_visibility: ALL_TABS, ts });
+          return;
+        case "extras":
+          res.json({
+            success: registered,
+            message_title: text("message_title"),
+            message_text: text("message_text"),
+            apk_version: text("apk_version"),
+            apk_download_url: text("apk_download_url"),
+            logo_url: text("logo_url"),
+            background_url: text("background_url"),
+            lists: listNames,
+            active_list_number: activeNumber,
+          });
           return;
         case "get_purchase_key":
           res.json({ success: false, status: "unavailable", message: "Indisponível." });
